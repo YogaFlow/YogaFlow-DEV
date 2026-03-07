@@ -31,7 +31,8 @@ CREATE TABLE IF NOT EXISTS system_settings (
 -- Aktiviere RLS
 ALTER TABLE system_settings ENABLE ROW LEVEL SECURITY;
 
--- Nur Administratoren können System-Einstellungen lesen
+-- Nur Administratoren können System-Einstellungen lesen (idempotent)
+DROP POLICY IF EXISTS "Admins can read system settings" ON system_settings;
 CREATE POLICY "Admins can read system settings"
   ON system_settings
   FOR SELECT
@@ -43,7 +44,8 @@ CREATE POLICY "Admins can read system settings"
     )
   );
 
--- Nur Administratoren können System-Einstellungen verwalten
+-- Nur Administratoren können System-Einstellungen verwalten (idempotent)
+DROP POLICY IF EXISTS "Admins can manage system settings" ON system_settings;
 CREATE POLICY "Admins can manage system settings"
   ON system_settings
   FOR ALL

@@ -158,7 +158,8 @@ ON CONFLICT (key) DO NOTHING;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE global_settings ENABLE ROW LEVEL SECURITY;
 
--- RLS policies for messages
+-- RLS policies for messages (idempotent)
+DROP POLICY IF EXISTS "Users can view messages sent to them" ON messages;
 CREATE POLICY "Users can view messages sent to them"
   ON messages FOR SELECT
   TO authenticated
@@ -170,6 +171,7 @@ CREATE POLICY "Users can view messages sent to them"
     ))
   );
 
+DROP POLICY IF EXISTS "Participants can send messages to course leaders" ON messages;
 CREATE POLICY "Participants can send messages to course leaders"
   ON messages FOR INSERT
   TO authenticated
@@ -180,6 +182,7 @@ CREATE POLICY "Participants can send messages to course leaders"
     )
   );
 
+DROP POLICY IF EXISTS "Course leaders can send messages" ON messages;
 CREATE POLICY "Course leaders can send messages"
   ON messages FOR INSERT
   TO authenticated
@@ -190,6 +193,7 @@ CREATE POLICY "Course leaders can send messages"
     )
   );
 
+DROP POLICY IF EXISTS "Users can mark messages as read" ON messages;
 CREATE POLICY "Users can mark messages as read"
   ON messages FOR UPDATE
   TO authenticated
@@ -206,12 +210,14 @@ CREATE POLICY "Users can mark messages as read"
     ))
   );
 
--- RLS policies for global_settings
+-- RLS policies for global_settings (idempotent)
+DROP POLICY IF EXISTS "Anyone authenticated can view settings" ON global_settings;
 CREATE POLICY "Anyone authenticated can view settings"
   ON global_settings FOR SELECT
   TO authenticated
   USING (true);
 
+DROP POLICY IF EXISTS "Admins can manage settings" ON global_settings;
 CREATE POLICY "Admins can manage settings"
   ON global_settings FOR ALL
   TO authenticated

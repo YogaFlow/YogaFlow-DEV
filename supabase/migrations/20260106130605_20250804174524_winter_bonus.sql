@@ -22,8 +22,14 @@
     - Administratoren können alle Benutzerdaten verwalten
 */
 
--- Erstelle Enum für Benutzerrollen
-CREATE TYPE user_role AS ENUM ('student', 'teacher', 'admin');
+-- Erstelle Enum für Benutzerrollen (idempotent)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
+    CREATE TYPE user_role AS ENUM ('student', 'teacher', 'admin');
+  END IF;
+END
+$$;
 
 -- Erstelle users Tabelle
 CREATE TABLE IF NOT EXISTS users (
@@ -44,21 +50,24 @@ CREATE TABLE IF NOT EXISTS users (
 -- Aktiviere RLS
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 
--- Benutzer können ihre eigenen Daten lesen
+-- Benutzer können ihre eigenen Daten lesen (idempotent)
+DROP POLICY IF EXISTS "Users can read own data" ON users;
 CREATE POLICY "Users can read own data"
   ON users
   FOR SELECT
   TO authenticated
   USING (auth.uid() = id);
 
--- Benutzer können ihre eigenen Daten bearbeiten
+-- Benutzer können ihre eigenen Daten bearbeiten (idempotent)
+DROP POLICY IF EXISTS "Users can update own data" ON users;
 CREATE POLICY "Users can update own data"
   ON users
   FOR UPDATE
   TO authenticated
   USING (auth.uid() = id);
 
--- Administratoren können alle Benutzerdaten verwalten
+-- Administratoren können alle Benutzerdaten verwalten (idempotent)
+DROP POLICY IF EXISTS "Admins can manage all users" ON users;
 CREATE POLICY "Admins can manage all users"
   ON users
   FOR ALL
@@ -79,6 +88,7 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+DROP TRIGGER IF EXISTS update_users_updated_at ON users;
 CREATE TRIGGER update_users_updated_at
   BEFORE UPDATE ON users
   FOR EACH ROW

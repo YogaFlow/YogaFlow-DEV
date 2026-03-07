@@ -16,8 +16,14 @@
     - Administratoren können alle Anmeldungen verwalten
 */
 
--- Erstelle Enum für Anmeldestatus
-CREATE TYPE registration_status AS ENUM ('registered', 'waitlist');
+-- Erstelle Enum für Anmeldestatus (idempotent)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'registration_status') THEN
+    CREATE TYPE registration_status AS ENUM ('registered', 'waitlist');
+  END IF;
+END
+$$;
 
 CREATE TABLE IF NOT EXISTS registrations (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -31,28 +37,32 @@ CREATE TABLE IF NOT EXISTS registrations (
 -- Aktiviere RLS
 ALTER TABLE registrations ENABLE ROW LEVEL SECURITY;
 
--- Benutzer können ihre eigenen Anmeldungen lesen
+-- Benutzer können ihre eigenen Anmeldungen lesen (idempotent)
+DROP POLICY IF EXISTS "Users can read own registrations" ON registrations;
 CREATE POLICY "Users can read own registrations"
   ON registrations
   FOR SELECT
   TO authenticated
   USING (auth.uid() = user_id);
 
--- Benutzer können sich für Kurse anmelden
+-- Benutzer können sich für Kurse anmelden (idempotent)
+DROP POLICY IF EXISTS "Users can create registrations" ON registrations;
 CREATE POLICY "Users can create registrations"
   ON registrations
   FOR INSERT
   TO authenticated
   WITH CHECK (auth.uid() = user_id);
 
--- Benutzer können ihre eigenen Anmeldungen löschen (abmelden)
+-- Benutzer können ihre eigenen Anmeldungen löschen (abmelden) (idempotent)
+DROP POLICY IF EXISTS "Users can delete own registrations" ON registrations;
 CREATE POLICY "Users can delete own registrations"
   ON registrations
   FOR DELETE
   TO authenticated
   USING (auth.uid() = user_id);
 
--- Lehrer können Anmeldungen für ihre Kurse einsehen
+-- Lehrer können Anmeldungen für ihre Kurse einsehen (idempotent)
+DROP POLICY IF EXISTS "Teachers can read course registrations" ON registrations;
 CREATE POLICY "Teachers can read course registrations"
   ON registrations
   FOR SELECT
@@ -64,7 +74,8 @@ CREATE POLICY "Teachers can read course registrations"
     )
   );
 
--- Lehrer können Anmeldungen für ihre Kurse verwalten
+-- Lehrer können Anmeldungen für ihre Kurse verwalten (idempotent)
+DROP POLICY IF EXISTS "Teachers can manage course registrations" ON registrations;
 CREATE POLICY "Teachers can manage course registrations"
   ON registrations
   FOR ALL
@@ -80,7 +91,8 @@ CREATE POLICY "Teachers can manage course registrations"
     )
   );
 
--- Administratoren können alle Anmeldungen verwalten
+-- Administratoren können alle Anmeldungen verwalten (idempotent)
+DROP POLICY IF EXISTS "Admins can manage all registrations" ON registrations;
 CREATE POLICY "Admins can manage all registrations"
   ON registrations
   FOR ALL
