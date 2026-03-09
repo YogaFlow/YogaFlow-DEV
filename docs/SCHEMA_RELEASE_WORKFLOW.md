@@ -78,11 +78,7 @@ Diese Anleitung beschreibt, wie ihr Schema-Änderungen (neue Tabellen, Spalten, 
 ## Schema-Rollback (wenn etwas auf PROD schiefgeht)
 
 - **Code-Rollback:** Siehe [ROLLBACK.md](ROLLBACK.md) – main zurücksetzen, Netlify baut neu.
-- **Schema-Rollback:** Eine bereits auf PROD ausgeführte Migration „rückgängig“ zu machen ist nicht automatisch. Zwei Wege:
-  1. **Neue Gegen-Migration:** Eine weitere Migrations-Datei anlegen, die die Änderung zurückbaut (z.B. `ALTER TABLE ... DROP COLUMN ...`). Zuerst auf DEV testen, dann auf PROD anwenden.
-  2. **Backup wiederherstellen:** Falls Supabase ein Backup von vor der Migration hat, kann das Projekt auf diesen Stand zurückgesetzt werden (Supabase-Dokumentation / Support). Daten nach dem Backup-Zeitpunkt gehen dabei ggf. verloren.
-
-**Empfehlung:** Vor größeren Schema-Änderungen auf PROD Backup-Zeitpunkt notieren und klären, wer im Notfall die Wiederherstellung oder Gegen-Migration durchführt.
+- **Schema-Rollback:** Detaillierter Ablauf (Gegen-Migration vs. Backup-Wiederherstellung, Schritt für Schritt): [SCHEMA_ROLLBACK_WORKFLOW.md](SCHEMA_ROLLBACK_WORKFLOW.md).
 
 ---
 

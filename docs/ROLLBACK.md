@@ -78,3 +78,5 @@ Führe diese Befehle **lokal in einem Terminal** aus (z.B. PowerShell oder Git B
 - [ ] Lokal: `git push origin main --force`
 - [ ] Netlify-Build abwarten und Live-Seite prüfen
 - [ ] Fehler auf Julius-Branch mit DEV-DB nachvollziehen und Fix vorbereiten
+
+Falls gleichzeitig eine Schema-Änderung auf PROD zurückgenommen werden muss, siehe [SCHEMA_ROLLBACK_WORKFLOW.md](SCHEMA_ROLLBACK_WORKFLOW.md).

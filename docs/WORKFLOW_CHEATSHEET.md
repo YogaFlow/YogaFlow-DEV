@@ -21,11 +21,16 @@ Kurzüberblick für den Entwicklungs- und Release-Alltag.
 
 | Thema | Datei |
 |--------|--------|
-| DEV vs. PROD, Env-Variablen | [docs/ENVIRONMENTS.md](ENVIRONMENTS.md) |
-| Rollback durchführen | [docs/ROLLBACK.md](ROLLBACK.md) |
-| GitHub-Regeln für main | [docs/GITHUB_BRANCH_PROTECTION.md](GITHUB_BRANCH_PROTECTION.md) |
-| Schema-Änderungen (DEV → PROD) | [docs/SCHEMA_RELEASE_WORKFLOW.md](SCHEMA_RELEASE_WORKFLOW.md) |
-| Datenbank DEV→PROD (Schritt für Schritt) | [docs/DATABASE_WORKFLOW_SCHRITT_FÜR_SCHRITT.md](DATABASE_WORKFLOW_SCHRITT_FÜR_SCHRITT.md) |
+| **Sicherheit DEV→PROD (Checkliste, Ablauf)** | [DEV_PROD_SAFETY_WORKFLOW.md](DEV_PROD_SAFETY_WORKFLOW.md) |
+| DEV vs. PROD, Env-Variablen | [ENVIRONMENTS.md](ENVIRONMENTS.md) |
+| Rollback durchführen (Code) | [ROLLBACK.md](ROLLBACK.md) |
+| Schema-Rollback (Gegen-Migration, Backup) | [SCHEMA_ROLLBACK_WORKFLOW.md](SCHEMA_ROLLBACK_WORKFLOW.md) |
+| GitHub-Regeln für main | [GITHUB_BRANCH_PROTECTION.md](GITHUB_BRANCH_PROTECTION.md) |
+| Schema-Änderungen (DEV → PROD) | [SCHEMA_RELEASE_WORKFLOW.md](SCHEMA_RELEASE_WORKFLOW.md) |
+| Datenbank DEV→PROD (Schritt für Schritt) | [DATABASE_WORKFLOW_SCHRITT_FÜR_SCHRITT.md](DATABASE_WORKFLOW_SCHRITT_FÜR_SCHRITT.md) |
+| Vollständiger Workflow (Einrichtung bis Live) | [VOLLSTÄNDIGER_WORKFLOW.md](VOLLSTÄNDIGER_WORKFLOW.md) |
+| Migration Bolt → Netlify (bis Live-Stellung) | [BOLT_ZU_NETLIFY_WORKFLOW.md](BOLT_ZU_NETLIFY_WORKFLOW.md) |
+| Asana-Checkliste Feature bis Live | [ASANA_CHECKLISTE_FEATURE_LIVE.md](ASANA_CHECKLISTE_FEATURE_LIVE.md) |
 
 ## PROD-Keys
 

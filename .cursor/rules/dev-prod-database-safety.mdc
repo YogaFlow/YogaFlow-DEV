@@ -1,0 +1,21 @@
+---
+description: DEV/PROD database safety – never touch PROD without confirmation, no PROD keys in repo
+alwaysApply: true
+---
+
+# DEV/PROD Database Safety
+
+## Datenbank / Supabase
+
+- **Standard: nur DEV.** Im Alltag nur mit der DEV-Datenbank arbeiten. `npm run supabase:link` und `npm run db:push` nutzen den im Projekt hinterlegten DEV-Ref; damit ist DEV die Standard-Zielumgebung.
+- **PROD nur mit expliziter Bestätigung:** `supabase link --project-ref <PROD-Ref>` und `supabase db push` gegen PROD **niemals** ohne explizite User-Bestätigung ausführen. Vor einem PROD-Push auf die Pre-PROD-Checkliste in [docs/DEV_PROD_SAFETY_WORKFLOW.md](docs/DEV_PROD_SAFETY_WORKFLOW.md) hinweisen.
+- **Keine PROD-Daten im Repo oder in .env:** PROD-Supabase-URL, PROD-Anon-Key und PROD-Project-Ref **nie** in Repo-Dateien oder in `.env` eintragen. Lokale `.env` enthält nur DEV-Werte.
+
+## Migrationen
+
+- Neue Migrationen nur unter `supabase/migrations/` anlegen; Dateiname: `YYYYMMDDHHMMSS_kurzbeschreibung.sql`. Wo möglich **idempotent** (z. B. `IF NOT EXISTS`, `IF EXISTS` bei DROP).
+- In Migrationsdateien **keine** DELETE/UPDATE/INSERT auf Produktivdaten; nur Schema-Änderungen (CREATE TABLE, ALTER TABLE, RLS, Indizes, Funktionen, Trigger). Daten-Änderungen nur über die App oder bewusst geplante Skripte.
+
+## Rollback
+
+- Bei Anfragen zu Code- oder Schema-Rollback auf [docs/ROLLBACK.md](docs/ROLLBACK.md) und [docs/SCHEMA_ROLLBACK_WORKFLOW.md](docs/SCHEMA_ROLLBACK_WORKFLOW.md) verweisen.
