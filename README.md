@@ -1,6 +1,8 @@
 # YogaApp2
 
-React/Vite-App mit Supabase. Deployment über Netlify; Entwicklung auf Branch `Julius`, Release über Pull Request in `main`. Repo: **YogaFlow-DEV**.
+React/Vite-App mit Supabase. Deployment über Netlify; Entwicklung auf Branch `Julius`, Release über Pull Request in `main`.
+
+**Repo:** Dieses Projekt wird ausschließlich über **juliusbne-stack/YogaFlow-DEV** geführt. Netlify: Site mit diesem Repo verknüpfen (Build & deploy → Link to different repository) oder neue Site aus diesem Repo erstellen; PROD-Env-Variablen (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) in Netlify setzen.
 
 ## Dokumentation
 
