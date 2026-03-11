@@ -39,14 +39,16 @@ CREATE TABLE IF NOT EXISTS courses (
 -- Aktiviere RLS
 ALTER TABLE courses ENABLE ROW LEVEL SECURITY;
 
--- Alle authentifizierten Benutzer können Kurse lesen
+-- Alle authentifizierten Benutzer können Kurse lesen (idempotent)
+DROP POLICY IF EXISTS "Anyone can read courses" ON courses;
 CREATE POLICY "Anyone can read courses"
   ON courses
   FOR SELECT
   TO authenticated
   USING (true);
 
--- Lehrer können ihre eigenen Kurse erstellen
+-- Lehrer können ihre eigenen Kurse erstellen (idempotent)
+DROP POLICY IF EXISTS "Teachers can create courses" ON courses;
 CREATE POLICY "Teachers can create courses"
   ON courses
   FOR INSERT
@@ -59,7 +61,8 @@ CREATE POLICY "Teachers can create courses"
     )
   );
 
--- Lehrer können ihre eigenen Kurse bearbeiten
+-- Lehrer können ihre eigenen Kurse bearbeiten (idempotent)
+DROP POLICY IF EXISTS "Teachers can update own courses" ON courses;
 CREATE POLICY "Teachers can update own courses"
   ON courses
   FOR UPDATE
@@ -72,7 +75,8 @@ CREATE POLICY "Teachers can update own courses"
     )
   );
 
--- Lehrer können ihre eigenen Kurse löschen
+-- Lehrer können ihre eigenen Kurse löschen (idempotent)
+DROP POLICY IF EXISTS "Teachers can delete own courses" ON courses;
 CREATE POLICY "Teachers can delete own courses"
   ON courses
   FOR DELETE
@@ -85,7 +89,8 @@ CREATE POLICY "Teachers can delete own courses"
     )
   );
 
--- Administratoren können alle Kurse verwalten
+-- Administratoren können alle Kurse verwalten (idempotent)
+DROP POLICY IF EXISTS "Admins can manage all courses" ON courses;
 CREATE POLICY "Admins can manage all courses"
   ON courses
   FOR ALL
@@ -97,7 +102,8 @@ CREATE POLICY "Admins can manage all courses"
     )
   );
 
--- Trigger für updated_at
+-- Trigger für updated_at (idempotent)
+DROP TRIGGER IF EXISTS update_courses_updated_at ON courses;
 CREATE TRIGGER update_courses_updated_at
   BEFORE UPDATE ON courses
   FOR EACH ROW

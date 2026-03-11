@@ -14,8 +14,14 @@
     - Alle können E-Mail-Vorlagen lesen (für System-E-Mails)
 */
 
--- Erstelle Enum für E-Mail-Typen
-CREATE TYPE email_template_type AS ENUM ('reminder_24h', 'reminder_1h', 'registration_confirmation');
+-- Erstelle Enum für E-Mail-Typen (idempotent)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'email_template_type') THEN
+    CREATE TYPE email_template_type AS ENUM ('reminder_24h', 'reminder_1h', 'registration_confirmation');
+  END IF;
+END
+$$;
 
 CREATE TABLE IF NOT EXISTS email_templates (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -27,14 +33,16 @@ CREATE TABLE IF NOT EXISTS email_templates (
 -- Aktiviere RLS
 ALTER TABLE email_templates ENABLE ROW LEVEL SECURITY;
 
--- Alle können E-Mail-Vorlagen lesen (für System-E-Mails)
+-- Alle können E-Mail-Vorlagen lesen (für System-E-Mails) (idempotent)
+DROP POLICY IF EXISTS "Anyone can read email templates" ON email_templates;
 CREATE POLICY "Anyone can read email templates"
   ON email_templates
   FOR SELECT
   TO authenticated
   USING (true);
 
--- Nur Administratoren können E-Mail-Vorlagen verwalten
+-- Nur Administratoren können E-Mail-Vorlagen verwalten (idempotent)
+DROP POLICY IF EXISTS "Admins can manage email templates" ON email_templates;
 CREATE POLICY "Admins can manage email templates"
   ON email_templates
   FOR ALL

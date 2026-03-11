@@ -18,6 +18,9 @@ DROP POLICY IF EXISTS "Anyone can read courses" ON courses;
 DROP POLICY IF EXISTS "Teachers can create courses" ON courses;
 DROP POLICY IF EXISTS "Teachers can delete own courses" ON courses;
 DROP POLICY IF EXISTS "Teachers can update own courses" ON courses;
+DROP POLICY IF EXISTS "Course leaders can create courses" ON courses;
+DROP POLICY IF EXISTS "Course leaders can update own courses" ON courses;
+DROP POLICY IF EXISTS "Course leaders can delete own courses" ON courses;
 
 -- SELECT: Anyone authenticated can read courses
 CREATE POLICY "Anyone can read courses"

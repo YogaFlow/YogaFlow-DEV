@@ -1,0 +1,9 @@
+# Netlify Build-Konfiguration für YogaApp2
+# Build und Publish-Pfad werden hier definiert; Env-Variablen in der Netlify-UI setzen.
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# Env-Variablen (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY) bitte in Netlify unter
+# Site settings → Environment variables eintragen – Production nur mit PROD-Werten.

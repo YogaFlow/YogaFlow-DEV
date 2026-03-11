@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "db:push": "supabase db push",
+    "supabase:link": "supabase link --project-ref mufxhtctutfpzklwqnze"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.53.0",
@@ -21,6 +23,7 @@
     "react-router-dom": "^7.7.1"
   },
   "devDependencies": {
+    "supabase": "^2.19.0",
     "@eslint/js": "^9.9.1",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",

@@ -45,7 +45,7 @@ BEGIN
             'authenticated',
             'authenticated',
             'admin@yoga-kurse.de',
-            crypt('admin123', gen_salt('bf')),
+            extensions.crypt('admin123', extensions.gen_salt('bf')),
             NOW(),
             NOW(),
             NOW(),
@@ -59,7 +59,7 @@ BEGIN
             ''
         ) RETURNING id INTO admin_user_id;
 
-        -- Erstelle das Benutzerprofil
+        -- Erstelle das Benutzerprofil (oder aktualisiere, falls Trigger bereits Zeile angelegt hat)
         INSERT INTO public.users (
             id,
             email,
@@ -86,7 +86,18 @@ BEGIN
             'admin',
             NOW(),
             NOW()
-        );
+        )
+        ON CONFLICT (id) DO UPDATE SET
+            email = EXCLUDED.email,
+            first_name = EXCLUDED.first_name,
+            last_name = EXCLUDED.last_name,
+            street = EXCLUDED.street,
+            house_number = EXCLUDED.house_number,
+            postal_code = EXCLUDED.postal_code,
+            city = EXCLUDED.city,
+            phone = EXCLUDED.phone,
+            role = EXCLUDED.role,
+            updated_at = NOW();
 
         -- Bestätige die E-Mail
         UPDATE auth.users 
