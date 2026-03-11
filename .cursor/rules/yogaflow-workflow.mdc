@@ -1,0 +1,46 @@
+---
+description: YogaFlow-Workflow: Branch Julius, nur DEV lokal, Release über PR; bei Schema/PROD/Rollback docs nutzen
+alwaysApply: true
+---
+
+# YogaFlow-Workflow
+
+## Tägliche Regeln
+
+- **In Cursor nur Branch Julius** – immer auf Julius arbeiten; `main` lokal nie auschecken oder benutzen. Main existiert nur als Merge-Ziel auf GitHub (PR Julius → main).
+- **Entwicklung nur auf Branch Julius** – nie direkt auf `main` entwickeln.
+- **Lokal nur DEV** – `.env` enthält nur DEV-Supabase-URL und DEV-Anon-Key; PROD-Keys nie lokal oder im Repo.
+- **Release nur über Pull Request** – Änderungen von Julius nach `main` mit mindestens einer Review; danach baut Netlify.
+- **PROD nur mit expliziter Bestätigung:** `supabase link --project-ref <PROD-Ref>` und `supabase db push` gegen PROD niemals ohne User-Bestätigung ausführen. Vor PROD-Push auf die Pre-PROD-Checkliste in [docs/DEV_PROD_SAFETY_WORKFLOW.md](docs/DEV_PROD_SAFETY_WORKFLOW.md) hinweisen. Siehe auch [.cursor/rules/dev-prod-database-safety.mdc](.cursor/rules/dev-prod-database-safety.mdc).
+
+## Ablauf: Feature bis Live
+
+- **B1:** Auf Julius sein; `git pull origin Julius`.
+- **B2:** Feature entwickeln, lokal mit DEV testen (`npm run dev`).
+- **B3:** Bei Schema-Änderung: Migration in `supabase/migrations/` (Format `YYYYMMDDHHMMSS_name.sql`), nur auf DEV anwenden (`npm run db:push`), testen.
+- **B4:** Committen, auf Julius pushen, PR Julius → main, Review, Merge.
+- **B5:** Nach Merge: Netlify baut; Live prüfen. Wenn Migration mit dabei war → B6.
+- **B6:** Nur mit User-Bestätigung: Pre-PROD-Checkliste, mit PROD verlinken, `db push`, Live prüfen, wieder mit DEV verlinken. Ausführlich: [docs/DEV_PROD_SAFETY_WORKFLOW.md](docs/DEV_PROD_SAFETY_WORKFLOW.md).
+
+## Wann welches Doc
+
+| Thema | Dokument |
+|--------|----------|
+| Sicherheit DEV→PROD, Pre-PROD-Checkliste | [docs/DEV_PROD_SAFETY_WORKFLOW.md](docs/DEV_PROD_SAFETY_WORKFLOW.md) |
+| Schema von DEV nach PROD (Ablauf) | [docs/SCHEMA_RELEASE_WORKFLOW.md](docs/SCHEMA_RELEASE_WORKFLOW.md) |
+| Datenbank Schritt für Schritt, Agent vs. Du | [docs/DATABASE_WORKFLOW_SCHRITT_FÜR_SCHRITT.md](docs/DATABASE_WORKFLOW_SCHRITT_FÜR_SCHRITT.md) |
+| Code-Rollback (main zurücksetzen) | [docs/ROLLBACK.md](docs/ROLLBACK.md) |
+| Schema-Rollback | [docs/SCHEMA_ROLLBACK_WORKFLOW.md](docs/SCHEMA_ROLLBACK_WORKFLOW.md) |
+| Vollständiger Ablauf (Einrichtung + Feature + Rollback) | [docs/VOLLSTÄNDIGER_WORKFLOW.md](docs/VOLLSTÄNDIGER_WORKFLOW.md) |
+| Kurzüberblick + Linktabelle | [docs/WORKFLOW_CHEATSHEET.md](docs/WORKFLOW_CHEATSHEET.md) |
+
+## Agent vs. User
+
+- **Agent:** Branch wechseln, Migration-Datei anlegen, `db push` (nur bei bestätigt DEV/PROD), committen/pushen, PR-Text vorschlagen.
+- **User:** Sicherstellen, dass DEV/PROD verlinkt ist; PROD-Ref/Passwort eingeben; PR auf GitHub erstellen/mergen; Live prüfen; bei Rollback Schritte in den docs ausführen.
+
+## Rollback
+
+- **Nur Code problematisch** → [docs/ROLLBACK.md](docs/ROLLBACK.md).
+- **Nur Schema problematisch** → [docs/SCHEMA_ROLLBACK_WORKFLOW.md](docs/SCHEMA_ROLLBACK_WORKFLOW.md).
+- **Code und Schema** → zuerst Code-Rollback, dann Schema-Rollback.
