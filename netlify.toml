@@ -7,3 +7,9 @@
 
 # Env-Variablen (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY) bitte in Netlify unter
 # Site settings → Environment variables eintragen – Production nur mit PROD-Werten.
+
+# SPA-Fallback: Alle Pfade auf index.html umleiten, damit React Router bei Reload/Direktaufruf funktioniert
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
