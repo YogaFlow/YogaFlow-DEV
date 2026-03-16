@@ -26,6 +26,7 @@ alwaysApply: true
 
 | Thema | Dokument |
 |--------|----------|
+| Pre-Start-Check (Umgebung vor dem Arbeiten) | [docs/PRE_START_CHECK.md](docs/PRE_START_CHECK.md) |
 | Sicherheit DEV→PROD, Pre-PROD-Checkliste | [docs/DEV_PROD_SAFETY_WORKFLOW.md](docs/DEV_PROD_SAFETY_WORKFLOW.md) |
 | Schema von DEV nach PROD (Ablauf) | [docs/SCHEMA_RELEASE_WORKFLOW.md](docs/SCHEMA_RELEASE_WORKFLOW.md) |
 | Datenbank Schritt für Schritt, Agent vs. Du | [docs/DATABASE_WORKFLOW_SCHRITT_FÜR_SCHRITT.md](docs/DATABASE_WORKFLOW_SCHRITT_FÜR_SCHRITT.md) |
@@ -33,6 +34,7 @@ alwaysApply: true
 | Schema-Rollback | [docs/SCHEMA_ROLLBACK_WORKFLOW.md](docs/SCHEMA_ROLLBACK_WORKFLOW.md) |
 | Vollständiger Ablauf (Einrichtung + Feature + Rollback) | [docs/VOLLSTÄNDIGER_WORKFLOW.md](docs/VOLLSTÄNDIGER_WORKFLOW.md) |
 | Kurzüberblick + Linktabelle | [docs/WORKFLOW_CHEATSHEET.md](docs/WORKFLOW_CHEATSHEET.md) |
+| Repo in GitHub-Organisation übertragen, Partner Admin | [docs/GITHUB_REPO_ZU_ORGANISATION_WECHSELN.md](docs/GITHUB_REPO_ZU_ORGANISATION_WECHSELN.md) |
 
 ## Agent vs. User
 
