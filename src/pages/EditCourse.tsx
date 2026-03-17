@@ -457,6 +457,11 @@ const EditCourse: React.FC = () => {
                 ))}
               </select>
             </div>
+            {courseLeaders.length === 0 && (
+              <p className="mt-2 text-sm text-amber-700">
+                Keine Kursleiter gefunden. Bitte in der Nutzerverwaltung mindestens einen Nutzer als Kursleiter anlegen.
+              </p>
+            )}
           </div>
 
           {course?.series_id && seriesCount > 1 && (
