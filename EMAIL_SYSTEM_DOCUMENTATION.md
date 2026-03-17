@@ -7,9 +7,34 @@ Die App verfügt jetzt über eine vollständige E-Mail-Infrastruktur für:
 - Passwort-Zurücksetzen ("Passwort vergessen")
 - Bestätigungsmails bei Passwortänderungen
 
-## SMTP-Konfiguration (IONOS)
+## SMTP-Konfiguration
 
-Die folgenden Umgebungsvariablen werden automatisch in Supabase konfiguriert:
+Der Absender aller E-Mails wird aus dem Secret `SMTP_USER` gelesen (in der Edge Function `send-email`). Sie können für Produktion einen eigenen SMTP-Server (z. B. IONOS) und zum Testen eine private E-Mail (z. B. Gmail) verwenden.
+
+### Option A: Zum Testen mit Gmail (z. B. juliusbne@gmail.com)
+
+1. Gehen Sie zu Ihrem Supabase Dashboard → **Edge Functions** → **Secrets**.
+2. Fügen Sie folgende Secrets hinzu:
+   - `SMTP_HOST`: `smtp.gmail.com`
+   - `SMTP_PORT`: `587`
+   - `SMTP_USER`: Ihre Gmail-Adresse (z. B. juliusbne@gmail.com)
+   - `SMTP_PASS`: Ein **Gmail-App-Passwort** (nicht Ihr normales Gmail-Passwort)
+     - Gmail-App-Passwort erzeugen: Google-Konto → Sicherheit → 2-Faktor-Aktivierung aktivieren → App-Passwörter → Passwort für „Mail“ erzeugen und eintragen
+
+E-Mails werden dann von „Die Thallers“ &lt;IhreGmail@…&gt; versendet.
+
+### Option B: Outlook / Microsoft 365 (z. B. für App-E-Mails)
+
+1. Supabase Dashboard → **Edge Functions** → **Secrets**.
+2. Secrets anlegen:
+   - `SMTP_HOST`: `smtp.office365.com` (bei @outlook.de/@outlook.com ggf. `smtp-mail.outlook.com` testen)
+   - `SMTP_PORT`: `587`
+   - `SMTP_USER`: Ihre Outlook-Adresse (z. B. yogaflowapp@outlook.de)
+   - `SMTP_PASS`: Ihr Outlook-Passwort (**nur** in Supabase Secrets eintragen, **niemals** im Code oder Repo)
+
+Bei Outlook mit 2-Faktor-Authentifizierung ggf. ein App-Passwort verwenden (Microsoft-Konto → Sicherheit → Erweiterte Sicherheitsoptionen). Wenn E-Mails nicht ankommen: Edge Function Logs (send-email, request-password-reset) im Dashboard prüfen – dort steht z. B. „no user found“ oder der SMTP-Fehler.
+
+### Option C: Produktion mit IONOS (tanja@die-thallers.de)
 
 ```
 SMTP_HOST=smtp.ionos.de
@@ -18,11 +43,8 @@ SMTP_USER=tanja@die-thallers.de
 SMTP_PASS=<Ihr geheimes Passwort>
 ```
 
-**WICHTIG**: Sie müssen das SMTP-Passwort in den Supabase Edge Function Secrets konfigurieren:
-
-1. Gehen Sie zu Ihrem Supabase Dashboard
-2. Navigieren Sie zu "Edge Functions" → "Secrets"
-3. Fügen Sie folgende Secrets hinzu:
+1. Supabase Dashboard → **Edge Functions** → **Secrets**.
+2. Secrets anlegen:
    - `SMTP_USER`: tanja@die-thallers.de
    - `SMTP_PASS`: Ihr IONOS E-Mail-Passwort
    - `SMTP_HOST`: smtp.ionos.de
@@ -45,9 +67,9 @@ Speichert alle Verifizierungs- und Reset-Tokens mit:
 
 ### 1. `send-email`
 Basis-Funktion zum Versenden von E-Mails über SMTP.
-- Verwendet Deno SMTP-Client (denomailer)
+- Verwendet Nodemailer
 - Unterstützt HTML und Plain-Text E-Mails
-- Absender: "Die Thallers" <tanja@die-thallers.de>
+- Absender: "Die Thallers" &lt;SMTP_USER&gt; (aus Edge Function Secrets)
 
 ### 2. `send-verification-email`
 Sendet Verifizierungs-E-Mail nach Registrierung.
@@ -178,9 +200,10 @@ Entfernt:
 ## Fehlerbehebung
 
 ### E-Mails werden nicht gesendet
-- SMTP-Credentials in Supabase Secrets überprüfen
-- Edge Function Logs überprüfen
-- IONOS-Account-Status überprüfen
+- SMTP-Credentials in Supabase Edge Function Secrets überprüfen (SMTP_USER, SMTP_PASS, SMTP_HOST, SMTP_PORT)
+- Bei Gmail: App-Passwort verwenden, nicht das normale Passwort
+- Edge Function Logs (send-email) im Dashboard prüfen
+- Bei IONOS: Account-Status und Zugangsdaten prüfen
 
 ### Token-Fehler
 - Datenbank-Logs überprüfen

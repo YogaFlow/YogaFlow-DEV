@@ -14,9 +14,19 @@ const ForgotPassword: React.FC = () => {
     setLoading(true);
     setError('');
 
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    if (!supabaseUrl || supabaseUrl.includes('placeholder')) {
+      setError('Dienst vorübergehend nicht erreichbar. Bitte später erneut versuchen.');
+      setLoading(false);
+      return;
+    }
+
+    // In Entwicklung über Vite-Proxy anfragen, um CORS zu vermeiden
+    const apiBase = import.meta.env.DEV ? '/api-supabase' : supabaseUrl;
+
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/request-password-reset`,
+        `${apiBase}/functions/v1/request-password-reset`,
         {
           method: 'POST',
           headers: {
@@ -27,16 +37,39 @@ const ForgotPassword: React.FC = () => {
         }
       );
 
-      const data = await response.json();
+      const contentType = response.headers.get('Content-Type') ?? '';
+      const isJson = contentType.includes('application/json');
+      let text: string;
+      try {
+        text = await response.text();
+      } catch (readErr) {
+        console.error('Password reset: response body read failed', { status: response.status }, readErr);
+        setError('Serverfehler. Bitte später erneut versuchen.');
+        setLoading(false);
+        return;
+      }
+
+      let data: { error?: string; success?: boolean; message?: string } = {};
+      if (isJson && text) {
+        try {
+          data = JSON.parse(text);
+        } catch {
+          console.error('Password reset: invalid JSON', { status: response.status, body: text.slice(0, 200) });
+          setError('Die Anfrage konnte nicht verarbeitet werden. Bitte prüfen Sie Ihre Verbindung.');
+          return;
+        }
+      }
 
       if (response.ok) {
         setSuccess(true);
       } else {
-        setError(data.error || 'Ein Fehler ist aufgetreten.');
+        setError(data.error ?? 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
       }
     } catch (err) {
-      console.error('Password reset request error:', err);
-      setError('Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.');
+      const message = err instanceof Error ? err.message : String(err);
+      const isNetworkError = err instanceof TypeError;
+      console.error('Password reset request error:', message, isNetworkError ? '(network/CORS?)' : '', err);
+      setError('Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut. Details stehen in der Browser-Konsole (F12).');
     } finally {
       setLoading(false);
     }
