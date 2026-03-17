@@ -265,7 +265,7 @@ const Dashboard: React.FC = () => {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
         <p className="text-gray-600">
-          Willkommen zurück, {userProfile?.first_name || 'Benutzer'}! Hier ist Ihre Übersicht.
+          Überblick über Ihre Kurse.
         </p>
       </div>
 
