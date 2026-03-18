@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import AuthPage from './pages/AuthPage';
 import Dashboard from './pages/Dashboard';
@@ -17,32 +17,8 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Layout from './components/Layout/Layout';
 
-const PUBLIC_PATHS = ['/reset-password', '/forgot-password', '/verify-email'];
-
-/** Renders public pages when path matches, otherwise protected Layout. Stops /reset-password etc. from being caught by the inner * route. */
-const ProtectedOrPublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const location = useLocation();
-  const isPublic = PUBLIC_PATHS.includes(location.pathname);
-
-  if (isPublic) {
-    if (location.pathname === '/reset-password') return <ResetPassword />;
-    if (location.pathname === '/forgot-password') return <ForgotPassword />;
-    if (location.pathname === '/verify-email') return <VerifyEmail />;
-  }
-
-  return <ProtectedRoute>{children}</ProtectedRoute>;
-};
-
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const location = useLocation();
   const { user, loading } = useAuth();
-
-  // Doppelte Absicherung: Auch in ProtectedRoute keine Weiterleitung zu /auth auf öffentlichen Pfaden
-  if (PUBLIC_PATHS.includes(location.pathname)) {
-    if (location.pathname === '/reset-password') return <ResetPassword />;
-    if (location.pathname === '/forgot-password') return <ForgotPassword />;
-    if (location.pathname === '/verify-email') return <VerifyEmail />;
-  }
 
   if (loading) {
     return (
@@ -55,21 +31,33 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   return user ? <>{children}</> : <Navigate to="/auth" replace />;
 };
 
+/**
+ * Eine einzige Weiche: Pfad entscheidet, was gerendert wird.
+ * So landet /reset-password garantiert auf der Reset-Seite, nie beim Login.
+ */
+function RouteByPath() {
+  const { pathname } = useLocation();
+
+  if (pathname === '/auth') return <AuthPage />;
+  if (pathname === '/reset-password') return <ResetPassword />;
+  if (pathname === '/forgot-password') return <ForgotPassword />;
+  if (pathname === '/verify-email') return <VerifyEmail />;
+
+  return (
+    <ProtectedRoute>
+      <Layout>
+        <Outlet />
+      </Layout>
+    </ProtectedRoute>
+  );
+}
+
 function App() {
   return (
     <AuthProvider>
       <Router>
         <Routes>
-          <Route path="/auth" element={<AuthPage />} />
-          {/* Explizite Routen zuerst, damit Links aus E-Mails sicher auf der richtigen Seite landen */}
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/verify-email" element={<VerifyEmail />} />
-          <Route path="/*" element={
-            <ProtectedOrPublicRoute>
-              <Layout />
-            </ProtectedOrPublicRoute>
-          }>
+          <Route path="*" element={<RouteByPath />}>
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="courses" element={<Courses />} />
