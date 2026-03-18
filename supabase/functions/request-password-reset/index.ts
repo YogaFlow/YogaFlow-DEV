@@ -54,7 +54,7 @@ Deno.serve(async (req: Request) => {
         console.error("Error creating token:", tokenError);
       } else {
         const token = tokenData as string;
-        const baseUrl = Deno.env.get("APP_URL") || req.headers.get("origin") || "http://localhost:5173";
+        const baseUrl = (Deno.env.get("APP_URL") || req.headers.get("origin") || "http://localhost:5173").replace(/\/+$/, "");
         const resetLink = `${baseUrl}/reset-password?token=${token}`;
 
         const emailHtml = `
