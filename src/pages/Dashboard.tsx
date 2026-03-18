@@ -7,6 +7,14 @@ import { Course, Registration } from '../types';
 import { format, parseISO, isToday, isTomorrow } from 'date-fns';
 import { de } from 'date-fns/locale';
 
+type StatCard = {
+  title: string;
+  value: string | number;
+  icon: React.ComponentType<{ className?: string }>;
+  color: string;
+  path?: string;
+};
+
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { userProfile, isAdmin, isCourseLeader } = useAuth();
@@ -189,8 +197,8 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const getStatCards = () => {
-    const baseCards = [
+  const getStatCards = (): StatCard[] => {
+    const baseCards: StatCard[] = [
       {
         title: 'Kommende Kurse',
         value: stats.upcomingCourses,
@@ -211,7 +219,8 @@ const Dashboard: React.FC = () => {
           title: 'Meine Kurse',
           value: stats.myCourses,
           icon: BookOpen,
-          color: 'bg-teal-500'
+          color: 'bg-teal-500',
+          path: '/courses'
         },
         ...baseCards
       ];
@@ -221,13 +230,15 @@ const Dashboard: React.FC = () => {
           title: 'Meine Anmeldungen',
           value: stats.myCourses,
           icon: BookOpen,
-          color: 'bg-teal-500'
+          color: 'bg-teal-500',
+          path: '/my-courses'
         },
         {
           title: 'Alle Kurse',
           value: stats.totalCourses,
           icon: Calendar,
-          color: 'bg-blue-500'
+          color: 'bg-blue-500',
+          path: '/courses'
         }
       ];
     } else {
@@ -236,7 +247,8 @@ const Dashboard: React.FC = () => {
           title: 'Alle Kurse',
           value: stats.totalCourses,
           icon: BookOpen,
-          color: 'bg-teal-500'
+          color: 'bg-teal-500',
+          path: '/courses'
         },
         ...baseCards,
         {
@@ -270,8 +282,8 @@ const Dashboard: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statCards.map((card, index) => (
-          <div key={index} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        {statCards.map((card, index) => {
+          const CardContent = () => (
             <div className="flex items-center">
               <div className={`${card.color} p-3 rounded-lg`}>
                 <card.icon className="w-6 h-6 text-white" />
@@ -281,8 +293,26 @@ const Dashboard: React.FC = () => {
                 <p className="text-2xl font-bold text-gray-900">{card.value}</p>
               </div>
             </div>
-          </div>
-        ))}
+          );
+          const path = card.path;
+          if (path) {
+            return (
+              <button
+                key={index}
+                type="button"
+                onClick={() => navigate(path)}
+                className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 w-full text-left hover:border-teal-300 hover:shadow-md transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+              >
+                <CardContent />
+              </button>
+            );
+          }
+          return (
+            <div key={index} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <CardContent />
+            </div>
+          );
+        })}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
