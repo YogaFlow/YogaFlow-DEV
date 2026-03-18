@@ -31,14 +31,20 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   return user ? <>{children}</> : <Navigate to="/auth" replace />;
 };
 
+/** Pfad normalisieren: doppelte Schrägstriche (z. B. durch APP_URL mit trailing slash) entfernen. */
+function normalizePathname(p: string): string {
+  return p.replace(/\/+/g, '/').replace(/^\/+/, '/') || '/';
+}
+
 /**
  * Eine einzige Weiche: Pfad entscheidet, was gerendert wird.
- * window.location.pathname zuerst, damit Direktaufruf/Link aus E-Mail nicht kurz als "/" gelesen wird.
+ * window.location.pathname + Normalisierung, damit //reset-password aus E-Mail-Link funktioniert.
  */
 function RouteByPath() {
   const location = useLocation();
-  const pathname =
+  const raw =
     typeof window !== 'undefined' ? window.location.pathname : location.pathname;
+  const pathname = normalizePathname(raw);
 
   if (pathname === '/auth') return <AuthPage />;
   if (pathname === '/reset-password') return <ResetPassword />;

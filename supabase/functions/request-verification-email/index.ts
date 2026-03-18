@@ -72,7 +72,7 @@ Deno.serve(async (req: Request) => {
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    const baseUrl = Deno.env.get("APP_URL") || req.headers.get("origin") || "http://localhost:5173";
+    const baseUrl = (Deno.env.get("APP_URL") || req.headers.get("origin") || "http://localhost:5173").replace(/\/+$/, "");
     const verificationLink = `${baseUrl}/verify-email?token=${token}`;
 
     const emailHtml = `
