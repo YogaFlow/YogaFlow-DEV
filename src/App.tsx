@@ -61,7 +61,10 @@ function App() {
       <Router>
         <Routes>
           <Route path="/auth" element={<AuthPage />} />
-          {/* Öffentliche Pfade nur über /* + ProtectedOrPublicRoute, damit sie nie in ProtectedRoute landen */}
+          {/* Explizite Routen zuerst, damit Links aus E-Mails sicher auf der richtigen Seite landen */}
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/*" element={
             <ProtectedOrPublicRoute>
               <Layout />

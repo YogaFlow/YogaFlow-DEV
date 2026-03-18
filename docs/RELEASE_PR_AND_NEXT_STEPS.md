@@ -83,6 +83,42 @@ Ersetze die Platzhalter, dann jeden Namen bzw. Wert ins Dashboard eintragen (Nam
 
 DEV-Secrets in DEV unverändert lassen.
 
+### Nur eine E-Mail (keine doppelte von Supabase + Gmail)
+
+Wenn du **zwei** E-Mails bekommst (eine von Supabase, eine von deiner Gmail), schaltet Supabase seine System-Mails ab – dann kommt nur noch eure Gmail-Mail:
+
+- **Supabase-Dashboard** (PROD bzw. DEV) → **Authentication** → **Providers** → **Email**
+  - **„Confirm email“** aus (oder auf **Off**), damit bei der Registrierung nur eure Bestätigungsmail (send-verification-email) verschickt wird.
+- Unter **Authentication** → **Email Templates** kannst du bei Bedarf prüfen, ob noch weitere Mails aktiv sind; für Passwort-Reset nutzt ihr ausschließlich eure Edge Function (request-password-reset), keine Supabase-Vorlage.
+
+Nach dem Abschalten kommt nur noch die E-Mail von eurer hinterlegten Gmail.
+
+---
+
+## Troubleshooting: Keine E-Mails kommen an
+
+**Wichtig:** Im Code wurde nichts an den E-Mail-Funktionen geändert. Wenn plötzlich keine E-Mails mehr ankommen, liegt es fast immer an der Umgebung oder den Secrets.
+
+### 1. Logs im Supabase-Dashboard prüfen
+
+- **PROD:** Supabase-Dashboard → **PROD-Projekt** → **Edge Functions** → z. B. **send-email** und **request-password-reset** (bzw. **send-verification-email**) → **Logs**.
+- **DEV (lokal):** Dasselbe im **DEV-Projekt**.
+
+Typische Meldungen:
+- **401 Unauthorized** → `INTERNAL_EMAIL_SECRET` stimmt nicht: Die aufrufende Function (request-password-reset, send-verification-email) muss **denselben** Wert wie die Function **send-email** verwenden. Im Dashboard gibt es nur einen Wert pro Projekt; prüfen auf Tippfehler oder Leerzeichen.
+- **500 / SMTP not configured** → `SMTP_HOST`, `SMTP_USER` oder `SMTP_PASS` fehlen oder sind falsch (z. B. in den Edge Function Secrets).
+- **SMTP/Network-Fehler** → Gmail: App-Passwort prüfen (evtl. neu erzeugen unter Google-Konto → Sicherheit → App-Passwörter), 2-Faktor-Aktivierung muss an sein.
+
+### 2. Wo testest du?
+
+- **Lokal (npm run dev):** E-Mails gehen über die **DEV**-Supabase-Project und deren Edge Functions. Dort müssen **dieselben** Secrets gesetzt sein (INTERNAL_EMAIL_SECRET, SMTP_*), sonst kommen lokal keine E-Mails an.
+- **Live (Netlify):** E-Mails gehen über **PROD**-Supabase. Dort die Secrets wie oben prüfen.
+
+### 3. Schnell-Check
+
+- **INTERNAL_EMAIL_SECRET:** Einmal gesetzt, wird er von allen Functions (send-email, request-password-reset, send-verification-email) gelesen. Kein Leerzeichen am Anfang/Ende, exakt gleicher String überall (nur ein Eintrag pro Projekt).
+- **Gmail:** App-Passwort (16 Zeichen), nicht das normale Passwort. Port **465** (SSL).
+
 ---
 
 ## Checkliste (zum Abhaken)
