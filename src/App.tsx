@@ -33,10 +33,12 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
 /**
  * Eine einzige Weiche: Pfad entscheidet, was gerendert wird.
- * So landet /reset-password garantiert auf der Reset-Seite, nie beim Login.
+ * window.location.pathname zuerst, damit Direktaufruf/Link aus E-Mail nicht kurz als "/" gelesen wird.
  */
 function RouteByPath() {
-  const { pathname } = useLocation();
+  const location = useLocation();
+  const pathname =
+    typeof window !== 'undefined' ? window.location.pathname : location.pathname;
 
   if (pathname === '/auth') return <AuthPage />;
   if (pathname === '/reset-password') return <ResetPassword />;
