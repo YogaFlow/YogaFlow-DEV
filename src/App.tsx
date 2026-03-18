@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import AuthPage from './pages/AuthPage';
 import Dashboard from './pages/Dashboard';
@@ -16,6 +16,22 @@ import VerifyEmail from './pages/VerifyEmail';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Layout from './components/Layout/Layout';
+
+const PUBLIC_PATHS = ['/reset-password', '/forgot-password', '/verify-email'];
+
+/** Renders public pages when path matches, otherwise protected Layout. Stops /reset-password etc. from being caught by the inner * route. */
+const ProtectedOrPublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const location = useLocation();
+  const isPublic = PUBLIC_PATHS.includes(location.pathname);
+
+  if (isPublic) {
+    if (location.pathname === '/reset-password') return <ResetPassword />;
+    if (location.pathname === '/forgot-password') return <ForgotPassword />;
+    if (location.pathname === '/verify-email') return <VerifyEmail />;
+  }
+
+  return <ProtectedRoute>{children}</ProtectedRoute>;
+};
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading } = useAuth();
@@ -41,9 +57,9 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/*" element={
-            <ProtectedRoute>
+            <ProtectedOrPublicRoute>
               <Layout />
-            </ProtectedRoute>
+            </ProtectedOrPublicRoute>
           }>
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />

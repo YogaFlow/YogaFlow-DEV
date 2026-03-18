@@ -57,6 +57,30 @@ Nach Review: PR in `main` mergen.
   - `APP_URL` (Live-URL)
   - `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, `SMTP_PORT`, ggf. `SENDER_EMAIL`
 
+#### Für Gmail (zum Rein-Kopieren in Supabase PROD → Edge Functions → Secrets)
+
+Ersetze die Platzhalter, dann jeden Namen bzw. Wert ins Dashboard eintragen (Name = linke Spalte, Value = rechte Spalte). Für Gmail brauchst du ein **App-Passwort** (Google-Konto → Sicherheit → 2-Faktor-Aktivierung → App-Passwörter).
+
+| Name | Value (Beispiel / Platzhalter) |
+|------|--------------------------------|
+| `INTERNAL_EMAIL_SECRET` | `<ein-langer-zufälliger-string-z.B.-32-zeichen>` |
+| `APP_URL` | `https://deine-live-domain.netlify.app` |
+| `SMTP_HOST` | `smtp.gmail.com` |
+| `SMTP_PORT` | `465` |
+| `SMTP_USER` | `deine.email@gmail.com` |
+| `SMTP_PASS` | `<Gmail-App-Passwort-16-zeichen>` |
+| `SENDER_EMAIL` | `deine.email@gmail.com` |
+
+**Kurz zum Kopieren (Name = Secret-Name, Value = eintragen):**
+
+- **INTERNAL_EMAIL_SECRET** → ein langer zufälliger String (z. B. mit einem Generator erzeugen)
+- **APP_URL** → deine Live-URL, z. B. `https://deine-app.netlify.app`
+- **SMTP_HOST** → `smtp.gmail.com`
+- **SMTP_PORT** → `465`
+- **SMTP_USER** → deine Gmail-Adresse
+- **SMTP_PASS** → Gmail-App-Passwort (nicht dein normales Passwort; unter Google-Konto → Sicherheit → App-Passwörter erzeugen)
+- **SENDER_EMAIL** → deine Gmail-Adresse (Absender der E-Mails)
+
 DEV-Secrets in DEV unverändert lassen.
 
 ---
