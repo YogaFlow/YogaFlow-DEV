@@ -9,14 +9,15 @@ const AuthPage: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [showVerifiedMessage, setShowVerifiedMessage] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
-  const { user, loading } = useAuth();
+  const { user, loading, isEmailConfirmed } = useAuth();
   const navigate = useNavigate();
 
+  // Nur bestätigte Nutzer zum Dashboard – verhindert kurzes Aufblitzen nach Registrierung
   useEffect(() => {
-    if (!loading && user) {
+    if (!loading && user && isEmailConfirmed) {
       navigate('/dashboard', { replace: true });
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, isEmailConfirmed, navigate]);
 
   // Falls der Passwort-Reset-Link versehentlich auf /auth zeigt: zur Reset-Seite weiterleiten
   useEffect(() => {
