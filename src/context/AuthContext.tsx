@@ -7,6 +7,8 @@ interface AuthContextType {
   user: SupabaseUser | null;
   userProfile: User | null;
   loading: boolean;
+  /** Nur true, wenn E-Mail bestätigt (verhindert Dashboard-Flash nach Registrierung). */
+  isEmailConfirmed: boolean;
   signIn: (email: string, password: string) => Promise<any>;
   signUp: (email: string, password: string, userData: any) => Promise<any>;
   signOut: () => Promise<void>;
@@ -184,10 +186,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return userProfile.roles.includes('participant');
   }, [userProfile]);
 
+  const isEmailConfirmed = useMemo(() => {
+    if (!user) return false;
+    return !!(user as { email_confirmed_at?: string | null }).email_confirmed_at;
+  }, [user]);
+
   const value = {
     user,
     userProfile,
     loading,
+    isEmailConfirmed,
     signIn,
     signUp,
     signOut,

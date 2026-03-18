@@ -18,7 +18,7 @@ import ResetPassword from './pages/ResetPassword';
 import Layout from './components/Layout/Layout';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, isEmailConfirmed } = useAuth();
 
   if (loading) {
     return (
@@ -28,7 +28,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
     );
   }
 
-  return user ? <>{children}</> : <Navigate to="/auth" replace />;
+  return user && isEmailConfirmed ? <>{children}</> : <Navigate to="/auth" replace />;
 };
 
 /** Pfad normalisieren: doppelte Schrägstriche (z. B. durch APP_URL mit trailing slash) entfernen. */
