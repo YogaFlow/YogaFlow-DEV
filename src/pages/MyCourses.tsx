@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Calendar, Clock, MapPin, Users, Plus, Edit, Trash2, Eye, AlertCircle, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Course } from '../types';
+import { Course, Registration } from '../types';
 import { format, parseISO, isToday, isTomorrow } from 'date-fns';
 import { de } from 'date-fns/locale';
 
@@ -12,6 +12,7 @@ const MyCourses: React.FC = () => {
   const location = useLocation();
   const { userProfile } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
+  const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
   const [successMessage, setSuccessMessage] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -20,13 +21,25 @@ const MyCourses: React.FC = () => {
   const [deleteScope, setDeleteScope] = useState<'single' | 'series'>('single');
   const successTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const isCourseManager =
+    !!userProfile &&
+    !!userProfile.roles &&
+    (userProfile.roles.includes('course_leader') || userProfile.roles.includes('admin'));
+
+  const isParticipantOnly =
+    !!userProfile &&
+    !!userProfile.roles &&
+    userProfile.roles.includes('participant') &&
+    !isCourseManager;
+
   useEffect(() => {
     let isMounted = true;
 
     const fetchMyCourses = async () => {
-      if (!userProfile) return;
+      if (!userProfile || !isCourseManager) return;
 
       try {
+        setLoading(true);
         const { data, error } = await supabase
           .from('courses')
           .select(`
@@ -51,7 +64,51 @@ const MyCourses: React.FC = () => {
       }
     };
 
-    fetchMyCourses();
+    const fetchParticipantRegistrations = async () => {
+      if (!userProfile || !isParticipantOnly) return;
+
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('registrations')
+          .select(
+            `
+            *,
+            course:courses(
+              *,
+              teacher:users!courses_teacher_id_fkey(first_name, last_name)
+            )
+          `
+          )
+          .eq('user_id', userProfile.id)
+          .eq('status', 'registered');
+
+        if (error) throw error;
+        if (!isMounted) return;
+
+        const today = new Date().toISOString().split('T')[0];
+        const futureRegistrations = (data || []).filter(
+          (registration: any) =>
+            registration.course && registration.course.date >= today
+        );
+
+        setRegistrations(futureRegistrations);
+      } catch (error) {
+        console.error('Error fetching registrations:', error);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    if (userProfile) {
+      if (isCourseManager) {
+        fetchMyCourses();
+      } else if (isParticipantOnly) {
+        fetchParticipantRegistrations();
+      }
+    }
 
     if (location.state?.message) {
       setSuccessMessage(location.state.message);
@@ -67,7 +124,7 @@ const MyCourses: React.FC = () => {
         clearTimeout(successTimeoutRef.current);
       }
     };
-  }, [userProfile, location.state]);
+  }, [userProfile, location.state, isCourseManager, isParticipantOnly]);
 
   const handleDeleteClick = async (courseId: string, courseTitle: string, seriesId: string | null) => {
     if (!seriesId) {
@@ -166,24 +223,85 @@ const MyCourses: React.FC = () => {
     }
   };
 
-  // Check if user has permission to view this page
-  const hasPermission = userProfile && userProfile.roles && (
-    userProfile.roles.includes('course_leader') || userProfile.roles.includes('admin')
-  );
-
-  if (!hasPermission) {
-    return (
-      <div className="text-center py-12">
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Keine Berechtigung</h2>
-        <p className="text-gray-600">Sie haben keine Berechtigung, diese Seite zu sehen.</p>
-      </div>
-    );
-  }
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+      </div>
+    );
+  }
+
+  if (isParticipantOnly) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Meine Anmeldungen</h1>
+          <p className="text-gray-600">
+            Hier sehen Sie Ihre kommenden Kurs-Anmeldungen.
+          </p>
+        </div>
+
+        {registrations.length === 0 ? (
+          <div className="text-center py-12">
+            <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Keine Anmeldungen gefunden</h3>
+            <p className="text-gray-600 mb-6">
+              Sie sind noch nicht für Kurse angemeldet.
+            </p>
+            <button
+              onClick={() => navigate('/courses')}
+              className="bg-teal-600 text-white px-6 py-3 rounded-lg hover:bg-teal-700 transition-colors"
+            >
+              Kurse durchsuchen
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {registrations.map((registration) => {
+              const course = registration.course as Course | undefined;
+              if (!course) return null;
+
+              const isWaitlist = registration.is_waitlist;
+
+              return (
+                <div
+                  key={registration.id}
+                  className="flex items-center p-4 bg-white rounded-lg shadow-sm border border-gray-200"
+                >
+                  <div className="flex-1">
+                    <h3 className="font-medium text-gray-900">{course.title}</h3>
+                    <div className="flex items-center mt-1 text-sm text-gray-600">
+                      <Calendar className="w-4 h-4 mr-1" />
+                      {formatDate(course.date)}
+                      <Clock className="w-4 h-4 ml-3 mr-1" />
+                      {course.time}
+                      {course.end_time && ` - ${course.end_time}`}
+                    </div>
+                    <div className="flex items-center mt-1 text-sm text-gray-600">
+                      <MapPin className="w-4 h-4 mr-1" />
+                      {course.location}
+                    </div>
+                    {course.teacher && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Lehrer: {course.teacher.first_name} {course.teacher.last_name}
+                      </p>
+                    )}
+                    <div className="mt-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-50 text-teal-700">
+                      {isWaitlist ? 'Warteliste' : 'Angemeldet'}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    {course.price != null && (
+                      <p className="text-lg font-semibold text-teal-600">
+                        €{course.price}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     );
   }
