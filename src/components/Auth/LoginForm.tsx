@@ -11,6 +11,8 @@ const LoginForm: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [verificationEmailLoading, setVerificationEmailLoading] = useState(false);
+  const [verificationEmailMessage, setVerificationEmailMessage] = useState('');
 
   const { signIn } = useAuth();
 
@@ -18,6 +20,7 @@ const LoginForm: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setVerificationEmailMessage('');
 
     try {
       const { error } = await signIn(email, password);
@@ -25,7 +28,7 @@ const LoginForm: React.FC = () => {
         if (error.message === 'Invalid login credentials') {
           setError('E-Mail oder Passwort ist falsch. Bitte überprüfen Sie Ihre Eingaben.');
         } else if (error.message.includes('Email not confirmed')) {
-          setError('Bitte bestätigen Sie Ihre E-Mail-Adresse über den Link in Ihrer E-Mail.');
+          setError('Bitte bestätigen Sie Ihre E-Mail-Adresse über den Link in Ihrer E-Mail. Sie können unten „Bestätigungsmail erneut senden“ nutzen.');
         } else {
           setError(`Anmeldung fehlgeschlagen: ${error.message}`);
         }
@@ -34,6 +37,40 @@ const LoginForm: React.FC = () => {
       setError('Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!email.trim()) {
+      setVerificationEmailMessage('Bitte geben Sie oben Ihre E-Mail-Adresse ein.');
+      return;
+    }
+    setVerificationEmailLoading(true);
+    setVerificationEmailMessage('');
+    setError('');
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/request-verification-email`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({ email: email.trim() }),
+        }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setVerificationEmailMessage('Falls ein Konto mit dieser E-Mail existiert, wurde eine Bestätigungsmail gesendet. Bitte prüfen Sie Ihr Postfach.');
+      } else {
+        setVerificationEmailMessage(data?.error || 'Bestätigungsmail konnte nicht gesendet werden.');
+      }
+    } catch {
+      setVerificationEmailMessage('Verbindungsfehler. Bitte später erneut versuchen.');
+    } finally {
+      setVerificationEmailLoading(false);
     }
   };
 
@@ -90,6 +127,17 @@ const LoginForm: React.FC = () => {
               {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
             </button>
           </div>
+          <p className="text-sm text-gray-500 mt-2">
+            Bestätigungsmail nicht erhalten?{' '}
+            <button
+              type="button"
+              onClick={handleResendVerification}
+              disabled={verificationEmailLoading}
+              className="text-teal-600 hover:text-teal-700 underline disabled:opacity-50"
+            >
+              {verificationEmailLoading ? 'Wird gesendet...' : 'Erneut senden'}
+            </button>
+          </p>
         </div>
 
         {error && (
@@ -100,6 +148,11 @@ const LoginForm: React.FC = () => {
                Hinweis: Stellen Sie sicher, dass Sie ein registriertes Konto haben.
              </p>
            )}
+          </div>
+        )}
+        {verificationEmailMessage && (
+          <div className={`p-3 rounded-lg text-sm ${verificationEmailMessage.includes('gesendet') ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-amber-50 border border-amber-200 text-amber-700'}`}>
+            {verificationEmailMessage}
           </div>
         )}
         <button

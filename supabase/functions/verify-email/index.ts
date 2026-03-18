@@ -23,9 +23,9 @@ Deno.serve(async (req: Request) => {
 
     const { token }: VerifyEmailRequest = await req.json();
 
-    if (!token) {
+    if (!token || typeof token !== "string" || token === "undefined" || token.length < 10) {
       return new Response(
-        JSON.stringify({ error: "Token ist erforderlich" }),
+        JSON.stringify({ error: "Token ist erforderlich oder ungültig. Bitte nutzen Sie den neuesten Link aus der E-Mail oder fordern Sie eine neue Bestätigungsmail an." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -43,8 +43,8 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const result = verifyResult[0];
-    if (!result || !result.valid) {
+    const result = Array.isArray(verifyResult) ? verifyResult[0] : verifyResult;
+    if (!result || result.valid !== true) {
       return new Response(
         JSON.stringify({ error: result?.message || "Token ungültig oder abgelaufen" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }

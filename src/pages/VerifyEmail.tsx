@@ -31,12 +31,19 @@ const VerifyEmail: React.FC = () => {
           }
         );
 
-        const data = await response.json();
+        let data: { success?: boolean; error?: string } = {};
+        try {
+          data = await response.json();
+        } catch {
+          setStatus('error');
+          setMessage('Ungültige Antwort vom Server. Bitte versuchen Sie es erneut.');
+          return;
+        }
 
         if (response.ok && data.success) {
           setStatus('success');
           setMessage('Ihre E-Mail-Adresse wurde erfolgreich bestätigt!');
-          setTimeout(() => navigate('/auth'), 3000);
+          setTimeout(() => navigate('/auth?verified=1'), 3000);
         } else {
           setStatus('error');
           setMessage(data.error || 'Fehler bei der Verifizierung.');

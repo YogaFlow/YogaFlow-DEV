@@ -95,12 +95,13 @@ Deno.serve(async (req: Request) => {
           </html>
         `;
 
+        const internalSecret = Deno.env.get("INTERNAL_EMAIL_SECRET");
         const sendEmailUrl = `${supabaseUrl}/functions/v1/send-email`;
         const emailResponse = await fetch(sendEmailUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${supabaseServiceKey}`,
+            "X-Internal-Secret": internalSecret ?? "",
           },
           body: JSON.stringify({
             to: email,

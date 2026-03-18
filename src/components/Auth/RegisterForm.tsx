@@ -20,8 +20,9 @@ const RegisterForm: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  
-  const { signUp } = useAuth();
+  const [emailSentOnSignup, setEmailSentOnSignup] = useState(true);
+
+  const { signUp, signOut } = useAuth();
 
   const handleChange = (e: React.FormEvent<HTMLInputElement>) => {
     const { name, value } = e.currentTarget;
@@ -48,19 +49,40 @@ const RegisterForm: React.FC = () => {
       return;
     }
 
+    const duplicateEmailMessage = 'Ein Benutzer mit dieser E-Mail-Adresse ist bereits registriert. Bitte verwenden Sie eine andere E-Mail-Adresse oder melden Sie sich an.';
+
     try {
       const { password, confirmPassword, ...userData } = formData;
       const { data, error } = await signUp(formData.email, password, userData);
 
       if (error) {
-        if (error.message === 'User already registered') {
-          setError('Ein Benutzer mit dieser E-Mail-Adresse ist bereits registriert. Bitte verwenden Sie eine andere E-Mail-Adresse oder melden Sie sich an.');
+        const msg = (error as { message?: string }).message ?? '';
+        const isDuplicate = msg === 'User already registered'
+          || /already registered/i.test(msg)
+          || /already exists/i.test(msg)
+          || /already in use/i.test(msg);
+        const isRateLimit = /rate limit exceeded/i.test(msg);
+        if (isDuplicate) {
+          setError(duplicateEmailMessage);
+        } else if (isRateLimit) {
+          setError('Zu viele Registrierungsversuche. Bitte warten Sie etwa eine Stunde und versuchen Sie es dann erneut. Falls Sie sich bereits registriert haben, nutzen Sie „Anmelden“ oder „Bestätigungsmail erneut senden“ auf der Login-Seite.');
         } else {
-          setError('Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut.');
+          setError(`Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut.${msg ? ` (${msg})` : ''}`);
         }
-      } else if (data?.user) {
+        return;
+      }
+
+      // Supabase often returns success with empty identities when email already exists (no error)
+      const identities = (data?.user as { identities?: unknown[] })?.identities;
+      if (data?.user && Array.isArray(identities) && identities.length === 0) {
+        setError(duplicateEmailMessage);
+        return;
+      }
+
+      if (data?.user) {
+        let emailSent = false;
         try {
-          await fetch(
+          const res = await fetch(
             `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-verification-email`,
             {
               method: 'POST',
@@ -74,10 +96,13 @@ const RegisterForm: React.FC = () => {
               }),
             }
           );
+          emailSent = res.ok;
+          setSuccess(true);
+          setEmailSentOnSignup(emailSent);
+          await signOut();
         } catch (emailError) {
           console.error('Error sending verification email:', emailError);
         }
-        setSuccess(true);
       }
     } catch (err) {
       setError('Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
@@ -93,13 +118,27 @@ const RegisterForm: React.FC = () => {
           <h3 className="text-lg font-semibold text-green-800 mb-2">
             Registrierung erfolgreich!
           </h3>
-          <p className="text-sm text-green-600 mb-3">
-            Wir haben Ihnen eine Bestätigungsmail an <strong>{formData.email}</strong> gesendet.
-          </p>
-          <p className="text-sm text-green-600">
-            Bitte überprüfen Sie Ihr E-Mail-Postfach und klicken Sie auf den Bestätigungslink,
-            um Ihr Konto zu aktivieren.
-          </p>
+          {emailSentOnSignup ? (
+            <>
+              <p className="text-sm text-green-600 mb-3">
+                Wir haben Ihnen eine Bestätigungsmail an <strong>{formData.email}</strong> gesendet.
+              </p>
+              <p className="text-sm text-green-600 mb-3">
+                Bitte klicken Sie auf den Link in der E-Mail, um Ihr Konto zu bestätigen.
+                <strong> Anschließend können Sie sich oben unter „Anmelden“ einloggen.</strong>
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-green-600 mb-3">
+                Ihr Konto wurde erstellt. Die Bestätigungsmail konnte nicht versendet werden.
+              </p>
+              <p className="text-sm text-green-600">
+                Bitte gehen Sie zur <strong>Anmeldeseite</strong> und nutzen Sie dort
+                „Bestätigungsmail nicht erhalten? <strong>Erneut senden</strong>“, um den Link zu erhalten.
+              </p>
+            </>
+          )}
         </div>
       </div>
     );

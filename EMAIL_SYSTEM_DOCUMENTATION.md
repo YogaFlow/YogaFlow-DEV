@@ -7,21 +7,30 @@ Die App verfügt jetzt über eine vollständige E-Mail-Infrastruktur für:
 - Passwort-Zurücksetzen ("Passwort vergessen")
 - Bestätigungsmails bei Passwortänderungen
 
-## SMTP-Konfiguration
+## E-Mail-Konfiguration (Gmail SMTP)
 
-Der Absender aller E-Mails wird aus dem Secret `SMTP_USER` gelesen (in der Edge Function `send-email`). Sie können für Produktion einen eigenen SMTP-Server (z. B. IONOS) und zum Testen eine private E-Mail (z. B. Gmail) verwenden.
+Die Edge Function `send-email` versendet E-Mails über **Gmail SMTP** (nodemailer). Absender ist „Die Thallers“ mit der konfigurierten E-Mail-Adresse (siehe `SENDER_EMAIL` bzw. `SMTP_USER`).
 
-### Option A: Zum Testen mit Gmail (z. B. juliusbne@gmail.com)
+**Interner Aufruf von send-email:** Die Functions `request-password-reset`, `send-verification-email` und `reset-password` rufen `send-email` per HTTP mit dem Header **X-Internal-Secret** auf. Der JWT-Check für `send-email` ist deaktiviert (`supabase/config.toml`: `[functions.send-email] verify_jwt = false`); die Absicherung erfolgt über das gemeinsame Secret.
+
+- **INTERNAL_EMAIL_SECRET** muss in **Edge Functions → Secrets** gesetzt sein (langer Zufallswert). Derselbe Wert gilt für alle Edge Functions im Projekt; nur Aufrufer mit diesem Header können E-Mails auslösen. Für PROD dasselbe Secret (oder ein eigener Wert) in den PROD-Edge-Function-Secrets hinterlegen.
+- **SMTP-Secrets** müssen in **Edge Functions → Secrets** gesetzt sein: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`. **Niemals** im Code oder Repo speichern.
+
+### Gmail einrichten (aktuell verwendet)
 
 1. Gehen Sie zu Ihrem Supabase Dashboard → **Edge Functions** → **Secrets**.
 2. Fügen Sie folgende Secrets hinzu:
    - `SMTP_HOST`: `smtp.gmail.com`
-   - `SMTP_PORT`: `587`
-   - `SMTP_USER`: Ihre Gmail-Adresse (z. B. juliusbne@gmail.com)
+   - `SMTP_PORT`: `465` (empfohlen; SSL). Alternativ `587` (STARTTLS).
+   - `SMTP_USER`: Ihre **vollständige** Gmail-Adresse (z. B. yogaflowapplication@gmail.com) – exakt so, keine Leerzeichen.
    - `SMTP_PASS`: Ein **Gmail-App-Passwort** (nicht Ihr normales Gmail-Passwort)
-     - Gmail-App-Passwort erzeugen: Google-Konto → Sicherheit → 2-Faktor-Aktivierung aktivieren → App-Passwörter → Passwort für „Mail“ erzeugen und eintragen
+     - Gmail-App-Passwort erzeugen: Google-Konto → Sicherheit → 2-Faktor-Aktivierung aktivieren → App-Passwörter → Passwort für „Mail“ erzeugen.
+     - Das App-Passwort hat **16 Zeichen ohne Leerzeichen**. Google zeigt es oft als „xxxx xxxx xxxx xxxx“ – in den Secrets **ohne Leerzeichen** eintragen (16 Zeichen hintereinander).
+   - **Optional** `SENDER_EMAIL`: Absender-Adresse (z. B. dieselbe Gmail-Adresse). Ohne Angabe wird `SMTP_USER` verwendet.
 
 E-Mails werden dann von „Die Thallers“ &lt;IhreGmail@…&gt; versendet.
+
+---
 
 ### Option B: Outlook / Microsoft 365 (z. B. für App-E-Mails)
 
@@ -30,9 +39,19 @@ E-Mails werden dann von „Die Thallers“ &lt;IhreGmail@…&gt; versendet.
    - `SMTP_HOST`: `smtp.office365.com` (bei @outlook.de/@outlook.com ggf. `smtp-mail.outlook.com` testen)
    - `SMTP_PORT`: `587`
    - `SMTP_USER`: Ihre Outlook-Adresse (z. B. yogaflowapp@outlook.de)
-   - `SMTP_PASS`: Ihr Outlook-Passwort (**nur** in Supabase Secrets eintragen, **niemals** im Code oder Repo)
+   - `SMTP_PASS`: Ihr Outlook-Passwort oder **App-Passwort** (**nur** in Supabase Secrets eintragen, **niemals** im Code oder Repo)
 
-Bei Outlook mit 2-Faktor-Authentifizierung ggf. ein App-Passwort verwenden (Microsoft-Konto → Sicherheit → Erweiterte Sicherheitsoptionen). Wenn E-Mails nicht ankommen: Edge Function Logs (send-email, request-password-reset) im Dashboard prüfen – dort steht z. B. „no user found“ oder der SMTP-Fehler.
+**Persönliches Microsoft-Konto (@outlook.com, @outlook.de) – SMTP aktivieren (Schritt für Schritt):**
+
+1. Im Browser zu **https://account.microsoft.com** gehen und mit dem Konto anmelden (z. B. yogaflowapp@outlook.de).
+2. Oben rechts auf **Mein Konto** klicken, dann **Sicherheit** (oder direkt **https://account.live.com/proofs/Manage**).
+3. Unter **Sicherheitsoptionen** nach **App-Kennwörter** oder **App-Passwörter** suchen.
+4. Falls 2-Faktor-Authentifizierung noch nicht aktiv ist: Zuerst unter **Sicherheit** die **Zwei-Schritt-Verifizierung** aktivieren (nötig für App-Passwörter).
+5. **App-Passwort erstellen:** Bei „App-Kennwörter“ auf **Neues App-Kennwort erstellen** klicken, Namen vergeben (z. B. „YogaFlow E-Mail“), erzeugen. Den angezeigten **16-Zeichen-Code** kopieren (ohne Leerzeichen).
+6. In Supabase unter **Edge Functions → Secrets** bei **SMTP_PASS** genau dieses App-Passwort eintragen (nicht das normale Microsoft-Passwort).
+7. Wenn der Fehler „SmtpClientAuthentication is disabled“ auftritt: Unter **https://aka.ms/smtp_auth_disabled** prüfen, ob für deine Region/Kontotyp zusätzlich SMTP AUTH freigeschaltet werden muss; ggf. in den erweiterten Sicherheitseinstellungen des Microsoft-Kontos nach „SMTP“ oder „Authenticated SMTP“ suchen und aktivieren.
+
+Wenn E-Mails nicht ankommen: Edge Function Logs (send-email, request-password-reset) im Dashboard prüfen – dort steht z. B. „no user found“ oder der SMTP-Fehler.
 
 ### Option C: Produktion mit IONOS (tanja@die-thallers.de)
 
@@ -66,16 +85,22 @@ Speichert alle Verifizierungs- und Reset-Tokens mit:
 ## Edge Functions
 
 ### 1. `send-email`
-Basis-Funktion zum Versenden von E-Mails über SMTP.
-- Verwendet Nodemailer
-- Unterstützt HTML und Plain-Text E-Mails
-- Absender: "Die Thallers" &lt;SMTP_USER&gt; (aus Edge Function Secrets)
+Basis-Funktion zum Versenden von E-Mails über **Gmail SMTP** (nodemailer).
+- Erfordert Secrets `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` in Edge Function Secrets; optional `SENDER_EMAIL`
+- Absender: „Die Thallers“ &lt;SENDER_EMAIL bzw. SMTP_USER&gt;
+- Unterstützt HTML-E-Mails; Absicherung über `INTERNAL_EMAIL_SECRET` (X-Internal-Secret Header)
 
 ### 2. `send-verification-email`
 Sendet Verifizierungs-E-Mail nach Registrierung.
 - Erstellt sicheren Token (24h gültig)
 - Generiert Verifizierungslink
 - Sendet professionell gestaltete HTML-E-Mail
+
+### 2b. `request-verification-email`
+Sendet Bestätigungsmail **ohne Login** erneut (z. B. wenn die erste nicht angekommen ist).
+- Aufruf mit nur `email` im Body (wie „Passwort vergessen“)
+- Neutrale Antwort (kein Hinweis, ob Konto existiert)
+- Auf der Login-Seite: Link „Bestätigungsmail nicht erhalten? Erneut senden“
 
 ### 3. `verify-email`
 Verifiziert E-Mail-Adresse mit Token.
@@ -175,7 +200,7 @@ Entfernt:
 
 ### Monitoring
 Überwachen Sie die Edge Function Logs für:
-- SMTP-Verbindungsfehler
+- SMTP-Fehler (z. B. ungültige SMTP-Secrets, Gmail 535)
 - Token-Verifikationsfehler
 - E-Mail-Versandfehler
 
@@ -199,11 +224,30 @@ Entfernt:
 
 ## Fehlerbehebung
 
+### „Email rate limit exceeded“ bei Registrierung
+- Supabase begrenzt Anmeldeversuche pro Zeiteinheit (z. B. wenige Mails pro Stunde). Nach Überschreitung: etwa **1 Stunde warten**, dann erneut versuchen.
+- **Limits anpassen:** Im Supabase Dashboard unter **Authentication → Rate Limits** die Grenzwerte für Sign-up/E-Mail ansehen und ggf. erhöhen (Projekt-Einstellungen).
+- Die App zeigt in diesem Fall eine verständliche Meldung und verweist auf „Bestätigungsmail erneut senden“, falls der Account schon existiert.
+
 ### E-Mails werden nicht gesendet
-- SMTP-Credentials in Supabase Edge Function Secrets überprüfen (SMTP_USER, SMTP_PASS, SMTP_HOST, SMTP_PORT)
-- Bei Gmail: App-Passwort verwenden, nicht das normale Passwort
-- Edge Function Logs (send-email) im Dashboard prüfen
-- Bei IONOS: Account-Status und Zugangsdaten prüfen
+- **INTERNAL_EMAIL_SECRET** in Edge Function Secrets setzen (muss für send-email und aufrufende Functions identisch sein); bei 401 aus send-email: Secret prüfen.
+- **SMTP-Secrets** in Edge Function Secrets setzen: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` (siehe „Gmail einrichten“ oben).
+- Edge Function Logs (send-email, request-password-reset, request-verification-email) im Dashboard prüfen.
+
+### Login nicht möglich, weil „E-Mail nicht bestätigt“
+- **Bestätigungsmail erneut senden:** Auf der Login-Seite E-Mail eintragen und auf „Bestätigungsmail nicht erhalten? Erneut senden“ klicken.
+- **Login ohne Bestätigung (nur zum Entsperren):** Im Supabase Dashboard unter **Authentication → Providers → Email** die Option **„Confirm email“** deaktivieren. Dann können sich Nutzer auch ohne geklickten Bestätigungslink anmelden. Für Produktion wieder aktivieren, sobald gewünscht.
+
+### Gmail-Fehler „535-5.7.8 Username and Password not accepted“
+- **SMTP_PASS** muss ein **Gmail-App-Passwort** sein (nicht das normale Passwort). 2-Faktor-Authentifizierung muss aktiv sein, um ein App-Passwort zu erzeugen.
+- App-Passwort **ohne Leerzeichen** eintragen (16 Zeichen; Google zeigt „xxxx xxxx xxxx xxxx“ – alle Leerzeichen entfernen).
+- **SMTP_USER** muss die **vollständige Gmail-Adresse** sein (z. B. `you@gmail.com`).
+- In den Supabase Secrets keine Leerzeichen am Anfang oder Ende eintragen (die Edge Function trimmt Werte; bei Verdacht Secret neu eintragen).
+
+### 535 trotz korrektem App-Passwort (passLength=16, keine Leerzeichen)
+Gmail kann SMTP-Anmeldungen von **Rechenzentrum-IPs** (z. B. Supabase/Cloud) blockieren oder einschränken – auch bei korrekten Zugangsdaten. **Lösungen:**
+- **Port 587 testen:** In den Secrets `SMTP_PORT` auf `587` setzen (STARTTLS statt reines SSL).
+- **Produktion:** Statt Gmail einen eigenen SMTP-Server nutzen (z. B. **IONOS**, Option C in dieser Doku). IONOS (tanja@die-thallers.de) ist für den Live-Betrieb ohnehin vorgesehen und umgeht Gmail-Beschränkungen.
 
 ### Token-Fehler
 - Datenbank-Logs überprüfen
