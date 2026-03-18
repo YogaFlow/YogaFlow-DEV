@@ -35,6 +35,31 @@ Deno.serve(async (req: Request) => {
     const { error: ensureError } = await supabase.rpc("ensure_public_user", { p_user_id: userId });
     if (ensureError) {
       console.error("ensure_public_user:", ensureError);
+      return new Response(
+        JSON.stringify({
+          error: "User setup failed",
+          details: ensureError.message,
+          code: "ensure_public_user_failed",
+        }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Verify user exists in public.users (auth_tokens has FK to users); avoid race after signUp
+    const { data: userRow, error: userCheckError } = await supabase
+      .from("users")
+      .select("id")
+      .eq("id", userId)
+      .maybeSingle();
+    if (userCheckError || !userRow) {
+      console.error("User not in public.users yet:", userCheckError ?? "no row");
+      return new Response(
+        JSON.stringify({
+          error: "Account wird noch angelegt. Bitte in wenigen Sekunden erneut auf „E-Mail senden“ klicken.",
+          code: "user_not_ready",
+        }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const { data: tokenData, error: tokenError } = await supabase.rpc(
