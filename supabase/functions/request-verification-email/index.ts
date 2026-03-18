@@ -7,8 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-interface VerificationRequest {
-  userId: string;
+interface RequestBody {
   email: string;
 }
 
@@ -22,30 +21,45 @@ Deno.serve(async (req: Request) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { userId, email }: VerificationRequest = await req.json();
+    const { email }: RequestBody = await req.json();
 
-    if (!userId || !email) {
+    if (!email?.trim()) {
       return new Response(
-        JSON.stringify({ error: "Missing userId or email" }),
+        JSON.stringify({ error: "E-Mail-Adresse ist erforderlich." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Ensure user exists in public.users (trigger may not have run yet)
-    const { error: ensureError } = await supabase.rpc("ensure_public_user", { p_user_id: userId });
-    if (ensureError) {
-      console.error("ensure_public_user:", ensureError);
+    const { data: userData, error: userError } = await supabase
+      .from("users")
+      .select("id, email")
+      .eq("email", email.trim())
+      .maybeSingle();
+
+    if (userError) {
+      console.error("Database error:", userError);
+    }
+
+    if (!userData) {
+      console.log("Verification email: no user found for email:", email, "- no email sent (by design)");
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: "Falls ein Konto mit dieser E-Mail-Adresse existiert, wurde eine Bestätigungsmail gesendet. Bitte prüfen Sie Ihr Postfach.",
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const { data: tokenData, error: tokenError } = await supabase.rpc(
       "create_verification_token",
-      { p_user_id: userId, p_email: email }
+      { p_user_id: userData.id, p_email: userData.email ?? email }
     );
 
     if (tokenError || tokenData == null) {
-      console.error("Error creating token:", tokenError);
+      console.error("Error creating verification token:", tokenError);
       return new Response(
-        JSON.stringify({ error: "Failed to create verification token" }),
+        JSON.stringify({ error: "Token konnte nicht erstellt werden. Bitte versuchen Sie es später erneut." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -54,7 +68,7 @@ Deno.serve(async (req: Request) => {
     if (!token) {
       console.error("Invalid token data from create_verification_token");
       return new Response(
-        JSON.stringify({ error: "Failed to create verification token" }),
+        JSON.stringify({ error: "Token konnte nicht erstellt werden. Bitte versuchen Sie es später erneut." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -108,7 +122,7 @@ Deno.serve(async (req: Request) => {
         "X-Internal-Secret": internalSecret ?? "",
       },
       body: JSON.stringify({
-        to: email,
+        to: userData.email ?? email,
         subject: "E-Mail-Adresse bestätigen - Die Thallers",
         html: emailHtml,
       }),
@@ -116,24 +130,24 @@ Deno.serve(async (req: Request) => {
 
     if (!emailResponse.ok) {
       const errorText = await emailResponse.text();
-      console.error("Error sending email:", errorText);
+      console.error("Error sending verification email:", errorText);
       return new Response(
-        JSON.stringify({
-          error: "Failed to send verification email",
-          details: errorText,
-        }),
+        JSON.stringify({ error: "Die Bestätigungsmail konnte nicht gesendet werden. Bitte versuchen Sie es später erneut.", details: errorText }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     return new Response(
-      JSON.stringify({ success: true, message: "Verification email sent" }),
+      JSON.stringify({
+        success: true,
+        message: "Falls ein Konto mit dieser E-Mail-Adresse existiert, wurde eine Bestätigungsmail gesendet. Bitte prüfen Sie Ihr Postfach.",
+      }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("Error:", error);
     return new Response(
-      JSON.stringify({ error: error.message || String(error) }),
+      JSON.stringify({ error: (error as Error).message || String(error) }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

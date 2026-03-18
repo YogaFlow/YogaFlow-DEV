@@ -40,10 +40,14 @@ Deno.serve(async (req: Request) => {
       console.error("Database error:", userError);
     }
 
+    if (!userData) {
+      console.log("Password reset: no user found for email:", email, "- no email sent (by design)");
+    }
+
     if (userData) {
       const { data: tokenData, error: tokenError } = await supabase.rpc(
         "create_password_reset_token",
-        { p_user_id: userData.id }
+        { p_user_id: userData.id, p_email: userData.email ?? email }
       );
 
       if (tokenError || !tokenData) {
@@ -91,12 +95,13 @@ Deno.serve(async (req: Request) => {
           </html>
         `;
 
+        const internalSecret = Deno.env.get("INTERNAL_EMAIL_SECRET");
         const sendEmailUrl = `${supabaseUrl}/functions/v1/send-email`;
         const emailResponse = await fetch(sendEmailUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${supabaseServiceKey}`,
+            "X-Internal-Secret": internalSecret ?? "",
           },
           body: JSON.stringify({
             to: email,
@@ -106,7 +111,10 @@ Deno.serve(async (req: Request) => {
         });
 
         if (!emailResponse.ok) {
-          console.error("Error sending email:", await emailResponse.text());
+          const errBody = await emailResponse.text();
+          console.error("Error sending email. Status:", emailResponse.status, "Body:", errBody);
+        } else {
+          console.log("Password reset email sent successfully to:", email);
         }
       }
     }

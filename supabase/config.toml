@@ -1,0 +1,4 @@
+# Per-function config: send-email is invoked only by other Edge Functions (request-password-reset, etc.)
+# with internal secret header; JWT check is disabled, auth is done via X-Internal-Secret in the function.
+[functions.send-email]
+verify_jwt = false

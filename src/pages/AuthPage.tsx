@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import LoginForm from '../components/Auth/LoginForm';
 import RegisterForm from '../components/Auth/RegisterForm';
 import { Heart } from 'lucide-react';
@@ -7,6 +7,8 @@ import { useAuth } from '../context/AuthContext';
 
 const AuthPage: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
+  const [showVerifiedMessage, setShowVerifiedMessage] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -15,6 +17,13 @@ const AuthPage: React.FC = () => {
       navigate('/dashboard', { replace: true });
     }
   }, [user, loading, navigate]);
+
+  useEffect(() => {
+    if (searchParams.get('verified') === '1') {
+      setShowVerifiedMessage(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   if (loading) {
     return (
@@ -63,6 +72,11 @@ const AuthPage: React.FC = () => {
             </button>
           </div>
 
+          {showVerifiedMessage && (
+            <div className="mx-8 mt-6 p-4 bg-green-50 border border-green-200 rounded-lg text-center text-green-800 text-sm">
+              E-Mail bestätigt. Sie können sich jetzt anmelden.
+            </div>
+          )}
           <div className="p-8 flex justify-center">
             {isLogin ? <LoginForm /> : <RegisterForm />}
           </div>
