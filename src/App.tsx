@@ -34,7 +34,15 @@ const ProtectedOrPublicRoute: React.FC<{ children: React.ReactNode }> = ({ child
 };
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const location = useLocation();
   const { user, loading } = useAuth();
+
+  // Doppelte Absicherung: Auch in ProtectedRoute keine Weiterleitung zu /auth auf öffentlichen Pfaden
+  if (PUBLIC_PATHS.includes(location.pathname)) {
+    if (location.pathname === '/reset-password') return <ResetPassword />;
+    if (location.pathname === '/forgot-password') return <ForgotPassword />;
+    if (location.pathname === '/verify-email') return <VerifyEmail />;
+  }
 
   if (loading) {
     return (
@@ -53,9 +61,7 @@ function App() {
       <Router>
         <Routes>
           <Route path="/auth" element={<AuthPage />} />
-          <Route path="/verify-email" element={<VerifyEmail />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
+          {/* Öffentliche Pfade nur über /* + ProtectedOrPublicRoute, damit sie nie in ProtectedRoute landen */}
           <Route path="/*" element={
             <ProtectedOrPublicRoute>
               <Layout />

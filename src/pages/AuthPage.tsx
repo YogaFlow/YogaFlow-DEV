@@ -18,6 +18,14 @@ const AuthPage: React.FC = () => {
     }
   }, [user, loading, navigate]);
 
+  // Falls der Passwort-Reset-Link versehentlich auf /auth zeigt: zur Reset-Seite weiterleiten
+  useEffect(() => {
+    const token = searchParams.get('token');
+    if (token) {
+      navigate(`/reset-password?token=${encodeURIComponent(token)}`, { replace: true });
+    }
+  }, [searchParams, navigate]);
+
   useEffect(() => {
     if (searchParams.get('verified') === '1') {
       setShowVerifiedMessage(true);
