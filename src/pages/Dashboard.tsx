@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Calendar, Users, BookOpen, TrendingUp, Clock, MapPin } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -297,14 +297,13 @@ const Dashboard: React.FC = () => {
           const path = card.path;
           if (path) {
             return (
-              <button
+              <Link
                 key={index}
-                type="button"
-                onClick={() => navigate(path)}
-                className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 w-full text-left hover:border-teal-300 hover:shadow-md transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+                to={path}
+                className="block bg-white rounded-lg shadow-sm border border-gray-200 p-6 w-full text-left hover:border-teal-300 hover:shadow-md transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 no-underline text-inherit"
               >
                 <CardContent />
-              </button>
+              </Link>
             );
           }
           return (
