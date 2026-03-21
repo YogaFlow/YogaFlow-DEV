@@ -1,3 +1,15 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/*
+  iOS Safari draws <input type="date"> with WebKit-only internals; padding on the input
+  often does not shift the visible date the same way as in Chrome. Spacing the datetime
+  edit wrapper avoids overlap between the native affordance and the date digits.
+*/
+@layer components {
+  .course-date-filter::-webkit-datetime-edit-fields-wrapper {
+    padding-block: 0.125rem;
+    padding-inline: 0.25rem;
+  }
+}
