@@ -151,7 +151,8 @@ const Courses: React.FC = () => {
       if (error) throw error;
 
       if (data && !data.success) {
-        alert(data.message || 'Fehler bei der Anmeldung.');
+        const d = data as { message?: string; error?: string };
+        alert(d.message || d.error || 'Fehler bei der Anmeldung.');
         return;
       }
 
@@ -181,7 +182,8 @@ const Courses: React.FC = () => {
       if (error) throw error;
 
       if (data && !data.success) {
-        alert(data.message || 'Fehler bei der Abmeldung.');
+        const d = data as { message?: string; error?: string };
+        alert(d.message || d.error || 'Fehler bei der Abmeldung.');
         return;
       }
 
