@@ -302,13 +302,23 @@ const Courses: React.FC = () => {
             />
           </div>
           
-          <input
-            type="date"
-            value={filterDate}
-            onChange={(e) => setFilterDate(e.target.value)}
-            aria-label="Kurse nach Datum filtern"
-            className="course-date-filter w-full rounded-lg border border-gray-300 bg-white px-3 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
-          />
+          <div className="grid w-full grid-cols-[2.75rem_minmax(0,1fr)] items-stretch rounded-lg border border-gray-300 bg-white focus-within:border-transparent focus-within:ring-2 focus-within:ring-teal-500">
+            <div
+              className="flex items-center justify-center border-r border-gray-200 bg-white"
+              aria-hidden
+            >
+              <Calendar className="h-4 w-4 shrink-0 text-gray-400" />
+            </div>
+            <div className="min-w-0">
+              <input
+                type="date"
+                value={filterDate}
+                onChange={(e) => setFilterDate(e.target.value)}
+                aria-label="Kurse nach Datum filtern"
+                className="course-date-filter h-full w-full min-w-0 border-0 bg-transparent py-2 pl-2 pr-2 text-gray-900 focus:outline-none focus:ring-0 sm:pr-3"
+              />
+            </div>
+          </div>
 
           <div className="flex bg-gray-100 rounded-lg p-1">
             <button
