@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Clock, MapPin, Users, Plus, Search, Filter } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Plus, Search } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Course, Registration } from '../types';
@@ -302,17 +302,13 @@ const Courses: React.FC = () => {
             />
           </div>
           
-          <div className="flex w-full items-stretch rounded-lg border border-gray-300 bg-white focus-within:ring-2 focus-within:ring-teal-500 focus-within:border-transparent">
-            <span className="flex shrink-0 items-center pl-3 pr-1" aria-hidden>
-              <Filter className="h-4 w-4 text-gray-400" />
-            </span>
-            <input
-              type="date"
-              value={filterDate}
-              onChange={(e) => setFilterDate(e.target.value)}
-              className="min-w-0 flex-1 border-0 bg-transparent py-2 pr-3 focus:outline-none focus:ring-0"
-            />
-          </div>
+          <input
+            type="date"
+            value={filterDate}
+            onChange={(e) => setFilterDate(e.target.value)}
+            aria-label="Kurse nach Datum filtern"
+            className="course-date-filter w-full rounded-lg border border-gray-300 bg-white px-3 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
+          />
 
           <div className="flex bg-gray-100 rounded-lg p-1">
             <button
