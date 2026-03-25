@@ -1,7 +1,6 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
 /*
   iOS Safari draws <input type="date"> with WebKit-only internals; padding on the input
   often does not shift the visible date the same way as in Chrome. Spacing the datetime
@@ -13,3 +12,4 @@
     padding-inline: 0.25rem;
   }
 }
+

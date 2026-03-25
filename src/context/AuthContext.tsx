@@ -12,6 +12,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<any>;
   signUp: (email: string, password: string, userData: any) => Promise<any>;
   signOut: () => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<{ error: { message: string } | null }>;
   hasRole: (role: UserRole) => boolean;
   isAdmin: boolean;
   isCourseLeader: boolean;
@@ -166,6 +167,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const changePassword = async (currentPassword: string, newPassword: string) => {
+    if (!user?.email) {
+      return { error: { message: 'Benutzer nicht gefunden. Bitte erneut anmelden.' } };
+    }
+
+    const { error: reAuthError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: currentPassword
+    });
+
+    if (reAuthError) {
+      if (reAuthError.message === 'Invalid login credentials') {
+        return { error: { message: 'Aktuelles Passwort ist falsch.' } };
+      }
+      return { error: { message: 'Aktuelles Passwort konnte nicht verifiziert werden.' } };
+    }
+
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: newPassword
+    });
+
+    if (updateError) {
+      if (updateError.message.toLowerCase().includes('same password')) {
+        return { error: { message: 'Das neue Passwort muss sich vom aktuellen Passwort unterscheiden.' } };
+      }
+      return { error: { message: 'Passwort konnte nicht geändert werden. Bitte versuchen Sie es erneut.' } };
+    }
+
+    return { error: null };
+  };
+
   const hasRole = (role: UserRole): boolean => {
     if (!userProfile?.roles) return false;
     return userProfile.roles.includes(role);
@@ -199,6 +231,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signIn,
     signUp,
     signOut,
+    changePassword,
     hasRole,
     isAdmin,
     isCourseLeader,
