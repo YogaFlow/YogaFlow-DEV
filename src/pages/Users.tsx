@@ -3,11 +3,13 @@ import { supabase } from '../lib/supabase';
 import { User, UserRole } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { UserPlus, Edit2, Trash2, Mail, Phone } from 'lucide-react';
+import { FunctionsHttpError } from '@supabase/supabase-js';
 
 export default function Users() {
   const { isAdmin } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState({
@@ -125,35 +127,100 @@ export default function Users() {
   };
 
   const handleDeleteUser = async (userId: string) => {
+    if (deletingUserId) return;
     if (!confirm('Möchten Sie diesen Benutzer wirklich löschen?')) return;
 
     try {
+      setDeletingUserId(userId);
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Nicht authentifiziert');
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-user`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({ userId }),
-        }
-      );
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.details || result.error || 'Fehler beim Löschen');
+      // #region agent log
+      fetch('http://127.0.0.1:7337/ingest/81a138c8-fe6e-4883-8a0d-10b88515cc78',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ab11cc'},body:JSON.stringify({sessionId:'ab11cc',runId:'run4',hypothesisId:'H6',location:'src/pages/Users.tsx:132',message:'delete-user session check',data:{hasSession:Boolean(session)},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+      if (!session?.access_token) {
+        throw new Error('Nicht authentifiziert. Bitte neu anmelden.');
       }
 
+      // #region agent log
+      fetch('http://127.0.0.1:7337/ingest/81a138c8-fe6e-4883-8a0d-10b88515cc78',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ab11cc'},body:JSON.stringify({sessionId:'ab11cc',runId:'run4',hypothesisId:'H1',location:'src/pages/Users.tsx:140',message:'delete-user invoke start',data:{userIdPresent:Boolean(userId),tokenLength:session.access_token.length},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+      const { data, error } = await supabase.functions.invoke('delete-user', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: { userId },
+      });
+
+      if (error) {
+        if (error instanceof FunctionsHttpError) {
+          const responseText = await error.context.text().catch(() => '');
+          let parsedError = '';
+          try {
+            const parsed = responseText ? JSON.parse(responseText) : null;
+            parsedError = parsed?.details || parsed?.error || '';
+          } catch {
+            parsedError = responseText;
+          }
+          // #region agent log
+          fetch('http://127.0.0.1:7337/ingest/81a138c8-fe6e-4883-8a0d-10b88515cc78',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ab11cc'},body:JSON.stringify({sessionId:'ab11cc',runId:'run2',hypothesisId:'H2',location:'src/pages/Users.tsx:150',message:'delete-user http error details',data:{status:error.context.status,statusText:error.context.statusText,hasBody:Boolean(responseText),hasParsedError:Boolean(parsedError)},timestamp:Date.now()})}).catch(()=>{});
+          // #endregion
+          if (error.context.status === 401) {
+            // #region agent log
+            fetch('http://127.0.0.1:7337/ingest/81a138c8-fe6e-4883-8a0d-10b88515cc78',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ab11cc'},body:JSON.stringify({sessionId:'ab11cc',runId:'run5',hypothesisId:'H7',location:'src/pages/Users.tsx:158',message:'invoke returned 401, trying direct fetch fallback',data:{},timestamp:Date.now()})}).catch(()=>{});
+            // #endregion
+            const fallbackResponse = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-user`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${session.access_token}`,
+                  apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+                },
+                body: JSON.stringify({ userId }),
+              }
+            );
+            const fallbackText = await fallbackResponse.text().catch(() => '');
+            let fallbackParsed = '';
+            try {
+              const parsed = fallbackText ? JSON.parse(fallbackText) : null;
+              fallbackParsed = parsed?.details || parsed?.error || '';
+            } catch {
+              fallbackParsed = fallbackText;
+            }
+            // #region agent log
+            fetch('http://127.0.0.1:7337/ingest/81a138c8-fe6e-4883-8a0d-10b88515cc78',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ab11cc'},body:JSON.stringify({sessionId:'ab11cc',runId:'run5',hypothesisId:'H7',location:'src/pages/Users.tsx:182',message:'direct fetch fallback result',data:{status:fallbackResponse.status,ok:fallbackResponse.ok,hasBody:Boolean(fallbackText),hasParsedError:Boolean(fallbackParsed)},timestamp:Date.now()})}).catch(()=>{});
+            // #endregion
+            if (fallbackResponse.ok) {
+              alert('Benutzer erfolgreich gelöscht');
+              fetchUsers();
+              return;
+            }
+            throw new Error(fallbackParsed || `HTTP ${fallbackResponse.status}`);
+          }
+          throw new Error(parsedError || `HTTP ${error.context.status} ${error.context.statusText}`);
+        }
+        // #region agent log
+        fetch('http://127.0.0.1:7337/ingest/81a138c8-fe6e-4883-8a0d-10b88515cc78',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ab11cc'},body:JSON.stringify({sessionId:'ab11cc',runId:'run1',hypothesisId:'H2',location:'src/pages/Users.tsx:139',message:'delete-user invoke returned error',data:{errorMessage:error.message,dataType:typeof data},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
+        const details = (data as { details?: string; error?: string } | null)?.details
+          || (data as { details?: string; error?: string } | null)?.error
+          || error.message;
+        throw new Error(details || 'Fehler beim Löschen');
+      }
+
+      // #region agent log
+      fetch('http://127.0.0.1:7337/ingest/81a138c8-fe6e-4883-8a0d-10b88515cc78',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ab11cc'},body:JSON.stringify({sessionId:'ab11cc',runId:'run1',hypothesisId:'H1',location:'src/pages/Users.tsx:148',message:'delete-user invoke success',data:{hasData:Boolean(data)},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       alert('Benutzer erfolgreich gelöscht');
       fetchUsers();
     } catch (error: any) {
+      // #region agent log
+      fetch('http://127.0.0.1:7337/ingest/81a138c8-fe6e-4883-8a0d-10b88515cc78',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ab11cc'},body:JSON.stringify({sessionId:'ab11cc',runId:'run1',hypothesisId:'H5',location:'src/pages/Users.tsx:153',message:'delete-user catch',data:{errorMessage:error?.message ?? 'unknown'},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       console.error('Error deleting user:', error);
       alert('Fehler beim Löschen des Benutzers: ' + error.message);
+    } finally {
+      setDeletingUserId(null);
     }
   };
 
@@ -283,16 +350,19 @@ export default function Users() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <button
+                    type="button"
                     onClick={() => openEditModal(user)}
                     className="text-gray-600 hover:text-gray-900 mr-3"
                   >
                     <Edit2 size={18} />
                   </button>
                   <button
+                    type="button"
                     onClick={() => handleDeleteUser(user.id)}
-                    className="text-red-600 hover:text-red-900"
+                    disabled={deletingUserId === user.id}
+                    className="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Trash2 size={18} />
+                    {deletingUserId === user.id ? 'Löschen...' : <Trash2 size={18} />}
                   </button>
                 </td>
               </tr>
