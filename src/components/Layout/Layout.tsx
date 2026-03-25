@@ -12,7 +12,7 @@ const Layout: React.FC = () => {
   }, [location.pathname]);
 
   return (
-    <div className="flex min-h-screen h-[100dvh] bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50 lg:h-screen">
       {/* Sidebar for desktop */}
       <div className="hidden lg:flex lg:w-64 lg:flex-col">
         <Sidebar />
@@ -37,10 +37,10 @@ const Layout: React.FC = () => {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+      <div className="flex-1 flex flex-col min-h-0 lg:overflow-hidden">
         <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
-        <main className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain [webkit-overflow-scrolling:touch]">
-          <div className="p-3 sm:p-6 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-[max(1rem,env(safe-area-inset-bottom))] max-[380px]:p-2">
+        <main className="flex-1 min-h-0 lg:overflow-y-auto lg:overscroll-y-contain lg:[webkit-overflow-scrolling:touch]">
+          <div className="p-3 sm:p-6 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-[max(1rem,env(safe-area-inset-bottom))] max-[380px]:p-2">
             <Outlet />
           </div>
         </main>
