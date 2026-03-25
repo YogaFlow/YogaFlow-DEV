@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "db:push": "supabase db push",
-    "supabase:link": "supabase link --project-ref mufxhtctutfpzklwqnze"
+    "supabase:link": "supabase link --project-ref mufxhtctutfpzklwqnze",
+    "functions:deploy:delete-user": "supabase functions deploy delete-user --no-verify-jwt"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.53.0",
