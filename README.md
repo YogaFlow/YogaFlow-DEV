@@ -1,6 +1,8 @@
-# YogaApp2
+# YogaFlow (YogaFlow-DEV)
 
-React/Vite-App mit Supabase. Deployment über Netlify; Entwicklung auf Branch `Julius`, Release über Pull Request in `main`.
+React/Vite-App mit Supabase. **Repository:** [YogaFlow/YogaFlow-DEV](https://github.com/YogaFlow/YogaFlow-DEV) (Branch `Julius` = Entwicklung, Release per Pull Request nach `main`). **Cloudflare** muss genau dieses Repo nutzen – kein separates „YogaApp2“-Repository für Deployments.
+
+Deployment: Cloudflare Workers (Git-Build, siehe `wrangler.toml`); `netlify.toml` kann für Legacy/Referenz bestehen bleiben.
 
 ## Dokumentation
 
@@ -22,6 +24,8 @@ React/Vite-App mit Supabase. Deployment über Netlify; Entwicklung auf Branch `J
 1. `.env.example` als `.env` kopieren und mit den **DEV**-Supabase-Werten füllen (siehe [docs/ENVIRONMENTS.md](docs/ENVIRONMENTS.md)).
 2. `npm install` und `npm run dev` – die App nutzt dann die DEV-Datenbank.
 
+**Multi-Tenant lokal:** Mandanten-Slug wird in Entwicklung/Preview üblicherweise per `?tenant=<slug>` gesetzt (ohne `hosts`-Datei); Details und Produktionsregeln in [docs/MVP_PRODUCT_BACKLOG_MEHRMANDANTEN.md](docs/MVP_PRODUCT_BACKLOG_MEHRMANDANTEN.md) (US-MVP-E4-01, US-MVP-E4-08). In Production gilt nur Subdomain-Parsing, **kein** Query-Override.
+
 ## Build
 
-- `npm run build` – Ausgabe in `dist/`. Netlify nutzt diese Einstellung (siehe `netlify.toml`).
+- `npm run build` – Ausgabe in `dist/`. Cloudflare führt diesen Build aus und deployed per Wrangler (siehe `wrangler.toml`); `netlify.toml` beschreibt ggf. noch einen parallelen Netlify-Build.
