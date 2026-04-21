@@ -99,12 +99,12 @@ Die Komplexität wird **modular** in mehreren Epics abgearbeitet — für übers
 
 ### User Story US-E0-04 – Domain / Hosting: Tenant-Erkennung und Betrieb (Skizze)
 
-**Als** Team **möchten wir** klären, wie **Subdomains** und **eigene Domains** technisch und betrieblich zur YogaFlow-Web-App (Netlify) passen und wie daraus eine **Tenant-Zuordnung** aus dem HTTP-Host entstehen kann, **damit** Epic E7 und das Hosting nicht improvisiert werden.
+**Als** Team **möchten wir** klären, wie **Subdomains** und **eigene Domains** technisch und betrieblich zur YogaFlow-Web-App (Cloudflare) passen und wie daraus eine **Tenant-Zuordnung** aus dem HTTP-Host entstehen kann, **damit** Epic E7 und das Hosting nicht improvisiert werden.
 
 **Akzeptanzkriterien**
 
 - [ ] Kurzbeschreibung Zielbild: Wildcard-Subdomain (z. B. `{tenant}.yoga-app.com`) vs. Custom Domain pro Kunde; was ist **MVP** vs. **später**.
-- [ ] Grober Ablauf: DNS / Netlify (Custom domains, ggf. Wildcard), TLS, und wo im Request die App den Host liest.
+- [ ] Grober Ablauf: DNS / Cloudflare (Custom domains, ggf. Wildcard), TLS, und wo im Request die App den Host liest.
 - [ ] Datenmodell-Voraussetzung genannt: welche Felder ein Tenant später braucht, um Host → Tenant aufzulösen (z. B. `slug`, `primary_host`, Flags); Detailimplementierung bleibt E1/E7 vorbehalten.
 - [ ] Bekannte Einschränkungen oder offene Recherchepunkte (z. B. Caching, Redirects, `www`) als Bulletliste.
 
@@ -413,7 +413,7 @@ Epic E4 gilt als erledigt, wenn **alle** User Stories US-E4-01 bis US-E4-05 erf�
 
 ## Epic E5 – Onboarding & Provisionierung
 
-**Ziel:** Ein neuer Kunde (**Anbieter**, z. B. Studio oder einzelner Lehrer) kann sich über eine **Landingpage** oder einen vergleichbaren **öffentlichen Einstieg** registrieren, ein kurzes **Setup** (**Name**, **Slug**/Subdomain gemäß E1 — **lowercase**, **`[a-z0-9]`**; minimales Branding je nach Produktreife) durchlaufen und erhält danach einen **neuen Tenant** sowie den ersten Account mit Rolle **Owner**. **Kein** gespeichertes Tenant-Typ-Feld auf `tenants` (konsistent Epic E1 / [MVP_PRODUCT_BACKLOG_MEHRMANDANTEN.md](MVP_PRODUCT_BACKLOG_MEHRMANDANTEN.md)). Die Plattform ist unter der neuen Tenant-URL **unmittelbar nutzbar** (Login/Kernflows). **Custom Domains**, vollständiges Branding und **Netlify/DNS-Feinheit** sind **Epic E7** bzw. **Epic E8**; E5 liefert die **fachliche und technische Erstanlage** konsistent mit E0–E4.
+**Ziel:** Ein neuer Kunde (**Anbieter**, z. B. Studio oder einzelner Lehrer) kann sich über eine **Landingpage** oder einen vergleichbaren **öffentlichen Einstieg** registrieren, ein kurzes **Setup** (**Name**, **Slug**/Subdomain gemäß E1 — **lowercase**, **`[a-z0-9]`**; minimales Branding je nach Produktreife) durchlaufen und erhält danach einen **neuen Tenant** sowie den ersten Account mit Rolle **Owner**. **Kein** gespeichertes Tenant-Typ-Feld auf `tenants` (konsistent Epic E1 / [MVP_PRODUCT_BACKLOG_MEHRMANDANTEN.md](MVP_PRODUCT_BACKLOG_MEHRMANDANTEN.md)). Die Plattform ist unter der neuen Tenant-URL **unmittelbar nutzbar** (Login/Kernflows). **Custom Domains**, vollständiges Branding und **Cloudflare/DNS-Feinheit** sind **Epic E7** bzw. **Epic E8**; E5 liefert die **fachliche und technische Erstanlage** konsistent mit E0–E4.
 
 **Abhängigkeiten:** Epic E0 (Flows, E-Mail), Epic E1–E2 (Schema), Epic E3 (sichere Policies bei öffentlichen/Edge-Schreibwegen), Epic E4 (Host-Kontext nach Redirect).
 
@@ -536,22 +536,22 @@ Epic E6 gilt als erledigt, wenn **alle** User Stories US-E6-01 bis US-E6-05 erf�
 
 ## Epic E7 – Domains & Routing
 
-**Ziel:** Jeder Tenant ist unter einer **eigenen erreichbaren Adresse** nutzbar: **MVP** typischerweise **Wildcard-Subdomain** (`{slug}.basisdomain`); **danach** (oder parallel nach Spike E0) **eigene Domain** (Custom Domain) mit DNS-/Netlify-Konfiguration und **TLS**. Die App löst den **HTTP-Host** wie in **E4** beschrieben zuverlässig in `tenant_id` auf; Datenhaltung in `tenants` (E1) wird um domainbezogene Felder/Status ergänzt, soweit noch nicht vorhanden. Keine Produktions-Secrets oder PROD-Domain-Keys im Repo (siehe [DEV_PROD_SAFETY_WORKFLOW.md](DEV_PROD_SAFETY_WORKFLOW.md)).
+**Ziel:** Jeder Tenant ist unter einer **eigenen erreichbaren Adresse** nutzbar: **MVP** typischerweise **Wildcard-Subdomain** (`{slug}.basisdomain`); **danach** (oder parallel nach Spike E0) **eigene Domain** (Custom Domain) mit DNS-/Cloudflare-Konfiguration und **TLS**. Die App löst den **HTTP-Host** wie in **E4** beschrieben zuverlässig in `tenant_id` auf; Datenhaltung in `tenants` (E1) wird um domainbezogene Felder/Status ergänzt, soweit noch nicht vorhanden. Keine Produktions-Secrets oder PROD-Domain-Keys im Repo (siehe [DEV_PROD_SAFETY_WORKFLOW.md](DEV_PROD_SAFETY_WORKFLOW.md)).
 
 **Abhängigkeiten:** Epic E0 (Domain-Skizze), Epic E1 (Slug/Host-Felder), Epic E4 (Host-Auswertung), Epic E5 (Slug aus Onboarding); optional Zusammenspiel mit **E8** (Links in Mails mit korrektem Host).
 
 **Team-Notizen (bei Umsetzung ausfüllen):**
 
 - Basisdomain Produktion / Preview: _________________
-- Netlify: Wildcard-Domain aktiviert (Datum): _________________
+- Cloudflare: Wildcard-Domain aktiviert (Datum): _________________
 
 ### User Story US-E7-01 – Produktions-MVP: Wildcard-Subdomain & TLS
 
-**Als** Betrieb **möchten wir** eine **Wildcard-Subdomain** auf die Netlify-Site legen und gültiges **TLS** erhalten, **damit** alle Mandanten unter `{slug}.<Basisdomain>` erreichbar sind.
+**Als** Betrieb **möchten wir** eine **Wildcard-Subdomain** auf die Cloudflare-Site legen und gültiges **TLS** erhalten, **damit** alle Mandanten unter `{slug}.<Basisdomain>` erreichbar sind.
 
 **Akzeptanzkriterien**
 
-- [ ] DNS + Netlify: Wildcard (z. B. `*.yoga-app.com`) dokumentiert; nach Deployment testbar mit mindestens **zwei** Slugs auf **Production** oder vereinbarter Staging-Umgebung.
+- [ ] DNS + Cloudflare: Wildcard (z. B. `*.yoga-app.com`) dokumentiert; nach Deployment testbar mit mindestens **zwei** Slugs auf **Production** oder vereinbarter Staging-Umgebung.
 - [ ] Keine Warnungen in Browsern bei HTTPS für die Test-Subdomains; Ablauf **dokumentiert** für das Team (nicht nur „funktioniert bei mir“).
 
 ### User Story US-E7-02 – Host → Tenant: Auflösungsreihenfolge und Datenbankfelder
@@ -569,8 +569,8 @@ Epic E6 gilt als erledigt, wenn **alle** User Stories US-E6-01 bis US-E6-05 erf�
 
 **Akzeptanzkriterien**
 
-- [ ] Schritt-für-Schritt für Kunden: DNS-Einträge (CNAME/ANAME o. Ä. je nach Netlify), erwartete Propagierungszeit, was wir **nicht** automatisieren (MVP zulässig).
-- [ ] Technische Verifizierung: Domain ist korrekt zugeordnet, bevor die App sie akzeptiert (z. B. Netlify-Status auswerten oder manueller Check mit dokumentiertem Prozess).
+- [ ] Schritt-für-Schritt für Kunden: DNS-Einträge (CNAME/ANAME o. Ä. je nach Cloudflare), erwartete Propagierungszeit, was wir **nicht** automatisieren (MVP zulässig).
+- [ ] Technische Verifizierung: Domain ist korrekt zugeordnet, bevor die App sie akzeptiert (z. B. Cloudflare-Status auswerten oder manueller Check mit dokumentiertem Prozess).
 
 ### User Story US-E7-04 – UI / Owner-Einstellungen: Domain anzeigen und Status
 
@@ -587,8 +587,8 @@ Epic E6 gilt als erledigt, wenn **alle** User Stories US-E6-01 bis US-E6-05 erf�
 
 **Akzeptanzkriterien**
 
-- [ ] Entscheidung + Umsetzung oder Netlify-Redirect: `www` → kanonische Host-Form (oder umgekehrt), dokumentiert.
-- [ ] Kurzes **Betriebshandbuch** im Repo oder verlinkt: neue Basisdomain, Kunden-DNS-Issues, was in Netlify vs. Supabase vs. DNS zu prüfen ist.
+- [ ] Entscheidung + Umsetzung oder Cloudflare-Redirect: `www` → kanonische Host-Form (oder umgekehrt), dokumentiert.
+- [ ] Kurzes **Betriebshandbuch** im Repo oder verlinkt: neue Basisdomain, Kunden-DNS-Issues, was in Cloudflare vs. Supabase vs. DNS zu prüfen ist.
 
 ---
 
@@ -836,7 +836,7 @@ Epic E10 gilt als erledigt, wenn **alle** User Stories US-E10-01 bis US-E10-05 e
 **Akzeptanzkriterien**
 
 - [ ] Ein Absatz „Playbook“: erste Diagnose (falscher Host, Session, Policy), wann [ROLLBACK.md](ROLLBACK.md) vs. [SCHEMA_ROLLBACK_WORKFLOW.md](SCHEMA_ROLLBACK_WORKFLOW.md).
-- [ ] Optional: welche Log- oder Audit-Signale in Supabase/Netlify genutzt werden können – ohne Implementierungspflicht, wenn nicht vorhanden.
+- [ ] Optional: welche Log- oder Audit-Signale in Supabase/Cloudflare genutzt werden können – ohne Implementierungspflicht, wenn nicht vorhanden.
 
 ### User Story US-E11-05 – Release-Disziplin und wiederkehrende Prüfung
 

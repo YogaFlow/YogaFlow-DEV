@@ -8,7 +8,7 @@ Diese Anleitung beschreibt, wie ihr Schema-Änderungen (neue Tabellen, Spalten, 
 
 - **Wo leben Schema-Änderungen?** Als SQL-Dateien im Repo unter `supabase/migrations/` (z.B. `20260106143743_add_course_end_time.sql`).
 - **Ablauf:** Neue Migration anlegen → zuerst auf **DEV** anwenden und testen → Code + Migration per PR in **main** → Migration bewusst auf **PROD** anwenden.
-- **Wichtig:** Netlify deployed nur die App. Die Datenbank-Struktur (Schema) wird **nicht** automatisch mit dem Deploy geändert. Ihr wendet Migrationen manuell (oder per Script) auf DEV und PROD an.
+- **Wichtig:** Cloudflare deployed nur die App. Die Datenbank-Struktur (Schema) wird **nicht** automatisch mit dem Deploy geändert. Ihr wendet Migrationen manuell (oder per Script) auf DEV und PROD an.
 - Für die **technische Schritt-für-Schritt-Umsetzung** (inkl. Supabase CLI und was ein Cursor-Agent übernehmen kann) siehe [DATABASE_WORKFLOW_SCHRITT_FÜR_SCHRITT.md](DATABASE_WORKFLOW_SCHRITT_FÜR_SCHRITT.md).
 
 ---
@@ -77,7 +77,7 @@ Diese Anleitung beschreibt, wie ihr Schema-Änderungen (neue Tabellen, Spalten, 
 
 ## Schema-Rollback (wenn etwas auf PROD schiefgeht)
 
-- **Code-Rollback:** Siehe [ROLLBACK.md](ROLLBACK.md) – main zurücksetzen, Netlify baut neu.
+- **Code-Rollback:** Siehe [ROLLBACK.md](ROLLBACK.md) – main zurücksetzen, Cloudflare baut neu.
 - **Schema-Rollback:** Detaillierter Ablauf (Gegen-Migration vs. Backup-Wiederherstellung, Schritt für Schritt): [SCHEMA_ROLLBACK_WORKFLOW.md](SCHEMA_ROLLBACK_WORKFLOW.md).
 
 ---

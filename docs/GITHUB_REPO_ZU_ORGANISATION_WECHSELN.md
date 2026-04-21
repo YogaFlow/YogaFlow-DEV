@@ -12,7 +12,7 @@ Detaillierte Anleitung, um dein YogaFlow-Repository von deinem persönlichen Git
 | 2 | Partner in die Organisation einladen (optional: auch nach dem Transfer möglich) |
 | 3 | Repository in die Organisation transferieren |
 | 4 | Partner Admin-Rechte am Repo geben |
-| 5 | Prüfen: Netlify, lokaler Git-Remote, Cursor |
+| 5 | Prüfen: Cloudflare (Git-Deploy), lokaler Git-Remote, Cursor |
 
 **Hinweis:** Die Organisation ist kostenlos, das Repo kann **weiterhin privat** bleiben.
 
@@ -22,7 +22,7 @@ Detaillierte Anleitung, um dein YogaFlow-Repository von deinem persönlichen Git
 
 - Du bist **Owner** des Repositories (z.B. auf deinem Account `juliusbne stack`).
 - Du hast Zugriff auf die **E-Mail-Adresse** deines GitHub-Accounts (für Bestätigungen).
-- Optional: Netlify ist mit diesem Repo verbunden – nach dem Transfer ggf. einmal Zugriff prüfen (siehe Schritt 5).
+- Optional: **Cloudflare** ist mit diesem Repo verbunden – nach dem Transfer ggf. einmal Git-Zugriff und Build prüfen (siehe Schritt 5).
 
 ---
 
@@ -151,11 +151,11 @@ Damit hat dein Partner dieselben Rechte am Repo wie du (außer Org-Owner-Funktio
 
   (Ersetze `YogaFlow` und `Yogaflow-DEV` durch deine echte Org- und Repo-Namen. Bei SSH: `git@github.com:YogaFlow/Yogaflow-DEV.git`.)
 
-### 5.2 Netlify
+### 5.2 Cloudflare (Live-Deploy)
 
-- Netlify ist mit dem **Repository** verbunden, nicht mit dem Account. Nach dem Transfer kann die Verbindung weiter funktionieren.
-- **Prüfen:** Netlify-Dashboard → deine Site → **Site configuration** / **Build & deploy** → **Repository**. Sollte das neue Org-Repo anzeigen (z.B. `YogaFlow/Yogaflow-DEV`).
-- Falls Netlify den Zugriff verliert: Unter **Site configuration** → **Build & deploy** → **Link repository** erneut das Repo auswählen (dann unter der Organisation). Netlify muss dafür Zugriff auf die **Organisation** haben (bei „Connect to GitHub“ ggf. Org freigeben).
+- Cloudflare Workers/Pages ist mit dem **Repository** verbunden, nicht mit dem persönlichen GitHub-Account als „Besitzer“ des Deployments. Nach dem Transfer kann die Verbindung weiter funktionieren.
+- **Prüfen:** Cloudflare-Dashboard → **Workers & Pages** → euer Projekt → **Settings** → **Build** → **Git repository**. Es sollte das neue Org-Repo anzeigen (z.B. `YogaFlow/YogaFlow-DEV`).
+- Falls die Verbindung abreißt: Repository in den Build-Einstellungen erneut mit der Organisation verknüpfen; bei GitHub den Zugriff für die **Cloudflare GitHub App** auf die **Organisation** freigeben.
 
 ### 5.3 Cursor / IDE
 
@@ -174,7 +174,7 @@ Damit hat dein Partner dieselben Rechte am Repo wie du (außer Org-Owner-Funktio
 - [ ] Repo unter **Settings** → **Danger Zone** → **Transfer ownership** an die Organisation übertragen.
 - [ ] Partner unter **Settings** → **Collaborators and teams** mit Rolle **Admin** hinzugefügt bzw. Rolle auf Admin gesetzt.
 - [ ] Lokal: `git remote -v` geprüft, ggf. `origin` auf neue Org-URL gesetzt.
-- [ ] Netlify: Repo-Zuordnung geprüft, Build einmal testweise ausgelöst.
+- [ ] Cloudflare: Repo-Zuordnung geprüft, Build einmal testweise ausgelöst.
 
 ---
 
