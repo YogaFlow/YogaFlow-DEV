@@ -1,4 +1,4 @@
-# Netlify Build-Konfiguration für YogaApp2
+# Netlify Build-Konfiguration (YogaFlow-DEV; Legacy – Live ggf. Cloudflare, siehe wrangler.toml)
 # Build und Publish-Pfad werden hier definiert; Env-Variablen in der Netlify-UI setzen.
 
 [build]
