@@ -2,7 +2,7 @@
 
 React/Vite-App mit Supabase. **Repository:** [YogaFlow/YogaFlow-DEV](https://github.com/YogaFlow/YogaFlow-DEV) (Branch `Julius` = Entwicklung, Release per Pull Request nach `main`). **Cloudflare** muss genau dieses Repo nutzen – kein separates „YogaApp2“-Repository für Deployments.
 
-Deployment: Cloudflare Workers (Git-Build, siehe `wrangler.toml`); `netlify.toml` kann für Legacy/Referenz bestehen bleiben.
+Deployment: ausschließlich **Cloudflare** (Git-Build auf `main` + `npx wrangler deploy`, siehe `wrangler.toml`). Netlify ist nicht mehr im Einsatz.
 
 ## Dokumentation
 
@@ -28,4 +28,4 @@ Deployment: Cloudflare Workers (Git-Build, siehe `wrangler.toml`); `netlify.toml
 
 ## Build
 
-- `npm run build` – Ausgabe in `dist/`. Cloudflare führt diesen Build aus und deployed per Wrangler (siehe `wrangler.toml`); `netlify.toml` beschreibt ggf. noch einen parallelen Netlify-Build.
+- `npm run build` – Ausgabe in `dist/`. Cloudflare führt diesen Build im CI aus und deployed per Wrangler (siehe `wrangler.toml`).

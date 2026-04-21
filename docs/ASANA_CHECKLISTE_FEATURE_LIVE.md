@@ -60,9 +60,9 @@ Diese Checkliste entspricht dem **Teil B: Wiederkehrender Ablauf – Neues Featu
 
 ---
 
-## B5 – Nach dem Merge: Netlify und Code live
+## B5 – Nach dem Merge: Cloudflare und Code live
 
-- [ ] Netlify-Build abgewartet (ca. 1–2 Min. nach Merge)
+- [ ] Cloudflare-Build abgewartet (ca. 1–2 Min. nach Merge)
 - [ ] **Falls keine Migration im Feature:** Live-Seite im Browser geprüft (Login, betroffene Features) – **damit ist der Ablauf fertig.**
 - [ ] **Falls Migration mit im PR war:** Weiter zu B6 (Migration auf PROD anwenden).
 
@@ -100,7 +100,7 @@ Vollständige Beschreibung und Sicherheitsprinzipien: [DEV_PROD_SAFETY_WORKFLOW.
 | B2 | Feature entwickeln, lokal mit DEV testen |
 | B3 | (Nur bei Schema-Änderung) Migration anlegen, auf DEV anwenden, testen |
 | B4 | Committen, pushen, PR erstellen, Review, Merge in main |
-| B5 | Netlify-Build abwarten, Live-Seite prüfen; bei Migration → B6 |
+| B5 | Cloudflare-Build abwarten, Live-Seite prüfen; bei Migration → B6 |
 | B6 | (Nur bei Migration) Pre-PROD-Checkliste, mit PROD verlinken, `db push`, Live prüfen, wieder DEV verlinken |
 
 Vollständige Beschreibung: [VOLLSTÄNDIGER_WORKFLOW.md](VOLLSTÄNDIGER_WORKFLOW.md).

@@ -24,7 +24,7 @@ Gehe zu: **https://github.com/YogaFlow/YogaFlow-DEV** (oder der aktuellen Repo-U
 - **Supabase:** config.toml ergänzt
 
 ## Nach dem Merge
-- Netlify baut automatisch von `main` (Live-Code).
+- Cloudflare baut und deployed automatisch von `main` (Live-Code).
 - PROD-Datenbank und PROD-Secrets müssen manuell angepasst werden (siehe [DEV_PROD_SAFETY_WORKFLOW.md](docs/DEV_PROD_SAFETY_WORKFLOW.md) und unten).
 ```
 
@@ -47,8 +47,8 @@ Nach Review: PR in `main` mergen.
 
 ## 3. Secrets (Phase 3)
 
-### Netlify (Production)
-- **Site → Environment variables → Production:** `VITE_SUPABASE_URL` und `VITE_SUPABASE_ANON_KEY` mit **PROD**-Werten setzen bzw. prüfen.
+### Cloudflare (Production)
+- **Workers & Pages → Projekt → Settings → Build → Variables** (Production): `VITE_SUPABASE_URL` und `VITE_SUPABASE_ANON_KEY` mit **PROD**-Werten setzen bzw. prüfen.
 
 ### Supabase PROD – Edge Functions
 - Mit PROD verlinkt: Edge Functions deployen: `supabase functions deploy` (oder einzeln).
@@ -64,7 +64,7 @@ Ersetze die Platzhalter, dann jeden Namen bzw. Wert ins Dashboard eintragen (Nam
 | Name | Value (Beispiel / Platzhalter) |
 |------|--------------------------------|
 | `INTERNAL_EMAIL_SECRET` | `<ein-langer-zufälliger-string-z.B.-32-zeichen>` |
-| `APP_URL` | `https://deine-live-domain.netlify.app` |
+| `APP_URL` | `https://deine-live-domain.pages.dev` (oder eure Custom Domain) |
 | `SMTP_HOST` | `smtp.gmail.com` |
 | `SMTP_PORT` | `465` |
 | `SMTP_USER` | `deine.email@gmail.com` |
@@ -74,7 +74,7 @@ Ersetze die Platzhalter, dann jeden Namen bzw. Wert ins Dashboard eintragen (Nam
 **Kurz zum Kopieren (Name = Secret-Name, Value = eintragen):**
 
 - **INTERNAL_EMAIL_SECRET** → ein langer zufälliger String (z. B. mit einem Generator erzeugen)
-- **APP_URL** → deine Live-URL, z. B. `https://deine-app.netlify.app`
+- **APP_URL** → deine Live-URL, z. B. `https://deine-app.pages.dev` oder Custom Domain
 - **SMTP_HOST** → `smtp.gmail.com`
 - **SMTP_PORT** → `465`
 - **SMTP_USER** → deine Gmail-Adresse
@@ -112,7 +112,7 @@ Typische Meldungen:
 ### 2. Wo testest du?
 
 - **Lokal (npm run dev):** E-Mails gehen über die **DEV**-Supabase-Project und deren Edge Functions. Dort müssen **dieselben** Secrets gesetzt sein (INTERNAL_EMAIL_SECRET, SMTP_*), sonst kommen lokal keine E-Mails an.
-- **Live (Netlify):** E-Mails gehen über **PROD**-Supabase. Dort die Secrets wie oben prüfen.
+- **Live (Cloudflare):** E-Mails gehen über **PROD**-Supabase. Dort die Secrets wie oben prüfen.
 
 ### 3. Schnell-Check
 
@@ -126,10 +126,10 @@ Typische Meldungen:
 - [x] Änderungen auf Julius committet und gepusht
 - [ ] PR Julius → main erstellt (Beschreibung oben nutzen)
 - [ ] Review und Merge
-- [ ] Netlify-Build von main erfolgreich; Live-Seite prüfen
+- [ ] Cloudflare-Build von main erfolgreich; Live-Seite prüfen
 - [ ] Pre-PROD-Checkliste durchgegangen
 - [ ] Mit PROD verlinkt, `supabase db push` ausgeführt
 - [ ] Live-Seite getestet
 - [ ] Wieder mit DEV verlinkt
-- [ ] Netlify Production: PROD-Variablen gesetzt/geprüft
+- [ ] Cloudflare Production: PROD-Build-Variablen gesetzt/geprüft
 - [ ] Supabase PROD: Edge Functions deployed, Secrets gesetzt

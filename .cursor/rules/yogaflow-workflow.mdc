@@ -10,7 +10,7 @@ alwaysApply: true
 - **In Cursor nur Branch Julius** – immer auf Julius arbeiten; `main` lokal nie auschecken oder benutzen. Main existiert nur als Merge-Ziel auf GitHub (PR Julius → main).
 - **Entwicklung nur auf Branch Julius** – nie direkt auf `main` entwickeln.
 - **Lokal nur DEV** – `.env` enthält nur DEV-Supabase-URL und DEV-Anon-Key; PROD-Keys nie lokal oder im Repo.
-- **Release nur über Pull Request** – Änderungen von Julius nach `main` mit mindestens einer Review; danach baut Netlify.
+- **Release nur über Pull Request** – Änderungen von Julius nach `main` mit mindestens einer Review; danach baut und deployed **Cloudflare** (Git + Wrangler).
 - **PROD nur mit expliziter Bestätigung:** `supabase link --project-ref <PROD-Ref>` und `supabase db push` gegen PROD niemals ohne User-Bestätigung ausführen. Vor PROD-Push auf die Pre-PROD-Checkliste in [docs/DEV_PROD_SAFETY_WORKFLOW.md](docs/DEV_PROD_SAFETY_WORKFLOW.md) hinweisen. Siehe auch [.cursor/rules/dev-prod-database-safety.mdc](.cursor/rules/dev-prod-database-safety.mdc).
 
 ## Ablauf: Feature bis Live
@@ -19,7 +19,7 @@ alwaysApply: true
 - **B2:** Feature entwickeln, lokal mit DEV testen (`npm run dev`).
 - **B3:** Bei Schema-Änderung: Migration in `supabase/migrations/` (Format `YYYYMMDDHHMMSS_name.sql`), nur auf DEV anwenden (`npm run db:push`), testen.
 - **B4:** Committen, auf Julius pushen, PR Julius → main, Review, Merge.
-- **B5:** Nach Merge: Netlify baut; Live prüfen. Wenn Migration mit dabei war → B6.
+- **B5:** Nach Merge: Cloudflare-Build abwarten; Live prüfen. Wenn Migration mit dabei war → B6.
 - **B6:** Nur mit User-Bestätigung: Pre-PROD-Checkliste, mit PROD verlinken, `db push`, Live prüfen, wieder mit DEV verlinken. Ausführlich: [docs/DEV_PROD_SAFETY_WORKFLOW.md](docs/DEV_PROD_SAFETY_WORKFLOW.md).
 
 ## Wann welches Doc

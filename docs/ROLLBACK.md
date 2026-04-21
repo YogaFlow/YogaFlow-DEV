@@ -1,6 +1,6 @@
 # Rollback-Anleitung: Zurück zur letzten funktionierenden Version
 
-Wenn nach einem Deployment (Merge in `main` → Netlify baut) etwas schiefgeht, könnt ihr die Live-Seite auf den letzten bekannten guten Stand zurücksetzen. Beide (Julius und Geschäftspartner) können sich an diese Schritte halten.
+Wenn nach einem Deployment (Merge in `main` → Cloudflare baut) etwas schiefgeht, könnt ihr die Live-Seite auf den letzten bekannten guten Stand zurücksetzen. Beide (Julius und Geschäftspartner) können sich an diese Schritte halten.
 
 ## Voraussetzungen
 
@@ -11,7 +11,7 @@ Wenn nach einem Deployment (Merge in `main` → Netlify baut) etwas schiefgeht, 
 
 ## Schritt 1: Ruhe bewahren
 
-- Die Live-Seite kann bei Bedarf mit einem Wartungshinweis versehen werden (z.B. über Netlify oder einen schnellen Fix).
+- Die Live-Seite kann bei Bedarf mit einem Wartungshinweis versehen werden (z.B. über Cloudflare oder einen schnellen Fix).
 - Keine weiteren Änderungen auf `main` vornehmen, bis der Rollback durch ist.
 
 ---
@@ -54,9 +54,9 @@ Führe diese Befehle **lokal in einem Terminal** aus (z.B. PowerShell oder Git B
 
 ---
 
-## Schritt 4: Netlify baut automatisch neu
+## Schritt 4: Cloudflare baut automatisch neu
 
-- Netlify erkennt den neuen Push auf `main` und startet einen neuen Build.
+- Cloudflare erkennt den neuen Push auf `main` und startet einen neuen Build (Git-Integration).
 - Nach etwa 1–2 Minuten sollte die **alte, funktionierende Version** wieder live sein.
 - Prüfe die Live-Website im Browser.
 
@@ -76,7 +76,7 @@ Führe diese Befehle **lokal in einem Terminal** aus (z.B. PowerShell oder Git B
 - [ ] Lokal: `git fetch origin`, `git checkout main`, `git pull origin main`
 - [ ] Lokal: `git reset --hard <COMMIT-HASH>`
 - [ ] Lokal: `git push origin main --force`
-- [ ] Netlify-Build abwarten und Live-Seite prüfen
+- [ ] Cloudflare-Build abwarten und Live-Seite prüfen
 - [ ] Fehler auf Julius-Branch mit DEV-DB nachvollziehen und Fix vorbereiten
 
 Falls gleichzeitig eine Schema-Änderung auf PROD zurückgenommen werden muss, siehe [SCHEMA_ROLLBACK_WORKFLOW.md](SCHEMA_ROLLBACK_WORKFLOW.md).
