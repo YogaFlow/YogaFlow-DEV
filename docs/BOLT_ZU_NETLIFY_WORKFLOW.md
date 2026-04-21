@@ -1,3 +1,8 @@
+> **Hinweis (Betrieb heute, 2026):** Live-Hosting läuft nur noch über **Cloudflare** (siehe `wrangler.toml` und [ENVIRONMENTS.md](ENVIRONMENTS.md)). **Netlify ist deaktiviert.**  
+> Dieses Dokument bleibt als **Archiv** für den historischen Wechsel Bolt → Netlify lesbar; neue Schritte bitte nicht mehr gegen Netlify ausrichten.
+
+---
+
 # Workflow: Von Bolt zu Netlify – bis zur Live-Stellung
 
 Vollständiger, kleinteiliger Workflow zum Wechsel von Bolt auf Netlify: Netlify-Ersteinrichtung, PROD-Datenbank hinterlegen, ersten Deploy, parallele Prüfung und schrittweise Live-Stellung ohne eigene Domain (Netlify-Subdomain).
@@ -27,12 +32,12 @@ Die App entscheidet nur über die Umgebungsvariablen `VITE_SUPABASE_URL` und `VI
 
 - Im Netlify-Dashboard: **Add new site** → **Import an existing project**.
 - **Connect to Git provider** → **GitHub** auswählen und Zugriff für Netlify erlauben (ggf. nur dieses Repo freigeben).
-- Repository auswählen: das Repo, in dem YogaApp2 liegt (z.B. `YogaApp2` oder der tatsächliche Repo-Name).
+- Repository auswählen: das tatsächliche YogaFlow-Repo (heute: **YogaFlow/YogaFlow-DEV**).
 - **Branch to deploy:** `main` (oder den Branch, der eure Produktion darstellt).
-- Build-Einstellungen: Netlify liest [netlify.toml](../netlify.toml) im Repo – dort steht bereits:
+- Build-Einstellungen (historisch): Netlify nutzte eine `netlify.toml` mit `npm run build` und `publish = "dist"` (diese Datei ist im aktuellen Repo entfernt; Live nutzt **Cloudflare** und [wrangler.toml](../wrangler.toml)).
   - `command = "npm run build"`
-  - `publish = "dist"`
-- Keine weiteren Build-Einstellungen nötig, sofern `netlify.toml` im Root des deployten Branches liegt. **Deploy site** / **Save** klicken.
+  - `publish = "dist"` (Netlify-Terminologie; auf Cloudflare entspricht das dem Asset-Ordner `dist/` in Wrangler.)
+- **Deploy site** / **Save** klicken (nur relevant, falls ihr das Archiv nachstellt).
 - Erster Build startet. Er wird **ohne** Supabase-Variablen laufen und kann fehlschlagen oder eine App ohne DB-Anbindung liefern – das wird in **Phase 2** behoben (PROD-Env-Variablen setzen).
 
 ### 1.3 Netlify-Subdomain (später eure „Live-URL“)
@@ -152,7 +157,7 @@ flowchart LR
 ## Checkliste bis zur Live-Stellung (Kurzfassung)
 
 1. Netlify-Account anlegen (ggf. mit GitHub).
-2. Site aus GitHub-Repo erstellen, Branch `main`, Build via `netlify.toml`.
+2. Site aus GitHub-Repo erstellen, Branch `main`, Build wie in der damaligen `netlify.toml` (heute: Cloudflare + `wrangler.toml`).
 3. PROD-URL und PROD-Anon-Key aus Supabase (PROD-Projekt) kopieren.
 4. In Netlify unter Production: `VITE_SUPABASE_URL` und `VITE_SUPABASE_ANON_KEY` setzen.
 5. Deploy auslösen und Netlify-URL testen (Login, Features).

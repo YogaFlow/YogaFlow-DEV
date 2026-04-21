@@ -2,7 +2,7 @@
 
 Wenn eine bereits auf **PROD** angewendete Migration Probleme verursacht, könnt ihr die Schema-Änderung zurücknehmen. Supabase bietet kein automatisches „Undo“ – ihr habt zwei Wege: **Gegen-Migration** (empfohlen) oder **Backup-Wiederherstellung**. Diese Anleitung beschreibt den Ablauf Schritt für Schritt.
 
-Für **Code-Rollback** (main zurücksetzen, Netlify-Neubau) siehe [ROLLBACK.md](ROLLBACK.md). Für den normalen Ablauf von Schema-Änderungen DEV → PROD siehe [SCHEMA_RELEASE_WORKFLOW.md](SCHEMA_RELEASE_WORKFLOW.md) und [DATABASE_WORKFLOW_SCHRITT_FÜR_SCHRITT.md](DATABASE_WORKFLOW_SCHRITT_FÜR_SCHRITT.md).
+Für **Code-Rollback** (main zurücksetzen, Cloudflare-Neubau) siehe [ROLLBACK.md](ROLLBACK.md). Für den normalen Ablauf von Schema-Änderungen DEV → PROD siehe [SCHEMA_RELEASE_WORKFLOW.md](SCHEMA_RELEASE_WORKFLOW.md) und [DATABASE_WORKFLOW_SCHRITT_FÜR_SCHRITT.md](DATABASE_WORKFLOW_SCHRITT_FÜR_SCHRITT.md).
 
 ---
 
@@ -17,7 +17,7 @@ Für **Code-Rollback** (main zurücksetzen, Netlify-Neubau) siehe [ROLLBACK.md](
 
 | Situation | Was tun? |
 |-----------|----------|
-| **Nur Code problematisch** (z.B. Bug in der App nach Merge) | [ROLLBACK.md](ROLLBACK.md) – main zurücksetzen, Netlify baut neu. Schema muss **nicht** zurück. |
+| **Nur Code problematisch** (z.B. Bug in der App nach Merge) | [ROLLBACK.md](ROLLBACK.md) – main zurücksetzen, Cloudflare baut neu. Schema muss **nicht** zurück. |
 | **Nur Schema problematisch** (Migration auf PROD verursacht DB-Fehler, App-Code ist ok) | Schema-Rollback (dieser Workflow). Code-Rollback nicht nötig. |
 | **Code und Schema zusammen problematisch** (neuer Code + neue Migration, beides soll weg) | **Reihenfolge:** Zuerst **Code-Rollback** ([ROLLBACK.md](ROLLBACK.md)), damit die Live-App wieder zum alten Stand passt. Danach **Schema-Rollback** (Gegen-Migration oder Backup), damit die PROD-Datenbank wieder zum zurückgesetzten Code passt. |
 
@@ -89,7 +89,7 @@ Falls ihr die Migration nicht per Gegen-Migration zurückbauen wollt (z.B. sehr 
 
 Wenn sowohl Code als auch Schema zurück sollen:
 
-1. **Zuerst Code-Rollback** ([ROLLBACK.md](ROLLBACK.md)): main auf letzten guten Commit zurücksetzen, Force Push, Netlify baut neu. Die Live-App läuft wieder mit dem alten Code.
+1. **Zuerst Code-Rollback** ([ROLLBACK.md](ROLLBACK.md)): main auf letzten guten Commit zurücksetzen, Force Push, Cloudflare baut neu. Die Live-App läuft wieder mit dem alten Code.
 2. **Danach Schema-Rollback:** Entweder Gegen-Migration (Weg A) auf PROD anwenden oder Backup-Wiederherstellung (Weg B). So passt die PROD-Datenbank wieder zum zurückgesetzten Code.
 
 ---

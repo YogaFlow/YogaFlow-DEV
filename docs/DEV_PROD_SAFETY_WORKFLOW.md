@@ -8,8 +8,8 @@ Diese Übersicht bündelt die **Sicherheitsprinzipien** und **Checklisten**, die
 
 - **Lokal nur DEV:** Die Datei `.env` enthält nur DEV-Supabase-URL und DEV-Anon-Key. PROD-Keys werden **niemals** im Repo oder in `.env` gespeichert.
 - **Schema nur über Migrationen:** Alle Schema-Änderungen laufen über Migrationsdateien in `supabase/migrations/`. Migrationen enthalten nur **Struktur** (CREATE TABLE, ALTER TABLE, RLS, Indizes usw.) – **keine** DELETE/UPDATE/INSERT auf echte Nutzerdaten. Daten-Änderungen erfolgen nur über die App oder bewusst geplante Skripte.
-- **PROD-Schema nur bewusst:** Die PROD-Datenbank wird **nicht** automatisch mit dem Netlify-Deploy geändert. Migrationen auf PROD wendet ihr **manuell** und nur **nach Merge** an – mit Backup-Check und in der richtigen Reihenfolge.
-- **Netlify ≠ Datenbank:** Netlify deployed nur den **Code**. Die Datenbank-Struktur (Schema) bleibt unverändert, bis ihr `supabase db push` (oder SQL im PROD-Dashboard) bewusst ausführt.
+- **PROD-Schema nur bewusst:** Die PROD-Datenbank wird **nicht** automatisch mit dem Cloudflare-Deploy geändert. Migrationen auf PROD wendet ihr **manuell** und nur **nach Merge** an – mit Backup-Check und in der richtigen Reihenfolge.
+- **Cloudflare ≠ Datenbank:** Cloudflare deployed nur den **Code**. Die Datenbank-Struktur (Schema) bleibt unverändert, bis ihr `supabase db push` (oder SQL im PROD-Dashboard) bewusst ausführt.
 
 ---
 

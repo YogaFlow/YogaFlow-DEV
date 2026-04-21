@@ -6,7 +6,7 @@ Diese App nutzt zwei getrennte Umgebungen, damit die **Live-Datenbank (PROD)** b
 
 | Umgebung | Zweck | Datenbank |
 |----------|--------|-----------|
-| **DEV** | Entwicklung und Tests (lokal, ggf. Netlify Deploy Previews) | Supabase-Projekt im DEV-Account (z.B. „yogaflow-dev“) |
+| **DEV** | Entwicklung und Tests (lokal, ggf. Cloudflare Preview-Builds) | Supabase-Projekt im DEV-Account (z.B. „yogaflow-dev“) |
 | **PROD** | Live-Website für echte Nutzer | Supabase-Projekt im PROD-Account (bestehendes Live-Projekt) |
 
 Die App entscheidet **nicht** im Code, ob sie DEV oder PROD nutzt. Es zählen nur die **Environment Variables** (Env-Variablen): `VITE_SUPABASE_URL` und `VITE_SUPABASE_ANON_KEY`. Welche Werte dort stehen, bestimmt die Datenbank.
@@ -16,8 +16,8 @@ Die App entscheidet **nicht** im Code, ob sie DEV oder PROD nutzt. Es zählen nu
 | Ort | Werte eintragen | Regel |
 |-----|------------------|--------|
 | **Lokal (dein Rechner)** | `.env` mit **DEV**-URL und **DEV**-Anon-Key | Nur DEV. PROD-Keys **nie** in `.env` speichern. |
-| **Netlify Production** | In Netlify: Site → Environment variables → **Production** → **PROD**-URL und **PROD**-Anon-Key | Nur PROD. So ist die Live-Seite immer mit der PROD-DB verbunden. |
-| **Netlify Deploy Preview** (optional) | In Netlify: Environment variables → **Deploy Previews** → **DEV**-Werte | Dann nutzen Vorschau-Builds die DEV-Datenbank. |
+| **Cloudflare Production** | Im Pages/Worker-Projekt: **Settings** → **Variables** (Build) für **Production** → **PROD**-URL und **PROD**-Anon-Key | Nur PROD. So ist die Live-Seite immer mit der PROD-DB verbunden. |
+| **Cloudflare Preview** (optional) | Dieselbe Stelle für **Preview**-Umgebung → **DEV**-Werte | Dann nutzen Branch-/PR-Builds die DEV-Datenbank. |
 
 ## Lokale Einrichtung (DEV)
 
@@ -57,7 +57,7 @@ Damit du Migrationen mit `npm run db:push` auf die DEV-Datenbank anwenden kannst
 ## Wichtige Regeln
 
 - **Lokal = nur DEV:** In Cursor nur eine `.env` mit DEV-Werten verwenden.
-- **Netlify Production = nur PROD:** In Netlify unter Production nur PROD-Supabase-Werte eintragen.
+- **Cloudflare Production = nur PROD:** In Cloudflare unter Production-Build-Variablen nur PROD-Supabase-Werte eintragen.
 - **Supabase Dashboard:** Beim Entwickeln nur das DEV-Projekt im Browser öffnen; PROD-Dashboard nur bei bewussten Live-Checks.
 - Vor Tests von riskanten Aktionen (Löschen, Massen-Updates): kurz prüfen, welche URL die App nutzt (Browser-Konsole oder Log „Supabase configured with URL“).
 

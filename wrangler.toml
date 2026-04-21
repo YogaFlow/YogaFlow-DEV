@@ -1,0 +1,14 @@
+# Cloudflare Workers (Git builds): statische Vite-Ausgabe aus dist/ ausliefern.
+# Build in CI: npm run build → danach npx wrangler deploy (wie in Cloudflare eingestellt).
+#
+# Kanonisches Repo (Git + Cloudflare): https://github.com/YogaFlow/YogaFlow-DEV
+# – nicht mit anderen Repos (z. B. „YogaApp2“) verbinden. Entwicklung auf Branch
+# „Julius“, Production-Deploys aus „main“ (wie in Cloudflare: Production branch = main).
+# Worker-Name in Cloudflare muss mit „name“ unten übereinstimmen (aktuell: yogaflow-dev).
+
+name = "yogaflow-dev"
+compatibility_date = "2026-04-21"
+
+[assets]
+directory = "./dist/"
+not_found_handling = "single-page-application"

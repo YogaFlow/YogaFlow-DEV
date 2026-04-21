@@ -12,14 +12,14 @@ Diese Anleitung führt dich und deinen Partner **Schritt für Schritt** durch de
    - [A2 – Repository](#a2--repository)
    - [A3 – Umgebung lokal (DEV-Datenbank)](#a3--umgebung-lokal-dev-datenbank)
    - [A4 – Supabase CLI (einmalig)](#a4--supabase-cli-einmalig)
-   - [A5 – Netlify (vollständig)](#a5--netlify-vollständig)
+   - [A5 – Cloudflare (Live-Deploy, einmalig)](#a5--cloudflare-live-deploy-einmalig)
    - [A6 – GitHub Branch Protection](#a6--github-branch-protection)
 3. [Teil B: Wiederkehrender Ablauf – Neues Feature bis Live](#teil-b-wiederkehrender-ablauf--neues-feature-bis-live)
    - [B1 – Ausgangslage](#b1--ausgangslage)
    - [B2 – Feature in Cursor entwickeln](#b2--feature-in-cursor-entwickeln)
    - [B3 – Schema-Änderung (Migration) – nur wenn nötig](#b3--schema-änderung-migration--nur-wenn-nötig)
    - [B4 – Änderungen ins Repo bringen](#b4--änderungen-ins-repo-bringen)
-   - [B5 – Nach dem Merge: Netlify und Code live](#b5--nach-dem-merge-netlify-und-code-live)
+   - [B5 – Nach dem Merge: Cloudflare und Code live](#b5--nach-dem-merge-cloudflare-und-code-live)
    - [B6 – Migrationen auf PROD anwenden (bewusst und geplant)](#b6--migrationen-auf-prod-anwenden-bewusst-und-geplant)
    - [B7 – Agent vs. Du (Kurzüberblick)](#b7--agent-vs-du-kurzüberblick)
 4. [Teil C: Wenn etwas schiefgeht](#teil-c-wenn-etwas-schiefgeht)
@@ -42,7 +42,7 @@ Für alle, die an der YogaFlow-App mitentwickeln oder den Prozess verstehen woll
 
 - **Lokal (dein Rechner):** Du entwickelst immer gegen die **DEV**-Datenbank. Dort kannst du testen, ohne echte Nutzerdaten zu gefährden.
 - **GitHub:** Der Code liegt in einem Repository. Neue Änderungen werden auf einem Branch namens **Julius** entwickelt und erst nach Prüfung (Pull Request, Review) in den Hauptbranch **main** gemerged.
-- **Netlify:** Sobald etwas in **main** gemerged wird, baut Netlify automatisch die App und stellt sie live. Die **Live-Seite** nutzt die **PROD**-Datenbank. Wichtig: Netlify ändert **nur den Code**, nicht die Datenbank-Struktur.
+- **Cloudflare:** Sobald etwas in **main** gemerged wird, baut und deployed Cloudflare (Git + Wrangler) automatisch die App. Die **Live-Seite** nutzt die **PROD**-Datenbank. Wichtig: Cloudflare ändert **nur den Code**, nicht die Datenbank-Struktur.
 - **Datenbank-Struktur (Schema):** Änderungen an Tabellen, Spalten, Rechten usw. heißen „Migrationen“. Sie werden zuerst auf **DEV** getestet, dann per Pull Request ins Repo gebracht. Die **PROD**-Datenbank wird **nicht** automatisch angepasst – das machst du **bewusst und manuell** nach dem Merge, mit einer klaren Checkliste.
 
 ### Wichtige Begriffe (kurz)
@@ -51,9 +51,9 @@ Für alle, die an der YogaFlow-App mitentwickeln oder den Prozess verstehen woll
 |--------|------------|
 | **Branch** | Eine Abzweigung im Code. Wir entwickeln auf dem Branch **Julius**, der Hauptstand ist **main**. |
 | **Pull Request (PR)** | Vorschlag, Änderungen von einem Branch (z. B. Julius) in einen anderen (main) zu übernehmen. Erst nach Review und Freigabe wird gemerged. |
-| **Merge** | Das Zusammenführen von Änderungen (z. B. Julius → main). Nach Merge baut Netlify die Live-Seite neu. |
+| **Merge** | Das Zusammenführen von Änderungen (z. B. Julius → main). Nach Merge startet Cloudflare einen neuen Live-Build. |
 | **Migration** | Eine SQL-Datei, die die Datenbank-Struktur ändert (neue Tabelle, neue Spalte, Rechte usw.). Liegt im Ordner `supabase/migrations/`. |
-| **Env-Variablen** | Konfigurationswerte (z. B. Datenbank-URL und Schlüssel). Lokal in `.env` (nur DEV), auf Netlify in den Environment Variables (Production = PROD). |
+| **Env-Variablen** | Konfigurationswerte (z. B. Datenbank-URL und Schlüssel). Lokal in `.env` (nur DEV), in Cloudflare als **Build-Variablen** für Production (PROD). |
 | **DEV** | Entwicklungsumgebung: Supabase-Projekt und Datenbank nur für Tests. |
 | **PROD** | Produktion: Live-Website und echte Nutzerdaten. |
 
@@ -142,36 +142,32 @@ Die Supabase CLI brauchst du, um **Migrationen** (Datenbank-Strukturänderungen)
 4. **Hinweis für PROD**  
    - Für einen späteren **PROD-Release** (Migration auf die Live-Datenbank) wirst du **nicht** `npm run supabase:link` nutzen, sondern manuell: `supabase link --project-ref <PROD-Projekt-Ref>`. Den PROD-Ref trägst du **nicht** im Repo ein; du holst ihn aus dem PROD-Supabase-Dashboard. Das wird in Teil B, Schritt B6, genau beschrieben.
 
-### A5 – Netlify (vollständig)
+### A5 – Cloudflare (Live-Deploy, einmalig)
 
-Netlify baut die App und hostet die **Live-Website**. Die Einrichtung erfolgt einmal pro Projekt.
+Cloudflare baut die App aus Git und hostet die **Live-Website** (Workers mit statischen Assets; Konfiguration im Repo: [wrangler.toml](../wrangler.toml)). **Netlify wird nicht mehr genutzt.** Die Einrichtung erfolgt einmal pro Projekt.
 
-1. **Netlify-Account und Site**  
-   - Auf [netlify.com](https://netlify.com) anmelden.  
-   - **Add new site → Import an existing project**.  
-   - **GitHub** auswählen und den Zugriff auf das YogaFlow-Repository erlauben. Das passende Repository auswählen.
+1. **Account und Git-Anbindung**  
+   - Im [Cloudflare-Dashboard](https://dash.cloudflare.com) unter **Workers & Pages** ein Projekt anlegen und **GitHub** mit dem Repository **[YogaFlow/YogaFlow-DEV](https://github.com/YogaFlow/YogaFlow-DEV)** verbinden (kein separates „YogaApp2“-Repo für Live-Deploys).
 
 2. **Build-Einstellungen**  
    - **Build command:** `npm run build`  
-   - **Publish directory:** `dist`  
-   - (Diese Werte stehen auch in der Datei [netlify.toml](../netlify.toml) im Projekt.)  
-   - Einstellungen speichern.
+   - **Deploy command:** wie in Cloudflare hinterlegt, typischerweise `npx wrangler deploy`  
+   - Statische Ausgabe: Ordner **`dist/`** (in `wrangler.toml` unter `[assets]` mit `directory = "./dist/"` und `not_found_handling = "single-page-application"` für React Router).
 
 3. **Production-Branch**  
-   - Unter **Site configuration** bzw. **Build & deploy → Continuous deployment**: **Production branch** auf `main` setzen.  
-   - Nur Pushes (bzw. Merges) in **main** bauen die **Live-Seite**. Der Branch **Julius** allein löst keinen Live-Deploy aus.
+   - In den Build-/Git-Einstellungen des Projekts: **Production branch** auf **`main`** setzen.  
+   - Nur Merges nach **main** aktualisieren die **Live-Seite**. Der Branch **Julius** allein löst keinen Production-Deploy aus.
 
-4. **Environment Variables (wichtig)**  
-   - **Site → Environment variables** (oder **Build & deploy → Environment**).  
-   - Für **Production** (die echte Live-Seite) eintragen:  
-     - `VITE_SUPABASE_URL` = **PROD**-Supabase-URL (aus dem **PROD**-Supabase-Dashboard: Settings → API).  
-     - `VITE_SUPABASE_ANON_KEY` = **PROD**-Anon-Key (ebenfalls aus dem PROD-Dashboard).  
-   - **Wichtig:** PROD-Keys nur hier (und ggf. im Passwortmanager) speichern – **niemals** in der lokalen `.env` oder im Repo.  
-   - Optional: Unter **Deploy Previews** die **DEV**-Werte eintragen, dann nutzen Vorschau-Builds (z. B. von PRs) die DEV-Datenbank.
+4. **Build-Variablen (wichtig)**  
+   - Im Projekt unter **Settings → Build** (bzw. **Variables** für den Build): für **Production** eintragen:  
+     - `VITE_SUPABASE_URL` = **PROD**-Supabase-URL (PROD-Dashboard: Settings → API).  
+     - `VITE_SUPABASE_ANON_KEY` = **PROD**-Anon-Key (ebenfalls PROD-Dashboard).  
+   - **Wichtig:** PROD-Keys nur dort (und ggf. im Passwortmanager) – **niemals** in der lokalen `.env` oder im Repo.  
+   - Optional: für **Preview**-Builds **DEV**-Werte setzen, damit Pull-Requests nicht versehentlich die PROD-Datenbank nutzen.
 
-5. **Was Netlify macht – und was nicht**  
-   - Netlify führt bei jedem neuen Stand auf **main** einen Build aus (`npm run build`) und veröffentlicht die Dateien aus `dist`. So wird die **Live-Website** aktualisiert.  
-   - Netlify ändert **nicht** die Datenbank. Die **Struktur** der PROD-Datenbank (Tabellen, Spalten, Rechte) bleibt unverändert, bis du bewusst eine Migration auf PROD anwendest (siehe Teil B, B6).
+5. **Was Cloudflare macht – und was nicht**  
+   - Cloudflare führt bei jedem neuen Stand auf **main** den Build aus und veröffentlicht die Dateien aus `dist`. So wird die **Live-Website** aktualisiert.  
+   - Cloudflare ändert **nicht** die Datenbank. Die **Struktur** der PROD-Datenbank bleibt unverändert, bis du bewusst eine Migration auf PROD anwendest (siehe Teil B, B6).
 
 ### A6 – GitHub Branch Protection
 
@@ -208,7 +204,7 @@ flowchart LR
     D[Merge in main]
   end
   subgraph live [Live]
-    E[Netlify baut]
+    E[Cloudflare baut]
     F[Ggf. Migration PROD]
     G[Live prüfen]
   end
@@ -276,13 +272,13 @@ Nur ausführen, wenn das Feature Änderungen an der **Struktur** der Datenbank e
 3. **Review und Merge**  
    - Eine andere Person (oder du, falls konfiguriert) prüft den PR und gibt ein **Approval**.  
    - Dann **Merge** in **main** ausführen.  
-   - **Wichtig:** Nach dem Merge ist die **PROD-Datenbank noch unverändert**. Netlify baut den neuen **Code**; Schema-Änderungen (Migrationen) wendest du bewusst in B6 an.
+   - **Wichtig:** Nach dem Merge ist die **PROD-Datenbank noch unverändert**. Cloudflare baut den neuen **Code**; Schema-Änderungen (Migrationen) wendest du bewusst in B6 an.
 
-### B5 – Nach dem Merge: Netlify und Code live
+### B5 – Nach dem Merge: Cloudflare und Code live
 
-1. **Netlify baut automatisch**  
-   - Netlify erkennt den neuen Stand auf **main** und startet einen Build. Nach etwa 1–2 Minuten ist der neue **Code** live.  
-   - Die Live-Website nutzt die **PROD**-Datenbank (über die in Netlify hinterlegten PROD-Env-Variablen).
+1. **Cloudflare baut automatisch**  
+   - Cloudflare erkennt den neuen Stand auf **main** und startet einen Build. Nach kurzer Zeit ist der neue **Code** live.  
+   - Die Live-Website nutzt die **PROD**-Datenbank (über die in Cloudflare hinterlegten PROD-Build-Variablen).
 
 2. **Keine neue Migration?**  
    - Wenn das Feature **keine** Schema-Änderung mit sich brachte: Live-Seite im Browser prüfen (Login, betroffene Features). Damit ist der Ablauf fertig.
@@ -332,11 +328,11 @@ Ausführlich: [DATABASE_WORKFLOW_SCHRITT_FÜR_SCHRITT.md](DATABASE_WORKFLOW_SCHR
 
 ## Teil C: Wenn etwas schiefgeht
 
-Wenn nach einem Deployment (Merge → Netlify) oder nach einer Migration auf PROD etwas nicht funktioniert, hilft diese Entscheidungshilfe:
+Wenn nach einem Deployment (Merge → Cloudflare) oder nach einer Migration auf PROD etwas nicht funktioniert, hilft diese Entscheidungshilfe:
 
 | Situation | Was tun? |
 |-----------|----------|
-| **Nur Code problematisch** (z. B. Bug in der App nach Merge) | **Code-Rollback:** main auf den letzten funktionierenden Stand zurücksetzen, Netlify baut neu. Detaillierte Schritte: **[ROLLBACK.md](ROLLBACK.md)**. |
+| **Nur Code problematisch** (z. B. Bug in der App nach Merge) | **Code-Rollback:** main auf den letzten funktionierenden Stand zurücksetzen, Cloudflare baut neu. Detaillierte Schritte: **[ROLLBACK.md](ROLLBACK.md)**. |
 | **Nur Schema problematisch** (Migration auf PROD verursacht DB-Fehler, Code ist ok) | **Schema-Rollback:** Änderung per Gegen-Migration oder Backup rückgängig machen. Detaillierte Schritte: **[SCHEMA_ROLLBACK_WORKFLOW.md](SCHEMA_ROLLBACK_WORKFLOW.md)**. |
 | **Code und Schema zusammen problematisch** (neuer Code + neue Migration, beides soll weg) | **Reihenfolge:** Zuerst **Code-Rollback** ([ROLLBACK.md](ROLLBACK.md)), dann **Schema-Rollback** ([SCHEMA_ROLLBACK_WORKFLOW.md](SCHEMA_ROLLBACK_WORKFLOW.md)). |
 
@@ -364,13 +360,13 @@ Checkliste zum Abhaken (inkl. Asana-Vorlage): [ASANA_CHECKLISTE_FEATURE_LIVE.md]
 |--------|-----------|
 | **Branch** | Abzweigung im Git-Repository. Wir entwickeln auf **Julius**, der stabile Hauptstand ist **main**. |
 | **PR (Pull Request)** | Vorschlag, Änderungen von einem Branch in einen anderen zu übernehmen. Vor Merge: Review und Approval. |
-| **Merge** | Zusammenführen von Branches (z. B. Julius in main). Löst bei main den Netlify-Build aus. |
+| **Merge** | Zusammenführen von Branches (z. B. Julius in main). Löst bei main den Cloudflare-Build aus. |
 | **Migration** | SQL-Datei in `supabase/migrations/`, die die Datenbank-Struktur ändert (Tabellen, Spalten, RLS usw.). |
 | **DEV** | Entwicklungsumgebung: Supabase-Projekt und Datenbank nur für Entwicklung und Tests. |
 | **PROD** | Produktion: Live-Website und echte Nutzerdaten. |
-| **Env-Variablen** | Konfigurationswerte (z. B. `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`). Lokal in `.env` (nur DEV), auf Netlify für Production (PROD). |
+| **Env-Variablen** | Konfigurationswerte (z. B. `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`). Lokal in `.env` (nur DEV), in Cloudflare als Build-Variablen für Production (PROD). |
 | **Supabase Link** | Verknüpfung der Supabase CLI mit einem konkreten Supabase-Projekt (DEV oder PROD). `supabase link --project-ref <Ref>`. |
-| **Netlify Production Build** | Build, den Netlify bei jedem neuen Stand auf **main** ausführt; Ergebnis ist die Live-Website. |
+| **Cloudflare Production Build** | Build, den Cloudflare bei jedem neuen Stand auf **main** ausführt; Ergebnis ist die Live-Website. |
 
 ---
 
