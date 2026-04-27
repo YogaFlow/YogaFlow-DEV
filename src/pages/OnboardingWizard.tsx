@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, ChevronRight, ChevronLeft, Check, Loader2 } from 'lucide-react';
+import { Heart, ChevronRight, ChevronLeft, Check, Loader2, LogOut } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-
-const BASE_DOMAIN = import.meta.env.VITE_APP_BASE_DOMAIN as string || 'omlify.de';
+import { useAuth } from '../context/AuthContext';
+import { useTenant, buildStudioEntryHref, buildStudioAuthHref, APP_BASE_DOMAIN } from '../context/TenantContext';
 
 const STEPS = ['Studio-Name', 'Studio-URL', 'Dein Name', 'Zugangsdaten', 'Zusammenfassung'];
 
@@ -19,6 +19,9 @@ type SlugStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
 
 const OnboardingWizard: React.FC = () => {
   const navigate = useNavigate();
+  const { user, userProfile } = useAuth();
+  const { tenantSlug } = useTenant();
+  const [ownStudioHref, setOwnStudioHref] = useState<string | null>(null);
 
   const [step, setStep] = useState(1);
 
@@ -40,6 +43,15 @@ const OnboardingWizard: React.FC = () => {
   const [success, setSuccess] = useState(false);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Wenn bereits eingeloggt: Studio-URL für "Zurück zum Dashboard" ermitteln
+  useEffect(() => {
+    if (!user || !userProfile?.tenant_id) return;
+    if (tenantSlug) { setOwnStudioHref('/dashboard'); return; }
+    supabase
+      .from('tenants').select('slug').eq('id', userProfile.tenant_id).maybeSingle()
+      .then(({ data }) => { if (data?.slug) setOwnStudioHref(buildStudioEntryHref(data.slug)); });
+  }, [user, userProfile?.tenant_id, tenantSlug]);
 
   // Auto-suggest slug from studio name (only before user has touched the slug field)
   useEffect(() => {
@@ -107,7 +119,7 @@ const OnboardingWizard: React.FC = () => {
     // 2. Auth-Nutzer anlegen (Trigger liest role aus Metadata und setzt 'owner')
     const emailRedirectTo = import.meta.env.DEV
       ? `${window.location.protocol}//${window.location.host}/?tenant=${slug}`
-      : `https://${slug}.${BASE_DOMAIN}/dashboard`;
+      : `https://${slug}.${APP_BASE_DOMAIN}/dashboard`;
 
     const { error: signUpError } = await supabase.auth.signUp({
       email,
@@ -131,9 +143,49 @@ const OnboardingWizard: React.FC = () => {
       return;
     }
 
+    try {
+      sessionStorage.setItem('yogaflow_onboarding_slug', slug);
+    } catch {
+      /* ignore */
+    }
     setSuccess(true);
     setIsSubmitting(false);
   };
+
+  if (user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-indigo-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl p-10 max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <LogOut className="w-8 h-8 text-amber-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">Du bist bereits angemeldet</h2>
+          <p className="text-gray-600 mb-6">
+            Du bist aktuell als <strong>{userProfile?.email ?? user.email}</strong> eingeloggt.
+            Um ein neues Studio anzulegen, melde dich zuerst ab.
+          </p>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => {
+                if (!ownStudioHref) { navigate('/'); return; }
+                if (ownStudioHref.startsWith('http')) window.location.href = ownStudioHref;
+                else navigate(ownStudioHref);
+              }}
+              className="w-full bg-teal-600 text-white py-3 rounded-xl hover:bg-teal-700 transition-colors"
+            >
+              {tenantSlug ? 'Zurück zum Dashboard' : 'Zur Studio-Webadresse'}
+            </button>
+            <button
+              onClick={async () => { await supabase.auth.signOut(); window.location.replace('/onboarding'); }}
+              className="w-full border border-gray-300 text-gray-700 py-3 rounded-xl hover:bg-gray-50 transition-colors"
+            >
+              Abmelden und neues Studio anlegen
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (success) {
     return (
@@ -150,9 +202,19 @@ const OnboardingWizard: React.FC = () => {
             Bitte bestätige deine E-Mail-Adresse, um dein Studio freizuschalten. Danach
             kannst du dich unter{' '}
             <span className="font-mono text-teal-700">
-              {slug}.{BASE_DOMAIN}
+              {slug}.{APP_BASE_DOMAIN}
             </span>{' '}
             einloggen.
+          </p>
+          <p className="text-gray-500 text-sm mt-3">
+            Tipp: Bestätigung erneut anfordern am zuverlässigsten unter{' '}
+            <a
+              href={buildStudioAuthHref(slug)}
+              className="text-teal-600 font-mono hover:underline break-all"
+            >
+              {slug}.{APP_BASE_DOMAIN}/auth
+            </a>{' '}
+            (→ „Erneut senden“). So nutzt der Link dieselbe Studio-Subdomain wie später der Login.
           </p>
         </div>
       </div>
@@ -224,7 +286,7 @@ const OnboardingWizard: React.FC = () => {
                   autoFocus
                 />
                 <span className="px-3 flex items-center text-gray-400 text-sm bg-gray-50 border-l border-gray-300">
-                  .{BASE_DOMAIN}
+                  .{APP_BASE_DOMAIN}
                 </span>
               </div>
 
@@ -256,7 +318,7 @@ const OnboardingWizard: React.FC = () => {
               <p className="mt-3 text-xs text-gray-500">
                 Dein Studio wird erreichbar sein unter:{' '}
                 <span className="font-mono text-teal-700">
-                  {slug || '…'}.{BASE_DOMAIN}
+                  {slug || '…'}.{APP_BASE_DOMAIN}
                 </span>
               </p>
             </div>
@@ -338,7 +400,7 @@ const OnboardingWizard: React.FC = () => {
               <div className="bg-gray-50 rounded-xl p-4 mb-6 space-y-2 text-sm">
                 {[
                   { label: 'Studio-Name', value: studioName },
-                  { label: 'Studio-URL', value: `${slug}.${BASE_DOMAIN}`, mono: true },
+                  { label: 'Studio-URL', value: `${slug}.${APP_BASE_DOMAIN}`, mono: true },
                   { label: 'Name', value: `${firstName} ${lastName}` },
                   { label: 'E-Mail', value: email },
                 ].map(({ label, value, mono }) => (

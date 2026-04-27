@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
-import { User as SupabaseUser } from '@supabase/supabase-js';
+import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
+import { User as SupabaseUser, type Session, type AuthChangeEvent } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { User, UserRole } from '../types';
 import { clearDevTenantSlug } from './TenantContext';
@@ -29,58 +29,195 @@ export const useAuth = () => {
   return context;
 };
 
+/**
+ * Profil-Laden darf bei kaltem Edge / Supabase mehrere Versuche brauchen.
+ * Wichtig: Bei Timeout oder Fehler niemals signOut — sonst wirkt langsames Netz wie „ausgeloggt“
+ * und triggert erneut Auth + weitere parallele Requests (siehe applySession_timeout-Schleifen).
+ */
+const PROFILE_FETCH_ATTEMPTS = 3;
+const PROFILE_FETCH_MS = 15_000;
+/** Max. Wartezeit auf das erste INITIAL_SESSION-Event. Kommt es nicht (Supabase pausiert /
+ *  abgelaufenes Token → endloser Refresh-Loop), löschen wir die lokalen Token und zeigen dem
+ *  User die Login-Maske statt eines ewigen Spinners. */
+const INITIAL_SESSION_TIMEOUT_MS = 8_000;
+
+function delay(ms: number): Promise<void> {
+  return new Promise((r) => window.setTimeout(r, ms));
+}
+
+function isAbortError(e: unknown): boolean {
+  return e instanceof Error && e.name === 'AbortError';
+}
+
+/**
+ * Prüft synchron (kein Netzwerk), ob der Supabase-Client eine gespeicherte Session im
+ * localStorage hat. Gibt es keine → loading sofort false → Login-Formular erscheint
+ * sofort, ohne auf INITIAL_SESSION zu warten. Gibt es eine (möglicherweise abgelaufen) →
+ * loading bleibt true und der Safety-Timer greift nach 8 s.
+ */
+function hasStoredSession(): boolean {
+  try {
+    return Object.keys(localStorage).some((k) => {
+      if (!k.startsWith('sb-')) return false;
+      const val = localStorage.getItem(k);
+      if (!val) return false;
+      try {
+        const parsed = JSON.parse(val);
+        return parsed != null && typeof parsed === 'object' && 'access_token' in parsed;
+      } catch {
+        return false;
+      }
+    });
+  } catch {
+    return false;
+  }
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [userProfile, setUserProfile] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  /**
+   * Ohne gespeicherte Session: sofort false → Login-Formular erscheint ohne Verzögerung.
+   * Mit gespeicherter Session: true → warten auf INITIAL_SESSION (oder Safety-Timer nach 8 s).
+   */
+  const [loading, setLoading] = useState(() => hasStoredSession());
+
+  const fetchUserProfile = useCallback(async (userId: string, signal: AbortSignal) => {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .abortSignal(signal)
+      .maybeSingle();
+    if (error) throw error;
+    return data ?? null;
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
+    let initialSessionReceived = false;
+    /** Erhöht bei jedem neuen applySession / Logout / Unmount — ältere Profil-Ladevorgänge schreiben keinen State mehr. */
+    const profileLoadGenerationRef = { current: 0 };
 
-    const fetchUserProfile = async (userId: string) => {
+    // Safety: wenn INITIAL_SESSION nicht innerhalb von 8 s feuert (Supabase-Projekt pausiert
+    // oder abgelaufenes Token → endloser interner Refresh-Loop), löschen wir die lokalen
+    // Supabase-Token aus localStorage und setzen loading=false. Der User sieht die Login-Maske
+    // und kann sich neu anmelden — das Login-Request weckt das Projekt auf.
+    const safetyTimer = window.setTimeout(() => {
+      if (initialSessionReceived || !isMounted) return;
+      console.warn('Auth: INITIAL_SESSION nicht empfangen nach 8 s — lösche lokale Session-Token.');
       try {
-        const { data, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', userId)
-          .maybeSingle();
-        if (error) throw error;
-        if (isMounted) setUserProfile(data);
-      } catch (error) {
-        console.error('Error fetching user profile:', error);
+        Object.keys(localStorage)
+          .filter((k) => k.startsWith('sb-'))
+          .forEach((k) => localStorage.removeItem(k));
+      } catch {}
+      profileLoadGenerationRef.current += 1;
+      if (isMounted) {
+        setUser(null);
+        setUserProfile(null);
+        setLoading(false);
       }
+    }, INITIAL_SESSION_TIMEOUT_MS);
+
+    /** Lädt public.users mit Retries; bei Misserfolg: Session bleibt, Profil null (Redirect zu profile_missing möglich). */
+    const loadProfileWithRetries = async (userId: string, generation: number): Promise<void> => {
+      let lastErr: unknown;
+      for (let attempt = 0; attempt < PROFILE_FETCH_ATTEMPTS; attempt++) {
+        if (!isMounted || profileLoadGenerationRef.current !== generation) return;
+        const attemptAc = new AbortController();
+        const timer = window.setTimeout(() => attemptAc.abort(), PROFILE_FETCH_MS);
+        try {
+          const profile = await fetchUserProfile(userId, attemptAc.signal);
+          window.clearTimeout(timer);
+          if (!isMounted || profileLoadGenerationRef.current !== generation) return;
+          setUserProfile(profile);
+          return;
+        } catch (e) {
+          window.clearTimeout(timer);
+          if (!isMounted || profileLoadGenerationRef.current !== generation) return;
+          const timedOut = attemptAc.signal.aborted && isAbortError(e);
+          lastErr = timedOut ? new Error('profileFetch_timeout') : e;
+          if (attempt < PROFILE_FETCH_ATTEMPTS - 1) {
+            console.warn(
+              `Auth: Profil-Laden Versuch ${attempt + 1}/${PROFILE_FETCH_ATTEMPTS} fehlgeschlagen — erneuter Versuch.`,
+              lastErr,
+            );
+            await delay(800 * (attempt + 1));
+          }
+        }
+      }
+      console.error('Auth: Profil nach allen Versuchen nicht ladbar — Session bleibt erhalten.', lastErr);
+      if (isMounted && profileLoadGenerationRef.current === generation) setUserProfile(null);
     };
 
-    supabase.auth.getSession()
-      .then(({ data: { session } }) => {
-        if (!isMounted) return;
-        setUser(session?.user ?? null);
-        if (session?.user) fetchUserProfile(session.user.id);
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error('Error getting session:', error);
-        if (isMounted) setLoading(false);
-      });
+    const applySession = async (session: Session | null) => {
+      setUser(session?.user ?? null);
+      if (!session?.user) {
+        profileLoadGenerationRef.current += 1;
+        if (isMounted) setUserProfile(null);
+        return;
+      }
+      profileLoadGenerationRef.current += 1;
+      const generation = profileLoadGenerationRef.current;
+      await loadProfileWithRetries(session.user.id, generation);
+    };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      async (event: AuthChangeEvent, session: Session | null) => {
         if (!isMounted) return;
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          fetchUserProfile(session.user.id);
-        } else {
-          setUserProfile(null);
+
+        if (event === 'INITIAL_SESSION') {
+          initialSessionReceived = true;
+          window.clearTimeout(safetyTimer);
+          setLoading(true);
+          try {
+            await applySession(session);
+          } catch (error) {
+            console.error('Auth: INITIAL_SESSION / applySession', error);
+            if (isMounted) {
+              setUser(session?.user ?? null);
+              setUserProfile(null);
+            }
+          } finally {
+            if (isMounted) setLoading(false);
+          }
+          return;
         }
-        setLoading(false);
-      }
+
+        if (event === 'TOKEN_REFRESHED') {
+          setUser(session?.user ?? null);
+          return;
+        }
+
+        if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setUserProfile(null);
+          setLoading(false);
+          return;
+        }
+
+        setLoading(true);
+        try {
+          await applySession(session);
+        } catch (err) {
+          console.error('onAuthStateChange:', err);
+          if (isMounted) {
+            setUser(session?.user ?? null);
+            setUserProfile(null);
+          }
+        } finally {
+          if (isMounted) setLoading(false);
+        }
+      },
     );
 
     return () => {
       isMounted = false;
+      window.clearTimeout(safetyTimer);
+      profileLoadGenerationRef.current += 1;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [fetchUserProfile]);
 
   const signIn = async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });

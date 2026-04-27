@@ -16,6 +16,22 @@ Die Edge Function `send-email` versendet E-Mails über **Gmail SMTP** (nodemaile
 - **INTERNAL_EMAIL_SECRET** muss in **Edge Functions → Secrets** gesetzt sein (langer Zufallswert). Derselbe Wert gilt für alle Edge Functions im Projekt; nur Aufrufer mit diesem Header können E-Mails auslösen. Für PROD dasselbe Secret (oder ein eigener Wert) in den PROD-Edge-Function-Secrets hinterlegen.
 - **SMTP-Secrets** müssen in **Edge Functions → Secrets** gesetzt sein: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`. **Niemals** im Code oder Repo speichern.
 
+### Secret `APP_URL` (Links in Bestätigungs- und Reset-Mails)
+
+Die Functions `send-verification-email`, `request-verification-email` und `request-password-reset` setzen die Basis-URL für Links (`…/verify-email?token=…` bzw. `…/reset-password?token=…`).
+
+- **Priorität (Verifizierung / Passwort-Reset):** Es wird ein **Tenant-Slug** ermittelt (`users.tenant_id` → `tenants.slug`; falls `tenant_id` in `public.users` noch leer ist, Fallback über **`auth.users.user_metadata.tenant_id`**). Ist ein Slug da und gilt mindestens eines der folgenden Punkte, lautet der Link **`https://{slug}.{apex}`** (z. B. `https://studio1.omlify.de/verify-email?…`):
+  - Edge-Secret **`APP_BASE_DOMAIN`** = `omlify.de`, **oder**
+  - Der Request-Header **`Origin`** ist eine **Apex-URL** (Hostname mit genau zwei Labels wie `omlify.de`, oder `www.omlify.de`) — dann wird die Apex-Domain aus `Origin` abgeleitet, **ohne** separates Secret.
+
+- **Fallback:** Slug unbekannt oder Origin ist bereits eine Studio-Subdomain → **`Origin`**, dann **`APP_URL`**, dann `http://localhost:5173`.
+
+- **Client-Hint `studio_slug`:** `request-verification-email` akzeptiert optional `{ "email", "studio_slug" }`. Der Slug wird nur genutzt, wenn er in der DB **dieselbe Tenant-ID** wie der Nutzer hat (kein beliebiges Umleiten). Die SPA sendet den Slug aus **`sessionStorage` (`yogaflow_onboarding_slug`)** nach dem Onboarding, aus der **Tenant-Subdomain** (`useTenant`) oder manuell per **`/auth?studio=dein-slug`** (wird einmalig in den Storage übernommen).
+
+- **`APP_URL` in PROD:** Entweder **nicht setzen** oder auf die **kanonische Produkt-URL** setzen (z. B. `https://omlify.de`). **Nicht** auf `*.workers.dev` setzen.
+
+- **Betreff und HTML („Willkommen bei Die Thallers!“ usw.):** fest in den jeweiligen Edge-Function-Dateien unter `supabase/functions/` (nicht im Supabase-Dashboard).
+
 ### Gmail einrichten (aktuell verwendet)
 
 1. Gehen Sie zu Ihrem Supabase Dashboard → **Edge Functions** → **Secrets**.

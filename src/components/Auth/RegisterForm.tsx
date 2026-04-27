@@ -89,7 +89,11 @@ const RegisterForm: React.FC = () => {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
               },
-              body: JSON.stringify({ userId: data.user.id, email: formData.email }),
+              body: JSON.stringify({
+                userId: data.user.id,
+                email: formData.email,
+                studio_slug: tenant.slug,
+              }),
             },
           );
           emailSent = res.ok;

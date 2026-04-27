@@ -1,5 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { resolveEmailLinkBaseUrl } from "../_shared/email_link_base_url.ts";
+import { fetchStudioSlugForUser, verifyClientStudioSlugHint } from "../_shared/studio_slug_for_user.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,6 +12,7 @@ const corsHeaders = {
 interface VerificationRequest {
   userId: string;
   email: string;
+  studio_slug?: string;
 }
 
 Deno.serve(async (req: Request) => {
@@ -22,7 +25,7 @@ Deno.serve(async (req: Request) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { userId, email }: VerificationRequest = await req.json();
+    const { userId, email, studio_slug: clientStudioSlug }: VerificationRequest = await req.json();
 
     if (!userId || !email) {
       return new Response(
@@ -83,7 +86,10 @@ Deno.serve(async (req: Request) => {
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    const baseUrl = (Deno.env.get("APP_URL") || req.headers.get("origin") || "http://localhost:5173").replace(/\/+$/, "");
+    const slugFromDb = await fetchStudioSlugForUser(supabase, userId);
+    const slugFromHint = await verifyClientStudioSlugHint(supabase, userId, clientStudioSlug);
+    const studioSlug = slugFromDb ?? slugFromHint;
+    const baseUrl = resolveEmailLinkBaseUrl(req, studioSlug);
     const verificationLink = `${baseUrl}/verify-email?token=${token}`;
 
     const emailHtml = `

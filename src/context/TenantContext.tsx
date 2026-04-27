@@ -2,39 +2,64 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Tenant } from '../types';
 
-const BASE_DOMAIN = import.meta.env.VITE_APP_BASE_DOMAIN as string;
 const DEV_SLUG_KEY = '__dev_tenant_slug__';
 
 /**
- * Liest den Tenant-Slug aus dem aktuellen Hostname.
+ * Env-Wert wie `https://omlify.de/` oder `www.omlify.de` → Hostname für Subdomain-Vergleiche (`omlify.de`).
+ */
+export function normalizeAppBaseDomain(raw: string | undefined): string {
+  const fallback = 'omlify.de';
+  if (raw == null || !String(raw).trim()) return fallback;
+  let s = String(raw).trim().toLowerCase();
+  s = s.replace(/^https?:\/\//, '');
+  s = s.split('/')[0].split('?')[0];
+  s = s.split(':')[0];
+  s = s.replace(/\.$/, '');
+  if (s.startsWith('www.')) s = s.slice(4);
+  return s || fallback;
+}
+
+export const APP_BASE_DOMAIN = normalizeAppBaseDomain(
+  import.meta.env.VITE_APP_BASE_DOMAIN as string | undefined,
+);
+
+/** Slug aus Host <slug>.<baseDomain>, Apex / www → null. */
+export function slugFromHostname(hostname: string, baseDomain: string): string | null {
+  const h = hostname.toLowerCase();
+  const b = baseDomain.toLowerCase();
+  if (!b) return null;
+  if (h === b || h === `www.${b}`) return null;
+  if (!h.endsWith(`.${b}`)) return null;
+  const slug = h.slice(0, h.length - b.length - 1);
+  if (!slug || slug.includes('.')) return null;
+  return slug;
+}
+
+/**
+ * Liest den Tenant-Slug:
  *
- * Produktiv:  <slug>.omlify.de          → slug
- * DEV: ?tenant=<slug>-Override          → slug (wird in sessionStorage gesichert)
- * DEV: kein ?tenant=, aber sessionStorage hat Slug → slug (persistiert über Navigationen)
- * Apex ohne Slug                        → null (Landing Page / Onboarding)
+ * Zuerst immer aus dem Hostnamen (`<slug>.<APP_BASE_DOMAIN>`), damit echte Subdomains auch in DEV
+ * (Tunnel/ngrok) und bei falsch formatierter VITE_APP_BASE_DOMAIN funktionieren.
+ * DEV zusätzlich: ?tenant= und sessionStorage.
+ * Apex ohne Slug → null (Landing / Onboarding).
  */
 function resolveSlug(): string | null {
   const params = new URLSearchParams(window.location.search);
   const override = params.get('tenant');
+  const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+
+  const fromHost = slugFromHostname(hostname, APP_BASE_DOMAIN);
+  if (fromHost) {
+    if (import.meta.env.DEV) sessionStorage.setItem(DEV_SLUG_KEY, fromHost);
+    return fromHost;
+  }
 
   if (import.meta.env.DEV) {
     if (override) {
-      // Expliziter Override → in sessionStorage sichern und verwenden
       sessionStorage.setItem(DEV_SLUG_KEY, override);
       return override;
     }
-    // Slug aus sessionStorage wiederherstellen (bleibt nach React-Router-Navigationen erhalten)
     return sessionStorage.getItem(DEV_SLUG_KEY) ?? null;
-  }
-
-  const hostname = window.location.hostname;
-  if (!BASE_DOMAIN) return null;
-
-  if (hostname === BASE_DOMAIN || hostname === `www.${BASE_DOMAIN}`) return null;
-
-  if (hostname.endsWith(`.${BASE_DOMAIN}`)) {
-    const slug = hostname.slice(0, hostname.length - BASE_DOMAIN.length - 1);
-    return slug || null;
   }
 
   return null;
@@ -56,8 +81,22 @@ export function buildStudioEntryHref(slug: string): string {
     return `${origin}/?tenant=${safe}`;
   }
   const protocol = typeof window !== 'undefined' ? window.location.protocol : 'https:';
-  const base = (import.meta.env.VITE_APP_BASE_DOMAIN as string) || 'omlify.de';
-  return `${protocol}//${slug}.${base}/dashboard`;
+  return `${protocol}//${slug}.${APP_BASE_DOMAIN}/dashboard`;
+}
+
+/**
+ * Anmeldeseite unter dem Tenant (Session liegt pro Origin auf der Subdomain).
+ * DEV: /auth?tenant=… setzt den Slug wie resolveSlug().
+ */
+export function buildStudioAuthHref(slug: string): string {
+  const trimmed = slug.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+  const safe = encodeURIComponent(trimmed);
+  if (import.meta.env.DEV) {
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    return `${origin}/auth?tenant=${safe}`;
+  }
+  const protocol = typeof window !== 'undefined' ? window.location.protocol : 'https:';
+  return `${protocol}//${trimmed}.${APP_BASE_DOMAIN}/auth`;
 }
 
 interface TenantContextType {
@@ -66,48 +105,151 @@ interface TenantContextType {
   loading: boolean;
   /** true wenn Slug aus URL aufgelöst, aber kein Tenant in DB gefunden */
   notFound: boolean;
+  /** Supabase-/Netzwerkfehler oder Timeout — nicht mit „nicht gefunden“ verwechseln */
+  lookupError: string | null;
 }
 
 const TenantContext = createContext<TenantContextType>({
   tenant: null,
   tenantSlug: null,
   loading: true,
-  notFound: false
+  notFound: false,
+  lookupError: null,
 });
 
 export const useTenant = () => useContext(TenantContext);
 
+/** Ein Request kann nach Projekt-Pause / kaltem Edge sehr lange brauchen; 12s war in der Praxis zu knapp. */
+const TENANT_REQUEST_MS = 55_000;
+
+type TenantRowResult = { data: Tenant | null; error: Error | null };
+
+function isAbortError(e: unknown): boolean {
+  return e instanceof Error && e.name === 'AbortError';
+}
+
+/** Lädt Tenant mit Deadline; bricht den REST-Call bei Timeout ab (kein „Zombie“-Request). */
+async function fetchTenantWithDeadline(slug: string, ms: number): Promise<TenantRowResult | 'timeout'> {
+  const ac = new AbortController();
+  const timer = window.setTimeout(() => ac.abort(), ms);
+  try {
+    const { data, error } = await supabase
+      .from('tenants')
+      .select('*')
+      .eq('slug', slug)
+      .abortSignal(ac.signal)
+      .maybeSingle();
+    window.clearTimeout(timer);
+    return {
+      data: data as Tenant | null,
+      error: error ? new Error(error.message) : null,
+    };
+  } catch (e) {
+    window.clearTimeout(timer);
+    if (ac.signal.aborted && isAbortError(e)) return 'timeout';
+    return { data: null, error: e instanceof Error ? e : new Error(String(e)) };
+  }
+}
+
 export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [tenant, setTenant] = useState<Tenant | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-
+  const [lookupError, setLookupError] = useState<string | null>(null);
   const tenantSlug = resolveSlug();
+
+  /** Häufiger Konfigurationsfehler: Basis-ENV = komplette Studio-URL → Slug bleibt immer null. */
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const host = window.location.hostname.toLowerCase();
+    const base = APP_BASE_DOMAIN.toLowerCase();
+    if (host === base && base.split('.').filter(Boolean).length >= 3) {
+      console.warn(
+        '[YogaFlow] VITE_APP_BASE_DOMAIN ist gleich dem aktuellen Hostnamen (z. B. eine Studio-Subdomain). ' +
+          'In Cloudflare muss die Variable nur die gemeinsame Apex-Domain sein (z. B. omlify.de), nicht studionr1.omlify.de.',
+      );
+    }
+  }, []);
+  /** Apex / ohne Slug: sofort fertig — nicht auf den ersten useEffect warten (sonst Dauer-Spinner). */
+  const [loading, setLoading] = useState(() => tenantSlug !== null);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     if (!tenantSlug) {
+      setTenant(null);
+      setNotFound(false);
+      setLookupError(null);
       setLoading(false);
       return;
     }
 
-    supabase
-      .from('tenants')
-      .select('*')
-      .eq('slug', tenantSlug)
-      .maybeSingle()
-      .then(({ data, error }) => {
-        if (error) console.error('TenantContext: fetch error', error);
-        if (data) {
-          setTenant(data);
-        } else {
-          setNotFound(true);
+    setLoading(true);
+    setNotFound(false);
+    setLookupError(null);
+
+    let cancelled = false;
+
+    const applyResult = (res: TenantRowResult) => {
+      if (cancelled) return;
+      if (res.error) {
+        console.error('TenantContext: fetch error', res.error);
+        setTenant(null);
+        setNotFound(false);
+        setLookupError(
+          res.error.message ||
+            'Tenant konnte nicht geladen werden. Prüfe in Cloudflare, ob VITE_SUPABASE_URL und der Anon-Key zum gleichen Projekt wie in der Supabase-Konsole gehören.',
+        );
+        return;
+      }
+      if (res.data) {
+        setTenant(res.data);
+        setLookupError(null);
+        setNotFound(false);
+      } else {
+        setTenant(null);
+        setNotFound(true);
+        setLookupError(null);
+      }
+    };
+
+    void (async () => {
+      try {
+        let outcome = await fetchTenantWithDeadline(tenantSlug, TENANT_REQUEST_MS);
+        if (cancelled) return;
+        if (outcome === 'timeout') {
+          console.warn('TenantContext: erste Anfrage Timeout — einmaliger Retry');
+          outcome = await fetchTenantWithDeadline(tenantSlug, TENANT_REQUEST_MS);
         }
-        setLoading(false);
-      });
+        if (cancelled) return;
+        if (outcome === 'timeout') {
+          setTenant(null);
+          setNotFound(false);
+          setLookupError(
+            'Die Datenbank-Anfrage hat zu lange gedauert (auch nach Wiederholung). ' +
+              'Im Supabase-Dashboard prüfen, ob das PROD-Projekt pausiert ist; in den Browser-Entwicklertools (Netzwerk) den Aufruf zu …supabase.co/rest/v1/tenants prüfen. ' +
+              'Nach Änderung von VITE_* in Cloudflare einen neuen Pages-Build auslösen.',
+          );
+          return;
+        }
+        applyResult(outcome);
+      } catch (e) {
+        if (cancelled) return;
+        console.error('TenantContext: unerwarteter Fehler', e);
+        setTenant(null);
+        setNotFound(false);
+        setLookupError(
+          e instanceof Error ? e.message : 'Unerwarteter Fehler beim Laden des Studios.',
+        );
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [tenantSlug]);
 
   return (
-    <TenantContext.Provider value={{ tenant, tenantSlug, loading, notFound }}>
+    <TenantContext.Provider value={{ tenant, tenantSlug, loading, notFound, lookupError }}>
       {children}
     </TenantContext.Provider>
   );
