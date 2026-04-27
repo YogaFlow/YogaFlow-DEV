@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Tenant } from '../types';
 
-const BASE_DOMAIN = import.meta.env.VITE_APP_BASE_DOMAIN as string;
+const BASE_DOMAIN = (import.meta.env.VITE_APP_BASE_DOMAIN as string) || 'omlify.de';
 const DEV_SLUG_KEY = '__dev_tenant_slug__';
 
 /**
