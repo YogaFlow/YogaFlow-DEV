@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { resolveEmailLinkBaseUrl } from "../_shared/email_link_base_url.ts";
-import { fetchStudioSlugForUser } from "../_shared/studio_slug_for_user.ts";
+import { apexHostFromRequestOrigin, resolveEmailLinkBaseUrl } from "../_shared/email_link_base_url.ts";
+import { fetchStudioSlugForUser, verifyClientStudioSlugHint } from "../_shared/studio_slug_for_user.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,6 +11,8 @@ const corsHeaders = {
 
 interface RequestBody {
   email: string;
+  /** Optional: z. B. aus sessionStorage nach Onboarding; wird gegen den Tenant des Users geprüft. */
+  studio_slug?: string;
 }
 
 Deno.serve(async (req: Request) => {
@@ -23,7 +25,8 @@ Deno.serve(async (req: Request) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { email }: RequestBody = await req.json();
+    const body = (await req.json()) as RequestBody;
+    const { email, studio_slug: clientStudioSlug } = body;
 
     if (!email?.trim()) {
       return new Response(
@@ -74,9 +77,28 @@ Deno.serve(async (req: Request) => {
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    const studioSlug = await fetchStudioSlugForUser(supabase, userData.id);
+    const slugFromDb = await fetchStudioSlugForUser(supabase, userData.id);
+    const slugFromHint = await verifyClientStudioSlugHint(supabase, userData.id, clientStudioSlug);
+    const studioSlug = slugFromDb ?? slugFromHint;
+
     const baseUrl = resolveEmailLinkBaseUrl(req, studioSlug);
     const verificationLink = `${baseUrl}/verify-email?token=${token}`;
+
+    let baseHost = "";
+    try {
+      baseHost = new URL(baseUrl).hostname;
+    } catch {
+      baseHost = "(parse-error)";
+    }
+    console.log(
+      "[request-verification-email]",
+      JSON.stringify({
+        hasSlug: !!studioSlug,
+        slugSource: slugFromDb ? "db" : slugFromHint ? "client_hint" : "none",
+        baseHost,
+        originApex: !!apexHostFromRequestOrigin(req),
+      }),
+    );
 
     const emailHtml = `
       <!DOCTYPE html>

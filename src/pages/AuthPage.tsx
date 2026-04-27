@@ -94,11 +94,26 @@ const AuthPage: React.FC = () => {
   }, [searchParams, navigate]);
 
   useEffect(() => {
-    if (searchParams.get('verified') === '1') {
-      setShowVerifiedMessage(true);
-      setLoginFormKey((k) => k + 1);
-      setSearchParams({}, { replace: true });
+    if (searchParams.get('verified') !== '1') return;
+    setShowVerifiedMessage(true);
+    setLoginFormKey((k) => k + 1);
+    const next = new URLSearchParams(searchParams);
+    next.delete('verified');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  /** z. B. /auth?studio=studio1 — setzt sessionStorage für „Erneut senden“ (korrekter Subdomain-Link). */
+  useEffect(() => {
+    const raw = searchParams.get('studio')?.trim().toLowerCase() ?? '';
+    if (!raw || !/^[a-z0-9]{3,30}$/.test(raw)) return;
+    try {
+      sessionStorage.setItem('yogaflow_onboarding_slug', raw);
+    } catch {
+      /* ignore */
     }
+    const next = new URLSearchParams(searchParams);
+    next.delete('studio');
+    setSearchParams(next, { replace: true });
   }, [searchParams, setSearchParams]);
 
   if (loading) {
@@ -248,7 +263,11 @@ const AuthPage: React.FC = () => {
             </div>
           )}
           <div className="p-8 flex justify-center">
-            {isLogin || tenantPending ? <LoginForm key={loginFormKey} /> : <RegisterForm />}
+            {isLogin || tenantPending ? (
+              <LoginForm key={loginFormKey} emailJustVerified={showVerifiedMessage} />
+            ) : (
+              <RegisterForm />
+            )}
           </div>
         </div>
 

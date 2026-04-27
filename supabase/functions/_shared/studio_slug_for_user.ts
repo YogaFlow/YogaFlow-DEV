@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
 
+export const TENANT_SLUG_RE = /^[a-z0-9]{3,30}$/;
+
 const UUID_RE = /^[0-9a-f-]{36}$/i;
 
 function tenantIdFromMetadata(meta: Record<string, unknown> | undefined): string | null {
@@ -39,4 +41,37 @@ export async function fetchStudioSlugForUser(
   if (tErr) console.error("fetchStudioSlugForUser tenants:", tErr.message);
   if (!t?.slug || typeof t.slug !== "string") return null;
   return t.slug;
+}
+
+/**
+ * Optionaler Slug aus dem Client (z. B. sessionStorage nach Onboarding): nur gültig,
+ * wenn derselbe Slug in der DB dem Tenant des Nutzers entspricht.
+ */
+export async function verifyClientStudioSlugHint(
+  supabase: SupabaseClient,
+  userId: string,
+  hint: string | undefined | null,
+): Promise<string | null> {
+  const h = (hint ?? "").trim().toLowerCase();
+  if (!h || !TENANT_SLUG_RE.test(h)) return null;
+
+  const { data: tenantRow, error: tErr } = await supabase
+    .from("tenants")
+    .select("id")
+    .eq("slug", h)
+    .maybeSingle();
+  if (tErr || !tenantRow?.id) return null;
+
+  const { data: u } = await supabase
+    .from("users")
+    .select("tenant_id")
+    .eq("id", userId)
+    .maybeSingle();
+  let userTenantId: string | null = typeof u?.tenant_id === "string" ? u.tenant_id : null;
+  if (!userTenantId) {
+    const { data: authData } = await supabase.auth.admin.getUserById(userId);
+    userTenantId = tenantIdFromMetadata(authData?.user?.user_metadata as Record<string, unknown> | undefined);
+  }
+  if (!userTenantId || tenantRow.id !== userTenantId) return null;
+  return h;
 }

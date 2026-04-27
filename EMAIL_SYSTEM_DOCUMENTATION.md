@@ -26,6 +26,8 @@ Die Functions `send-verification-email`, `request-verification-email` und `reque
 
 - **Fallback:** Slug unbekannt oder Origin ist bereits eine Studio-Subdomain → **`Origin`**, dann **`APP_URL`**, dann `http://localhost:5173`.
 
+- **Client-Hint `studio_slug`:** `request-verification-email` akzeptiert optional `{ "email", "studio_slug" }`. Der Slug wird nur genutzt, wenn er in der DB **dieselbe Tenant-ID** wie der Nutzer hat (kein beliebiges Umleiten). Die SPA sendet den Slug aus **`sessionStorage` (`yogaflow_onboarding_slug`)** nach dem Onboarding, aus der **Tenant-Subdomain** (`useTenant`) oder manuell per **`/auth?studio=dein-slug`** (wird einmalig in den Storage übernommen).
+
 - **`APP_URL` in PROD:** Entweder **nicht setzen** oder auf die **kanonische Produkt-URL** setzen (z. B. `https://omlify.de`). **Nicht** auf `*.workers.dev` setzen.
 
 - **Betreff und HTML („Willkommen bei Die Thallers!“ usw.):** fest in den jeweiligen Edge-Function-Dateien unter `supabase/functions/` (nicht im Supabase-Dashboard).
