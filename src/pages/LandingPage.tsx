@@ -1,11 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, Users, BookOpen, Star } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { buildStudioEntryHref } from '../context/TenantContext';
-import { supabase } from '../lib/supabase';
+import { buildStudioAuthHref } from '../context/TenantContext';
 
 const BASE_DOMAIN = import.meta.env.VITE_APP_BASE_DOMAIN as string || 'omlify.de';
+
+/** Aus Freitext (inkl. URL) den Studio-Slug für die Anmeldung ermitteln. */
+function parseStudioSlugInput(raw: string): string {
+  let s = raw.trim().toLowerCase();
+  s = s.replace(/^https?:\/\//, '');
+  const escapedBase = BASE_DOMAIN.replace(/\./g, '\\.');
+  s = s.replace(new RegExp(`\\.${escapedBase}(/.*)?$`), '');
+  s = s.replace(/[^a-z0-9]/g, '');
+  return s.slice(0, 30);
+}
 
 const FEATURES = [
   {
@@ -25,38 +33,22 @@ const FEATURES = [
   },
 ];
 
+const SLUG_PATTERN = /^[a-z0-9]{3,30}$/;
+
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, isEmailConfirmed, userProfile, signOut, loading: authLoading } = useAuth();
-  const [studioSlug, setStudioSlug] = useState<string | null>(null);
-  const [slugLoading, setSlugLoading] = useState(false);
+  const [slugInput, setSlugInput] = useState('');
+  const [slugError, setSlugError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!user || !isEmailConfirmed || !userProfile?.tenant_id) {
-      setStudioSlug(null);
+  const goToStudioLogin = () => {
+    const slug = parseStudioSlugInput(slugInput);
+    if (!SLUG_PATTERN.test(slug)) {
+      setSlugError('Bitte gib den Namen deiner Studio-Webadresse ein (3–30 Zeichen, nur Kleinbuchstaben und Zahlen).');
       return;
     }
-    let cancelled = false;
-    setSlugLoading(true);
-    supabase
-      .from('tenants')
-      .select('slug')
-      .eq('id', userProfile.tenant_id)
-      .maybeSingle()
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        if (error) console.error('LandingPage: tenant slug', error);
-        setStudioSlug(data?.slug ?? null);
-      })
-      .finally(() => {
-        if (!cancelled) setSlugLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [user, isEmailConfirmed, userProfile?.tenant_id]);
-
-  const showStudioCta = !!user && isEmailConfirmed && !!userProfile?.tenant_id;
+    setSlugError(null);
+    window.location.href = buildStudioAuthHref(slug);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-indigo-50">
@@ -67,37 +59,42 @@ const LandingPage: React.FC = () => {
           </div>
           <span className="font-bold text-gray-900 text-lg">YogaFlow</span>
         </div>
-        <div className="flex items-center gap-4">
-          {authLoading ? (
-            <span className="text-sm text-gray-400">…</span>
-          ) : showStudioCta ? (
-            <>
-              {studioSlug && !slugLoading ? (
-                <a
-                  href={buildStudioEntryHref(studioSlug)}
-                  className="text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 px-4 py-2 rounded-lg transition-colors"
-                >
-                  Mein Studio öffnen
-                </a>
-              ) : slugLoading ? (
-                <span className="text-sm text-gray-500">Studio wird geladen…</span>
-              ) : (
-                <span className="text-xs text-amber-800 max-w-[200px] text-right leading-snug">
-                  Studio-Adresse konnte nicht geladen werden.
-                </span>
-              )}
-              <button
-                type="button"
-                onClick={() => void signOut()}
-                className="text-sm text-gray-600 hover:text-gray-900 hover:underline"
-              >
-                Abmelden
-              </button>
-            </>
-          ) : (
-            <a href="/auth" className="text-sm text-teal-600 hover:underline font-medium">
-              Anmelden
-            </a>
+        <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:gap-3">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+            <label htmlFor="landing-studio-slug" className="text-xs text-gray-500 sm:sr-only">
+              Studio-Webadresse
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                id="landing-studio-slug"
+                type="text"
+                value={slugInput}
+                onChange={(e) => {
+                  setSlugInput(e.target.value);
+                  if (slugError) setSlugError(null);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    goToStudioLogin();
+                  }
+                }}
+                autoComplete="off"
+                placeholder="dein-studio"
+                className="w-36 sm:w-44 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              />
+              <span className="text-xs text-gray-500 hidden sm:inline">.{BASE_DOMAIN}</span>
+            </div>
+            <button
+              type="button"
+              onClick={goToStudioLogin}
+              className="text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+            >
+              Zum Studio-Login
+            </button>
+          </div>
+          {slugError && (
+            <p className="text-xs text-red-600 max-w-[min(100vw-3rem,20rem)] text-right leading-snug">{slugError}</p>
           )}
         </div>
       </header>
