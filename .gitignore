@@ -29,3 +29,9 @@ dist-ssr
 # Supabase CLI (link config, local state)
 .supabase
 supabase/.temp/
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+!.env.example
