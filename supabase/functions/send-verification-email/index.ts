@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { emailLinkBaseUrl } from "../_shared/email_link_base_url.ts";
+import { resolveEmailLinkBaseUrl } from "../_shared/email_link_base_url.ts";
+import { fetchStudioSlugForUser } from "../_shared/studio_slug_for_user.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -84,7 +85,8 @@ Deno.serve(async (req: Request) => {
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    const baseUrl = emailLinkBaseUrl(req);
+    const studioSlug = await fetchStudioSlugForUser(supabase, userId);
+    const baseUrl = resolveEmailLinkBaseUrl(req, studioSlug);
     const verificationLink = `${baseUrl}/verify-email?token=${token}`;
 
     const emailHtml = `

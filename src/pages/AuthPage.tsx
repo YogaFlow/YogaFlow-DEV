@@ -10,6 +10,7 @@ type AccessNotice = 'wrong_studio' | 'profile_missing' | null;
 
 const AuthPage: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
+  const [loginFormKey, setLoginFormKey] = useState(0);
   const [showVerifiedMessage, setShowVerifiedMessage] = useState(false);
   const [accessNotice, setAccessNotice] = useState<AccessNotice>(null);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -95,6 +96,7 @@ const AuthPage: React.FC = () => {
   useEffect(() => {
     if (searchParams.get('verified') === '1') {
       setShowVerifiedMessage(true);
+      setLoginFormKey((k) => k + 1);
       setSearchParams({}, { replace: true });
     }
   }, [searchParams, setSearchParams]);
@@ -246,7 +248,7 @@ const AuthPage: React.FC = () => {
             </div>
           )}
           <div className="p-8 flex justify-center">
-            {isLogin || tenantPending ? <LoginForm /> : <RegisterForm />}
+            {isLogin || tenantPending ? <LoginForm key={loginFormKey} /> : <RegisterForm />}
           </div>
         </div>
 

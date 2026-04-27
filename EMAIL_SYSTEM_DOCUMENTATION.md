@@ -20,9 +20,11 @@ Die Edge Function `send-email` versendet E-Mails über **Gmail SMTP** (nodemaile
 
 Die Functions `send-verification-email`, `request-verification-email` und `request-password-reset` setzen die Basis-URL für Links (`…/verify-email?token=…` bzw. `…/reset-password?token=…`).
 
-- **Priorität:** Wenn der Browser die Function aufruft, wird der HTTP-Header **`Origin`** verwendet (z. B. `https://studio1.omlify.de`) — der Link führt damit auf **dieselbe Host-Domain** wie die App. **Ohne** `Origin` (z. B. serverseitige Aufrufe) gilt **`APP_URL`** aus den Edge-Secrets, sonst `http://localhost:5173`.
+- **Priorität (Verifizierung / Passwort-Reset):** Gibt es zu dem Nutzer einen **Tenant-Slug** in der DB (`users.tenant_id` → `tenants.slug`) und ist das Edge-Secret **`APP_BASE_DOMAIN`** gesetzt (nur Hostname, z. B. `omlify.de`), wird der Link immer **`https://{slug}.{APP_BASE_DOMAIN}`** (z. B. `https://studio1.omlify.de/verify-email?…`) — auch wenn „Erneut senden“ von der **Apex-Domain** (`omlify.de`) ausgelöst wird. So stimmt der Link mit dem Studio-Login überein.
 
-- **`APP_URL` in PROD:** Entweder **nicht setzen** oder auf die **kanonische Produkt-URL** setzen (z. B. `https://omlify.de`). **Nicht** auf `*.workers.dev` oder andere Preview-Hosts, die ein anderes Frontend-Build mit evtl. **anderer** `VITE_SUPABASE_URL` laden: Dann wirkt die Bestätigung „erfolgreich“, der Login auf **studio…omlify.de** bleibt aber „E-Mail nicht bestätigt“, weil ein anderes Supabase-Projekt oder nur `public.users` ohne Auth-Sync betroffen war.
+- **Fallback ohne Slug / ohne `APP_BASE_DOMAIN`:** Wie zuvor **`Origin`** (Browser), dann **`APP_URL`**, dann `http://localhost:5173`.
+
+- **`APP_URL` in PROD:** Entweder **nicht setzen** oder auf die **kanonische Produkt-URL** setzen (z. B. `https://omlify.de`). **Nicht** auf `*.workers.dev` setzen.
 
 - **Betreff und HTML („Willkommen bei Die Thallers!“ usw.):** fest in den jeweiligen Edge-Function-Dateien unter `supabase/functions/` (nicht im Supabase-Dashboard).
 
