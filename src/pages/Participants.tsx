@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Course, Registration, User } from '../types';
+import { isCourseManagerRole, isStudioAdmin, isTeacherOnly } from '../lib/userRoles';
 import { Calendar, Clock, MapPin, Users, Mail, Phone, Search, Filter, Download } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -37,7 +38,7 @@ const Participants: React.FC = () => {
       try {
         let coursesQuery = supabase.from('courses').select('*');
 
-        if (userProfile.roles?.includes('course_leader') && !userProfile.roles?.includes('admin')) {
+        if (isTeacherOnly(userProfile)) {
           coursesQuery = coursesQuery.eq('teacher_id', userProfile.id);
         }
 
@@ -56,7 +57,7 @@ const Participants: React.FC = () => {
             course:courses(*)
           `);
 
-        if (userProfile.roles?.includes('course_leader') && !userProfile.roles?.includes('admin')) {
+        if (isTeacherOnly(userProfile)) {
           const courseIds = coursesData?.map(c => c.id) || [];
           if (courseIds.length > 0) {
             registrationsQuery = registrationsQuery.in('course_id', courseIds);
@@ -170,9 +171,7 @@ const Participants: React.FC = () => {
   });
 
   // Check permissions
-  const hasPermission = userProfile && userProfile.roles && (
-    userProfile.roles.includes('course_leader') || userProfile.roles.includes('admin')
-  );
+  const hasPermission = isCourseManagerRole(userProfile);
 
   if (!hasPermission) {
     return (
@@ -291,7 +290,7 @@ const Participants: React.FC = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Angemeldet
                   </th>
-                  {userProfile.roles?.includes('admin') && (
+                  {isStudioAdmin(userProfile) && (
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Aktionen
                     </th>
@@ -354,7 +353,7 @@ const Participants: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {format(parseISO(participant.registered_at), 'dd.MM.yyyy HH:mm', { locale: de })}
                     </td>
-                    {userProfile.roles?.includes('admin') && (
+                    {isStudioAdmin(userProfile) && (
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <select
                           value={participant.status}

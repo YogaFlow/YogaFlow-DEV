@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Users, FileText, Save, ArrowLeft, Repeat, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useTenant } from '../context/TenantContext';
 import { supabase } from '../lib/supabase';
 import { DatePicker, TimePicker } from '../components/DateTimePicker';
 
@@ -14,7 +15,8 @@ interface CourseLeader {
 
 const CreateCourse: React.FC = () => {
   const navigate = useNavigate();
-  const { userProfile } = useAuth();
+  const { userProfile, isCourseLeader } = useAuth();
+  const { tenant } = useTenant();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [courseLeaders, setCourseLeaders] = useState<CourseLeader[]>([]);
@@ -88,7 +90,7 @@ const CreateCourse: React.FC = () => {
 
   useEffect(() => {
     if (userProfile && courseLeaders.length > 0) {
-      if (userProfile.roles?.includes('course_leader')) {
+      if (userProfile.role === 'teacher') {
         setSelectedTeacherId(userProfile.id);
       }
     }
@@ -136,7 +138,7 @@ const CreateCourse: React.FC = () => {
       const { data, error } = await supabase
         .from('users')
         .select('id, first_name, last_name, email')
-        .contains('roles', ['course_leader'])
+        .in('role', ['teacher', 'admin', 'owner'])
         .order('last_name', { ascending: true });
 
       if (error) throw error;
@@ -348,6 +350,7 @@ const CreateCourse: React.FC = () => {
 
         for (const date of dates) {
           coursesToCreate.push({
+            tenant_id: tenant?.id,
             title: formData.title.trim(),
             description: formData.description.trim(),
             date: date,
@@ -363,6 +366,7 @@ const CreateCourse: React.FC = () => {
         }
       } else {
         coursesToCreate.push({
+          tenant_id: tenant?.id,
           title: formData.title.trim(),
           description: formData.description.trim(),
           date: formData.date,
@@ -404,10 +408,7 @@ const CreateCourse: React.FC = () => {
     }
   };
 
-  // Check if user has permission to create courses
-  const hasPermission = userProfile && userProfile.roles && (
-    userProfile.roles.includes('course_leader') || userProfile.roles.includes('admin')
-  );
+  const hasPermission = isCourseLeader;
 
   if (!hasPermission) {
     return (

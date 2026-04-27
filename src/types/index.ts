@@ -1,21 +1,29 @@
-export type UserRole = 'admin' | 'course_leader' | 'participant';
+export type UserRole = 'owner' | 'admin' | 'teacher' | 'user';
+
+export interface Tenant {
+  id: string;
+  name: string;
+  slug: string;
+  created_at: string;
+  updated_at: string;
+}
 
 export interface User {
   id: string;
+  tenant_id: string;
   email: string;
+  /** Gesetzt durch Custom-Verifizierung (Edge Function verify-email). */
+  email_verified?: boolean;
   first_name: string;
   last_name: string;
-  street: string;
-  house_number: string;
-  postal_code: string;
-  city: string;
-  phone: string;
-  role?: 'student' | 'teacher' | 'admin';
-  roles: UserRole[];
-  gdpr_consent: boolean;
-  gdpr_consent_date: string;
-  email_verified?: boolean;
-  email_verified_at?: string;
+  role: UserRole;
+  street?: string;
+  house_number?: string;
+  postal_code?: string;
+  city?: string;
+  phone?: string;
+  gdpr_consent?: boolean;
+  gdpr_consent_date?: string;
   created_at: string;
   updated_at: string;
 }
@@ -25,6 +33,7 @@ export type CourseFrequency = 'one_time' | 'weekly';
 
 export interface Course {
   id: string;
+  tenant_id: string;
   title: string;
   description: string;
   date: string;
@@ -47,6 +56,7 @@ export interface Course {
 
 export interface Registration {
   id: string;
+  tenant_id: string;
   course_id: string;
   user_id: string;
   status: 'registered' | 'waitlist';
@@ -61,6 +71,7 @@ export interface Registration {
 
 export interface Message {
   id: string;
+  tenant_id?: string;
   course_id: string;
   sender_id: string;
   recipient_id?: string;
@@ -78,24 +89,6 @@ export interface GlobalSettings {
   key: string;
   value: any;
   updated_at: string;
-}
-
-export interface EmailTemplate {
-  id: string;
-  type: 'reminder_24h' | 'reminder_1h' | 'registration_confirmation';
-  subject: string;
-  content: string;
-}
-
-export interface SystemSettings {
-  id: string;
-  smtp_host: string;
-  smtp_port: number;
-  smtp_user: string;
-  smtp_password: string;
-  smtp_secure: boolean;
-  from_email: string;
-  from_name: string;
 }
 
 export interface CourseWithBookings extends Course {

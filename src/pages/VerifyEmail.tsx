@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CheckCircle, XCircle, Loader } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 const VerifyEmail: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -41,6 +42,11 @@ const VerifyEmail: React.FC = () => {
         }
 
         if (response.ok && data.success) {
+          try {
+            await supabase.auth.refreshSession();
+          } catch {
+            // Session kann fehlen (z. B. nach signOut nach Registrierung) — unkritisch
+          }
           setStatus('success');
           setMessage('Ihre E-Mail-Adresse wurde erfolgreich bestätigt!');
           setTimeout(() => navigate('/auth?verified=1'), 3000);
