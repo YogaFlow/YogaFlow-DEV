@@ -65,13 +65,38 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
  * Zeigt 404-Seite wenn Slug in URL, aber kein Tenant in DB.
  */
 const TenantGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { tenantSlug, loading, notFound } = useTenant();
+  const { tenantSlug, loading, notFound, lookupError } = useTenant();
 
   // Warte bis Tenant aufgelöst ist (gilt für Subdomain und Apex gleichermaßen)
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600" />
+      </div>
+    );
+  }
+
+  if (tenantSlug && lookupError) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
+        <div className="text-center max-w-lg">
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">Studio konnte nicht geladen werden</h1>
+          <p className="text-gray-600 text-sm leading-relaxed">{lookupError}</p>
+          <p className="text-gray-500 text-xs mt-4">
+            Häufige Ursache: Die Live-App nutzt ein anderes Supabase-Projekt als in der Konsole (VITE_SUPABASE_URL /
+            Anon-Key in Cloudflare Pages prüfen).
+          </p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="mt-4 mr-4 inline-block rounded-lg bg-teal-600 text-white px-4 py-2 text-sm font-medium hover:bg-teal-700"
+          >
+            Neu laden
+          </button>
+          <a href={`https://${APP_BASE_DOMAIN}`} className="mt-4 inline-block text-teal-600 hover:underline text-sm">
+            Zur Startseite
+          </a>
+        </div>
       </div>
     );
   }
@@ -111,12 +136,30 @@ const Spinner = () => (
  * - Apex / ohne Tenant → Marketing-Landing
  */
 const HomeRoute: React.FC = () => {
-  const { tenantSlug, tenant, loading: tenantLoading, notFound } = useTenant();
+  const { tenantSlug, tenant, loading: tenantLoading, notFound, lookupError } = useTenant();
   const { user, userProfile, loading: authLoading, isEmailConfirmed } = useAuth();
 
   if (tenantLoading || authLoading) return <Spinner />;
 
   if (tenantSlug) {
+    if (lookupError) {
+      return (
+        <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center gap-4 p-6 text-center">
+          <h1 className="text-xl font-bold text-gray-800">Studio konnte nicht geladen werden</h1>
+          <p className="text-gray-600 text-sm max-w-lg">{lookupError}</p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="rounded-lg bg-teal-600 text-white px-4 py-2 text-sm font-medium hover:bg-teal-700"
+          >
+            Neu laden
+          </button>
+          <a href={`https://${APP_BASE_DOMAIN}`} className="text-sm text-teal-600 hover:underline">
+            Zur Startseite
+          </a>
+        </div>
+      );
+    }
     if (notFound) {
       return (
         <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
