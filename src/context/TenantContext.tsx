@@ -119,7 +119,27 @@ const TenantContext = createContext<TenantContextType>({
 
 export const useTenant = () => useContext(TenantContext);
 
-const TENANT_FETCH_MS = 12_000;
+/** Ein Request kann nach Projekt-Pause / kaltem Edge sehr lange brauchen; 12s war in der Praxis zu knapp. */
+const TENANT_REQUEST_MS = 55_000;
+
+type TenantRowResult = { data: Tenant | null; error: Error | null };
+
+function raceTenantQuery(
+  slug: string,
+  ms: number,
+): Promise<TenantRowResult | 'timeout'> {
+  const query = supabase.from('tenants').select('*').eq('slug', slug).maybeSingle();
+  const timeout = new Promise<'timeout'>((resolve) => {
+    window.setTimeout(() => resolve('timeout'), ms);
+  });
+  return Promise.race([
+    query.then(({ data, error }) => ({
+      data: data as Tenant | null,
+      error: error ? new Error(error.message) : null,
+    })),
+    timeout,
+  ]);
+}
 
 export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [tenant, setTenant] = useState<Tenant | null>(null);
@@ -143,49 +163,65 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setLookupError(null);
 
     let cancelled = false;
-    const timer = window.setTimeout(() => {
-      if (cancelled) return;
-      console.warn('TenantContext: Tenant-Anfrage Timeout');
-      setTenant(null);
-      setNotFound(false);
-      setLookupError('Die Datenbank-Anfrage hat zu lange gedauert. Bitte Seite neu laden oder Netzwerk prüfen.');
-      setLoading(false);
-    }, TENANT_FETCH_MS);
 
-    supabase
-      .from('tenants')
-      .select('*')
-      .eq('slug', tenantSlug)
-      .maybeSingle()
-      .then(({ data, error }) => {
+    const applyResult = (res: TenantRowResult) => {
+      if (cancelled) return;
+      if (res.error) {
+        console.error('TenantContext: fetch error', res.error);
+        setTenant(null);
+        setNotFound(false);
+        setLookupError(
+          res.error.message ||
+            'Tenant konnte nicht geladen werden. Prüfe in Cloudflare, ob VITE_SUPABASE_URL und der Anon-Key zum gleichen Projekt wie in der Supabase-Konsole gehören.',
+        );
+        return;
+      }
+      if (res.data) {
+        setTenant(res.data);
+        setLookupError(null);
+        setNotFound(false);
+      } else {
+        setTenant(null);
+        setNotFound(true);
+        setLookupError(null);
+      }
+    };
+
+    void (async () => {
+      try {
+        let outcome = await raceTenantQuery(tenantSlug, TENANT_REQUEST_MS);
         if (cancelled) return;
-        if (error) {
-          console.error('TenantContext: fetch error', error);
+        if (outcome === 'timeout') {
+          console.warn('TenantContext: erste Anfrage Timeout — einmaliger Retry');
+          outcome = await raceTenantQuery(tenantSlug, TENANT_REQUEST_MS);
+        }
+        if (cancelled) return;
+        if (outcome === 'timeout') {
           setTenant(null);
           setNotFound(false);
           setLookupError(
-            error.message ||
-              'Tenant konnte nicht geladen werden. Prüfe in Cloudflare, ob VITE_SUPABASE_URL und der Anon-Key zum gleichen Projekt wie in der Supabase-Konsole gehören.',
+            'Die Datenbank-Anfrage hat zu lange gedauert (auch nach Wiederholung). ' +
+              'Im Supabase-Dashboard prüfen, ob das PROD-Projekt pausiert ist; in den Browser-Entwicklertools (Netzwerk) den Aufruf zu …supabase.co/rest/v1/tenants prüfen. ' +
+              'Nach Änderung von VITE_* in Cloudflare einen neuen Pages-Build auslösen.',
           );
-          setLoading(false);
           return;
         }
-        if (data) {
-          setTenant(data);
-          setLookupError(null);
-        } else {
-          setNotFound(true);
-          setLookupError(null);
-        }
-        setLoading(false);
-      })
-      .finally(() => {
-        window.clearTimeout(timer);
-      });
+        applyResult(outcome);
+      } catch (e) {
+        if (cancelled) return;
+        console.error('TenantContext: unerwarteter Fehler', e);
+        setTenant(null);
+        setNotFound(false);
+        setLookupError(
+          e instanceof Error ? e.message : 'Unerwarteter Fehler beim Laden des Studios.',
+        );
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
 
     return () => {
       cancelled = true;
-      window.clearTimeout(timer);
     };
   }, [tenantSlug]);
 
