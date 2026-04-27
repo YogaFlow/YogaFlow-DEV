@@ -20,9 +20,11 @@ Die Edge Function `send-email` versendet E-Mails über **Gmail SMTP** (nodemaile
 
 Die Functions `send-verification-email`, `request-verification-email` und `request-password-reset` setzen die Basis-URL für Links (`…/verify-email?token=…` bzw. `…/reset-password?token=…`).
 
-- **Priorität (Verifizierung / Passwort-Reset):** Gibt es zu dem Nutzer einen **Tenant-Slug** in der DB (`users.tenant_id` → `tenants.slug`) und ist das Edge-Secret **`APP_BASE_DOMAIN`** gesetzt (nur Hostname, z. B. `omlify.de`), wird der Link immer **`https://{slug}.{APP_BASE_DOMAIN}`** (z. B. `https://studio1.omlify.de/verify-email?…`) — auch wenn „Erneut senden“ von der **Apex-Domain** (`omlify.de`) ausgelöst wird. So stimmt der Link mit dem Studio-Login überein.
+- **Priorität (Verifizierung / Passwort-Reset):** Es wird ein **Tenant-Slug** ermittelt (`users.tenant_id` → `tenants.slug`; falls `tenant_id` in `public.users` noch leer ist, Fallback über **`auth.users.user_metadata.tenant_id`**). Ist ein Slug da und gilt mindestens eines der folgenden Punkte, lautet der Link **`https://{slug}.{apex}`** (z. B. `https://studio1.omlify.de/verify-email?…`):
+  - Edge-Secret **`APP_BASE_DOMAIN`** = `omlify.de`, **oder**
+  - Der Request-Header **`Origin`** ist eine **Apex-URL** (Hostname mit genau zwei Labels wie `omlify.de`, oder `www.omlify.de`) — dann wird die Apex-Domain aus `Origin` abgeleitet, **ohne** separates Secret.
 
-- **Fallback ohne Slug / ohne `APP_BASE_DOMAIN`:** Wie zuvor **`Origin`** (Browser), dann **`APP_URL`**, dann `http://localhost:5173`.
+- **Fallback:** Slug unbekannt oder Origin ist bereits eine Studio-Subdomain → **`Origin`**, dann **`APP_URL`**, dann `http://localhost:5173`.
 
 - **`APP_URL` in PROD:** Entweder **nicht setzen** oder auf die **kanonische Produkt-URL** setzen (z. B. `https://omlify.de`). **Nicht** auf `*.workers.dev` setzen.
 
