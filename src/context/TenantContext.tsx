@@ -124,21 +124,31 @@ const TENANT_REQUEST_MS = 55_000;
 
 type TenantRowResult = { data: Tenant | null; error: Error | null };
 
-function raceTenantQuery(
-  slug: string,
-  ms: number,
-): Promise<TenantRowResult | 'timeout'> {
-  const query = supabase.from('tenants').select('*').eq('slug', slug).maybeSingle();
-  const timeout = new Promise<'timeout'>((resolve) => {
-    window.setTimeout(() => resolve('timeout'), ms);
-  });
-  return Promise.race([
-    query.then(({ data, error }) => ({
+function isAbortError(e: unknown): boolean {
+  return e instanceof Error && e.name === 'AbortError';
+}
+
+/** Lädt Tenant mit Deadline; bricht den REST-Call bei Timeout ab (kein „Zombie“-Request). */
+async function fetchTenantWithDeadline(slug: string, ms: number): Promise<TenantRowResult | 'timeout'> {
+  const ac = new AbortController();
+  const timer = window.setTimeout(() => ac.abort(), ms);
+  try {
+    const { data, error } = await supabase
+      .from('tenants')
+      .select('*')
+      .eq('slug', slug)
+      .abortSignal(ac.signal)
+      .maybeSingle();
+    window.clearTimeout(timer);
+    return {
       data: data as Tenant | null,
       error: error ? new Error(error.message) : null,
-    })),
-    timeout,
-  ]);
+    };
+  } catch (e) {
+    window.clearTimeout(timer);
+    if (ac.signal.aborted && isAbortError(e)) return 'timeout';
+    return { data: null, error: e instanceof Error ? e : new Error(String(e)) };
+  }
 }
 
 export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -202,11 +212,11 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     void (async () => {
       try {
-        let outcome = await raceTenantQuery(tenantSlug, TENANT_REQUEST_MS);
+        let outcome = await fetchTenantWithDeadline(tenantSlug, TENANT_REQUEST_MS);
         if (cancelled) return;
         if (outcome === 'timeout') {
           console.warn('TenantContext: erste Anfrage Timeout — einmaliger Retry');
-          outcome = await raceTenantQuery(tenantSlug, TENANT_REQUEST_MS);
+          outcome = await fetchTenantWithDeadline(tenantSlug, TENANT_REQUEST_MS);
         }
         if (cancelled) return;
         if (outcome === 'timeout') {

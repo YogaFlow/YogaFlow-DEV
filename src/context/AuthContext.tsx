@@ -37,24 +37,12 @@ export const useAuth = () => {
 const PROFILE_FETCH_ATTEMPTS = 3;
 const PROFILE_FETCH_MS = 35_000;
 
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const t = window.setTimeout(() => reject(new Error(`${label}_timeout`)), ms);
-    promise.then(
-      (v) => {
-        window.clearTimeout(t);
-        resolve(v);
-      },
-      (e) => {
-        window.clearTimeout(t);
-        reject(e);
-      },
-    );
-  });
-}
-
 function delay(ms: number): Promise<void> {
   return new Promise((r) => window.setTimeout(r, ms));
+}
+
+function isAbortError(e: unknown): boolean {
+  return e instanceof Error && e.name === 'AbortError';
 }
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -62,11 +50,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userProfile, setUserProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchUserProfile = useCallback(async (userId: string) => {
+  const fetchUserProfile = useCallback(async (userId: string, signal: AbortSignal) => {
     const { data, error } = await supabase
       .from('users')
       .select('*')
       .eq('id', userId)
+      .abortSignal(signal)
       .maybeSingle();
     if (error) throw error;
     return data ?? null;
@@ -74,42 +63,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     let isMounted = true;
+    /** Erhöht bei jedem neuen applySession / Logout / Unmount — ältere Profil-Ladevorgänge schreiben keinen State mehr. */
+    const profileLoadGenerationRef = { current: 0 };
 
     /** Lädt public.users mit Retries; bei Misserfolg: Session bleibt, Profil null (Redirect zu profile_missing möglich). */
-    const loadProfileWithRetries = async (userId: string): Promise<void> => {
+    const loadProfileWithRetries = async (userId: string, generation: number): Promise<void> => {
       let lastErr: unknown;
       for (let attempt = 0; attempt < PROFILE_FETCH_ATTEMPTS; attempt++) {
-        if (!isMounted) return;
+        if (!isMounted || profileLoadGenerationRef.current !== generation) return;
+        const attemptAc = new AbortController();
+        const timer = window.setTimeout(() => attemptAc.abort(), PROFILE_FETCH_MS);
         try {
-          const profile = await withTimeout(
-            fetchUserProfile(userId),
-            PROFILE_FETCH_MS,
-            'profileFetch',
-          );
-          if (isMounted) setUserProfile(profile);
+          const profile = await fetchUserProfile(userId, attemptAc.signal);
+          window.clearTimeout(timer);
+          if (!isMounted || profileLoadGenerationRef.current !== generation) return;
+          setUserProfile(profile);
           return;
         } catch (e) {
-          lastErr = e;
+          window.clearTimeout(timer);
+          if (!isMounted || profileLoadGenerationRef.current !== generation) return;
+          const timedOut = attemptAc.signal.aborted && isAbortError(e);
+          lastErr = timedOut ? new Error('profileFetch_timeout') : e;
           if (attempt < PROFILE_FETCH_ATTEMPTS - 1) {
             console.warn(
               `Auth: Profil-Laden Versuch ${attempt + 1}/${PROFILE_FETCH_ATTEMPTS} fehlgeschlagen — erneuter Versuch.`,
-              e,
+              lastErr,
             );
             await delay(800 * (attempt + 1));
           }
         }
       }
       console.error('Auth: Profil nach allen Versuchen nicht ladbar — Session bleibt erhalten.', lastErr);
-      if (isMounted) setUserProfile(null);
+      if (isMounted && profileLoadGenerationRef.current === generation) setUserProfile(null);
     };
 
     const applySession = async (session: Session | null) => {
       setUser(session?.user ?? null);
       if (!session?.user) {
+        profileLoadGenerationRef.current += 1;
         if (isMounted) setUserProfile(null);
         return;
       }
-      await loadProfileWithRetries(session.user.id);
+      profileLoadGenerationRef.current += 1;
+      const generation = profileLoadGenerationRef.current;
+      await loadProfileWithRetries(session.user.id, generation);
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -161,6 +158,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => {
       isMounted = false;
+      profileLoadGenerationRef.current += 1;
       subscription.unsubscribe();
     };
   }, [fetchUserProfile]);
