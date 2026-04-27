@@ -212,8 +212,12 @@ const HomeRoute: React.FC = () => {
 
 function App() {
   return (
-    <TenantProvider>
-      <AuthProvider>
+    <AuthProvider>
+      {/*
+        TenantProvider innen: React führt useEffect tiefer zuerst aus → tenants-REST startet vor
+        Auth onAuthStateChange/Profil und entlastet dieselbe supabase.co-Verbindung beim Cold Start.
+      */}
+      <TenantProvider>
         <Router>
           <Routes>
             {/* Öffentliche Routen ohne Layout */}
@@ -249,8 +253,8 @@ function App() {
             </Route>
           </Routes>
         </Router>
-      </AuthProvider>
-    </TenantProvider>
+      </TenantProvider>
+    </AuthProvider>
   );
 }
 

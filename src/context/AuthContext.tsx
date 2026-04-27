@@ -35,7 +35,11 @@ export const useAuth = () => {
  * und triggert erneut Auth + weitere parallele Requests (siehe applySession_timeout-Schleifen).
  */
 const PROFILE_FETCH_ATTEMPTS = 3;
-const PROFILE_FETCH_MS = 35_000;
+const PROFILE_FETCH_MS = 15_000;
+/** Max. Wartezeit auf das erste INITIAL_SESSION-Event. Kommt es nicht (Supabase pausiert /
+ *  abgelaufenes Token → endloser Refresh-Loop), löschen wir die lokalen Token und zeigen dem
+ *  User die Login-Maske statt eines ewigen Spinners. */
+const INITIAL_SESSION_TIMEOUT_MS = 8_000;
 
 function delay(ms: number): Promise<void> {
   return new Promise((r) => window.setTimeout(r, ms));
@@ -63,8 +67,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     let isMounted = true;
+    let initialSessionReceived = false;
     /** Erhöht bei jedem neuen applySession / Logout / Unmount — ältere Profil-Ladevorgänge schreiben keinen State mehr. */
     const profileLoadGenerationRef = { current: 0 };
+
+    // Safety: wenn INITIAL_SESSION nicht innerhalb von 8 s feuert (Supabase-Projekt pausiert
+    // oder abgelaufenes Token → endloser interner Refresh-Loop), löschen wir die lokalen
+    // Supabase-Token aus localStorage und setzen loading=false. Der User sieht die Login-Maske
+    // und kann sich neu anmelden — das Login-Request weckt das Projekt auf.
+    const safetyTimer = window.setTimeout(() => {
+      if (initialSessionReceived || !isMounted) return;
+      console.warn('Auth: INITIAL_SESSION nicht empfangen nach 8 s — lösche lokale Session-Token.');
+      try {
+        Object.keys(localStorage)
+          .filter((k) => k.startsWith('sb-'))
+          .forEach((k) => localStorage.removeItem(k));
+      } catch {}
+      profileLoadGenerationRef.current += 1;
+      if (isMounted) {
+        setUser(null);
+        setUserProfile(null);
+        setLoading(false);
+      }
+    }, INITIAL_SESSION_TIMEOUT_MS);
 
     /** Lädt public.users mit Retries; bei Misserfolg: Session bleibt, Profil null (Redirect zu profile_missing möglich). */
     const loadProfileWithRetries = async (userId: string, generation: number): Promise<void> => {
@@ -114,6 +139,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!isMounted) return;
 
         if (event === 'INITIAL_SESSION') {
+          initialSessionReceived = true;
+          window.clearTimeout(safetyTimer);
           setLoading(true);
           try {
             await applySession(session);
@@ -158,6 +185,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => {
       isMounted = false;
+      window.clearTimeout(safetyTimer);
       profileLoadGenerationRef.current += 1;
       subscription.unsubscribe();
     };
