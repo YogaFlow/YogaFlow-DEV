@@ -4,20 +4,22 @@ import LoginForm from '../components/Auth/LoginForm';
 import RegisterForm from '../components/Auth/RegisterForm';
 import { Heart } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useTenant } from '../context/TenantContext';
 
 const AuthPage: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [showVerifiedMessage, setShowVerifiedMessage] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, loading, isEmailConfirmed } = useAuth();
+  const { tenantSlug } = useTenant();
   const navigate = useNavigate();
 
-  // Nur bestätigte Nutzer zum Dashboard – verhindert kurzes Aufblitzen nach Registrierung
+  // Nur bestätigte Nutzer weiterleiten – auf Subdomain zum Dashboard, auf Apex zur Landing Page
   useEffect(() => {
     if (!loading && user && isEmailConfirmed) {
-      navigate('/dashboard', { replace: true });
+      navigate(tenantSlug ? '/dashboard' : '/', { replace: true });
     }
-  }, [user, loading, isEmailConfirmed, navigate]);
+  }, [user, loading, isEmailConfirmed, tenantSlug, navigate]);
 
   // Falls der Passwort-Reset-Link versehentlich auf /auth zeigt: zur Reset-Seite weiterleiten
   useEffect(() => {
