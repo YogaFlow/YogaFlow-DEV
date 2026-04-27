@@ -16,6 +16,16 @@ Die Edge Function `send-email` versendet E-Mails über **Gmail SMTP** (nodemaile
 - **INTERNAL_EMAIL_SECRET** muss in **Edge Functions → Secrets** gesetzt sein (langer Zufallswert). Derselbe Wert gilt für alle Edge Functions im Projekt; nur Aufrufer mit diesem Header können E-Mails auslösen. Für PROD dasselbe Secret (oder ein eigener Wert) in den PROD-Edge-Function-Secrets hinterlegen.
 - **SMTP-Secrets** müssen in **Edge Functions → Secrets** gesetzt sein: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`. **Niemals** im Code oder Repo speichern.
 
+### Secret `APP_URL` (Links in Bestätigungs- und Reset-Mails)
+
+Die Functions `send-verification-email`, `request-verification-email` und `request-password-reset` setzen die Basis-URL für Links (`…/verify-email?token=…` bzw. `…/reset-password?token=…`).
+
+- **Priorität:** Wenn der Browser die Function aufruft, wird der HTTP-Header **`Origin`** verwendet (z. B. `https://studio1.omlify.de`) — der Link führt damit auf **dieselbe Host-Domain** wie die App. **Ohne** `Origin` (z. B. serverseitige Aufrufe) gilt **`APP_URL`** aus den Edge-Secrets, sonst `http://localhost:5173`.
+
+- **`APP_URL` in PROD:** Entweder **nicht setzen** oder auf die **kanonische Produkt-URL** setzen (z. B. `https://omlify.de`). **Nicht** auf `*.workers.dev` oder andere Preview-Hosts, die ein anderes Frontend-Build mit evtl. **anderer** `VITE_SUPABASE_URL` laden: Dann wirkt die Bestätigung „erfolgreich“, der Login auf **studio…omlify.de** bleibt aber „E-Mail nicht bestätigt“, weil ein anderes Supabase-Projekt oder nur `public.users` ohne Auth-Sync betroffen war.
+
+- **Betreff und HTML („Willkommen bei Die Thallers!“ usw.):** fest in den jeweiligen Edge-Function-Dateien unter `supabase/functions/` (nicht im Supabase-Dashboard).
+
 ### Gmail einrichten (aktuell verwendet)
 
 1. Gehen Sie zu Ihrem Supabase Dashboard → **Edge Functions** → **Secrets**.

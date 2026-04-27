@@ -53,11 +53,26 @@ Deno.serve(async (req: Request) => {
 
     const userId = result.user_id;
 
+    // Zuerst Supabase Auth bestätigen (Login), dann App-Profil — vermeidet Zustand „public.users ja, Auth nein“.
+    const { error: authSyncError } = await supabase.auth.admin.updateUserById(userId, {
+      email_confirm: true,
+    });
+    if (authSyncError) {
+      console.error("auth.admin.updateUserById (email_confirm):", authSyncError);
+      return new Response(
+        JSON.stringify({
+          error:
+            "Die Bestätigung konnte nicht abgeschlossen werden. Bitte fordern Sie eine neue Bestätigungsmail an oder wenden Sie sich an den Support.",
+        }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { error: updateError } = await supabase
       .from("users")
-      .update({ 
+      .update({
         email_verified: true,
-        email_verified_at: new Date().toISOString()
+        email_verified_at: new Date().toISOString(),
       })
       .eq("id", userId);
 
@@ -67,15 +82,6 @@ Deno.serve(async (req: Request) => {
         JSON.stringify({ error: "Fehler beim Aktualisieren des Benutzerstatus" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
-    }
-
-    // Auth-JWT / Session: Frontend prüft u.a. user.email_confirmed_at — ohne diesen Schritt
-    // bleibt die App nach Custom-Verifizierung in Lade-/Redirect-Schleifen hängen.
-    const { error: authSyncError } = await supabase.auth.admin.updateUserById(userId, {
-      email_confirm: true,
-    });
-    if (authSyncError) {
-      console.error("auth.admin.updateUserById (email_confirm):", authSyncError);
     }
 
     const { error: markError } = await supabase.rpc("mark_token_used", { p_token: token });
