@@ -49,10 +49,38 @@ function isAbortError(e: unknown): boolean {
   return e instanceof Error && e.name === 'AbortError';
 }
 
+/**
+ * Prüft synchron (kein Netzwerk), ob der Supabase-Client eine gespeicherte Session im
+ * localStorage hat. Gibt es keine → loading sofort false → Login-Formular erscheint
+ * sofort, ohne auf INITIAL_SESSION zu warten. Gibt es eine (möglicherweise abgelaufen) →
+ * loading bleibt true und der Safety-Timer greift nach 8 s.
+ */
+function hasStoredSession(): boolean {
+  try {
+    return Object.keys(localStorage).some((k) => {
+      if (!k.startsWith('sb-')) return false;
+      const val = localStorage.getItem(k);
+      if (!val) return false;
+      try {
+        const parsed = JSON.parse(val);
+        return parsed != null && typeof parsed === 'object' && 'access_token' in parsed;
+      } catch {
+        return false;
+      }
+    });
+  } catch {
+    return false;
+  }
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [userProfile, setUserProfile] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  /**
+   * Ohne gespeicherte Session: sofort false → Login-Formular erscheint ohne Verzögerung.
+   * Mit gespeicherter Session: true → warten auf INITIAL_SESSION (oder Safety-Timer nach 8 s).
+   */
+  const [loading, setLoading] = useState(() => hasStoredSession());
 
   const fetchUserProfile = useCallback(async (userId: string, signal: AbortSignal) => {
     const { data, error } = await supabase
