@@ -29,8 +29,13 @@ export const useAuth = () => {
   return context;
 };
 
-/** Wie Tenant-Lookup: kaltes Supabase / Netzwerk darf länger brauchen; zu kurz → künstlicher Logout. */
-const AUTH_INIT_MS = 45_000;
+/**
+ * Profil-Laden darf bei kaltem Edge / Supabase mehrere Versuche brauchen.
+ * Wichtig: Bei Timeout oder Fehler niemals signOut — sonst wirkt langsames Netz wie „ausgeloggt“
+ * und triggert erneut Auth + weitere parallele Requests (siehe applySession_timeout-Schleifen).
+ */
+const PROFILE_FETCH_ATTEMPTS = 3;
+const PROFILE_FETCH_MS = 35_000;
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -46,6 +51,10 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
       },
     );
   });
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((r) => window.setTimeout(r, ms));
 }
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -66,68 +75,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let isMounted = true;
 
+    /** Lädt public.users mit Retries; bei Misserfolg: Session bleibt, Profil null (Redirect zu profile_missing möglich). */
+    const loadProfileWithRetries = async (userId: string): Promise<void> => {
+      let lastErr: unknown;
+      for (let attempt = 0; attempt < PROFILE_FETCH_ATTEMPTS; attempt++) {
+        if (!isMounted) return;
+        try {
+          const profile = await withTimeout(
+            fetchUserProfile(userId),
+            PROFILE_FETCH_MS,
+            'profileFetch',
+          );
+          if (isMounted) setUserProfile(profile);
+          return;
+        } catch (e) {
+          lastErr = e;
+          if (attempt < PROFILE_FETCH_ATTEMPTS - 1) {
+            console.warn(
+              `Auth: Profil-Laden Versuch ${attempt + 1}/${PROFILE_FETCH_ATTEMPTS} fehlgeschlagen — erneuter Versuch.`,
+              e,
+            );
+            await delay(800 * (attempt + 1));
+          }
+        }
+      }
+      console.error('Auth: Profil nach allen Versuchen nicht ladbar — Session bleibt erhalten.', lastErr);
+      if (isMounted) setUserProfile(null);
+    };
+
     const applySession = async (session: Session | null) => {
       setUser(session?.user ?? null);
       if (!session?.user) {
         if (isMounted) setUserProfile(null);
         return;
       }
-      try {
-        const profile = await fetchUserProfile(session.user.id);
-        if (isMounted) setUserProfile(profile);
-      } catch (error) {
-        console.error('Error fetching user profile:', error);
-        if (isMounted) setUserProfile(null);
-      }
+      await loadProfileWithRetries(session.user.id);
     };
-
-    const init = async () => {
-      setLoading(true);
-      let session: Session | null = null;
-      try {
-        try {
-          const { data: { session: s }, error } = await withTimeout(
-            supabase.auth.getSession(),
-            AUTH_INIT_MS,
-            'getSession',
-          );
-          if (error) console.error('Error getting session:', error);
-          session = s ?? null;
-        } catch (e) {
-          console.warn('Auth: getSession hat zu lange gedauert oder ist fehlgeschlagen — ohne Session fortgesetzt.', e);
-        }
-        if (isMounted) {
-          try {
-            await withTimeout(applySession(session), AUTH_INIT_MS, 'applySession');
-          } catch (e) {
-            console.warn('Auth: Profil-Laden hat zu lange gedauert — Session wird zurückgesetzt.', e);
-            try {
-              await supabase.auth.signOut();
-            } catch {
-              /* ignore */
-            }
-            if (isMounted) {
-              setUser(null);
-              setUserProfile(null);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error getting session:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void init();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event: AuthChangeEvent, session: Session | null) => {
         if (!isMounted) return;
 
-        // Gleiche Quelle wie getSession() in init() — sonst doppeltes Profil-Laden und
-        // riskantes setLoading(true), das nie wieder false wird (z. B. bei Race / hängender Anfrage).
         if (event === 'INITIAL_SESSION') {
+          setLoading(true);
+          try {
+            await applySession(session);
+          } catch (error) {
+            console.error('Auth: INITIAL_SESSION / applySession', error);
+            if (isMounted) {
+              setUser(session?.user ?? null);
+              setUserProfile(null);
+            }
+          } finally {
+            if (isMounted) setLoading(false);
+          }
           return;
         }
 
@@ -136,22 +137,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
 
+        if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setUserProfile(null);
+          setLoading(false);
+          return;
+        }
+
         setLoading(true);
         try {
-          await withTimeout(applySession(session), AUTH_INIT_MS, 'applySession');
+          await applySession(session);
         } catch (err) {
           console.error('onAuthStateChange:', err);
-          try {
-            await supabase.auth.signOut();
-          } catch {
-            /* ignore */
-          }
           if (isMounted) {
-            setUser(null);
+            setUser(session?.user ?? null);
             setUserProfile(null);
           }
         } finally {
-          setLoading(false);
+          if (isMounted) setLoading(false);
         }
       },
     );
