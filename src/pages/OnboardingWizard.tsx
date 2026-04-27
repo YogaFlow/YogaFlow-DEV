@@ -170,7 +170,7 @@ const OnboardingWizard: React.FC = () => {
               }}
               className="w-full bg-teal-600 text-white py-3 rounded-xl hover:bg-teal-700 transition-colors"
             >
-              Zurück zum Dashboard
+              {tenantSlug ? 'Zurück zum Dashboard' : 'Zur Studio-Webadresse'}
             </button>
             <button
               onClick={async () => { await supabase.auth.signOut(); window.location.replace('/onboarding'); }}

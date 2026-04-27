@@ -60,6 +60,22 @@ export function buildStudioEntryHref(slug: string): string {
   return `${protocol}//${slug}.${base}/dashboard`;
 }
 
+/**
+ * Anmeldeseite unter dem Tenant (Session liegt pro Origin auf der Subdomain).
+ * DEV: /auth?tenant=… setzt den Slug wie resolveSlug().
+ */
+export function buildStudioAuthHref(slug: string): string {
+  const trimmed = slug.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+  const safe = encodeURIComponent(trimmed);
+  if (import.meta.env.DEV) {
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    return `${origin}/auth?tenant=${safe}`;
+  }
+  const protocol = typeof window !== 'undefined' ? window.location.protocol : 'https:';
+  const base = (import.meta.env.VITE_APP_BASE_DOMAIN as string) || 'omlify.de';
+  return `${protocol}//${trimmed}.${base}/auth`;
+}
+
 interface TenantContextType {
   tenant: Tenant | null;
   tenantSlug: string | null;

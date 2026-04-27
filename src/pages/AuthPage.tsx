@@ -14,6 +14,13 @@ const AuthPage: React.FC = () => {
   const { tenantSlug } = useTenant();
   const navigate = useNavigate();
 
+  const isApexAuth = !tenantSlug;
+
+  // Auf der Marketing-Domain nur Anmeldung (Registrierung läuft über /onboarding).
+  useEffect(() => {
+    if (isApexAuth) setIsLogin(true);
+  }, [isApexAuth]);
+
   // Nur bestätigte Nutzer weiterleiten – auf Subdomain zum Dashboard, auf Apex zur Landing Page
   useEffect(() => {
     if (!loading && user && isEmailConfirmed) {
@@ -60,28 +67,42 @@ const AuthPage: React.FC = () => {
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-          <div className="flex border-b border-gray-200">
-            <button
-              onClick={() => setIsLogin(true)}
-              className={`flex-1 py-4 px-6 text-center font-medium transition-colors ${
-                isLogin 
-                  ? 'text-teal-600 border-b-2 border-teal-600 bg-teal-50' 
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Anmelden
-            </button>
-            <button
-              onClick={() => setIsLogin(false)}
-              className={`flex-1 py-4 px-6 text-center font-medium transition-colors ${
-                !isLogin 
-                  ? 'text-teal-600 border-b-2 border-teal-600 bg-teal-50' 
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Registrieren
-            </button>
-          </div>
+          {isApexAuth ? (
+            <div className="border-b border-gray-200 py-4 px-6 text-center">
+              <h2 className="text-lg font-semibold text-gray-900">Anmelden</h2>
+              <p className="text-sm text-gray-500 mt-1">
+                Neues Studio?{' '}
+                <a href="/onboarding" className="text-teal-600 hover:text-teal-700 font-medium">
+                  Jetzt kostenlos starten
+                </a>
+              </p>
+            </div>
+          ) : (
+            <div className="flex border-b border-gray-200">
+              <button
+                type="button"
+                onClick={() => setIsLogin(true)}
+                className={`flex-1 py-4 px-6 text-center font-medium transition-colors ${
+                  isLogin
+                    ? 'text-teal-600 border-b-2 border-teal-600 bg-teal-50'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Anmelden
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsLogin(false)}
+                className={`flex-1 py-4 px-6 text-center font-medium transition-colors ${
+                  !isLogin
+                    ? 'text-teal-600 border-b-2 border-teal-600 bg-teal-50'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Registrieren
+              </button>
+            </div>
+          )}
 
           {showVerifiedMessage && (
             <div className="mx-8 mt-6 p-4 bg-green-50 border border-green-200 rounded-lg text-center text-green-800 text-sm">
