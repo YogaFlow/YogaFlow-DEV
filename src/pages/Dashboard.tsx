@@ -32,7 +32,10 @@ const Dashboard: React.FC = () => {
     let isMounted = true;
 
     const fetchDashboardData = async () => {
-      if (!userProfile) return;
+      if (!userProfile) {
+        if (isMounted) setLoading(false);
+        return;
+      }
 
       try {
         let coursesQuery = supabase

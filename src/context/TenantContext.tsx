@@ -116,18 +116,34 @@ const TenantContext = createContext<TenantContextType>({
 
 export const useTenant = () => useContext(TenantContext);
 
+const TENANT_FETCH_MS = 12_000;
+
 export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [tenant, setTenant] = useState<Tenant | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-
   const tenantSlug = resolveSlug();
+  /** Apex / ohne Slug: sofort fertig — nicht auf den ersten useEffect warten (sonst Dauer-Spinner). */
+  const [loading, setLoading] = useState(() => tenantSlug !== null);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     if (!tenantSlug) {
+      setTenant(null);
+      setNotFound(false);
       setLoading(false);
       return;
     }
+
+    setLoading(true);
+    setNotFound(false);
+
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      if (cancelled) return;
+      console.warn('TenantContext: Tenant-Anfrage Timeout');
+      setTenant(null);
+      setNotFound(true);
+      setLoading(false);
+    }, TENANT_FETCH_MS);
 
     supabase
       .from('tenants')
@@ -135,6 +151,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       .eq('slug', tenantSlug)
       .maybeSingle()
       .then(({ data, error }) => {
+        if (cancelled) return;
         if (error) console.error('TenantContext: fetch error', error);
         if (data) {
           setTenant(data);
@@ -142,7 +159,15 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           setNotFound(true);
         }
         setLoading(false);
+      })
+      .finally(() => {
+        window.clearTimeout(timer);
       });
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
   }, [tenantSlug]);
 
   return (

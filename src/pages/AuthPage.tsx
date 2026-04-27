@@ -4,7 +4,7 @@ import LoginForm from '../components/Auth/LoginForm';
 import RegisterForm from '../components/Auth/RegisterForm';
 import { Heart } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useTenant } from '../context/TenantContext';
+import { useTenant, APP_BASE_DOMAIN } from '../context/TenantContext';
 
 type AccessNotice = 'wrong_studio' | 'profile_missing' | null;
 
@@ -23,6 +23,12 @@ const AuthPage: React.FC = () => {
   useEffect(() => {
     if (isApexAuth) setIsLogin(true);
   }, [isApexAuth]);
+
+  // Subdomain: während Tenant aus DB lädt nur Login (Registrierung braucht tenant)
+  const tenantPending = !!tenantSlug && tenantLoading && !notFound;
+  useEffect(() => {
+    if (tenantPending) setIsLogin(true);
+  }, [tenantPending]);
 
   // Query-Flags von geschützten Routen (falscher Mandant / kein public.users-Profil)
   useEffect(() => {
@@ -101,6 +107,23 @@ const AuthPage: React.FC = () => {
     );
   }
 
+  if (tenantSlug && notFound) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-6 text-center">
+        <h1 className="text-2xl font-bold text-gray-800 mb-2">Studio nicht gefunden</h1>
+        <p className="text-gray-500 max-w-md">
+          Unter der Adresse <span className="font-mono">{tenantSlug}</span> ist kein Studio registriert.
+        </p>
+        <a
+          href={`https://${APP_BASE_DOMAIN}`}
+          className="mt-6 text-teal-600 hover:underline font-medium"
+        >
+          Zur Startseite
+        </a>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-indigo-50 flex items-center justify-center p-4">
       <div className="w-full max-w-4xl">
@@ -126,6 +149,11 @@ const AuthPage: React.FC = () => {
                   Jetzt kostenlos starten
                 </a>
               </p>
+            </div>
+          ) : tenantPending ? (
+            <div className="border-b border-gray-200 py-4 px-6 text-center">
+              <h2 className="text-lg font-semibold text-gray-900">Anmelden</h2>
+              <p className="text-sm text-gray-500 mt-1">Studio wird geladen …</p>
             </div>
           ) : (
             <div className="flex border-b border-gray-200">
@@ -194,7 +222,7 @@ const AuthPage: React.FC = () => {
             </div>
           )}
           <div className="p-8 flex justify-center">
-            {isLogin ? <LoginForm /> : <RegisterForm />}
+            {isLogin || tenantPending ? <LoginForm /> : <RegisterForm />}
           </div>
         </div>
 
