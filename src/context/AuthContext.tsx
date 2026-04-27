@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
-import { User as SupabaseUser, type Session } from '@supabase/supabase-js';
+import { User as SupabaseUser, type Session, type AuthChangeEvent } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { User, UserRole } from '../types';
 import { clearDevTenantSlug } from './TenantContext';
@@ -78,12 +78,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     void init();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (!isMounted) return;
-      setLoading(true);
-      await applySession(session);
-      if (isMounted) setLoading(false);
-    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event: AuthChangeEvent, session: Session | null) => {
+        if (!isMounted) return;
+
+        // Gleiche Quelle wie getSession() in init() — sonst doppeltes Profil-Laden und
+        // riskantes setLoading(true), das nie wieder false wird (z. B. bei Race / hängender Anfrage).
+        if (event === 'INITIAL_SESSION') {
+          return;
+        }
+
+        if (event === 'TOKEN_REFRESHED') {
+          setUser(session?.user ?? null);
+          return;
+        }
+
+        setLoading(true);
+        try {
+          await applySession(session);
+        } catch (err) {
+          console.error('onAuthStateChange:', err);
+          if (isMounted) setUserProfile(null);
+        } finally {
+          if (isMounted) setLoading(false);
+        }
+      },
+    );
 
     return () => {
       isMounted = false;
