@@ -1,10 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useTenant } from '../../context/TenantContext';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
-const LoginForm: React.FC = () => {
+const ONBOARDING_SLUG_KEY = 'yogaflow_onboarding_slug';
+const SLUG_BODY = /^[a-z0-9]{3,30}$/;
+
+type LoginFormProps = {
+  /** Nach erfolgreicher E-Mail-Verifizierung: alte Login-Fehler ausblenden */
+  emailJustVerified?: boolean;
+};
+
+const LoginForm: React.FC<LoginFormProps> = ({ emailJustVerified = false }) => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -15,6 +24,23 @@ const LoginForm: React.FC = () => {
   const [verificationEmailMessage, setVerificationEmailMessage] = useState('');
 
   const { signIn } = useAuth();
+  const { tenantSlug } = useTenant();
+
+  useEffect(() => {
+    if (emailJustVerified) setError('');
+  }, [emailJustVerified]);
+
+  const studioSlugHint = (): string | null => {
+    const fromHost = tenantSlug?.trim().toLowerCase() ?? '';
+    if (fromHost && SLUG_BODY.test(fromHost)) return fromHost;
+    try {
+      const s = sessionStorage.getItem(ONBOARDING_SLUG_KEY)?.trim().toLowerCase() ?? '';
+      if (s && SLUG_BODY.test(s)) return s;
+    } catch {
+      /* sessionStorage nicht verfügbar */
+    }
+    return null;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,6 +75,7 @@ const LoginForm: React.FC = () => {
     setVerificationEmailLoading(true);
     setVerificationEmailMessage('');
     setError('');
+    const slugHint = studioSlugHint();
     try {
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/request-verification-email`,
@@ -58,7 +85,10 @@ const LoginForm: React.FC = () => {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           },
-          body: JSON.stringify({ email: email.trim() }),
+          body: JSON.stringify({
+            email: email.trim(),
+            ...(slugHint ? { studio_slug: slugHint } : {}),
+          }),
         }
       );
       const data = await res.json().catch(() => ({}));

@@ -143,6 +143,11 @@ const OnboardingWizard: React.FC = () => {
       return;
     }
 
+    try {
+      sessionStorage.setItem('yogaflow_onboarding_slug', slug);
+    } catch {
+      /* ignore */
+    }
     setSuccess(true);
     setIsSubmitting(false);
   };

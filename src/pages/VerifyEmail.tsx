@@ -47,6 +47,11 @@ const VerifyEmail: React.FC = () => {
           } catch {
             // Session kann fehlen (z. B. nach signOut nach Registrierung) — unkritisch
           }
+          try {
+            sessionStorage.removeItem('yogaflow_onboarding_slug');
+          } catch {
+            /* ignore */
+          }
           setStatus('success');
           setMessage('Ihre E-Mail-Adresse wurde erfolgreich bestätigt!');
           setTimeout(() => navigate('/auth?verified=1'), 3000);
