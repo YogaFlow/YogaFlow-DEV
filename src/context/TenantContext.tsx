@@ -105,13 +105,16 @@ interface TenantContextType {
   loading: boolean;
   /** true wenn Slug aus URL aufgelöst, aber kein Tenant in DB gefunden */
   notFound: boolean;
+  /** Supabase-/Netzwerkfehler oder Timeout — nicht mit „nicht gefunden“ verwechseln */
+  lookupError: string | null;
 }
 
 const TenantContext = createContext<TenantContextType>({
   tenant: null,
   tenantSlug: null,
   loading: true,
-  notFound: false
+  notFound: false,
+  lookupError: null,
 });
 
 export const useTenant = () => useContext(TenantContext);
@@ -120,6 +123,7 @@ const TENANT_FETCH_MS = 12_000;
 
 export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [tenant, setTenant] = useState<Tenant | null>(null);
+  const [lookupError, setLookupError] = useState<string | null>(null);
   const tenantSlug = resolveSlug();
   /** Apex / ohne Slug: sofort fertig — nicht auf den ersten useEffect warten (sonst Dauer-Spinner). */
   const [loading, setLoading] = useState(() => tenantSlug !== null);
@@ -129,19 +133,22 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!tenantSlug) {
       setTenant(null);
       setNotFound(false);
+      setLookupError(null);
       setLoading(false);
       return;
     }
 
     setLoading(true);
     setNotFound(false);
+    setLookupError(null);
 
     let cancelled = false;
     const timer = window.setTimeout(() => {
       if (cancelled) return;
       console.warn('TenantContext: Tenant-Anfrage Timeout');
       setTenant(null);
-      setNotFound(true);
+      setNotFound(false);
+      setLookupError('Die Datenbank-Anfrage hat zu lange gedauert. Bitte Seite neu laden oder Netzwerk prüfen.');
       setLoading(false);
     }, TENANT_FETCH_MS);
 
@@ -152,11 +159,23 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       .maybeSingle()
       .then(({ data, error }) => {
         if (cancelled) return;
-        if (error) console.error('TenantContext: fetch error', error);
+        if (error) {
+          console.error('TenantContext: fetch error', error);
+          setTenant(null);
+          setNotFound(false);
+          setLookupError(
+            error.message ||
+              'Tenant konnte nicht geladen werden. Prüfe in Cloudflare, ob VITE_SUPABASE_URL und der Anon-Key zum gleichen Projekt wie in der Supabase-Konsole gehören.',
+          );
+          setLoading(false);
+          return;
+        }
         if (data) {
           setTenant(data);
+          setLookupError(null);
         } else {
           setNotFound(true);
+          setLookupError(null);
         }
         setLoading(false);
       })
@@ -171,7 +190,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [tenantSlug]);
 
   return (
-    <TenantContext.Provider value={{ tenant, tenantSlug, loading, notFound }}>
+    <TenantContext.Provider value={{ tenant, tenantSlug, loading, notFound, lookupError }}>
       {children}
     </TenantContext.Provider>
   );

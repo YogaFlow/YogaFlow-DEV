@@ -14,7 +14,7 @@ const AuthPage: React.FC = () => {
   const [accessNotice, setAccessNotice] = useState<AccessNotice>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, userProfile, loading, isEmailConfirmed, signOut } = useAuth();
-  const { tenantSlug, tenant, loading: tenantLoading, notFound } = useTenant();
+  const { tenantSlug, tenant, loading: tenantLoading, notFound, lookupError } = useTenant();
   const navigate = useNavigate();
 
   const isApexAuth = !tenantSlug;
@@ -107,12 +107,36 @@ const AuthPage: React.FC = () => {
     );
   }
 
+  if (tenantSlug && lookupError) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-6 text-center">
+        <h1 className="text-2xl font-bold text-gray-800 mb-2">Studio konnte nicht geladen werden</h1>
+        <p className="text-gray-600 text-sm max-w-lg leading-relaxed">{lookupError}</p>
+        <p className="text-gray-500 text-xs max-w-md mt-3">
+          Wenn der Eintrag in Supabase sichtbar ist: Live-Build muss dieselbe Supabase-URL und denselben Anon-Key
+          nutzen (Cloudflare Pages → Environment variables).
+        </p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="mt-6 rounded-lg bg-teal-600 text-white px-4 py-2 text-sm font-medium hover:bg-teal-700"
+        >
+          Neu laden
+        </button>
+        <a href={`https://${APP_BASE_DOMAIN}`} className="mt-3 text-teal-600 hover:underline text-sm font-medium">
+          Zur Startseite
+        </a>
+      </div>
+    );
+  }
+
   if (tenantSlug && notFound) {
     return (
       <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-6 text-center">
         <h1 className="text-2xl font-bold text-gray-800 mb-2">Studio nicht gefunden</h1>
         <p className="text-gray-500 max-w-md">
-          Unter der Adresse <span className="font-mono">{tenantSlug}</span> ist kein Studio registriert.
+          Unter der Adresse <span className="font-mono">{tenantSlug}</span> ist in der von der App angesprochenen
+          Datenbank kein Studio eingetragen.
         </p>
         <a
           href={`https://${APP_BASE_DOMAIN}`}
