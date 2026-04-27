@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Outlet } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { TenantProvider, useTenant, APP_BASE_DOMAIN } from './context/TenantContext';
 import AuthPage from './pages/AuthPage';
@@ -22,10 +22,16 @@ import LandingPage from './pages/LandingPage';
 import OnboardingWizard from './pages/OnboardingWizard';
 import LegalPage from './pages/LegalPage';
 
-/** Pfad normalisieren: doppelte Schrägstriche entfernen (z.B. aus E-Mail-Links). */
-function normalizePathname(p: string): string {
-  return p.replace(/\/+/g, '/').replace(/^\/+/, '/') || '/';
-}
+/** Mandanten-App: Guard → Auth → Layout → Kindroute (`Outlet`). Pathloses Layout, damit RR6/7 `/dashboard` & Co. zuverlässig matched (nicht `path="*"` + Kinder). */
+const TenantAppShell: React.FC = () => (
+  <TenantGuard>
+    <ProtectedRoute>
+      <Layout>
+        <Outlet />
+      </Layout>
+    </ProtectedRoute>
+  </TenantGuard>
+);
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, userProfile, loading, isEmailConfirmed } = useAuth();
@@ -124,7 +130,25 @@ const HomeRoute: React.FC = () => {
         </div>
       );
     }
-    if (!tenant) return <Spinner />;
+    if (!tenant) {
+      return (
+        <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center gap-4 p-6 text-center">
+          <p className="text-gray-700 max-w-md">
+            Studio-Daten sind noch nicht verfügbar oder die Verbindung zur Datenbank hat zu lange gedauert.
+          </p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="rounded-lg bg-teal-600 text-white px-4 py-2 text-sm font-medium hover:bg-teal-700"
+          >
+            Seite neu laden
+          </button>
+          <a href={`https://${APP_BASE_DOMAIN}`} className="text-sm text-teal-600 hover:underline">
+            Zur Startseite
+          </a>
+        </div>
+      );
+    }
 
     const memberOk =
       !!user && isEmailConfirmed && !!userProfile && userProfile.tenant_id === tenant.id;
@@ -142,30 +166,6 @@ const HomeRoute: React.FC = () => {
 
   return <LandingPage />;
 };
-
-function RouteByPath() {
-  const location = useLocation();
-  const raw = typeof window !== 'undefined' ? window.location.pathname : location.pathname;
-  const pathname = normalizePathname(raw);
-
-  // Öffentliche Routen (kein Tenant-Kontext nötig)
-  if (pathname === '/')                 return <HomeRoute />;
-  if (pathname === '/auth')             return <AuthPage />;
-  if (pathname === '/reset-password')   return <ResetPassword />;
-  if (pathname === '/forgot-password')  return <ForgotPassword />;
-  if (pathname === '/verify-email')     return <VerifyEmail />;
-
-  // Tenant-App: geschützte Routen
-  return (
-    <TenantGuard>
-      <ProtectedRoute>
-        <Layout>
-          <Outlet />
-        </Layout>
-      </ProtectedRoute>
-    </TenantGuard>
-  );
-}
 
 function App() {
   return (
@@ -189,20 +189,20 @@ function App() {
             <Route path="/legal/agb"         element={<LegalPage type="agb" />} />
             <Route path="/legal/datenschutz" element={<LegalPage type="datenschutz" />} />
 
-            {/* Tenant-App (geschützt) */}
-            <Route path="*" element={<RouteByPath />}>
-              <Route path="dashboard"                   element={<Dashboard />} />
-              <Route path="courses"                     element={<Courses />} />
-              <Route path="create-course"               element={<CreateCourse />} />
-              <Route path="course/:courseId/edit"       element={<EditCourse />} />
+            {/* Mandanten-App (pathloses Layout — zuverlässiges Matching unter RR 6/7) */}
+            <Route element={<TenantAppShell />}>
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="courses" element={<Courses />} />
+              <Route path="create-course" element={<CreateCourse />} />
+              <Route path="course/:courseId/edit" element={<EditCourse />} />
               <Route path="course/:courseId/participants" element={<Participants />} />
-              <Route path="my-courses"                  element={<MyCourses />} />
-              <Route path="profile"                     element={<Profile />} />
-              <Route path="participants"                element={<Participants />} />
-              <Route path="users"                       element={<Users />} />
-              <Route path="settings"                    element={<Settings />} />
-              <Route path="messages"                    element={<Messages />} />
-              <Route path="*"                           element={<Navigate to="/dashboard" replace />} />
+              <Route path="my-courses" element={<MyCourses />} />
+              <Route path="profile" element={<Profile />} />
+              <Route path="participants" element={<Participants />} />
+              <Route path="users" element={<Users />} />
+              <Route path="settings" element={<Settings />} />
+              <Route path="messages" element={<Messages />} />
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Route>
           </Routes>
         </Router>

@@ -29,6 +29,24 @@ export const useAuth = () => {
   return context;
 };
 
+const AUTH_INIT_MS = 12_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const t = window.setTimeout(() => reject(new Error(`${label}_timeout`)), ms);
+    promise.then(
+      (v) => {
+        window.clearTimeout(t);
+        resolve(v);
+      },
+      (e) => {
+        window.clearTimeout(t);
+        reject(e);
+      },
+    );
+  });
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [userProfile, setUserProfile] = useState<User | null>(null);
@@ -64,15 +82,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const init = async () => {
       setLoading(true);
+      let session: Session | null = null;
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) console.error('Error getting session:', error);
-        if (!isMounted) return;
-        await applySession(session ?? null);
+        try {
+          const { data: { session: s }, error } = await withTimeout(
+            supabase.auth.getSession(),
+            AUTH_INIT_MS,
+            'getSession',
+          );
+          if (error) console.error('Error getting session:', error);
+          session = s ?? null;
+        } catch (e) {
+          console.warn('Auth: getSession hat zu lange gedauert oder ist fehlgeschlagen — ohne Session fortgesetzt.', e);
+        }
+        if (isMounted) {
+          try {
+            await withTimeout(applySession(session), AUTH_INIT_MS, 'applySession');
+          } catch (e) {
+            console.warn('Auth: Profil-Laden hat zu lange gedauert — Session wird zurückgesetzt.', e);
+            try {
+              await supabase.auth.signOut();
+            } catch {
+              /* ignore */
+            }
+            if (isMounted) {
+              setUser(null);
+              setUserProfile(null);
+            }
+          }
+        }
       } catch (error) {
         console.error('Error getting session:', error);
       } finally {
-        if (isMounted) setLoading(false);
+        setLoading(false);
       }
     };
 
@@ -95,12 +137,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         setLoading(true);
         try {
-          await applySession(session);
+          await withTimeout(applySession(session), AUTH_INIT_MS, 'applySession');
         } catch (err) {
           console.error('onAuthStateChange:', err);
-          if (isMounted) setUserProfile(null);
+          try {
+            await supabase.auth.signOut();
+          } catch {
+            /* ignore */
+          }
+          if (isMounted) {
+            setUser(null);
+            setUserProfile(null);
+          }
         } finally {
-          if (isMounted) setLoading(false);
+          setLoading(false);
         }
       },
     );
