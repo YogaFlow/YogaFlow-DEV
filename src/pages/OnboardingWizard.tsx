@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Heart, ChevronRight, ChevronLeft, Check, Loader2, LogOut } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { useTenant, buildStudioEntryHref, APP_BASE_DOMAIN } from '../context/TenantContext';
+import { useTenant, buildStudioEntryHref, buildStudioAuthHref, APP_BASE_DOMAIN } from '../context/TenantContext';
 
 const STEPS = ['Studio-Name', 'Studio-URL', 'Dein Name', 'Zugangsdaten', 'Zusammenfassung'];
 
@@ -200,6 +200,16 @@ const OnboardingWizard: React.FC = () => {
               {slug}.{APP_BASE_DOMAIN}
             </span>{' '}
             einloggen.
+          </p>
+          <p className="text-gray-500 text-sm mt-3">
+            Tipp: Bestätigung erneut anfordern am zuverlässigsten unter{' '}
+            <a
+              href={buildStudioAuthHref(slug)}
+              className="text-teal-600 font-mono hover:underline break-all"
+            >
+              {slug}.{APP_BASE_DOMAIN}/auth
+            </a>{' '}
+            (→ „Erneut senden“). So nutzt der Link dieselbe Studio-Subdomain wie später der Login.
           </p>
         </div>
       </div>

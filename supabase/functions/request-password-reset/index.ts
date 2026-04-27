@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { emailLinkBaseUrl } from "../_shared/email_link_base_url.ts";
+import { resolveEmailLinkBaseUrl } from "../_shared/email_link_base_url.ts";
+import { fetchStudioSlugForUser } from "../_shared/studio_slug_for_user.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -55,7 +56,8 @@ Deno.serve(async (req: Request) => {
         console.error("Error creating token:", tokenError);
       } else {
         const token = tokenData as string;
-        const baseUrl = emailLinkBaseUrl(req);
+        const studioSlug = await fetchStudioSlugForUser(supabase, userData.id);
+        const baseUrl = resolveEmailLinkBaseUrl(req, studioSlug);
         const resetLink = `${baseUrl}/reset-password?token=${token}`;
 
         const emailHtml = `
