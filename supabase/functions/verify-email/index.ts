@@ -69,6 +69,15 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // Auth-JWT / Session: Frontend prüft u.a. user.email_confirmed_at — ohne diesen Schritt
+    // bleibt die App nach Custom-Verifizierung in Lade-/Redirect-Schleifen hängen.
+    const { error: authSyncError } = await supabase.auth.admin.updateUserById(userId, {
+      email_confirm: true,
+    });
+    if (authSyncError) {
+      console.error("auth.admin.updateUserById (email_confirm):", authSyncError);
+    }
+
     const { error: markError } = await supabase.rpc("mark_token_used", { p_token: token });
     if (markError) {
       console.error("Error marking token as used:", markError);

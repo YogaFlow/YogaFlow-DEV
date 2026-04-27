@@ -16,7 +16,7 @@ interface CourseLeader {
 const EditCourse: React.FC = () => {
   const navigate = useNavigate();
   const { courseId } = useParams<{ courseId: string }>();
-  const { userProfile } = useAuth();
+  const { userProfile, isCourseLeader, isAdmin } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -118,7 +118,7 @@ const EditCourse: React.FC = () => {
         return;
       }
 
-      if (data.teacher_id !== userProfile.id && !userProfile.roles?.includes('admin')) {
+      if (data.teacher_id !== userProfile.id && !isAdmin) {
         setError('Sie haben keine Berechtigung, diesen Kurs zu bearbeiten.');
         setLoading(false);
         return;
@@ -162,7 +162,7 @@ const EditCourse: React.FC = () => {
       const { data, error } = await supabase
         .from('users')
         .select('id, first_name, last_name, email')
-        .contains('roles', ['course_leader'])
+        .in('role', ['teacher', 'admin', 'owner'])
         .order('last_name', { ascending: true });
 
       if (error) throw error;
@@ -349,9 +349,7 @@ const EditCourse: React.FC = () => {
     }
   };
 
-  const hasPermission = userProfile && userProfile.roles && (
-    userProfile.roles.includes('course_leader') || userProfile.roles.includes('admin')
-  );
+  const hasPermission = isCourseLeader;
 
   if (!hasPermission) {
     return (

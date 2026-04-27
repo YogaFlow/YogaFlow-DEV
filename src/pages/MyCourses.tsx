@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import { Course, Registration } from '../types';
 import { format, parseISO, isToday, isTomorrow } from 'date-fns';
 import { de } from 'date-fns/locale';
+import { isCourseManagerRole, isParticipantOnlyRole } from '../lib/userRoles';
 
 const MyCourses: React.FC = () => {
   const navigate = useNavigate();
@@ -21,16 +22,8 @@ const MyCourses: React.FC = () => {
   const [deleteScope, setDeleteScope] = useState<'single' | 'series'>('single');
   const successTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const isCourseManager =
-    !!userProfile &&
-    !!userProfile.roles &&
-    (userProfile.roles.includes('course_leader') || userProfile.roles.includes('admin'));
-
-  const isParticipantOnly =
-    !!userProfile &&
-    !!userProfile.roles &&
-    userProfile.roles.includes('participant') &&
-    !isCourseManager;
+  const isCourseManager = isCourseManagerRole(userProfile);
+  const isParticipantOnly = isParticipantOnlyRole(userProfile);
 
   useEffect(() => {
     let isMounted = true;
@@ -107,6 +100,8 @@ const MyCourses: React.FC = () => {
         fetchMyCourses();
       } else if (isParticipantOnly) {
         fetchParticipantRegistrations();
+      } else if (isMounted) {
+        setLoading(false);
       }
     }
 

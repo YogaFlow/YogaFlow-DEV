@@ -239,17 +239,22 @@ const Profile: React.FC = () => {
                     {userProfile.first_name} {userProfile.last_name}
                   </h2>
                   <div className="flex flex-wrap gap-2 mt-1">
-                    {userProfile.roles?.includes('admin') && (
+                    {userProfile.role === 'owner' && (
+                      <span className="inline-block px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800">
+                        Inhaber
+                      </span>
+                    )}
+                    {userProfile.role === 'admin' && (
                       <span className="inline-block px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">
                         Administrator
                       </span>
                     )}
-                    {userProfile.roles?.includes('course_leader') && (
+                    {userProfile.role === 'teacher' && (
                       <span className="inline-block px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
                         Kursleiter
                       </span>
                     )}
-                    {userProfile.roles?.includes('participant') && (
+                    {userProfile.role === 'user' && (
                       <span className="inline-block px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
                         Teilnehmer
                       </span>
@@ -350,7 +355,6 @@ const Profile: React.FC = () => {
                     className={`w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent ${
                       !editing ? 'bg-gray-50 cursor-not-allowed' : ''
                     }`}
-                    required
                   />
                 </div>
               </div>
@@ -371,7 +375,6 @@ const Profile: React.FC = () => {
                     className={`w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent ${
                       !editing ? 'bg-gray-50 cursor-not-allowed' : ''
                     }`}
-                    required
                   />
                 </div>
               </div>
@@ -392,7 +395,6 @@ const Profile: React.FC = () => {
                     className={`w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent ${
                       !editing ? 'bg-gray-50 cursor-not-allowed' : ''
                     }`}
-                    required
                   />
                 </div>
               </div>
@@ -411,7 +413,6 @@ const Profile: React.FC = () => {
                   className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent ${
                     !editing ? 'bg-gray-50 cursor-not-allowed' : ''
                   }`}
-                  required
                 />
               </div>
 
@@ -429,7 +430,6 @@ const Profile: React.FC = () => {
                   className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent ${
                     !editing ? 'bg-gray-50 cursor-not-allowed' : ''
                   }`}
-                  required
                 />
               </div>
             </div>

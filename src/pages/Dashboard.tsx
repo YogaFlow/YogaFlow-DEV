@@ -45,7 +45,7 @@ const Dashboard: React.FC = () => {
           .order('date', { ascending: true })
           .order('time', { ascending: true });
 
-        if (userProfile.roles?.includes('course_leader') && !userProfile.roles?.includes('admin')) {
+        if (userProfile.role === 'teacher') {
           coursesQuery = coursesQuery.eq('teacher_id', userProfile.id);
         }
 
@@ -72,7 +72,7 @@ const Dashboard: React.FC = () => {
         if (!isMounted) return;
         setCourses(coursesWithCounts);
 
-        if (userProfile.roles?.includes('participant')) {
+        if (userProfile.role === 'user') {
           const { data: regData, error: regError } = await supabase
             .from('registrations')
             .select(`
@@ -145,13 +145,13 @@ const Dashboard: React.FC = () => {
           .eq('status', 'registered');
 
         let myCoursesCount = 0;
-        if (userProfile.roles?.includes('course_leader')) {
+        if (userProfile.role === 'teacher') {
           const { count } = await supabase
             .from('courses')
             .select('*', { count: 'exact', head: true })
             .eq('teacher_id', userProfile.id);
           myCoursesCount = count || 0;
-        } else if (userProfile.roles?.includes('participant')) {
+        } else if (userProfile.role === 'user') {
           const { count } = await supabase
             .from('registrations')
             .select('*', { count: 'exact', head: true })
@@ -179,9 +179,7 @@ const Dashboard: React.FC = () => {
     };
   }, [userProfile]);
 
-  const isParticipantOnly = userProfile?.roles?.includes('participant') &&
-    !userProfile?.roles?.includes('admin') &&
-    !userProfile?.roles?.includes('course_leader');
+  const isParticipantOnly = userProfile?.role === 'user';
 
   const formatDate = (dateString: string) => {
     try {
@@ -213,7 +211,7 @@ const Dashboard: React.FC = () => {
       }
     ];
 
-    if (userProfile?.roles?.includes('course_leader')) {
+    if (isCourseLeader && !isParticipantOnly) {
       return [
         {
           title: 'Meine Kurse',
@@ -391,7 +389,7 @@ const Dashboard: React.FC = () => {
           </div>
           <div className="p-6">
             <div className="grid grid-cols-1 gap-4">
-              {userProfile?.roles?.includes('course_leader') && (
+              {isCourseLeader && (
                 <>
                   <button
                     onClick={() => navigate('/create-course')}
@@ -429,7 +427,7 @@ const Dashboard: React.FC = () => {
                 </>
               )}
 
-              {userProfile?.roles?.includes('admin') && (
+              {isAdmin && (
                 <>
                   <button
                     onClick={() => navigate('/users')}

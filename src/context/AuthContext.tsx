@@ -2,18 +2,20 @@ import React, { createContext, useContext, useEffect, useState, useMemo } from '
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { User, UserRole } from '../types';
+import { clearDevTenantSlug } from './TenantContext';
 
 interface AuthContextType {
   user: SupabaseUser | null;
   userProfile: User | null;
   loading: boolean;
-  /** Nur true, wenn E-Mail bestätigt (verhindert Dashboard-Flash nach Registrierung). */
+  /** Nur true wenn E-Mail bestätigt — verhindert Dashboard-Flash nach Registrierung. */
   isEmailConfirmed: boolean;
   signIn: (email: string, password: string) => Promise<any>;
   signUp: (email: string, password: string, userData: any) => Promise<any>;
   signOut: () => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ error: { message: string } | null }>;
   hasRole: (role: UserRole) => boolean;
+  isOwner: boolean;
   isAdmin: boolean;
   isCourseLeader: boolean;
   isParticipant: boolean;
@@ -23,9 +25,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 };
 
@@ -44,11 +44,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .select('*')
           .eq('id', userId)
           .maybeSingle();
-
         if (error) throw error;
-        if (isMounted) {
-          setUserProfile(data);
-        }
+        if (isMounted) setUserProfile(data);
       } catch (error) {
         console.error('Error fetching user profile:', error);
       }
@@ -58,20 +55,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .then(({ data: { session } }) => {
         if (!isMounted) return;
         setUser(session?.user ?? null);
-        if (session?.user) {
-          fetchUserProfile(session.user.id);
-        }
+        if (session?.user) fetchUserProfile(session.user.id);
         setLoading(false);
       })
       .catch((error) => {
         console.error('Error getting session:', error);
-        if (isMounted) {
-          setLoading(false);
-        }
+        if (isMounted) setLoading(false);
       });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      (_event, session) => {
         if (!isMounted) return;
         setUser(session?.user ?? null);
         if (session?.user) {
@@ -90,78 +83,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    // Check if Supabase is properly configured
-    if (!import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL.includes('placeholder')) {
-      return { 
-        data: null, 
-        error: { message: 'Supabase ist nicht konfiguriert. Bitte richten Sie Ihre Supabase-Verbindung ein.' } 
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error?.message === 'Invalid login credentials') {
+      return {
+        data,
+        error: {
+          ...error,
+          message: 'E-Mail oder Passwort ist falsch.'
+        }
       };
     }
-
-    console.log('Attempting sign in with:', { 
-      email, 
-      supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
-      hasAnonKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY 
-    });
-
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
-
-    if (error) {
-      console.error('Sign in error:', error);
-      if (error.message === 'Invalid login credentials') {
-        return {
-          data,
-          error: { 
-            ...error, 
-            message: 'E-Mail oder Passwort ist falsch. Stellen Sie sicher, dass Sie registriert sind und die korrekten Anmeldedaten verwenden.' 
-          }
-        };
-      }
-    }
-
     return { data, error };
   };
 
   const signUp = async (email: string, password: string, userData: any) => {
-    // Check if Supabase is properly configured
-    if (!import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL.includes('placeholder')) {
-      return {
-        data: null,
-        error: { message: 'Supabase ist nicht konfiguriert. Bitte richten Sie Ihre Supabase-Verbindung ein.' }
-      };
-    }
-
-    console.log('Signing up with userData:', userData);
-
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        data: userData,
-        emailRedirectTo: undefined
-      }
+      options: { data: userData }
     });
-
-    if (error) {
-      console.error('Sign up error:', error);
-    } else {
-      console.log('Sign up successful:', data);
-    }
-
-    // Das Benutzerprofil wird automatisch durch den Datenbank-Trigger erstellt
-
     return { data, error };
   };
 
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
-    } catch (error) {
-      console.error('Error during sign out:', error);
     } finally {
+      clearDevTenantSlug();
       setUser(null);
       setUserProfile(null);
     }
@@ -171,76 +119,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user?.email) {
       return { error: { message: 'Benutzer nicht gefunden. Bitte erneut anmelden.' } };
     }
-
     const { error: reAuthError } = await supabase.auth.signInWithPassword({
       email: user.email,
       password: currentPassword
     });
-
     if (reAuthError) {
-      if (reAuthError.message === 'Invalid login credentials') {
-        return { error: { message: 'Aktuelles Passwort ist falsch.' } };
-      }
-      return { error: { message: 'Aktuelles Passwort konnte nicht verifiziert werden.' } };
+      return { error: { message: reAuthError.message === 'Invalid login credentials'
+        ? 'Aktuelles Passwort ist falsch.'
+        : 'Aktuelles Passwort konnte nicht verifiziert werden.' }
+      };
     }
-
-    const { error: updateError } = await supabase.auth.updateUser({
-      password: newPassword
-    });
-
+    const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
     if (updateError) {
-      if (updateError.message.toLowerCase().includes('same password')) {
-        return { error: { message: 'Das neue Passwort muss sich vom aktuellen Passwort unterscheiden.' } };
-      }
-      return { error: { message: 'Passwort konnte nicht geändert werden. Bitte versuchen Sie es erneut.' } };
+      return { error: { message: updateError.message.toLowerCase().includes('same password')
+        ? 'Das neue Passwort muss sich vom aktuellen Passwort unterscheiden.'
+        : 'Passwort konnte nicht geändert werden.' }
+      };
     }
-
     return { error: null };
   };
 
-  const hasRole = (role: UserRole): boolean => {
-    if (!userProfile?.roles) return false;
-    return userProfile.roles.includes(role);
-  };
+  const hasRole = (role: UserRole): boolean => userProfile?.role === role;
 
-  const isAdmin = useMemo(() => {
-    if (!userProfile?.roles) return false;
-    return userProfile.roles.includes('admin');
-  }, [userProfile]);
-
-  const isCourseLeader = useMemo(() => {
-    if (!userProfile?.roles) return false;
-    return userProfile.roles.includes('course_leader');
-  }, [userProfile]);
-
-  const isParticipant = useMemo(() => {
-    if (!userProfile?.roles) return false;
-    return userProfile.roles.includes('participant');
-  }, [userProfile]);
+  const isOwner       = useMemo(() => userProfile?.role === 'owner',                              [userProfile]);
+  const isAdmin       = useMemo(() => userProfile?.role === 'owner' || userProfile?.role === 'admin', [userProfile]);
+  const isCourseLeader = useMemo(() => ['owner', 'admin', 'teacher'].includes(userProfile?.role ?? ''), [userProfile]);
+  const isParticipant = useMemo(() => userProfile?.role === 'user',                               [userProfile]);
 
   const isEmailConfirmed = useMemo(() => {
     if (!user) return false;
-    return !!(user as { email_confirmed_at?: string | null }).email_confirmed_at;
-  }, [user]);
+    const authConfirmed = !!(user as { email_confirmed_at?: string | null }).email_confirmed_at;
+    const appConfirmed = userProfile?.email_verified === true;
+    return authConfirmed || appConfirmed;
+  }, [user, userProfile]);
 
-  const value = {
-    user,
-    userProfile,
-    loading,
-    isEmailConfirmed,
-    signIn,
-    signUp,
-    signOut,
-    changePassword,
-    hasRole,
-    isAdmin,
-    isCourseLeader,
-    isParticipant
+  const value: AuthContextType = {
+    user, userProfile, loading, isEmailConfirmed,
+    signIn, signUp, signOut, changePassword,
+    hasRole, isOwner, isAdmin, isCourseLeader, isParticipant
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

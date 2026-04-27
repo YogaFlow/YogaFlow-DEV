@@ -57,7 +57,7 @@ const Courses: React.FC = () => {
           }
         }
 
-        if (userProfile?.roles?.includes('participant')) {
+        if (userProfile?.role === 'user') {
           const { data: regData, error: regError } = await supabase
             .from('registrations')
             .select('course_id, status, is_waitlist, waitlist_position')

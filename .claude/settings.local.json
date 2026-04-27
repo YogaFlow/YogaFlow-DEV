@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(psql --version)",
+      "Bash(node -e ' *)",
+      "Bash(curl -s https://api.github.com/repos/supabase/cli/releases/latest)"
+    ]
+  }
+}
