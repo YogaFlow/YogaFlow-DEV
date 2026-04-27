@@ -14,7 +14,7 @@ const AuthPage: React.FC = () => {
   const [showVerifiedMessage, setShowVerifiedMessage] = useState(false);
   const [accessNotice, setAccessNotice] = useState<AccessNotice>(null);
   const [searchParams, setSearchParams] = useSearchParams();
-  const { user, userProfile, loading, isEmailConfirmed, signOut } = useAuth();
+  const { user, userProfile, loading, profileLoading, isEmailConfirmed, signOut } = useAuth();
   const { tenantSlug, tenant, loading: tenantLoading, notFound, lookupError } = useTenant();
   const navigate = useNavigate();
 
@@ -64,7 +64,7 @@ const AuthPage: React.FC = () => {
 
   // Nur bei passendem Mandant: Subdomain → Dashboard, Apex → Landing
   useEffect(() => {
-    if (loading) return;
+    if (loading || profileLoading) return;
     if (!user || !isEmailConfirmed) return;
     if (!tenantSlug) {
       navigate('/', { replace: true });
@@ -75,6 +75,7 @@ const AuthPage: React.FC = () => {
     navigate('/dashboard', { replace: true });
   }, [
     loading,
+    profileLoading,
     user,
     isEmailConfirmed,
     userProfile,
