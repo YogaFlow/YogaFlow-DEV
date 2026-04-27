@@ -34,10 +34,10 @@ const TenantAppShell: React.FC = () => (
 );
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, userProfile, loading, isEmailConfirmed } = useAuth();
+  const { user, userProfile, loading, profileLoading, isEmailConfirmed } = useAuth();
   const { tenant } = useTenant();
 
-  if (loading) {
+  if (loading || profileLoading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600" />
@@ -137,7 +137,7 @@ const Spinner = () => (
  */
 const HomeRoute: React.FC = () => {
   const { tenantSlug, tenant, loading: tenantLoading, notFound, lookupError } = useTenant();
-  const { user, userProfile, loading: authLoading, isEmailConfirmed } = useAuth();
+  const { user, userProfile, loading: authLoading, profileLoading, isEmailConfirmed } = useAuth();
 
   if (tenantLoading || authLoading) return <Spinner />;
 
@@ -196,6 +196,9 @@ const HomeRoute: React.FC = () => {
     const memberOk =
       !!user && isEmailConfirmed && !!userProfile && userProfile.tenant_id === tenant.id;
     if (memberOk) return <Navigate to="/dashboard" replace />;
+
+    // Profil lädt noch im Hintergrund: warten bevor Redirect-Entscheidung getroffen wird.
+    if (user && isEmailConfirmed && profileLoading) return <Spinner />;
 
     if (user && isEmailConfirmed && userProfile && userProfile.tenant_id !== tenant.id) {
       return <Navigate to="/auth?wrong_studio=1" replace />;
