@@ -48,7 +48,8 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 const TenantGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { tenantSlug, loading, notFound } = useTenant();
 
-  if (tenantSlug && loading) {
+  // Warte bis Tenant aufgelöst ist (gilt für Subdomain und Apex gleichermaßen)
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600" />
@@ -69,6 +70,11 @@ const TenantGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         </div>
       </div>
     );
+  }
+
+  // Kein Tenant-Kontext (Apex-Domain omlify.de): App-Routen sind hier nicht erreichbar
+  if (!tenantSlug) {
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;

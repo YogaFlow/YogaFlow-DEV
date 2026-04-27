@@ -157,7 +157,7 @@ const OnboardingWizard: React.FC = () => {
               Zurück zum Dashboard
             </button>
             <button
-              onClick={async () => { await supabase.auth.signOut(); navigate('/onboarding'); }}
+              onClick={async () => { await supabase.auth.signOut(); window.location.replace('/onboarding'); }}
               className="w-full border border-gray-300 text-gray-700 py-3 rounded-xl hover:bg-gray-50 transition-colors"
             >
               Abmelden und neues Studio anlegen
