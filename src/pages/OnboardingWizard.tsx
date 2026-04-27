@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Heart, ChevronRight, ChevronLeft, Check, Loader2, LogOut } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { useTenant, buildStudioEntryHref } from '../context/TenantContext';
 
 const BASE_DOMAIN = import.meta.env.VITE_APP_BASE_DOMAIN as string || 'omlify.de';
 
@@ -21,6 +22,8 @@ type SlugStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
 const OnboardingWizard: React.FC = () => {
   const navigate = useNavigate();
   const { user, userProfile } = useAuth();
+  const { tenantSlug } = useTenant();
+  const [ownStudioHref, setOwnStudioHref] = useState<string | null>(null);
 
   const [step, setStep] = useState(1);
 
@@ -42,6 +45,15 @@ const OnboardingWizard: React.FC = () => {
   const [success, setSuccess] = useState(false);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Wenn bereits eingeloggt: Studio-URL für "Zurück zum Dashboard" ermitteln
+  useEffect(() => {
+    if (!user || !userProfile?.tenant_id) return;
+    if (tenantSlug) { setOwnStudioHref('/dashboard'); return; }
+    supabase
+      .from('tenants').select('slug').eq('id', userProfile.tenant_id).maybeSingle()
+      .then(({ data }) => { if (data?.slug) setOwnStudioHref(buildStudioEntryHref(data.slug)); });
+  }, [user, userProfile?.tenant_id, tenantSlug]);
 
   // Auto-suggest slug from studio name (only before user has touched the slug field)
   useEffect(() => {
@@ -151,7 +163,11 @@ const OnboardingWizard: React.FC = () => {
           </p>
           <div className="flex flex-col gap-3">
             <button
-              onClick={() => navigate('/dashboard')}
+              onClick={() => {
+                if (!ownStudioHref) { navigate('/'); return; }
+                if (ownStudioHref.startsWith('http')) window.location.href = ownStudioHref;
+                else navigate(ownStudioHref);
+              }}
               className="w-full bg-teal-600 text-white py-3 rounded-xl hover:bg-teal-700 transition-colors"
             >
               Zurück zum Dashboard
