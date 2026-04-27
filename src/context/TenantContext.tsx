@@ -145,6 +145,19 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [lookupError, setLookupError] = useState<string | null>(null);
   const tenantSlug = resolveSlug();
+
+  /** Häufiger Konfigurationsfehler: Basis-ENV = komplette Studio-URL → Slug bleibt immer null. */
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const host = window.location.hostname.toLowerCase();
+    const base = APP_BASE_DOMAIN.toLowerCase();
+    if (host === base && base.split('.').filter(Boolean).length >= 3) {
+      console.warn(
+        '[YogaFlow] VITE_APP_BASE_DOMAIN ist gleich dem aktuellen Hostnamen (z. B. eine Studio-Subdomain). ' +
+          'In Cloudflare muss die Variable nur die gemeinsame Apex-Domain sein (z. B. omlify.de), nicht studionr1.omlify.de.',
+      );
+    }
+  }, []);
   /** Apex / ohne Slug: sofort fertig — nicht auf den ersten useEffect warten (sonst Dauer-Spinner). */
   const [loading, setLoading] = useState(() => tenantSlug !== null);
   const [notFound, setNotFound] = useState(false);

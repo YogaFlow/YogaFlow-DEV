@@ -29,7 +29,8 @@ export const useAuth = () => {
   return context;
 };
 
-const AUTH_INIT_MS = 12_000;
+/** Wie Tenant-Lookup: kaltes Supabase / Netzwerk darf länger brauchen; zu kurz → künstlicher Logout. */
+const AUTH_INIT_MS = 45_000;
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   return new Promise((resolve, reject) => {
