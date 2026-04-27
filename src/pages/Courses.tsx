@@ -145,7 +145,6 @@ const Courses: React.FC = () => {
     try {
       const { data, error } = await supabase.rpc('register_for_course', {
         p_course_id: courseId,
-        p_user_id: userProfile.id
       });
 
       if (error) throw error;
@@ -176,7 +175,6 @@ const Courses: React.FC = () => {
     try {
       const { data, error } = await supabase.rpc('unregister_from_course', {
         p_course_id: courseId,
-        p_user_id: userProfile.id
       });
 
       if (error) throw error;
