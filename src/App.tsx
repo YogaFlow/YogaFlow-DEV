@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { TenantProvider, useTenant } from './context/TenantContext';
+import { TenantProvider, useTenant, APP_BASE_DOMAIN } from './context/TenantContext';
 import AuthPage from './pages/AuthPage';
 import Dashboard from './pages/Dashboard';
 import Courses from './pages/Courses';
@@ -63,7 +63,7 @@ const TenantGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-800 mb-2">Studio nicht gefunden</h1>
           <p className="text-gray-500">Das Studio „{tenantSlug}" existiert nicht.</p>
-          <a href={`https://${import.meta.env.VITE_APP_BASE_DOMAIN}`}
+          <a href={`https://${APP_BASE_DOMAIN}`}
              className="mt-4 inline-block text-teal-600 hover:underline">
             Zur Startseite
           </a>
@@ -88,15 +88,18 @@ const Spinner = () => (
 
 /**
  * Wurzel-Route:
- * - Mit Tenant-Kontext (Subdomain oder DEV ?tenant= / sessionStorage) → Dashboard
- * - Apex / ohne Tenant (z. B. omlify.de) → immer Marketing-Landing (auch wenn eingeloggt)
+ * - Mit Tenant (Subdomain / DEV-Override): eingeloggt → Dashboard, sonst → Login
+ * - Apex / ohne Tenant → Marketing-Landing
  */
 const HomeRoute: React.FC = () => {
   const { tenantSlug, loading: tenantLoading } = useTenant();
-  const { loading: authLoading } = useAuth();
+  const { user, loading: authLoading, isEmailConfirmed } = useAuth();
 
   if (tenantLoading || authLoading) return <Spinner />;
-  if (tenantSlug) return <Navigate to="/dashboard" replace />;
+  if (tenantSlug) {
+    if (user && isEmailConfirmed) return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/auth" replace />;
+  }
   return <LandingPage />;
 };
 

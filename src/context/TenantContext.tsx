@@ -2,39 +2,64 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Tenant } from '../types';
 
-const BASE_DOMAIN = (import.meta.env.VITE_APP_BASE_DOMAIN as string) || 'omlify.de';
 const DEV_SLUG_KEY = '__dev_tenant_slug__';
 
 /**
- * Liest den Tenant-Slug aus dem aktuellen Hostname.
+ * Env-Wert wie `https://omlify.de/` oder `www.omlify.de` → Hostname für Subdomain-Vergleiche (`omlify.de`).
+ */
+export function normalizeAppBaseDomain(raw: string | undefined): string {
+  const fallback = 'omlify.de';
+  if (raw == null || !String(raw).trim()) return fallback;
+  let s = String(raw).trim().toLowerCase();
+  s = s.replace(/^https?:\/\//, '');
+  s = s.split('/')[0].split('?')[0];
+  s = s.split(':')[0];
+  s = s.replace(/\.$/, '');
+  if (s.startsWith('www.')) s = s.slice(4);
+  return s || fallback;
+}
+
+export const APP_BASE_DOMAIN = normalizeAppBaseDomain(
+  import.meta.env.VITE_APP_BASE_DOMAIN as string | undefined,
+);
+
+/** Slug aus Host <slug>.<baseDomain>, Apex / www → null. */
+export function slugFromHostname(hostname: string, baseDomain: string): string | null {
+  const h = hostname.toLowerCase();
+  const b = baseDomain.toLowerCase();
+  if (!b) return null;
+  if (h === b || h === `www.${b}`) return null;
+  if (!h.endsWith(`.${b}`)) return null;
+  const slug = h.slice(0, h.length - b.length - 1);
+  if (!slug || slug.includes('.')) return null;
+  return slug;
+}
+
+/**
+ * Liest den Tenant-Slug:
  *
- * Produktiv:  <slug>.omlify.de          → slug
- * DEV: ?tenant=<slug>-Override          → slug (wird in sessionStorage gesichert)
- * DEV: kein ?tenant=, aber sessionStorage hat Slug → slug (persistiert über Navigationen)
- * Apex ohne Slug                        → null (Landing Page / Onboarding)
+ * Zuerst immer aus dem Hostnamen (`<slug>.<APP_BASE_DOMAIN>`), damit echte Subdomains auch in DEV
+ * (Tunnel/ngrok) und bei falsch formatierter VITE_APP_BASE_DOMAIN funktionieren.
+ * DEV zusätzlich: ?tenant= und sessionStorage.
+ * Apex ohne Slug → null (Landing / Onboarding).
  */
 function resolveSlug(): string | null {
   const params = new URLSearchParams(window.location.search);
   const override = params.get('tenant');
+  const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+
+  const fromHost = slugFromHostname(hostname, APP_BASE_DOMAIN);
+  if (fromHost) {
+    if (import.meta.env.DEV) sessionStorage.setItem(DEV_SLUG_KEY, fromHost);
+    return fromHost;
+  }
 
   if (import.meta.env.DEV) {
     if (override) {
-      // Expliziter Override → in sessionStorage sichern und verwenden
       sessionStorage.setItem(DEV_SLUG_KEY, override);
       return override;
     }
-    // Slug aus sessionStorage wiederherstellen (bleibt nach React-Router-Navigationen erhalten)
     return sessionStorage.getItem(DEV_SLUG_KEY) ?? null;
-  }
-
-  const hostname = window.location.hostname;
-  if (!BASE_DOMAIN) return null;
-
-  if (hostname === BASE_DOMAIN || hostname === `www.${BASE_DOMAIN}`) return null;
-
-  if (hostname.endsWith(`.${BASE_DOMAIN}`)) {
-    const slug = hostname.slice(0, hostname.length - BASE_DOMAIN.length - 1);
-    return slug || null;
   }
 
   return null;
@@ -56,8 +81,7 @@ export function buildStudioEntryHref(slug: string): string {
     return `${origin}/?tenant=${safe}`;
   }
   const protocol = typeof window !== 'undefined' ? window.location.protocol : 'https:';
-  const base = (import.meta.env.VITE_APP_BASE_DOMAIN as string) || 'omlify.de';
-  return `${protocol}//${slug}.${base}/dashboard`;
+  return `${protocol}//${slug}.${APP_BASE_DOMAIN}/dashboard`;
 }
 
 /**
@@ -72,8 +96,7 @@ export function buildStudioAuthHref(slug: string): string {
     return `${origin}/auth?tenant=${safe}`;
   }
   const protocol = typeof window !== 'undefined' ? window.location.protocol : 'https:';
-  const base = (import.meta.env.VITE_APP_BASE_DOMAIN as string) || 'omlify.de';
-  return `${protocol}//${trimmed}.${base}/auth`;
+  return `${protocol}//${trimmed}.${APP_BASE_DOMAIN}/auth`;
 }
 
 interface TenantContextType {
