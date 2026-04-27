@@ -364,7 +364,7 @@ const CreateCourse: React.FC = () => {
         }
       } else {
         coursesToCreate.push({
-          tenant_id: tenant?.id,
+          tenant_id: userProfile?.tenant_id,
           title: formData.title.trim(),
           description: formData.description.trim(),
           date: formData.date,
