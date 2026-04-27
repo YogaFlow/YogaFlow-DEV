@@ -1,15 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, Users, BookOpen, Star } from 'lucide-react';
-import { buildStudioAuthHref } from '../context/TenantContext';
-
-const BASE_DOMAIN = import.meta.env.VITE_APP_BASE_DOMAIN as string || 'omlify.de';
+import { APP_BASE_DOMAIN, buildStudioAuthHref } from '../context/TenantContext';
 
 /** Aus Freitext (inkl. URL) den Studio-Slug für die Anmeldung ermitteln. */
 function parseStudioSlugInput(raw: string): string {
   let s = raw.trim().toLowerCase();
   s = s.replace(/^https?:\/\//, '');
-  const escapedBase = BASE_DOMAIN.replace(/\./g, '\\.');
+  const escapedBase = APP_BASE_DOMAIN.replace(/\./g, '\\.');
   s = s.replace(new RegExp(`\\.${escapedBase}(/.*)?$`), '');
   s = s.replace(/[^a-z0-9]/g, '');
   return s.slice(0, 30);
@@ -29,7 +27,7 @@ const FEATURES = [
   {
     icon: Star,
     title: 'Eigene Subdomain',
-    desc: `Dein Studio unter eigenem Namen: studio.${BASE_DOMAIN} – professionell vom ersten Tag an.`,
+    desc: `Dein Studio unter eigenem Namen: studio.${APP_BASE_DOMAIN} – professionell vom ersten Tag an.`,
   },
 ];
 
@@ -83,7 +81,7 @@ const LandingPage: React.FC = () => {
                 placeholder="dein-studio"
                 className="w-36 sm:w-44 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               />
-              <span className="text-xs text-gray-500 hidden sm:inline">.{BASE_DOMAIN}</span>
+              <span className="text-xs text-gray-500 hidden sm:inline">.{APP_BASE_DOMAIN}</span>
             </div>
             <button
               type="button"

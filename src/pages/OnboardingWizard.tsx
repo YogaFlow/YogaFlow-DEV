@@ -3,9 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Heart, ChevronRight, ChevronLeft, Check, Loader2, LogOut } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { useTenant, buildStudioEntryHref } from '../context/TenantContext';
-
-const BASE_DOMAIN = import.meta.env.VITE_APP_BASE_DOMAIN as string || 'omlify.de';
+import { useTenant, buildStudioEntryHref, APP_BASE_DOMAIN } from '../context/TenantContext';
 
 const STEPS = ['Studio-Name', 'Studio-URL', 'Dein Name', 'Zugangsdaten', 'Zusammenfassung'];
 
@@ -121,7 +119,7 @@ const OnboardingWizard: React.FC = () => {
     // 2. Auth-Nutzer anlegen (Trigger liest role aus Metadata und setzt 'owner')
     const emailRedirectTo = import.meta.env.DEV
       ? `${window.location.protocol}//${window.location.host}/?tenant=${slug}`
-      : `https://${slug}.${BASE_DOMAIN}/dashboard`;
+      : `https://${slug}.${APP_BASE_DOMAIN}/dashboard`;
 
     const { error: signUpError } = await supabase.auth.signUp({
       email,
@@ -199,7 +197,7 @@ const OnboardingWizard: React.FC = () => {
             Bitte bestätige deine E-Mail-Adresse, um dein Studio freizuschalten. Danach
             kannst du dich unter{' '}
             <span className="font-mono text-teal-700">
-              {slug}.{BASE_DOMAIN}
+              {slug}.{APP_BASE_DOMAIN}
             </span>{' '}
             einloggen.
           </p>
@@ -273,7 +271,7 @@ const OnboardingWizard: React.FC = () => {
                   autoFocus
                 />
                 <span className="px-3 flex items-center text-gray-400 text-sm bg-gray-50 border-l border-gray-300">
-                  .{BASE_DOMAIN}
+                  .{APP_BASE_DOMAIN}
                 </span>
               </div>
 
@@ -305,7 +303,7 @@ const OnboardingWizard: React.FC = () => {
               <p className="mt-3 text-xs text-gray-500">
                 Dein Studio wird erreichbar sein unter:{' '}
                 <span className="font-mono text-teal-700">
-                  {slug || '…'}.{BASE_DOMAIN}
+                  {slug || '…'}.{APP_BASE_DOMAIN}
                 </span>
               </p>
             </div>
@@ -387,7 +385,7 @@ const OnboardingWizard: React.FC = () => {
               <div className="bg-gray-50 rounded-xl p-4 mb-6 space-y-2 text-sm">
                 {[
                   { label: 'Studio-Name', value: studioName },
-                  { label: 'Studio-URL', value: `${slug}.${BASE_DOMAIN}`, mono: true },
+                  { label: 'Studio-URL', value: `${slug}.${APP_BASE_DOMAIN}`, mono: true },
                   { label: 'Name', value: `${firstName} ${lastName}` },
                   { label: 'E-Mail', value: email },
                 ].map(({ label, value, mono }) => (
