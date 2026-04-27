@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, ChevronRight, ChevronLeft, Check, Loader2 } from 'lucide-react';
+import { Heart, ChevronRight, ChevronLeft, Check, Loader2, LogOut } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
 
 const BASE_DOMAIN = import.meta.env.VITE_APP_BASE_DOMAIN as string || 'omlify.de';
 
@@ -19,6 +20,7 @@ type SlugStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
 
 const OnboardingWizard: React.FC = () => {
   const navigate = useNavigate();
+  const { user, userProfile } = useAuth();
 
   const [step, setStep] = useState(1);
 
@@ -134,6 +136,37 @@ const OnboardingWizard: React.FC = () => {
     setSuccess(true);
     setIsSubmitting(false);
   };
+
+  if (user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-indigo-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl p-10 max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <LogOut className="w-8 h-8 text-amber-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">Du bist bereits angemeldet</h2>
+          <p className="text-gray-600 mb-6">
+            Du bist aktuell als <strong>{userProfile?.email ?? user.email}</strong> eingeloggt.
+            Um ein neues Studio anzulegen, melde dich zuerst ab.
+          </p>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="w-full bg-teal-600 text-white py-3 rounded-xl hover:bg-teal-700 transition-colors"
+            >
+              Zurück zum Dashboard
+            </button>
+            <button
+              onClick={async () => { await supabase.auth.signOut(); navigate('/onboarding'); }}
+              className="w-full border border-gray-300 text-gray-700 py-3 rounded-xl hover:bg-gray-50 transition-colors"
+            >
+              Abmelden und neues Studio anlegen
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (success) {
     return (
