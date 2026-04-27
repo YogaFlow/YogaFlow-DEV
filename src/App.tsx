@@ -28,7 +28,8 @@ function normalizePathname(p: string): string {
 }
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, loading, isEmailConfirmed } = useAuth();
+  const { user, userProfile, loading, isEmailConfirmed } = useAuth();
+  const { tenant } = useTenant();
 
   if (loading) {
     return (
@@ -38,7 +39,19 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
     );
   }
 
-  return user && isEmailConfirmed ? <>{children}</> : <Navigate to="/auth" replace />;
+  if (user && isEmailConfirmed && !userProfile) {
+    return <Navigate to="/auth?profile_missing=1" replace />;
+  }
+
+  if (user && isEmailConfirmed && userProfile && tenant && userProfile.tenant_id !== tenant.id) {
+    return <Navigate to="/auth?wrong_studio=1" replace />;
+  }
+
+  if (!user || !isEmailConfirmed) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  return <>{children}</>;
 };
 
 /**
@@ -92,14 +105,41 @@ const Spinner = () => (
  * - Apex / ohne Tenant → Marketing-Landing
  */
 const HomeRoute: React.FC = () => {
-  const { tenantSlug, loading: tenantLoading } = useTenant();
-  const { user, loading: authLoading, isEmailConfirmed } = useAuth();
+  const { tenantSlug, tenant, loading: tenantLoading, notFound } = useTenant();
+  const { user, userProfile, loading: authLoading, isEmailConfirmed } = useAuth();
 
   if (tenantLoading || authLoading) return <Spinner />;
+
   if (tenantSlug) {
-    if (user && isEmailConfirmed) return <Navigate to="/dashboard" replace />;
+    if (notFound) {
+      return (
+        <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
+          <div className="text-center max-w-md">
+            <h1 className="text-2xl font-bold text-gray-800 mb-2">Studio nicht gefunden</h1>
+            <p className="text-gray-500">Das Studio „{tenantSlug}" existiert nicht.</p>
+            <a href={`https://${APP_BASE_DOMAIN}`} className="mt-4 inline-block text-teal-600 hover:underline">
+              Zur Startseite
+            </a>
+          </div>
+        </div>
+      );
+    }
+    if (!tenant) return <Spinner />;
+
+    const memberOk =
+      !!user && isEmailConfirmed && !!userProfile && userProfile.tenant_id === tenant.id;
+    if (memberOk) return <Navigate to="/dashboard" replace />;
+
+    if (user && isEmailConfirmed && userProfile && userProfile.tenant_id !== tenant.id) {
+      return <Navigate to="/auth?wrong_studio=1" replace />;
+    }
+    if (user && isEmailConfirmed && !userProfile) {
+      return <Navigate to="/auth?profile_missing=1" replace />;
+    }
+
     return <Navigate to="/auth" replace />;
   }
+
   return <LandingPage />;
 };
 

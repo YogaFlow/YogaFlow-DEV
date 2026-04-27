@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
-import { User as SupabaseUser } from '@supabase/supabase-js';
+import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
+import { User as SupabaseUser, type Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { User, UserRole } from '../types';
 import { clearDevTenantSlug } from './TenantContext';
@@ -34,53 +34,62 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userProfile, setUserProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const fetchUserProfile = useCallback(async (userId: string) => {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
+    if (error) throw error;
+    return data ?? null;
+  }, []);
+
   useEffect(() => {
     let isMounted = true;
 
-    const fetchUserProfile = async (userId: string) => {
+    const applySession = async (session: Session | null) => {
+      setUser(session?.user ?? null);
+      if (!session?.user) {
+        if (isMounted) setUserProfile(null);
+        return;
+      }
       try {
-        const { data, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', userId)
-          .maybeSingle();
-        if (error) throw error;
-        if (isMounted) setUserProfile(data);
+        const profile = await fetchUserProfile(session.user.id);
+        if (isMounted) setUserProfile(profile);
       } catch (error) {
         console.error('Error fetching user profile:', error);
+        if (isMounted) setUserProfile(null);
       }
     };
 
-    supabase.auth.getSession()
-      .then(({ data: { session } }) => {
+    const init = async () => {
+      setLoading(true);
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) console.error('Error getting session:', error);
         if (!isMounted) return;
-        setUser(session?.user ?? null);
-        if (session?.user) fetchUserProfile(session.user.id);
-        setLoading(false);
-      })
-      .catch((error) => {
+        await applySession(session ?? null);
+      } catch (error) {
         console.error('Error getting session:', error);
+      } finally {
         if (isMounted) setLoading(false);
-      });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        if (!isMounted) return;
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          fetchUserProfile(session.user.id);
-        } else {
-          setUserProfile(null);
-        }
-        setLoading(false);
       }
-    );
+    };
+
+    void init();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!isMounted) return;
+      setLoading(true);
+      await applySession(session);
+      if (isMounted) setLoading(false);
+    });
 
     return () => {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [fetchUserProfile]);
 
   const signIn = async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });

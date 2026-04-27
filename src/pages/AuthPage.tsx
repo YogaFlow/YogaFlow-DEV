@@ -6,12 +6,15 @@ import { Heart } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTenant } from '../context/TenantContext';
 
+type AccessNotice = 'wrong_studio' | 'profile_missing' | null;
+
 const AuthPage: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [showVerifiedMessage, setShowVerifiedMessage] = useState(false);
+  const [accessNotice, setAccessNotice] = useState<AccessNotice>(null);
   const [searchParams, setSearchParams] = useSearchParams();
-  const { user, loading, isEmailConfirmed } = useAuth();
-  const { tenantSlug } = useTenant();
+  const { user, userProfile, loading, isEmailConfirmed, signOut } = useAuth();
+  const { tenantSlug, tenant, loading: tenantLoading, notFound } = useTenant();
   const navigate = useNavigate();
 
   const isApexAuth = !tenantSlug;
@@ -21,12 +24,59 @@ const AuthPage: React.FC = () => {
     if (isApexAuth) setIsLogin(true);
   }, [isApexAuth]);
 
-  // Nur bestätigte Nutzer weiterleiten – auf Subdomain zum Dashboard, auf Apex zur Landing Page
+  // Query-Flags von geschützten Routen (falscher Mandant / kein public.users-Profil)
   useEffect(() => {
-    if (!loading && user && isEmailConfirmed) {
-      navigate(tenantSlug ? '/dashboard' : '/', { replace: true });
+    if (loading) return;
+    const wrong = searchParams.get('wrong_studio') === '1';
+    const missing = searchParams.get('profile_missing') === '1';
+    if (!wrong && !missing) return;
+    setAccessNotice(missing ? 'profile_missing' : 'wrong_studio');
+    setSearchParams({}, { replace: true });
+    if (user) void signOut();
+  }, [loading, user, searchParams, setSearchParams, signOut]);
+
+  // Direkt /auth auf falscher Subdomain (ohne Query): Session gehört zu anderem Tenant
+  useEffect(() => {
+    if (loading || tenantLoading || notFound || !tenantSlug || !tenant || !user || !isEmailConfirmed || !userProfile) {
+      return;
     }
-  }, [user, loading, isEmailConfirmed, tenantSlug, navigate]);
+    if (userProfile.tenant_id === tenant.id) return;
+    setAccessNotice('wrong_studio');
+    void signOut();
+  }, [
+    loading,
+    tenantLoading,
+    notFound,
+    tenantSlug,
+    tenant,
+    user,
+    isEmailConfirmed,
+    userProfile,
+    signOut,
+  ]);
+
+  // Nur bei passendem Mandant: Subdomain → Dashboard, Apex → Landing
+  useEffect(() => {
+    if (loading) return;
+    if (!user || !isEmailConfirmed) return;
+    if (!tenantSlug) {
+      navigate('/', { replace: true });
+      return;
+    }
+    if (tenantLoading || notFound || !tenant) return;
+    if (!userProfile || userProfile.tenant_id !== tenant.id) return;
+    navigate('/dashboard', { replace: true });
+  }, [
+    loading,
+    user,
+    isEmailConfirmed,
+    userProfile,
+    tenantSlug,
+    tenantLoading,
+    notFound,
+    tenant,
+    navigate,
+  ]);
 
   // Falls der Passwort-Reset-Link versehentlich auf /auth zeigt: zur Reset-Seite weiterleiten
   useEffect(() => {
@@ -107,6 +157,40 @@ const AuthPage: React.FC = () => {
           {showVerifiedMessage && (
             <div className="mx-8 mt-6 p-4 bg-green-50 border border-green-200 rounded-lg text-center text-green-800 text-sm">
               E-Mail bestätigt. Sie können sich jetzt anmelden.
+            </div>
+          )}
+          {accessNotice === 'wrong_studio' && (
+            <div className="mx-8 mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-sm">
+              <p className="font-medium mb-1">Falsche Studio-Adresse</p>
+              <p>
+                Dieses Konto ist nicht für die Studio-URL{' '}
+                {tenantSlug ? <span className="font-mono">{tenantSlug}</span> : ''} registriert. Bitte nutze die
+                Subdomain des Studios, zu dem dein Konto gehört, oder ein anderes Konto.
+              </p>
+              <button
+                type="button"
+                onClick={() => setAccessNotice(null)}
+                className="mt-3 text-teal-700 font-medium hover:underline"
+              >
+                Hinweis schließen
+              </button>
+            </div>
+          )}
+          {accessNotice === 'profile_missing' && (
+            <div className="mx-8 mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-sm">
+              <p className="font-medium mb-1">Profil unvollständig</p>
+              <p>
+                Für dein Konto existiert kein Eintrag in der Studio-Datenbank (z.&nbsp;B. abgebrochene Registrierung).
+                Bitte lege dein Studio über die Startseite (Jetzt kostenlos starten) erneut an oder wende dich an den
+                Support.
+              </p>
+              <button
+                type="button"
+                onClick={() => setAccessNotice(null)}
+                className="mt-3 text-teal-700 font-medium hover:underline"
+              >
+                Hinweis schließen
+              </button>
             </div>
           )}
           <div className="p-8 flex justify-center">
