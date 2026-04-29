@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { User, UserRole } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { Trash2, Mail } from 'lucide-react';
+import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
 
 const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
   { value: 'owner',   label: 'Owner' },
@@ -24,6 +25,7 @@ export default function Users() {
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [feedbackDialog, setFeedbackDialog] = useState<FeedbackDialogState | null>(null);
 
   useEffect(() => {
     if (isOwner) fetchUsers();
@@ -58,7 +60,11 @@ export default function Users() {
       if (error) throw error;
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
     } catch (err: any) {
-      alert('Fehler beim Ändern der Rolle: ' + err.message);
+      setFeedbackDialog({
+        title: 'Rolle konnte nicht geaendert werden',
+        message: 'Fehler beim Aendern der Rolle: ' + err.message,
+        type: 'error',
+      });
     } finally {
       setSavingId(null);
     }
@@ -66,7 +72,11 @@ export default function Users() {
 
   const handleDelete = async (userId: string) => {
     if (userId === userProfile?.id) {
-      alert('Du kannst dich nicht selbst löschen.');
+      setFeedbackDialog({
+        title: 'Hinweis',
+        message: 'Du kannst dich nicht selbst loeschen.',
+        type: 'info',
+      });
       return;
     }
     if (!confirm('Diesen Nutzer wirklich löschen?')) return;
@@ -100,7 +110,11 @@ export default function Users() {
 
       setUsers(prev => prev.filter(u => u.id !== userId));
     } catch (err: any) {
-      alert('Fehler beim Löschen: ' + err.message);
+      setFeedbackDialog({
+        title: 'Loeschen fehlgeschlagen',
+        message: 'Fehler beim Loeschen: ' + err.message,
+        type: 'error',
+      });
     } finally {
       setDeletingId(null);
     }
@@ -126,6 +140,7 @@ export default function Users() {
 
   return (
     <div className="p-8">
+      <FeedbackDialog dialog={feedbackDialog} onClose={() => setFeedbackDialog(null)} />
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Nutzerverwaltung</h1>
         <p className="text-gray-500 mt-1">

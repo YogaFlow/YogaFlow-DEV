@@ -7,6 +7,7 @@ import { isCourseManagerRole, isStudioAdmin, isTeacherOnly } from '../lib/userRo
 import { Calendar, Clock, MapPin, Users, Mail, Phone, Search, Filter, Download } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
+import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
 
 interface ParticipantWithDetails extends Registration {
   user: User;
@@ -22,6 +23,7 @@ const Participants: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCourse, setSelectedCourse] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
+  const [feedbackDialog, setFeedbackDialog] = useState<FeedbackDialogState | null>(null);
 
   useEffect(() => {
     if (courseId) {
@@ -112,7 +114,11 @@ const Participants: React.FC = () => {
       );
     } catch (error) {
       console.error('Error updating status:', error);
-      alert('Fehler beim Aktualisieren des Status. Bitte versuchen Sie es erneut.');
+      setFeedbackDialog({
+        title: 'Aktualisierung fehlgeschlagen',
+        message: 'Fehler beim Aktualisieren des Status. Bitte versuchen Sie es erneut.',
+        type: 'error',
+      });
     }
   };
 
@@ -192,6 +198,7 @@ const Participants: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <FeedbackDialog dialog={feedbackDialog} onClose={() => setFeedbackDialog(null)} />
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Teilnehmer</h1>

@@ -17,6 +17,23 @@ const Courses: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDate, setFilterDate] = useState('');
   const [view, setView] = useState<'grid' | 'list'>('grid');
+  const [feedbackDialog, setFeedbackDialog] = useState<{
+    title: string;
+    message: string;
+    type: 'success' | 'error';
+  } | null>(null);
+
+  const showFeedbackDialog = (
+    message: string,
+    type: 'success' | 'error' = 'success',
+    title?: string
+  ) => {
+    setFeedbackDialog({
+      title: title || (type === 'success' ? 'Erfolg' : 'Hinweis'),
+      message,
+      type,
+    });
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -152,7 +169,11 @@ const Courses: React.FC = () => {
 
       if (data && !data.success) {
         const d = data as { message?: string; error?: string };
-        alert(d.message || d.error || 'Fehler bei der Anmeldung.');
+        showFeedbackDialog(
+          d.message || d.error || 'Fehler bei der Anmeldung.',
+          'error',
+          'Anmeldung nicht moeglich'
+        );
         return;
       }
 
@@ -160,13 +181,17 @@ const Courses: React.FC = () => {
       fetchUserRegistrations();
 
       if (data.waitlist_position) {
-        alert(`Sie wurden auf die Warteliste gesetzt (Position ${data.waitlist_position}). Sie werden benachrichtigt, wenn ein Platz frei wird.`);
+        showFeedbackDialog(
+          `Sie wurden auf die Warteliste gesetzt (Position ${data.waitlist_position}). Sie werden benachrichtigt, wenn ein Platz frei wird.`,
+          'success',
+          'Warteliste'
+        );
       } else {
-        alert(data.message || 'Erfolgreich angemeldet!');
+        showFeedbackDialog(data.message || 'Erfolgreich angemeldet.', 'success', 'Anmeldung erfolgreich');
       }
     } catch (error) {
       console.error('Error registering for course:', error);
-      alert('Fehler bei der Anmeldung. Bitte versuchen Sie es erneut.');
+      showFeedbackDialog('Fehler bei der Anmeldung. Bitte versuchen Sie es erneut.', 'error', 'Anmeldung fehlgeschlagen');
     }
   };
 
@@ -183,17 +208,21 @@ const Courses: React.FC = () => {
 
       if (data && !data.success) {
         const d = data as { message?: string; error?: string };
-        alert(d.message || d.error || 'Fehler bei der Abmeldung.');
+        showFeedbackDialog(
+          d.message || d.error || 'Fehler bei der Abmeldung.',
+          'error',
+          'Abmeldung nicht moeglich'
+        );
         return;
       }
 
       fetchCourses();
       fetchUserRegistrations();
 
-      alert(data.message || 'Erfolgreich abgemeldet!');
+      showFeedbackDialog(data.message || 'Erfolgreich abgemeldet.', 'success', 'Abmeldung erfolgreich');
     } catch (error) {
       console.error('Error unregistering from course:', error);
-      alert('Fehler bei der Abmeldung. Bitte versuchen Sie es erneut.');
+      showFeedbackDialog('Fehler bei der Abmeldung. Bitte versuchen Sie es erneut.', 'error', 'Abmeldung fehlgeschlagen');
     }
   };
 
@@ -271,6 +300,34 @@ const Courses: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {feedbackDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-gray-100 bg-white p-6 shadow-2xl">
+            <div className="mb-3 flex items-center gap-2">
+              <span
+                className={`inline-flex h-2.5 w-2.5 rounded-full ${
+                  feedbackDialog.type === 'success' ? 'bg-teal-500' : 'bg-red-500'
+                }`}
+                aria-hidden
+              />
+              <h3 className="text-lg font-semibold text-gray-900">{feedbackDialog.title}</h3>
+            </div>
+            <p className="text-sm leading-6 text-gray-600">{feedbackDialog.message}</p>
+            <div className="mt-6 flex justify-center">
+              <button
+                onClick={() => setFeedbackDialog(null)}
+                className={`rounded-full px-6 py-2 text-sm font-semibold text-white transition-colors ${
+                  feedbackDialog.type === 'success'
+                    ? 'bg-teal-600 hover:bg-teal-700'
+                    : 'bg-red-600 hover:bg-red-700'
+                }`}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Kurse</h1>
