@@ -9,7 +9,7 @@ Die App verfügt jetzt über eine vollständige E-Mail-Infrastruktur für:
 
 ## E-Mail-Konfiguration (Gmail SMTP)
 
-Die Edge Function `send-email` versendet E-Mails über **Gmail SMTP** (nodemailer). Absender ist „Die Thallers“ mit der konfigurierten E-Mail-Adresse (siehe `SENDER_EMAIL` bzw. `SMTP_USER`).
+Die Edge Function `send-email` versendet E-Mails über **Gmail SMTP** (nodemailer). Absender ist „Omlify“ mit der konfigurierten E-Mail-Adresse (siehe `SENDER_EMAIL` bzw. `SMTP_USER`).
 
 **Interner Aufruf von send-email:** Die Functions `request-password-reset`, `send-verification-email` und `reset-password` rufen `send-email` per HTTP mit dem Header **X-Internal-Secret** auf. Der JWT-Check für `send-email` ist deaktiviert (`supabase/config.toml`: `[functions.send-email] verify_jwt = false`); die Absicherung erfolgt über das gemeinsame Secret.
 
@@ -30,7 +30,7 @@ Die Functions `send-verification-email`, `request-verification-email` und `reque
 
 - **`APP_URL` in PROD:** Entweder **nicht setzen** oder auf die **kanonische Produkt-URL** setzen (z. B. `https://omlify.de`). **Nicht** auf `*.workers.dev` setzen.
 
-- **Betreff und HTML („Willkommen bei Die Thallers!“ usw.):** fest in den jeweiligen Edge-Function-Dateien unter `supabase/functions/` (nicht im Supabase-Dashboard).
+- **Betreff und HTML („Willkommen bei Omlify!“ usw.):** fest in den jeweiligen Edge-Function-Dateien unter `supabase/functions/` (nicht im Supabase-Dashboard).
 
 ### Gmail einrichten (aktuell verwendet)
 
@@ -44,7 +44,7 @@ Die Functions `send-verification-email`, `request-verification-email` und `reque
      - Das App-Passwort hat **16 Zeichen ohne Leerzeichen**. Google zeigt es oft als „xxxx xxxx xxxx xxxx“ – in den Secrets **ohne Leerzeichen** eintragen (16 Zeichen hintereinander).
    - **Optional** `SENDER_EMAIL`: Absender-Adresse (z. B. dieselbe Gmail-Adresse). Ohne Angabe wird `SMTP_USER` verwendet.
 
-E-Mails werden dann von „Die Thallers“ &lt;IhreGmail@…&gt; versendet.
+E-Mails werden dann von „Omlify“ &lt;IhreGmail@…&gt; versendet.
 
 ---
 
@@ -103,7 +103,7 @@ Speichert alle Verifizierungs- und Reset-Tokens mit:
 ### 1. `send-email`
 Basis-Funktion zum Versenden von E-Mails über **Gmail SMTP** (nodemailer).
 - Erfordert Secrets `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` in Edge Function Secrets; optional `SENDER_EMAIL`
-- Absender: „Die Thallers“ &lt;SENDER_EMAIL bzw. SMTP_USER&gt;
+- Absender: „Omlify“ &lt;SENDER_EMAIL bzw. SMTP_USER&gt;
 - Unterstützt HTML-E-Mails; Absicherung über `INTERNAL_EMAIL_SECRET` (X-Internal-Secret Header)
 
 ### 2. `send-verification-email`
@@ -197,7 +197,7 @@ Setzt Passwort zurück.
 
 Alle E-Mails verwenden professionelle HTML-Templates mit:
 - Responsive Design
-- Thallers-Branding (Teal-Farbe: #0f766e)
+- Omlify-Branding (Teal-Farbe: #0f766e)
 - Klare Call-to-Action-Buttons
 - Fallback-Links für Kompatibilität
 - Hinweise zur Gültigkeit

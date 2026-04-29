@@ -148,9 +148,61 @@ const OnboardingWizard: React.FC = () => {
     } catch {
       /* ignore */
     }
+
+    // Bestätigungs-E-Mail über eigene Edge Function senden (Supabase "Confirm email" ist deaktiviert)
+    try {
+      await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/request-verification-email`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({ email, studio_slug: slug }),
+        }
+      );
+    } catch {
+      // Nicht-kritisch: User kann E-Mail über Auth-Seite erneut anfordern
+    }
+
     setSuccess(true);
     setIsSubmitting(false);
   };
+
+  if (success) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-indigo-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl p-10 max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Check className="w-8 h-8 text-teal-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">Fast geschafft!</h2>
+          <p className="text-gray-600 mb-4">
+            Wir haben eine Bestätigungs-E-Mail an <strong>{email}</strong> gesendet.
+          </p>
+          <p className="text-gray-500 text-sm">
+            Bitte bestätige deine E-Mail-Adresse, um dein Studio freizuschalten. Danach
+            kannst du dich unter{' '}
+            <span className="font-mono text-teal-700">
+              {slug}.{APP_BASE_DOMAIN}
+            </span>{' '}
+            einloggen.
+          </p>
+          <p className="text-gray-500 text-sm mt-3">
+            Tipp: Bestätigung erneut anfordern am zuverlässigsten unter{' '}
+            <a
+              href={buildStudioAuthHref(slug)}
+              className="text-teal-600 font-mono hover:underline break-all"
+            >
+              {slug}.{APP_BASE_DOMAIN}/auth
+            </a>{' '}
+            (→ „Erneut senden“). So nutzt der Link dieselbe Studio-Subdomain wie später der Login.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (user) {
     return (
@@ -182,40 +234,6 @@ const OnboardingWizard: React.FC = () => {
               Abmelden und neues Studio anlegen
             </button>
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (success) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-indigo-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl p-10 max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Check className="w-8 h-8 text-teal-600" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-3">Fast geschafft!</h2>
-          <p className="text-gray-600 mb-4">
-            Wir haben eine Bestätigungs-E-Mail an <strong>{email}</strong> gesendet.
-          </p>
-          <p className="text-gray-500 text-sm">
-            Bitte bestätige deine E-Mail-Adresse, um dein Studio freizuschalten. Danach
-            kannst du dich unter{' '}
-            <span className="font-mono text-teal-700">
-              {slug}.{APP_BASE_DOMAIN}
-            </span>{' '}
-            einloggen.
-          </p>
-          <p className="text-gray-500 text-sm mt-3">
-            Tipp: Bestätigung erneut anfordern am zuverlässigsten unter{' '}
-            <a
-              href={buildStudioAuthHref(slug)}
-              className="text-teal-600 font-mono hover:underline break-all"
-            >
-              {slug}.{APP_BASE_DOMAIN}/auth
-            </a>{' '}
-            (→ „Erneut senden“). So nutzt der Link dieselbe Studio-Subdomain wie später der Login.
-          </p>
         </div>
       </div>
     );

@@ -76,7 +76,7 @@ Deno.serve(async (req: Request) => {
   });
 
   const fromAddress = Deno.env.get("SENDER_EMAIL")?.trim() || smtpUser;
-  const from = `"Die Thallers" <${fromAddress}>`;
+  const from = `"Omlify" <${fromAddress}>`;
 
   try {
     const info = await transport.sendMail({
