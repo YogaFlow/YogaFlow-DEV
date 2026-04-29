@@ -90,7 +90,7 @@ const ForgotPassword: React.FC = () => {
               Wenn ein Konto mit dieser E-Mail-Adresse existiert, haben wir Ihnen eine E-Mail zum Zurücksetzen des Passworts geschickt.
             </p>
             <p className="text-sm text-gray-500 mb-6">
-              Bitte überprüfen Sie Ihr E-Mail-Postfach und folgen Sie den Anweisungen.
+              Bitte überprüfen Sie Ihr E-Mail-Postfach und folgen Sie den Anweisungen. Falls Sie keine E-Mail sehen, schauen Sie bitte auch im <strong>Spam-Ordner</strong> nach.
             </p>
             <button
               onClick={() => navigate('/auth')}
