@@ -44,22 +44,22 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { data: adminCheck, error: adminCheckError } = await adminClient
+    const { data: requesterProfile, error: requesterProfileError } = await adminClient
       .from("users")
-      .select("roles")
+      .select("role, tenant_id")
       .eq("id", requestingUser.id)
       .maybeSingle();
 
-    if (adminCheckError) {
+    if (requesterProfileError) {
       return new Response(
-        JSON.stringify({ error: "Failed to check admin status", details: adminCheckError.message }),
+        JSON.stringify({ error: "Failed to check requester role", details: requesterProfileError.message }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    if (!adminCheck || !adminCheck.roles?.includes("admin")) {
+    if (!requesterProfile || !["owner", "admin"].includes(requesterProfile.role)) {
       return new Response(
-        JSON.stringify({ error: "Admin privileges required" }),
+        JSON.stringify({ error: "Owner or admin privileges required" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -86,6 +86,33 @@ Deno.serve(async (req: Request) => {
       return new Response(
         JSON.stringify({ error: "Cannot delete yourself" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { data: targetProfile, error: targetProfileError } = await adminClient
+      .from("users")
+      .select("tenant_id")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (targetProfileError) {
+      return new Response(
+        JSON.stringify({ error: "Failed to load target user", details: targetProfileError.message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!targetProfile) {
+      return new Response(
+        JSON.stringify({ error: "User not found" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (requesterProfile.tenant_id !== targetProfile.tenant_id) {
+      return new Response(
+        JSON.stringify({ error: "Cross-tenant deletion is not allowed" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 

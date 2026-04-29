@@ -19,6 +19,26 @@ const ROLE_COLORS: Record<UserRole, string> = {
   user:    'bg-green-100 text-green-800',
 };
 
+function getRoleChangeErrorMessage(error: unknown): string {
+  const rawMessage = error instanceof Error ? error.message : String(error ?? '');
+  const message = rawMessage.toUpperCase();
+
+  if (message.includes('LAST_OWNER_REQUIRED')) {
+    return 'Die letzte Owner-Rolle kann nicht entfernt werden. Ernennen Sie zuerst einen weiteren Owner.';
+  }
+  if (message.includes('OWNER_ASSIGNMENT_FORBIDDEN')) {
+    return 'Nur bestehende Owner duerfen die Owner-Rolle vergeben.';
+  }
+  if (message.includes('OWNER_ROLE_CHANGE_FORBIDDEN')) {
+    return 'Nur Owner duerfen Owner-Rollen aendern.';
+  }
+  if (message.includes('ROLE_CHANGE_FORBIDDEN')) {
+    return 'Du hast keine Berechtigung fuer diesen Rollenwechsel.';
+  }
+
+  return 'Fehler beim Aendern der Rolle: ' + rawMessage;
+}
+
 export default function Users() {
   const { isOwner, userProfile } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
@@ -48,6 +68,18 @@ export default function Users() {
   };
 
   const handleRoleChange = async (userId: string, newRole: UserRole) => {
+    const targetUser = users.find(u => u.id === userId);
+    const ownerCount = users.filter(u => u.role === 'owner').length;
+
+    if (targetUser?.role === 'owner' && newRole !== 'owner' && ownerCount <= 1) {
+      setFeedbackDialog({
+        title: 'Owner-Rolle erforderlich',
+        message: 'Die letzte Owner-Rolle kann nicht entfernt werden. Ernennen Sie zuerst einen weiteren Owner.',
+        type: 'error',
+      });
+      return;
+    }
+
     if (userId === userProfile?.id && newRole !== 'owner') {
       if (!confirm('Du änderst deine eigene Rolle. Du verlierst danach den Owner-Zugang. Fortfahren?')) return;
     }
@@ -62,7 +94,7 @@ export default function Users() {
     } catch (err: any) {
       setFeedbackDialog({
         title: 'Rolle konnte nicht geaendert werden',
-        message: 'Fehler beim Aendern der Rolle: ' + err.message,
+        message: getRoleChangeErrorMessage(err),
         type: 'error',
       });
     } finally {
