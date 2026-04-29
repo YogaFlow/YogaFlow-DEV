@@ -7,6 +7,7 @@ import { Course, Registration } from '../types';
 import { format, parseISO, isToday, isTomorrow } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { isCourseManagerRole, isParticipantOnlyRole } from '../lib/userRoles';
+import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
 
 const MyCourses: React.FC = () => {
   const navigate = useNavigate();
@@ -21,6 +22,7 @@ const MyCourses: React.FC = () => {
   const [seriesCount, setSeriesCount] = useState(0);
   const [deleteScope, setDeleteScope] = useState<'single' | 'series'>('single');
   const successTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [feedbackDialog, setFeedbackDialog] = useState<FeedbackDialogState | null>(null);
 
   const isCourseManager = isCourseManagerRole(userProfile);
   const isParticipantOnly = isParticipantOnlyRole(userProfile);
@@ -142,7 +144,11 @@ const MyCourses: React.FC = () => {
       setDeleteDialogOpen(true);
     } catch (error) {
       console.error('Error checking series:', error);
-      alert('Fehler beim Überprüfen der Serie. Bitte versuchen Sie es erneut.');
+      setFeedbackDialog({
+        title: 'Fehler',
+        message: 'Fehler beim Überpruefen der Serie. Bitte versuchen Sie es erneut.',
+        type: 'error',
+      });
     }
   };
 
@@ -184,7 +190,11 @@ const MyCourses: React.FC = () => {
       successTimeoutRef.current = setTimeout(() => setSuccessMessage(''), 5000);
     } catch (error) {
       console.error('Error deleting course:', error);
-      alert('Fehler beim Löschen des Kurses. Bitte versuchen Sie es erneut.');
+      setFeedbackDialog({
+        title: 'Loeschen fehlgeschlagen',
+        message: 'Fehler beim Loeschen des Kurses. Bitte versuchen Sie es erneut.',
+        type: 'error',
+      });
     }
   };
 
@@ -303,6 +313,7 @@ const MyCourses: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <FeedbackDialog dialog={feedbackDialog} onClose={() => setFeedbackDialog(null)} />
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Meine Kurse</h1>

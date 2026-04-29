@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Message, Course, User } from '../types';
 import { MessageSquare, Send, Users } from 'lucide-react';
 import { format } from 'date-fns';
+import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
 
 export default function Messages() {
   const { userProfile, isCourseLeader } = useAuth();
@@ -15,6 +16,7 @@ export default function Messages() {
   const [recipientId, setRecipientId] = useState<string>('');
   const [participants, setParticipants] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [feedbackDialog, setFeedbackDialog] = useState<FeedbackDialogState | null>(null);
 
   useEffect(() => {
     if (userProfile) {
@@ -166,10 +168,18 @@ export default function Messages() {
       setRecipientId('');
       setIsBroadcast(false);
       fetchMessages();
-      alert('Nachricht erfolgreich gesendet');
+      setFeedbackDialog({
+        title: 'Nachricht gesendet',
+        message: 'Nachricht erfolgreich gesendet.',
+        type: 'success',
+      });
     } catch (error: any) {
       console.error('Error sending message:', error);
-      alert('Fehler beim Senden der Nachricht: ' + error.message);
+      setFeedbackDialog({
+        title: 'Senden fehlgeschlagen',
+        message: 'Fehler beim Senden der Nachricht: ' + error.message,
+        type: 'error',
+      });
     }
   };
 
@@ -192,6 +202,7 @@ export default function Messages() {
 
   return (
     <div className="p-8">
+      <FeedbackDialog dialog={feedbackDialog} onClose={() => setFeedbackDialog(null)} />
       <div className="flex items-center gap-3 mb-6">
         <MessageSquare size={32} className="text-gray-900" />
         <h1 className="text-3xl font-bold text-gray-900">Nachrichten</h1>

@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { Settings as SettingsIcon, Save } from 'lucide-react';
 import { GlobalSettings } from '../types';
+import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
 
 export default function Settings() {
   const { isAdmin } = useAuth();
@@ -10,6 +11,7 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [cancellationDeadline, setCancellationDeadline] = useState('48');
   const [defaultMaxParticipants, setDefaultMaxParticipants] = useState('10');
+  const [feedbackDialog, setFeedbackDialog] = useState<FeedbackDialogState | null>(null);
 
   useEffect(() => {
     if (isAdmin) {
@@ -63,10 +65,18 @@ export default function Settings() {
         if (error) throw error;
       }
 
-      alert('Einstellungen erfolgreich gespeichert');
+      setFeedbackDialog({
+        title: 'Gespeichert',
+        message: 'Einstellungen erfolgreich gespeichert.',
+        type: 'success',
+      });
     } catch (error: any) {
       console.error('Error saving settings:', error);
-      alert('Fehler beim Speichern der Einstellungen: ' + error.message);
+      setFeedbackDialog({
+        title: 'Speichern fehlgeschlagen',
+        message: 'Fehler beim Speichern der Einstellungen: ' + error.message,
+        type: 'error',
+      });
     } finally {
       setSaving(false);
     }
@@ -92,6 +102,7 @@ export default function Settings() {
 
   return (
     <div className="p-8 max-w-4xl">
+      <FeedbackDialog dialog={feedbackDialog} onClose={() => setFeedbackDialog(null)} />
       <div className="flex items-center gap-3 mb-6">
         <SettingsIcon size={32} className="text-gray-900" />
         <h1 className="text-3xl font-bold text-gray-900">Systemeinstellungen</h1>
