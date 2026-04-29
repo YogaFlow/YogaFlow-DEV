@@ -108,7 +108,7 @@ Deno.serve(async (req: Request) => {
           },
           body: JSON.stringify({
             to: email,
-            subject: "Passwort zurücksetzen - Die Thallers",
+            subject: "Passwort zurücksetzen - Omlify",
             html: emailHtml,
           }),
         });

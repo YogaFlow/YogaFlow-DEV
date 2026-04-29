@@ -124,7 +124,7 @@ Deno.serve(async (req: Request) => {
         },
         body: JSON.stringify({
           to: userData.email,
-          subject: "Ihr Passwort wurde geändert - Die Thallers",
+          subject: "Ihr Passwort wurde geändert - Omlify",
           html: emailHtml,
         }),
       }).catch((e) => console.error("Error sending confirmation email:", e));
