@@ -5,7 +5,10 @@
       "Bash(node -e ' *)",
       "Bash(curl -s https://api.github.com/repos/supabase/cli/releases/latest)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(git pull *)",
+      "Bash(git push *)",
+      "Bash(git checkout *)"
     ]
   }
 }
