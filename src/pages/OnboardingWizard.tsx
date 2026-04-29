@@ -181,8 +181,8 @@ const OnboardingWizard: React.FC = () => {
           <p className="text-gray-600 mb-4">
             Wir haben eine Bestätigungs-E-Mail an <strong>{email}</strong> gesendet.
           </p>
-          <p className="text-gray-500 text-sm">
-            Bitte bestätige deine E-Mail-Adresse, um dein Studio freizuschalten. Danach
+          <p className="text-gray-500 text-sm mb-3">
+            Bitte bestätige deine E-Mail-Adresse, um dein Studio freizuschalten. Falls du keine E-Mail siehst, schau bitte auch im <strong>Spam-Ordner</strong> nach. Danach
             kannst du dich unter{' '}
             <span className="font-mono text-teal-700">
               {slug}.{APP_BASE_DOMAIN}

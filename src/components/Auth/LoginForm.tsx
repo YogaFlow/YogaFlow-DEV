@@ -93,7 +93,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ emailJustVerified = false }) => {
       );
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        setVerificationEmailMessage('Falls ein Konto mit dieser E-Mail existiert, wurde eine Bestätigungsmail gesendet. Bitte prüfen Sie Ihr Postfach.');
+        setVerificationEmailMessage('Falls ein Konto mit dieser E-Mail existiert, wurde eine Bestätigungsmail gesendet. Bitte prüfen Sie Ihr Postfach und ggf. den Spam-Ordner.');
       } else {
         setVerificationEmailMessage(data?.error || 'Bestätigungsmail konnte nicht gesendet werden.');
       }
