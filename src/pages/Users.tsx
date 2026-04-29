@@ -20,23 +20,46 @@ const ROLE_COLORS: Record<UserRole, string> = {
 };
 
 function getRoleChangeErrorMessage(error: unknown): string {
-  const rawMessage = error instanceof Error ? error.message : String(error ?? '');
+  const extractErrorText = (value: unknown): string => {
+    if (value instanceof Error) return value.message ?? '';
+    if (typeof value === 'string') return value;
+    if (value && typeof value === 'object') {
+      const record = value as Record<string, unknown>;
+      const parts = [
+        record.message,
+        record.details,
+        record.error,
+        record.hint,
+        record.code,
+      ]
+        .filter((part): part is string => typeof part === 'string' && part.trim().length > 0);
+      if (parts.length > 0) return parts.join(' | ');
+      try {
+        return JSON.stringify(record);
+      } catch {
+        return '';
+      }
+    }
+    return String(value ?? '');
+  };
+
+  const rawMessage = extractErrorText(error);
   const message = rawMessage.toUpperCase();
 
   if (message.includes('LAST_OWNER_REQUIRED')) {
-    return 'Die letzte Owner-Rolle kann nicht entfernt werden. Ernennen Sie zuerst einen weiteren Owner.';
+    return 'Du bist aktuell der einzige Owner. Bitte ernenne zuerst eine weitere Person zum Owner, bevor du deine Rolle änderst.';
   }
   if (message.includes('OWNER_ASSIGNMENT_FORBIDDEN')) {
-    return 'Nur bestehende Owner duerfen die Owner-Rolle vergeben.';
+    return 'Nur bestehende Owner dürfen die Owner-Rolle vergeben.';
   }
   if (message.includes('OWNER_ROLE_CHANGE_FORBIDDEN')) {
-    return 'Nur Owner duerfen Owner-Rollen aendern.';
+    return 'Nur Owner dürfen Owner-Rollen ändern.';
   }
   if (message.includes('ROLE_CHANGE_FORBIDDEN')) {
-    return 'Du hast keine Berechtigung fuer diesen Rollenwechsel.';
+    return 'Du hast keine Berechtigung für diesen Rollenwechsel.';
   }
 
-  return 'Fehler beim Aendern der Rolle: ' + rawMessage;
+  return 'Die Rolle konnte gerade nicht geändert werden. Bitte versuche es erneut oder kontaktiere den Support, falls das Problem bestehen bleibt.';
 }
 
 export default function Users() {
@@ -93,7 +116,7 @@ export default function Users() {
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
     } catch (err: any) {
       setFeedbackDialog({
-        title: 'Rolle konnte nicht geaendert werden',
+        title: 'Rolle kann nicht geändert werden',
         message: getRoleChangeErrorMessage(err),
         type: 'error',
       });
