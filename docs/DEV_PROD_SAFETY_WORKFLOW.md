@@ -21,6 +21,7 @@ Vor dem Anwenden von Migrationen auf PROD diese Punkte abhaken:
 - [ ] **Backup geprüft:** Im Supabase-Dashboard des **PROD**-Projekts prüfen, ob Backups aktiv sind (Settings → Backups). Bei kritischen Änderungen: Zeitpunkt notieren.
 - [ ] **Mit PROD verlinkt:** `supabase link --project-ref <PROD-Projekt-Ref>` ausführen (PROD-Ref aus PROD-Dashboard, PROD-Datenbank-Passwort eingeben). **Erst danach** `supabase db push`.
 - [ ] **Nach dem Push:** Live-Seite im Browser prüfen (Login, betroffene Features). Anschließend **wieder mit DEV verlinken:** `supabase link --project-ref <DEV-Projekt-Ref>`, damit der nächste Push nicht versehentlich PROD trifft.
+- [ ] **Auth (Supabase Dashboard, kein SQL):** Unter **Authentication → Policies** die **Leaked Password Protection** (HaveIBeenPwned) für **DEV- und PROD-Projekt** aktivieren, falls noch aus. Reduziert Security-Advisor-Warnung `auth_leaked_password_protection`; Nutzer merken es bei neuen/geänderten Passwörtern.
 
 ---
 
