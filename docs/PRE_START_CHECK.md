@@ -27,6 +27,8 @@ YogaFlow Pre-Start-Check: Führe die folgenden Prüfungen durch und melde das Er
 
 5. node_modules: Prüfen ob vorhanden, damit npm run dev und npm run db:push laufen. Fehlt: npm install vorschlagen.
 
+6. Supabase Auth (Dashboard, kein SQL): Im **DEV-** und **PROD-**Projekt unter Authentication die **Leaked Password Protection** aktivieren, falls noch aus (Security Advisor, HaveIBeenPwned). Siehe [DEV_PROD_SAFETY_WORKFLOW.md](DEV_PROD_SAFETY_WORKFLOW.md) Pre-PROD-Checkliste.
+
 Am Ende klar zusammenfassen: Alles OK oder Liste der Abweichungen mit konkreten Fix-Befehlen.
 ```
 
@@ -41,6 +43,7 @@ Am Ende klar zusammenfassen: Alles OK oder Liste der Abweichungen mit konkreten 
 | Supabase | Mit DEV verlinkt (Project-Ref `mufxhtctutfpzklwqnze`) |
 | Git-Status | Uncommittete Änderungen nur als Warnung |
 | node_modules | Vorhanden |
+| Auth (optional) | Leaked Password Protection in DEV/PROD aktiviert ([DEV_PROD_SAFETY_WORKFLOW.md](DEV_PROD_SAFETY_WORKFLOW.md)) |
 
 Die Befehle, die der Agent typischerweise nutzt: `git branch --show-current`, `git status`, Prüfung auf Existenz und Variablen in `.env` (ohne Werte), `npx supabase status` bzw. Projekt-Ref aus der Supabase-Konfiguration, Prüfung auf `node_modules`.
 
