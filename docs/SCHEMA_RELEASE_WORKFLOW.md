@@ -82,6 +82,22 @@ Diese Anleitung beschreibt, wie ihr Schema-Änderungen (neue Tabellen, Spalten, 
 
 ---
 
+## Mandant (Tenant) komplett löschen (Support / Studio aufgelöst)
+
+`public.users` hat einen Schutz-Trigger: Der **letzte Owner** darf nicht gelöscht werden, solange noch **andere** Nutzer im gleichen Mandanten existieren. Beim `DELETE` aus der Tabelle **`tenants`** löscht Postgres abhängige Zeilen per **CASCADE** — die Reihenfolge der User-Löschungen ist dabei nicht garantiert, daher kann ein naives Löschen der Tenant-Zeile im Tabellen-Editor weiterhin fehlschlagen.
+
+**Zuverlässiger Weg (SQL Editor im Supabase-Dashboard, DEV oder PROD):**
+
+```sql
+SELECT public.delete_tenant_complete('<tenant-uuid>'::uuid);
+```
+
+Die Funktion schaltet den Trigger kurz aus, löscht die Zeile in `tenants`, und schaltet den Trigger wieder ein. Alle per FK an diesen Tenant gebundenen Daten (u. a. `users`, `courses`, `registrations`) werden mitgelöscht.
+
+**Hinweis:** Login-Konten in **Authentication → Users** (`auth.users`) sind getrennt; bei Bedarf dort manuell bereinigen.
+
+---
+
 ## Kurz-Checkliste
 
 - [ ] Neue Migrations-Datei in `supabase/migrations/` angelegt (Zeitstempel + Name).
