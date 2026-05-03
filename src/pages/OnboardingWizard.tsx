@@ -7,6 +7,34 @@ import { useTenant, buildStudioEntryHref, buildStudioAuthHref, APP_BASE_DOMAIN }
 
 const STEPS = ['Studio-Name', 'Studio-URL', 'Dein Name', 'Zugangsdaten', 'Zusammenfassung'];
 
+/** Onboarding-RPCs sind nur noch per service_role (Edge) erreichbar — kein direktes supabase.rpc mit anon. */
+async function callOnboardingPublic<T>(body: Record<string, unknown>): Promise<{ data: T | null; error: Error | null }> {
+  const base = import.meta.env.VITE_SUPABASE_URL;
+  const anon = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  const res = await fetch(`${base}/functions/v1/onboarding-public`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${anon}`,
+      apikey: anon,
+    },
+    body: JSON.stringify(body),
+  });
+  let json: { data?: T; error?: string } = {};
+  try {
+    json = (await res.json()) as { data?: T; error?: string };
+  } catch {
+    /* ignore */
+  }
+  if (!res.ok) {
+    return { data: null, error: new Error(json.error || res.statusText || 'Anfrage fehlgeschlagen') };
+  }
+  if (json.error) {
+    return { data: null, error: new Error(json.error) };
+  }
+  return { data: (json.data as T) ?? null, error: null };
+}
+
 function slugify(value: string): string {
   return value
     .toLowerCase()
@@ -74,7 +102,7 @@ const OnboardingWizard: React.FC = () => {
     setSlugStatus('checking');
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
-      const { data, error } = await supabase.rpc('check_slug_available', { p_slug: slug });
+      const { data, error } = await callOnboardingPublic<boolean>({ action: 'check_slug', p_slug: slug });
       if (error) { setSlugStatus('idle'); return; }
       setSlugStatus(data ? 'available' : 'taken');
     }, 500);
@@ -103,13 +131,14 @@ const OnboardingWizard: React.FC = () => {
     setSubmitError(null);
 
     // 1. Tenant anlegen
-    const { data: rpcResult, error: rpcError } = await supabase.rpc('begin_tenant_onboarding', {
-      p_name: studioName.trim(),
-      p_slug: slug,
-    });
+    const { data: rpcResult, error: rpcError } = await callOnboardingPublic<{
+      success?: boolean;
+      tenant_id?: string;
+      message?: string;
+    }>({ action: 'begin', p_name: studioName.trim(), p_slug: slug });
 
     if (rpcError || !rpcResult?.success) {
-      setSubmitError(rpcResult?.message ?? 'Studio konnte nicht angelegt werden.');
+      setSubmitError(rpcResult?.message ?? rpcError?.message ?? 'Studio konnte nicht angelegt werden.');
       setIsSubmitting(false);
       return;
     }
@@ -137,7 +166,7 @@ const OnboardingWizard: React.FC = () => {
 
     if (signUpError) {
       // Kompensation: Tenant löschen wenn noch kein User existiert
-      await supabase.rpc('cancel_tenant_onboarding', { p_tenant_id: tenantId });
+      await callOnboardingPublic<null>({ action: 'cancel', p_tenant_id: tenantId });
       setSubmitError(signUpError.message);
       setIsSubmitting(false);
       return;

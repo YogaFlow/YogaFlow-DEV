@@ -21,6 +21,9 @@ Vor dem Anwenden von Migrationen auf PROD diese Punkte abhaken:
 - [ ] **Backup geprüft:** Im Supabase-Dashboard des **PROD**-Projekts prüfen, ob Backups aktiv sind (Settings → Backups). Bei kritischen Änderungen: Zeitpunkt notieren.
 - [ ] **Mit PROD verlinkt:** `supabase link --project-ref <PROD-Projekt-Ref>` ausführen (PROD-Ref aus PROD-Dashboard, PROD-Datenbank-Passwort eingeben). **Erst danach** `supabase db push`.
 - [ ] **Nach dem Push:** Live-Seite im Browser prüfen (Login, betroffene Features). Anschließend **wieder mit DEV verlinken:** `supabase link --project-ref <DEV-Projekt-Ref>`, damit der nächste Push nicht versehentlich PROD trifft.
+- [ ] **Auth (Supabase Dashboard, kein SQL):** Unter **Authentication → Policies** die **Leaked Password Protection** (HaveIBeenPwned) für **DEV- und PROD-Projekt** aktivieren, falls noch aus. Reduziert Security-Advisor-Warnung `auth_leaked_password_protection`; Nutzer merken es bei neuen/geänderten Passwörtern.
+- [ ] **Edge Function nach Onboarding-Migration:** Wenn die Migration `20260502160000_yogaflow_private_rls_helpers_onboarding_hardening.sql` (oder neuer) die Onboarding-RPCs nur noch für `service_role` freigibt, muss **`onboarding-public`** auf demselben Projekt deployed sein (`npx supabase functions deploy onboarding-public`), sonst schlägt der Onboarding-Wizard fehl.
+- [ ] **Security Advisor (optional):** Die Lint-Warnungen **0029** für `public.get_course_participant_counts`, `register_for_course`, `unregister_from_course` (SECURITY DEFINER für `authenticated`) sind nach Schema-Migration bewusst noch möglich; Beseitigung erfordert spätere Architektur (INVOKER + RLS-Erweiterung oder serverseitige Kapselung).
 
 ---
 
