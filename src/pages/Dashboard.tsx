@@ -242,7 +242,7 @@ const Dashboard: React.FC = () => {
           value: stats.myCourses,
           icon: BookOpen,
           color: 'bg-teal-500',
-          path: '/courses'
+          path: '/my-courses'
         },
         ...baseCards
       ];
