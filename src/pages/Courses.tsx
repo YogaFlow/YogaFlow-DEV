@@ -35,6 +35,24 @@ const Courses: React.FC = () => {
     });
   };
 
+  const getSupabaseErrorMessage = (error: unknown, fallback: string) => {
+    if (!error || typeof error !== 'object') {
+      return fallback;
+    }
+
+    const maybeError = error as {
+      message?: string;
+      details?: string;
+      hint?: string;
+      code?: string;
+    };
+
+    const parts = [maybeError.message, maybeError.details, maybeError.hint].filter(Boolean);
+    const withCode = maybeError.code ? [...parts, `Code: ${maybeError.code}`] : parts;
+
+    return withCode.length > 0 ? withCode.join(' | ') : fallback;
+  };
+
   useEffect(() => {
     let isMounted = true;
 
@@ -190,7 +208,16 @@ const Courses: React.FC = () => {
       }
     } catch (error) {
       console.error('Error registering for course:', error);
-      showFeedbackDialog('Fehler bei der Anmeldung. Bitte versuchen Sie es erneut.', 'error', 'Anmeldung fehlgeschlagen');
+      try {
+        console.error('Error registering for course (serialized):', JSON.stringify(error, null, 2));
+      } catch {
+        // Ignore serialization issues (e.g. circular refs)
+      }
+      showFeedbackDialog(
+        getSupabaseErrorMessage(error, 'Fehler bei der Anmeldung. Bitte versuchen Sie es erneut.'),
+        'error',
+        'Anmeldung fehlgeschlagen'
+      );
     }
   };
 
@@ -220,7 +247,16 @@ const Courses: React.FC = () => {
       showFeedbackDialog(data.message || 'Erfolgreich abgemeldet.', 'success', 'Abmeldung erfolgreich');
     } catch (error) {
       console.error('Error unregistering from course:', error);
-      showFeedbackDialog('Fehler bei der Abmeldung. Bitte versuchen Sie es erneut.', 'error', 'Abmeldung fehlgeschlagen');
+      try {
+        console.error('Error unregistering from course (serialized):', JSON.stringify(error, null, 2));
+      } catch {
+        // Ignore serialization issues (e.g. circular refs)
+      }
+      showFeedbackDialog(
+        getSupabaseErrorMessage(error, 'Fehler bei der Abmeldung. Bitte versuchen Sie es erneut.'),
+        'error',
+        'Abmeldung fehlgeschlagen'
+      );
     }
   };
 
