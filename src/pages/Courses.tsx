@@ -505,7 +505,7 @@ const Courses: React.FC = () => {
                         )}
                       </div>
 
-                      {course.status === 'active' && course.teacher_id !== userProfile?.id && (
+                      {course.status === 'active' && userProfile?.role === 'user' && course.teacher_id !== userProfile?.id && (
                         <div className="mt-4">
                           {isRegistered ? (
                             <div className="space-y-2">
@@ -593,7 +593,7 @@ const Courses: React.FC = () => {
                             <span className="text-4xl font-bold text-teal-600">€{course.price}</span>
                           </div>
 
-                          {course.status === 'active' && course.teacher_id !== userProfile?.id && (
+                          {course.status === 'active' && userProfile?.role === 'user' && course.teacher_id !== userProfile?.id && (
                             <div className="mt-4 space-y-2">
                               {isRegistered ? (
                                 <>
