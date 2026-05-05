@@ -14,6 +14,8 @@ export const runPastRegistrationCleanup = async () => {
     await supabase.rpc('close_past_course_registrations');
     cleanupRan = true;
   } catch (error) {
-    console.error('Error running past registration cleanup:', error);
+    // Non-blocking maintenance: avoid noisy repeated logs in browser console.
+    cleanupRan = true;
+    console.warn('Past registration cleanup skipped:', error);
   }
 };

@@ -165,7 +165,7 @@ const Dashboard: React.FC = () => {
         }
 
         let myCoursesCount = 0;
-        if (userProfile.role === 'teacher') {
+        if (userProfile.role !== 'user') {
           const { data } = await supabase
             .from('courses')
             .select('id, date, time')
