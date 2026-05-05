@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Heart, ChevronRight, ChevronLeft, Check, Loader2, LogOut } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
@@ -47,9 +47,13 @@ type SlugStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
 
 const OnboardingWizard: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, userProfile } = useAuth();
   const { tenantSlug } = useTenant();
+  const forceNewStudio = searchParams.get('newStudio') === '1';
   const [ownStudioHref, setOwnStudioHref] = useState<string | null>(null);
+  const [autoSigningOut, setAutoSigningOut] = useState(false);
+  const autoSignOutHandledRef = useRef(false);
 
   const [step, setStep] = useState(1);
 
@@ -72,6 +76,16 @@ const OnboardingWizard: React.FC = () => {
   const [successPending, setSuccessPending] = useState(false);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // CTA "Jetzt kostenlos starten": vorhandene Session automatisch auflösen und Onboarding neu laden.
+  useEffect(() => {
+    if (!forceNewStudio || !user || autoSignOutHandledRef.current) return;
+    autoSignOutHandledRef.current = true;
+    setAutoSigningOut(true);
+    void supabase.auth.signOut().finally(() => {
+      window.location.replace('/onboarding');
+    });
+  }, [forceNewStudio, user]);
 
   // Wenn bereits eingeloggt: Studio-URL für "Zurück zum Dashboard" ermitteln
   useEffect(() => {
@@ -258,6 +272,22 @@ const OnboardingWizard: React.FC = () => {
               {slug}.{APP_BASE_DOMAIN}/auth
             </a>{' '}
             (→ „Erneut senden“). So nutzt der Link dieselbe Studio-Subdomain wie später der Login.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (autoSigningOut) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-indigo-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl p-10 max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Loader2 className="w-8 h-8 text-teal-600 animate-spin" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">Einen Moment…</h2>
+          <p className="text-gray-600">
+            Wir bereiten die neue Studio-Registrierung vor.
           </p>
         </div>
       </div>

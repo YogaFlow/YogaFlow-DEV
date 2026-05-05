@@ -106,7 +106,7 @@ const LandingPage: React.FC = () => {
           Starte kostenlos in unter 5 Minuten.
         </p>
         <button
-          onClick={() => navigate('/onboarding')}
+          onClick={() => navigate('/onboarding?newStudio=1')}
           className="bg-teal-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-teal-700 transition-colors shadow-lg"
         >
           Jetzt kostenlos starten
