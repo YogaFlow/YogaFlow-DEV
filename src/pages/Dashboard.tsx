@@ -60,7 +60,7 @@ const Dashboard: React.FC = () => {
         if (coursesError) throw coursesError;
         if (!isMounted) return;
 
-        const visibleCourses = (coursesData || []).filter(isCourseUpcoming).slice(0, 5);
+        const visibleCourses = (coursesData || []).filter((course) => isCourseUpcoming(course)).slice(0, 5);
 
         const coursesWithCounts = await Promise.all(
           visibleCourses.map(async (course) => {
@@ -147,7 +147,7 @@ const Dashboard: React.FC = () => {
           .gte('date', today);
 
         const upcomingCourseIds = (upcomingCoursesData || [])
-          .filter(isCourseUpcoming)
+          .filter((course) => isCourseUpcoming(course))
           .map((course) => course.id);
 
         const totalCoursesCount = upcomingCourseIds.length;
@@ -171,7 +171,7 @@ const Dashboard: React.FC = () => {
             .select('id, date, time')
             .eq('teacher_id', userProfile.id)
             .gte('date', today);
-          myCoursesCount = (data || []).filter(isCourseUpcoming).length;
+          myCoursesCount = (data || []).filter((course) => isCourseUpcoming(course)).length;
         } else if (userProfile.role === 'user') {
           const { data } = await supabase
             .from('registrations')

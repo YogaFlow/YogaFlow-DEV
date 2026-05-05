@@ -73,7 +73,7 @@ const Courses: React.FC = () => {
 
         if (error) throw error;
         if (isMounted) {
-          const upcomingCourses = (data || []).filter(isCourseUpcoming);
+          const upcomingCourses = (data || []).filter((course) => isCourseUpcoming(course));
           setCourses(upcomingCourses);
 
           if (upcomingCourses.length > 0) {
@@ -137,7 +137,7 @@ const Courses: React.FC = () => {
         .order('time', { ascending: true });
 
       if (error) throw error;
-      const upcomingCourses = (data || []).filter(isCourseUpcoming);
+      const upcomingCourses = (data || []).filter((course) => isCourseUpcoming(course));
       setCourses(upcomingCourses);
 
       if (upcomingCourses.length > 0) {
