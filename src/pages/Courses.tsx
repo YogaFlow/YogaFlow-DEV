@@ -441,181 +441,194 @@ const Courses: React.FC = () => {
             const isFull = registeredCount >= course.max_participants;
 
             return (
-              <div key={course.id} className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow ${
+              <div key={course.id} className={`bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow ${
                 view === 'list' ? 'flex' : ''
               }`}>
                 {view === 'grid' ? (
                   <>
-                    <div className="p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <h3 className="text-lg font-semibold text-gray-900">{course.title}</h3>
-                        <span className="text-xl font-bold text-teal-600">€{course.price}</span>
+                    <div className="p-5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h3 className="text-xl font-bold leading-tight text-gray-900">{course.title}</h3>
+                          <p className="mt-1 line-clamp-1 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                            {course.description}
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-2xl font-bold text-teal-600">€{course.price}</span>
                       </div>
-                      
-                      <p className="text-gray-600 text-sm mb-4 line-clamp-2">{course.description}</p>
-                      
-                      <div className="space-y-2 mb-4">
-                        <div className="flex items-center text-sm text-gray-600">
-                          <Calendar className="w-4 h-4 mr-2" />
+
+                      <div className="mt-4 space-y-2 text-sm text-gray-600">
+                        <div className="flex items-center gap-2 font-medium text-gray-500">
+                          <Calendar className="h-4 w-4 shrink-0" />
                           {formatDate(course.date)}
                         </div>
-                        <div className="flex items-center text-sm text-gray-600">
-                          <Clock className="w-4 h-4 mr-2" />
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 shrink-0" />
                           {course.time}{course.end_time && ` - ${course.end_time}`}
                           {course.duration && ` (${course.duration} Min.)`}
                         </div>
-                        <div className="flex items-center text-sm text-gray-600">
-                          <MapPin className="w-4 h-4 mr-2" />
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 shrink-0" />
                           {course.location}
                         </div>
                         {(isAdmin || isCourseLeader) && (
-                          <div className="flex items-center text-sm text-gray-600">
-                            <Users className="w-4 h-4 mr-2" />
+                          <div className="flex items-center gap-2">
+                            <Users className="h-4 w-4 shrink-0" />
                             {registeredCount}/{course.max_participants} Teilnehmer
                           </div>
                         )}
                       </div>
 
                       {course.teacher && (
-                        <p className="text-xs text-gray-500 mb-4">
-                          Lehrer: {course.teacher.first_name} {course.teacher.last_name}
-                        </p>
+                        <div className="mt-5 border-t border-gray-100 pt-4">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Kursleitung</p>
+                          <p className="mt-1 text-sm font-semibold text-gray-700">
+                            Lehrer: {course.teacher.first_name} {course.teacher.last_name}
+                          </p>
+                        </div>
                       )}
 
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          <div className={`w-3 h-3 rounded-full mr-2 ${
+                      <div className="mt-5 flex items-center justify-between gap-3 border-t border-gray-100 pt-4">
+                        <div className="flex items-center gap-2">
+                          <div className={`h-2.5 w-2.5 rounded-full ${
                             isFull ? 'bg-red-500' : (course.max_participants - registeredCount <= 2 ? 'bg-yellow-500' : 'bg-green-500')
                           }`}></div>
-                          <span className="text-xs text-gray-600">
+                          <span className="text-sm font-medium text-gray-600">
                             {isFull ? 'Leider schon ausgebucht' : (course.max_participants - registeredCount <= 2 ? `noch ${course.max_participants - registeredCount} ${course.max_participants - registeredCount === 1 ? 'Restplatz' : 'Restplätze'}` : 'Verfügbar')}
                           </span>
                         </div>
 
-                        {course.status === 'active' && course.teacher_id !== userProfile?.id && (
-                          <div>
-                            {isRegistered ? (
-                              <div className="flex flex-col items-end gap-2">
-                                <div className={`inline-flex items-center justify-center rounded px-4 py-2 text-sm font-medium ${
-                                  registrationStatus === 'registered'
-                                    ? 'bg-teal-100 text-teal-700'
-                                    : 'bg-yellow-100 text-yellow-700'
-                                }`}>
-                                  {registrationStatus === 'registered'
-                                    ? 'Angemeldet'
-                                    : waitlistPosition
-                                      ? `Warteliste (Pos. ${waitlistPosition})`
-                                      : 'Warteliste'}
-                                </div>
-                                <button
-                                  onClick={() => handleUnregister(course.id)}
-                                  className="rounded px-4 py-2 text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-colors whitespace-nowrap flex-shrink-0"
-                                >
-                                  Abmelden
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => handleRegister(course.id)}
-                                className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
-                                  isFull
-                                    ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                                    : 'bg-teal-600 text-white hover:bg-teal-700'
-                                }`}
-                              >
-                                {isFull ? 'Warteliste' : 'Anmelden'}
-                              </button>
-                            )}
-                          </div>
+                        {isRegistered && registrationStatus === 'registered' && (
+                          <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-green-700">
+                            Angemeldet
+                          </span>
                         )}
                       </div>
+
+                      {course.status === 'active' && course.teacher_id !== userProfile?.id && (
+                        <div className="mt-4">
+                          {isRegistered ? (
+                            <div className="space-y-2">
+                              {registrationStatus !== 'registered' && (
+                                <div className="inline-flex items-center justify-center rounded px-4 py-2 text-sm font-medium bg-yellow-100 text-yellow-700">
+                                  {waitlistPosition ? `Warteliste (Pos. ${waitlistPosition})` : 'Warteliste'}
+                                </div>
+                              )}
+                              <button
+                                onClick={() => handleUnregister(course.id)}
+                                className="w-full rounded-lg px-4 py-2 text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-colors"
+                              >
+                                Abmelden
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => handleRegister(course.id)}
+                              className={`w-full px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                isFull
+                                  ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                                  : 'bg-teal-600 text-white hover:bg-teal-700'
+                              }`}
+                            >
+                              {isFull ? 'Warteliste' : 'Anmelden'}
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </>
                 ) : (
                   <>
-                    <div className="flex-1 p-6">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-gray-900">{course.title}</h3>
-                          <p className="text-gray-600 text-sm mt-1">{course.description}</p>
-                          
-                          <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-gray-600">
-                            <div className="flex items-center">
-                              <Calendar className="w-4 h-4 mr-1" />
+                    <div className="flex-1 p-5">
+                      <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_13rem] md:items-start">
+                        <div className="min-w-0">
+                          <h3 className="text-3xl font-bold leading-tight text-gray-900">{course.title}</h3>
+                          <p className="mt-1 line-clamp-1 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                            {course.description}
+                          </p>
+
+                          <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-gray-600">
+                            <div className="flex items-center gap-1.5">
+                              <Calendar className="h-4 w-4 shrink-0 text-gray-400" />
                               {formatDate(course.date)}
                             </div>
-                            <div className="flex items-center">
-                              <Clock className="w-4 h-4 mr-1" />
+                            <div className="flex items-center gap-1.5">
+                              <Clock className="h-4 w-4 shrink-0 text-gray-400" />
                               {course.time}{course.end_time && ` - ${course.end_time}`}
                               {course.duration && ` (${course.duration} Min.)`}
                             </div>
-                            <div className="flex items-center">
-                              <MapPin className="w-4 h-4 mr-1" />
+                            <div className="flex items-center gap-1.5">
+                              <MapPin className="h-4 w-4 shrink-0 text-gray-400" />
                               {course.location}
                             </div>
                             {(isAdmin || isCourseLeader) && (
-                              <div className="flex items-center">
-                                <Users className="w-4 h-4 mr-1" />
+                              <div className="flex items-center gap-1.5">
+                                <Users className="h-4 w-4 shrink-0 text-gray-400" />
                                 {registeredCount}/{course.max_participants} Teilnehmer
                               </div>
                             )}
                           </div>
 
                           {course.teacher && (
-                            <p className="text-xs text-gray-500 mt-2">
-                              Lehrer: {course.teacher.first_name} {course.teacher.last_name}
-                            </p>
+                            <div className="mt-5 border-t border-gray-100 pt-4">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Kursleitung</p>
+                              <p className="mt-1 text-sm font-semibold text-gray-700">
+                                Lehrer: {course.teacher.first_name} {course.teacher.last_name}
+                              </p>
+                            </div>
                           )}
 
-                          <div className="flex items-center mt-3">
-                            <div className={`w-3 h-3 rounded-full mr-2 ${
+                          <div className="mt-4 flex items-center gap-2">
+                            <div className={`h-2.5 w-2.5 rounded-full ${
                               isFull ? 'bg-red-500' : (course.max_participants - registeredCount <= 2 ? 'bg-yellow-500' : 'bg-green-500')
                             }`}></div>
-                            <span className="text-xs text-gray-600">
+                            <span className="text-sm font-medium text-gray-600">
                               {isFull ? 'Leider schon ausgebucht' : (course.max_participants - registeredCount <= 2 ? `noch ${course.max_participants - registeredCount} ${course.max_participants - registeredCount === 1 ? 'Restplatz' : 'Restplätze'}` : 'Verfügbar')}
                             </span>
                           </div>
                         </div>
 
-                        <div className="ml-6 text-right">
-                          <span className="text-xl font-bold text-teal-600">€{course.price}</span>
+                        <div className="border-t border-gray-100 pt-4 md:border-l md:border-t-0 md:pl-5 md:pt-0">
+                          <div className="text-left md:text-right">
+                            <span className="text-4xl font-bold text-teal-600">€{course.price}</span>
+                          </div>
 
                           {course.status === 'active' && course.teacher_id !== userProfile?.id && (
-                              <div className="mt-4">
-                                {isRegistered ? (
-                                  <div className="flex flex-col items-start gap-2">
-                                    <div className={`inline-flex items-center justify-center rounded px-4 py-2 text-sm font-medium ${
-                                      registrationStatus === 'registered'
-                                        ? 'bg-teal-100 text-teal-700'
-                                        : 'bg-yellow-100 text-yellow-700'
-                                    }`}>
-                                      {registrationStatus === 'registered'
-                                        ? 'Angemeldet'
-                                        : waitlistPosition
-                                          ? `Warteliste (Pos. ${waitlistPosition})`
-                                          : 'Warteliste'}
-                                    </div>
-                                    <button
-                                      onClick={() => handleUnregister(course.id)}
-                                      className="rounded px-4 py-2 text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-colors whitespace-nowrap flex-shrink-0"
-                                    >
-                                      Abmelden
-                                    </button>
+                            <div className="mt-4 space-y-2">
+                              {isRegistered ? (
+                                <>
+                                  <div className={`inline-flex w-full items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold uppercase tracking-wide ${
+                                    registrationStatus === 'registered'
+                                      ? 'bg-green-100 text-green-700'
+                                      : 'bg-yellow-100 text-yellow-700'
+                                  }`}>
+                                    {registrationStatus === 'registered'
+                                      ? 'Angemeldet'
+                                      : waitlistPosition
+                                        ? `Warteliste (Pos. ${waitlistPosition})`
+                                        : 'Warteliste'}
                                   </div>
-                                ) : (
                                   <button
-                                    onClick={() => handleRegister(course.id)}
-                                    className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
-                                      isFull
-                                        ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                                        : 'bg-teal-600 text-white hover:bg-teal-700'
-                                    }`}
+                                    onClick={() => handleUnregister(course.id)}
+                                    className="w-full rounded-lg px-4 py-2 text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-colors"
                                   >
-                                    {isFull ? 'Warteliste' : 'Anmelden'}
+                                    Abmelden
                                   </button>
-                                )}
-                              </div>
-                            )}
+                                </>
+                              ) : (
+                                <button
+                                  onClick={() => handleRegister(course.id)}
+                                  className={`w-full px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                    isFull
+                                      ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                                      : 'bg-teal-600 text-white hover:bg-teal-700'
+                                  }`}
+                                >
+                                  {isFull ? 'Warteliste' : 'Anmelden'}
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
