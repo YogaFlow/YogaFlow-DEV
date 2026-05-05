@@ -51,8 +51,19 @@ const LoginForm: React.FC<LoginFormProps> = ({ emailJustVerified = false }) => {
     try {
       const { error } = await signIn(email, password);
       if (error) {
-        if (error.message === 'Invalid login credentials') {
-          setError('E-Mail oder Passwort ist falsch. Bitte überprüfen Sie Ihre Eingaben.');
+        const normalizedMessage = (error.message || '').toLowerCase();
+        const isInvalidCredentials =
+          normalizedMessage === 'invalid login credentials' ||
+          normalizedMessage === 'e-mail oder passwort ist falsch.';
+
+        if (isInvalidCredentials) {
+          if (tenantSlug) {
+            setError(
+              `Kein Konto gefunden: Diese E-Mail ist im Studio ${tenantSlug} nicht hinterlegt. Bitte registriere dich zuerst oder nutze eine andere E-Mail-Adresse.`,
+            );
+          } else {
+            setError('E-Mail oder Passwort ist falsch. Bitte überprüfen Sie Ihre Eingaben.');
+          }
         } else if (error.message.includes('Email not confirmed')) {
           setError('Bitte bestätigen Sie Ihre E-Mail-Adresse über den Link in Ihrer E-Mail. Sie können unten „Bestätigungsmail erneut senden“ nutzen.');
         } else {
