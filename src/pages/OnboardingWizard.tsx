@@ -69,6 +69,7 @@ const OnboardingWizard: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [successPending, setSuccessPending] = useState(false);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -190,7 +191,10 @@ const OnboardingWizard: React.FC = () => {
       return;
     }
 
+    // Wichtig: Supabase kann nach signUp() kurzfristig eine Session setzen.
+    // Wir priorisieren daher sofort den Success-Screen, damit kein "bereits angemeldet" Screen flackert.
     setEmail(normalizedEmail);
+    setSuccessPending(true);
 
     try {
       sessionStorage.setItem('yogaflow_onboarding_slug', slug);
@@ -215,11 +219,18 @@ const OnboardingWizard: React.FC = () => {
       // Nicht-kritisch: User kann E-Mail über Auth-Seite erneut anfordern
     }
 
+    // Best effort: Session löschen, damit Onboarding-Landing nicht als "eingeloggt" gilt.
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      /* ignore */
+    }
+
     setSuccess(true);
     setIsSubmitting(false);
   };
 
-  if (success) {
+  if (success || successPending) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-indigo-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-xl p-10 max-w-md w-full text-center">
