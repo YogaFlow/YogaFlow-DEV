@@ -496,10 +496,10 @@ const Courses: React.FC = () => {
                           <div>
                             {isRegistered ? (
                               <div className="flex flex-col items-end gap-2">
-                                <div className={`px-2 py-1 text-xs rounded-full ${
+                                <div className={`inline-flex items-center justify-center rounded px-4 py-2 text-sm font-medium ${
                                   registrationStatus === 'registered'
-                                    ? 'bg-green-100 text-green-800'
-                                    : 'bg-yellow-100 text-yellow-800'
+                                    ? 'bg-teal-100 text-teal-700'
+                                    : 'bg-yellow-100 text-yellow-700'
                                 }`}>
                                   {registrationStatus === 'registered'
                                     ? 'Angemeldet'
@@ -509,7 +509,7 @@ const Courses: React.FC = () => {
                                 </div>
                                 <button
                                   onClick={() => handleUnregister(course.id)}
-                                  className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition-colors whitespace-nowrap flex-shrink-0"
+                                  className="rounded px-4 py-2 text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-colors whitespace-nowrap flex-shrink-0"
                                 >
                                   Abmelden
                                 </button>
@@ -584,10 +584,10 @@ const Courses: React.FC = () => {
                               <div className="mt-4">
                                 {isRegistered ? (
                                   <div className="flex flex-col items-start gap-2">
-                                    <div className={`px-2 py-1 text-xs rounded-full ${
+                                    <div className={`inline-flex items-center justify-center rounded px-4 py-2 text-sm font-medium ${
                                       registrationStatus === 'registered'
-                                        ? 'bg-green-100 text-green-800'
-                                        : 'bg-yellow-100 text-yellow-800'
+                                        ? 'bg-teal-100 text-teal-700'
+                                        : 'bg-yellow-100 text-yellow-700'
                                     }`}>
                                       {registrationStatus === 'registered'
                                         ? 'Angemeldet'
@@ -597,7 +597,7 @@ const Courses: React.FC = () => {
                                     </div>
                                     <button
                                       onClick={() => handleUnregister(course.id)}
-                                      className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition-colors whitespace-nowrap flex-shrink-0"
+                                      className="rounded px-4 py-2 text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-colors whitespace-nowrap flex-shrink-0"
                                     >
                                       Abmelden
                                     </button>

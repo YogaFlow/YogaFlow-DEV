@@ -129,6 +129,9 @@ const OnboardingWizard: React.FC = () => {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     setSubmitError(null);
+    const normalizedEmail = email.trim().toLowerCase();
+    const duplicateEmailMessage =
+      'Ein Benutzer mit dieser E-Mail-Adresse ist bereits registriert. Bitte verwende eine andere E-Mail-Adresse oder melde dich an.';
 
     // 1. Tenant anlegen
     const { data: rpcResult, error: rpcError } = await callOnboardingPublic<{
@@ -150,8 +153,8 @@ const OnboardingWizard: React.FC = () => {
       ? `${window.location.protocol}//${window.location.host}/?tenant=${slug}`
       : `https://${slug}.${APP_BASE_DOMAIN}/dashboard`;
 
-    const { error: signUpError } = await supabase.auth.signUp({
-      email,
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      email: normalizedEmail,
       password,
       options: {
         emailRedirectTo,
@@ -167,10 +170,27 @@ const OnboardingWizard: React.FC = () => {
     if (signUpError) {
       // Kompensation: Tenant löschen wenn noch kein User existiert
       await callOnboardingPublic<null>({ action: 'cancel', p_tenant_id: tenantId });
-      setSubmitError(signUpError.message);
+      const msg = (signUpError as { message?: string }).message ?? '';
+      if (/already registered|already exists|already in use/i.test(msg)) {
+        setSubmitError(duplicateEmailMessage);
+      } else if (/rate limit exceeded/i.test(msg)) {
+        setSubmitError('Zu viele Registrierungsversuche. Bitte warte etwa eine Stunde und versuche es erneut.');
+      } else {
+        setSubmitError(msg || 'Registrierung fehlgeschlagen.');
+      }
       setIsSubmitting(false);
       return;
     }
+
+    const identities = (signUpData?.user as { identities?: unknown[] } | null)?.identities;
+    if (signUpData?.user && Array.isArray(identities) && identities.length === 0) {
+      await callOnboardingPublic<null>({ action: 'cancel', p_tenant_id: tenantId });
+      setSubmitError(duplicateEmailMessage);
+      setIsSubmitting(false);
+      return;
+    }
+
+    setEmail(normalizedEmail);
 
     try {
       sessionStorage.setItem('yogaflow_onboarding_slug', slug);
@@ -188,7 +208,7 @@ const OnboardingWizard: React.FC = () => {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           },
-          body: JSON.stringify({ email, studio_slug: slug }),
+          body: JSON.stringify({ email: normalizedEmail, studio_slug: slug }),
         }
       );
     } catch {
