@@ -6,6 +6,8 @@ import { supabase } from '../lib/supabase';
 import { Course, Registration } from '../types';
 import { format, parseISO, isToday, isTomorrow } from 'date-fns';
 import { de } from 'date-fns/locale';
+import { isCourseUpcoming } from '../lib/courseDateTime';
+import { runPastRegistrationCleanup } from '../lib/registrationMaintenance';
 
 const Courses: React.FC = () => {
   const navigate = useNavigate();
@@ -58,6 +60,7 @@ const Courses: React.FC = () => {
 
     const loadData = async () => {
       try {
+        await runPastRegistrationCleanup();
         const { data, error } = await supabase
           .from('courses')
           .select(`
@@ -70,10 +73,11 @@ const Courses: React.FC = () => {
 
         if (error) throw error;
         if (isMounted) {
-          setCourses(data || []);
+          const upcomingCourses = (data || []).filter(isCourseUpcoming);
+          setCourses(upcomingCourses);
 
-          if (data && data.length > 0) {
-            const courseIds = data.map(c => c.id);
+          if (upcomingCourses.length > 0) {
+            const courseIds = upcomingCourses.map(c => c.id);
             const { data: countsData, error: countsError } = await supabase.rpc(
               'get_course_participant_counts',
               { p_course_ids: courseIds }
@@ -96,7 +100,8 @@ const Courses: React.FC = () => {
           const { data: regData, error: regError } = await supabase
             .from('registrations')
             .select('course_id, status, is_waitlist, waitlist_position')
-            .eq('user_id', userProfile.id);
+            .eq('user_id', userProfile.id)
+            .is('cancellation_timestamp', null);
 
           if (!regError && isMounted) {
             setRegistrations(regData || []);
@@ -120,6 +125,7 @@ const Courses: React.FC = () => {
 
   const fetchCourses = async () => {
     try {
+      await runPastRegistrationCleanup();
       const { data, error } = await supabase
         .from('courses')
         .select(`
@@ -131,10 +137,11 @@ const Courses: React.FC = () => {
         .order('time', { ascending: true });
 
       if (error) throw error;
-      setCourses(data || []);
+      const upcomingCourses = (data || []).filter(isCourseUpcoming);
+      setCourses(upcomingCourses);
 
-      if (data && data.length > 0) {
-        const courseIds = data.map(c => c.id);
+      if (upcomingCourses.length > 0) {
+        const courseIds = upcomingCourses.map(c => c.id);
         const { data: countsData, error: countsError } = await supabase.rpc(
           'get_course_participant_counts',
           { p_course_ids: courseIds }
@@ -150,6 +157,8 @@ const Courses: React.FC = () => {
           });
           setParticipantCounts(countsMap);
         }
+      } else {
+        setParticipantCounts({});
       }
     } catch (error) {
       console.error('Error fetching courses:', error);
@@ -165,7 +174,8 @@ const Courses: React.FC = () => {
       const { data, error } = await supabase
         .from('registrations')
         .select('course_id, status, is_waitlist, waitlist_position')
-        .eq('user_id', userProfile.id);
+        .eq('user_id', userProfile.id)
+        .is('cancellation_timestamp', null);
 
       if (error) throw error;
       setRegistrations(data || []);
@@ -288,40 +298,11 @@ const Courses: React.FC = () => {
     }
   };
 
-  const isCourseInPast = (course: Course) => {
-    try {
-      const now = new Date();
-      const courseDate = parseISO(course.date);
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const courseDateOnly = new Date(courseDate.getFullYear(), courseDate.getMonth(), courseDate.getDate());
-
-      if (courseDateOnly < today) {
-        return true;
-      }
-
-      if (courseDateOnly.getTime() === today.getTime() && course.time) {
-        const [hours, minutes] = course.time.split(':').map(Number);
-        const courseDateTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours || 0, minutes || 0);
-        return courseDateTime < now;
-      }
-
-      return false;
-    } catch {
-      return false;
-    }
-  };
-
   const filteredCourses = courses.filter(course => {
     const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           course.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDate = !filterDate || course.date === filterDate;
-
-    const isParticipantOnly = !isAdmin && !isCourseLeader;
-    if (isParticipantOnly && isCourseInPast(course)) {
-      return false;
-    }
-
-    return matchesSearch && matchesDate;
+    return matchesSearch && matchesDate && isCourseUpcoming(course);
   });
 
   if (loading) {

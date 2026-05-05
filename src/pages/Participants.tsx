@@ -8,6 +8,8 @@ import { Calendar, Clock, MapPin, Users, Mail, Phone, Search, Filter, Download }
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
+import { isCourseUpcoming } from '../lib/courseDateTime';
+import { runPastRegistrationCleanup } from '../lib/registrationMaintenance';
 
 interface ParticipantWithDetails extends Registration {
   user: User;
@@ -38,6 +40,7 @@ const Participants: React.FC = () => {
       if (!userProfile) return;
 
       try {
+        await runPastRegistrationCleanup();
         let coursesQuery = supabase.from('courses').select('*');
 
         if (isTeacherOnly(userProfile)) {
@@ -48,8 +51,9 @@ const Participants: React.FC = () => {
           .order('date', { ascending: true });
 
         if (coursesError) throw coursesError;
+        const upcomingCourses = (coursesData || []).filter((course) => isCourseUpcoming(course));
         if (!isMounted) return;
-        setCourses(coursesData || []);
+        setCourses(upcomingCourses);
 
         let registrationsQuery = supabase
           .from('registrations')
@@ -60,7 +64,7 @@ const Participants: React.FC = () => {
           `);
 
         if (isTeacherOnly(userProfile)) {
-          const courseIds = coursesData?.map(c => c.id) || [];
+          const courseIds = upcomingCourses.map(c => c.id) || [];
           if (courseIds.length > 0) {
             registrationsQuery = registrationsQuery.in('course_id', courseIds);
           } else {
@@ -77,7 +81,13 @@ const Participants: React.FC = () => {
 
         if (registrationsError) throw registrationsError;
         if (isMounted) {
-          setParticipants(registrationsData || []);
+          const upcomingParticipants = (registrationsData || []).filter(
+            (registration: any) =>
+              registration.course &&
+              isCourseUpcoming(registration.course) &&
+              registration.cancellation_timestamp == null
+          );
+          setParticipants(upcomingParticipants);
         }
       } catch (error) {
         console.error('Error fetching data:', error);
