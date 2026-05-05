@@ -8,6 +8,8 @@ import { format, parseISO, isToday, isTomorrow } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { isCourseManagerRole, isParticipantOnlyRole } from '../lib/userRoles';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
+import { isCourseUpcoming } from '../lib/courseDateTime';
+import { runPastRegistrationCleanup } from '../lib/registrationMaintenance';
 
 const MyCourses: React.FC = () => {
   const navigate = useNavigate();
@@ -35,6 +37,7 @@ const MyCourses: React.FC = () => {
 
       try {
         setLoading(true);
+        await runPastRegistrationCleanup();
         const { data, error } = await supabase
           .from('courses')
           .select(`
@@ -48,7 +51,7 @@ const MyCourses: React.FC = () => {
 
         if (error) throw error;
         if (isMounted) {
-          setCourses(data || []);
+          setCourses((data || []).filter((course) => isCourseUpcoming(course)));
         }
       } catch (error) {
         console.error('Error fetching courses:', error);
@@ -64,6 +67,7 @@ const MyCourses: React.FC = () => {
 
       try {
         setLoading(true);
+        await runPastRegistrationCleanup();
         const { data, error } = await supabase
           .from('registrations')
           .select(
@@ -76,15 +80,15 @@ const MyCourses: React.FC = () => {
           `
           )
           .eq('user_id', userProfile.id)
-          .eq('status', 'registered');
+          .eq('status', 'registered')
+          .is('cancellation_timestamp', null);
 
         if (error) throw error;
         if (!isMounted) return;
 
-        const today = new Date().toISOString().split('T')[0];
         const futureRegistrations = (data || []).filter(
           (registration: any) =>
-            registration.course && registration.course.date >= today
+            registration.course && isCourseUpcoming(registration.course)
         );
 
         setRegistrations(futureRegistrations);
@@ -209,22 +213,6 @@ const MyCourses: React.FC = () => {
       return format(date, 'dd.MM.yyyy', { locale: de });
     } catch {
       return dateString;
-    }
-  };
-
-  const isPastCourse = (dateString: string, timeString?: string) => {
-    try {
-      const now = new Date();
-      const courseDate = parseISO(dateString);
-      if (timeString) {
-        const [hours, minutes] = timeString.split(':').map(Number);
-        courseDate.setHours(hours || 0, minutes || 0, 0, 0);
-      } else {
-        courseDate.setHours(23, 59, 59, 999);
-      }
-      return courseDate < now;
-    } catch {
-      return false;
     }
   };
 
@@ -354,8 +342,6 @@ const MyCourses: React.FC = () => {
             const registeredCount = course.registrations?.filter((r: any) => r.status === 'registered' && !r.is_waitlist).length || 0;
             const waitlistCount = course.registrations?.filter((r: any) => r.is_waitlist).length || 0;
             const isFull = registeredCount >= (course.max_participants || 0);
-            const isPast = isPastCourse(course.date, course.time);
-
             return (
               <div key={course.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
                 <div className="p-6">
@@ -394,10 +380,10 @@ const MyCourses: React.FC = () => {
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center">
                       <div className={`w-3 h-3 rounded-full mr-2 ${
-                        isPast ? 'bg-gray-400' : isFull ? 'bg-red-500' : (course.max_participants - registeredCount <= 2 ? 'bg-yellow-500' : 'bg-green-500')
+                        isFull ? 'bg-red-500' : (course.max_participants - registeredCount <= 2 ? 'bg-yellow-500' : 'bg-green-500')
                       }`}></div>
                       <span className="text-xs text-gray-600">
-                        {isPast ? 'Vergangen' : isFull ? 'Leider schon ausgebucht' : (course.max_participants - registeredCount <= 2 ? `noch ${course.max_participants - registeredCount} ${course.max_participants - registeredCount === 1 ? 'Restplatz' : 'Restplätze'}` : 'Verfügbar')}
+                        {isFull ? 'Leider schon ausgebucht' : (course.max_participants - registeredCount <= 2 ? `noch ${course.max_participants - registeredCount} ${course.max_participants - registeredCount === 1 ? 'Restplatz' : 'Restplätze'}` : 'Verfügbar')}
                       </span>
                     </div>
                   </div>

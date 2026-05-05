@@ -6,6 +6,8 @@ import { supabase } from '../lib/supabase';
 import { Course, Registration } from '../types';
 import { format, parseISO, isToday, isTomorrow } from 'date-fns';
 import { de } from 'date-fns/locale';
+import { isCourseUpcoming } from '../lib/courseDateTime';
+import { runPastRegistrationCleanup } from '../lib/registrationMaintenance';
 
 type StatCard = {
   title: string;
@@ -38,6 +40,7 @@ const Dashboard: React.FC = () => {
       }
 
       try {
+        await runPastRegistrationCleanup();
         let coursesQuery = supabase
           .from('courses')
           .select(`
@@ -52,19 +55,22 @@ const Dashboard: React.FC = () => {
           coursesQuery = coursesQuery.eq('teacher_id', userProfile.id);
         }
 
-        const { data: coursesData, error: coursesError } = await coursesQuery.limit(5);
+        const { data: coursesData, error: coursesError } = await coursesQuery.limit(20);
 
         if (coursesError) throw coursesError;
         if (!isMounted) return;
 
+        const visibleCourses = (coursesData || []).filter(isCourseUpcoming).slice(0, 5);
+
         const coursesWithCounts = await Promise.all(
-          (coursesData || []).map(async (course) => {
+          visibleCourses.map(async (course) => {
             try {
               const { count } = await supabase
                 .from('registrations')
                 .select('*', { count: 'exact', head: true })
                 .eq('course_id', course.id)
-                .eq('status', 'registered');
+                .eq('status', 'registered')
+                .is('cancellation_timestamp', null);
               return { ...course, registrationCount: count || 0 };
             } catch {
               return { ...course, registrationCount: 0 };
@@ -86,14 +92,14 @@ const Dashboard: React.FC = () => {
               )
             `)
             .eq('user_id', userProfile.id)
-            .eq('status', 'registered');
+            .eq('status', 'registered')
+            .is('cancellation_timestamp', null);
 
           if (regError) throw regError;
           if (!isMounted) return;
 
-          const today = new Date().toISOString().split('T')[0];
           const futureRegistrations = (regData || []).filter(
-            registration => registration.course && registration.course.date >= today
+            registration => registration.course && isCourseUpcoming(registration.course)
           );
 
           const registrationsWithCounts = await Promise.all(
@@ -104,7 +110,8 @@ const Dashboard: React.FC = () => {
                   .from('registrations')
                   .select('*', { count: 'exact', head: true })
                   .eq('course_id', registration.course.id)
-                  .eq('status', 'registered');
+                  .eq('status', 'registered')
+                  .is('cancellation_timestamp', null);
                 return {
                   ...registration,
                   course: { ...registration.course, registrationCount: count || 0 }
@@ -133,41 +140,55 @@ const Dashboard: React.FC = () => {
       if (!userProfile || !isMounted) return;
 
       try {
-        const { count: totalCoursesCount } = await supabase
+        const today = new Date().toISOString().split('T')[0];
+        const { data: upcomingCoursesData } = await supabase
           .from('courses')
-          .select('*', { count: 'exact', head: true });
+          .select('id, date, time')
+          .gte('date', today);
 
-        const { count: upcomingCoursesCount } = await supabase
-          .from('courses')
-          .select('*', { count: 'exact', head: true })
-          .gte('date', new Date().toISOString().split('T')[0]);
+        const upcomingCourseIds = (upcomingCoursesData || [])
+          .filter(isCourseUpcoming)
+          .map((course) => course.id);
 
-        const { count: totalParticipantsCount } = await supabase
-          .from('registrations')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'registered');
+        const totalCoursesCount = upcomingCourseIds.length;
+        const upcomingCoursesCount = totalCoursesCount;
 
-        let myCoursesCount = 0;
-        if (userProfile.role === 'teacher') {
-          const { count } = await supabase
-            .from('courses')
-            .select('*', { count: 'exact', head: true })
-            .eq('teacher_id', userProfile.id);
-          myCoursesCount = count || 0;
-        } else if (userProfile.role === 'user') {
+        let totalParticipantsCount = 0;
+        if (upcomingCourseIds.length > 0) {
           const { count } = await supabase
             .from('registrations')
             .select('*', { count: 'exact', head: true })
+            .eq('status', 'registered')
+            .is('cancellation_timestamp', null)
+            .in('course_id', upcomingCourseIds);
+          totalParticipantsCount = count || 0;
+        }
+
+        let myCoursesCount = 0;
+        if (userProfile.role === 'teacher') {
+          const { data } = await supabase
+            .from('courses')
+            .select('id, date, time')
+            .eq('teacher_id', userProfile.id)
+            .gte('date', today);
+          myCoursesCount = (data || []).filter(isCourseUpcoming).length;
+        } else if (userProfile.role === 'user') {
+          const { data } = await supabase
+            .from('registrations')
+            .select(`
+              course:courses(id, date, time)
+            `)
             .eq('user_id', userProfile.id)
-            .eq('status', 'registered');
-          myCoursesCount = count || 0;
+            .eq('status', 'registered')
+            .is('cancellation_timestamp', null);
+          myCoursesCount = (data || []).filter((item: any) => item.course && isCourseUpcoming(item.course)).length;
         }
 
         if (!isMounted) return;
         setStats({
-          totalCourses: totalCoursesCount || 0,
-          upcomingCourses: upcomingCoursesCount || 0,
-          totalParticipants: totalParticipantsCount || 0,
+          totalCourses: totalCoursesCount,
+          upcomingCourses: upcomingCoursesCount,
+          totalParticipants: totalParticipantsCount,
           myCourses: myCoursesCount
         });
       } catch (error) {
