@@ -402,11 +402,12 @@ export default function Users() {
       });
 
       if (fnError) {
-        throw new Error(
-          (fnError as unknown as { details?: string }).details
-            || fnError.message
-            || 'Löschen fehlgeschlagen',
-        );
+        let message = fnError.message || 'Löschen fehlgeschlagen';
+        try {
+          const body = await (fnError as any).context?.json?.();
+          message = body?.error || body?.details || message;
+        } catch { /* ignore parse errors */ }
+        throw new Error(message);
       }
 
       setUsers(prev => prev.filter(u => u.id !== userId));
