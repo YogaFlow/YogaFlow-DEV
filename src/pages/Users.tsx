@@ -251,9 +251,6 @@ export default function Users() {
     if (!editForm) return;
     setSavingProfile(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) throw new Error('Nicht authentifiziert.');
-
       const payload: Record<string, string> = {
         userId,
         first_name:   editForm.first_name,
@@ -267,25 +264,15 @@ export default function Users() {
       };
       if (editForm.new_password) payload.new_password = editForm.new_password;
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-user`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-          },
-          body: JSON.stringify(payload),
-        },
-      );
+      const { error: fnError } = await supabase.functions.invoke('update-user', {
+        body: payload,
+      });
 
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) {
+      if (fnError) {
         throw new Error(
-          (result as { details?: string; error?: string }).details
-            || (result as { details?: string; error?: string }).error
-            || `HTTP ${response.status}`,
+          (fnError as unknown as { details?: string }).details
+            || fnError.message
+            || 'Unbekannter Fehler',
         );
       }
 
@@ -410,28 +397,15 @@ export default function Users() {
 
     setDeletingId(userId);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) throw new Error('Nicht authentifiziert.');
+      const { error: fnError } = await supabase.functions.invoke('delete-user', {
+        body: { userId },
+      });
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-user`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-          },
-          body: JSON.stringify({ userId }),
-        },
-      );
-
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) {
+      if (fnError) {
         throw new Error(
-          (result as { details?: string; error?: string }).details
-            || (result as { details?: string; error?: string }).error
-            || `HTTP ${response.status}`,
+          (fnError as unknown as { details?: string }).details
+            || fnError.message
+            || 'Löschen fehlgeschlagen',
         );
       }
 
