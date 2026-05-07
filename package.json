@@ -11,6 +11,7 @@
     "db:push": "supabase db push",
     "supabase:link": "supabase link --project-ref mufxhtctutfpzklwqnze",
     "functions:deploy:delete-user": "supabase functions deploy delete-user --no-verify-jwt",
+    "functions:deploy:update-user": "supabase functions deploy update-user --no-verify-jwt",
     "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
