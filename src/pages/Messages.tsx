@@ -135,7 +135,7 @@ export default function Messages() {
         .is('cancellation_timestamp', null);
 
       if (error) throw error;
-      const users = data?.map(r => r.user).filter(Boolean) as User[];
+      const users = data?.map(r => r.user).filter(Boolean) as unknown as User[];
       setParticipants(users || []);
     } catch (error) {
       console.error('Error fetching participants:', error);
@@ -148,6 +148,7 @@ export default function Messages() {
 
     try {
       const messageData: any = {
+        tenant_id: userProfile?.tenant_id,
         course_id: selectedCourse,
         sender_id: userProfile?.id,
         content: newMessage.trim(),
@@ -181,11 +182,6 @@ export default function Messages() {
         type: 'error',
       });
     }
-  };
-
-  const getCourseLeaderForCourse = async (courseId: string): Promise<string> => {
-    const course = courses.find(c => c.id === courseId);
-    return course?.teacher_id || '';
   };
 
   const filteredMessages = selectedCourse
