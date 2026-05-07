@@ -63,9 +63,12 @@ const AuthPage: React.FC = () => {
   ]);
 
   // Nur bei passendem Mandant: Subdomain → Dashboard, Apex → Landing
+  // Kein Redirect während Registrierung läuft (Register-Tab aktiv), damit
+  // der Bestätigungsdialog sichtbar bleibt bevor manuell zum Dashboard navigiert wird.
   useEffect(() => {
     if (loading || profileLoading) return;
     if (!user || !isEmailConfirmed) return;
+    if (!isLogin) return;
     if (!tenantSlug) {
       navigate('/', { replace: true });
       return;
@@ -78,6 +81,7 @@ const AuthPage: React.FC = () => {
     profileLoading,
     user,
     isEmailConfirmed,
+    isLogin,
     userProfile,
     tenantSlug,
     tenantLoading,
