@@ -497,13 +497,15 @@ export default function Users() {
                   <tr className={`${isSelf ? 'bg-teal-50' : ''} ${isExpanded ? 'bg-gray-50' : 'hover:bg-gray-50'} transition-colors`}>
                     {/* Toggle button */}
                     <td className="px-3 py-4 text-center">
-                      <button
-                        onClick={() => handleToggleExpand(user)}
-                        className="text-gray-400 hover:text-teal-600 transition-colors"
-                        title={isExpanded ? 'Schließen' : 'Bearbeiten'}
-                      >
-                        {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                      </button>
+                      {(user.role !== 'owner' || isSelf) && (
+                        <button
+                          onClick={() => handleToggleExpand(user)}
+                          className="text-gray-400 hover:text-teal-600 transition-colors"
+                          title={isExpanded ? 'Schließen' : 'Bearbeiten'}
+                        >
+                          {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                        </button>
+                      )}
                     </td>
 
                     {/* Name */}
@@ -528,8 +530,8 @@ export default function Users() {
                         <span className={`px-2 py-1 text-xs rounded-full font-medium ${ROLE_COLORS[user.role]}`}>
                           {getRoleLabel(user.role)}
                         </span>
-                        {/* Role dropdown: only for Admin/Owner, not for self */}
-                        {isAdmin && !isSelf && (
+                        {/* Role dropdown: only for Admin/Owner, not for self, not for owner targets */}
+                        {isAdmin && !isSelf && user.role !== 'owner' && (
                           <>
                             <select
                               value={user.role}
@@ -552,12 +554,14 @@ export default function Users() {
                     {/* Actions */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
-                        <button
-                          onClick={() => handleToggleExpand(user)}
-                          className="text-teal-600 hover:text-teal-800 text-sm font-medium"
-                        >
-                          {isExpanded ? 'Schließen' : 'Bearbeiten'}
-                        </button>
+                        {(user.role !== 'owner' || isSelf) && (
+                          <button
+                            onClick={() => handleToggleExpand(user)}
+                            className="text-teal-600 hover:text-teal-800 text-sm font-medium"
+                          >
+                            {isExpanded ? 'Schließen' : 'Bearbeiten'}
+                          </button>
+                        )}
                         {/* Delete: only Admin/Owner, not self, not owner targets */}
                         {isAdmin && !isSelf && user.role !== 'owner' && (
                           <button
