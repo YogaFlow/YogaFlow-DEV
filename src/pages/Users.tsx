@@ -454,20 +454,255 @@ export default function Users() {
 
       <div className="mb-6">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Nutzerverwaltung</h1>
-        <p className="text-gray-500 mt-1">
+        <p className="text-sm text-gray-500 mt-1">
           {isTeacher
             ? 'Teilnehmer deiner Kurse – Stammdaten und Passwörter bearbeiten, Kurse zuweisen.'
             : 'Alle Studio-Nutzer verwalten – Stammdaten, Passwörter, Rollen und Kursbelegung.'}
         </p>
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-x-auto">
+      {/* ── Mobile card list (< lg) ── */}
+      <div className="lg:hidden space-y-2">
+        {users.length === 0 && (
+          <div className="bg-white rounded-xl border border-gray-200 px-6 py-12 text-center text-gray-500 text-sm">
+            {isTeacher ? 'Keine Teilnehmer in deinen Kursen gefunden.' : 'Noch keine Nutzer gefunden.'}
+          </div>
+        )}
+        {users.map(user => {
+          const isExpanded = expandedId === user.id;
+          const isSelf = user.id === userProfile?.id;
+          const alreadyRegisteredIds = new Set(userRegistrations.map(r => r.course_id));
+          const availableCoursesToAdd = courses.filter(c => !alreadyRegisteredIds.has(c.id));
+          return (
+            <React.Fragment key={user.id}>
+              <div className={`bg-white rounded-xl border shadow-sm overflow-hidden transition-colors ${
+                isExpanded ? 'border-teal-300' : 'border-gray-200'
+              }`}>
+                {/* Card header */}
+                <div className={`px-4 py-3 flex items-center justify-between gap-3 ${isSelf ? 'bg-teal-50' : ''}`}>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-semibold text-gray-900">
+                        {user.first_name} {user.last_name}
+                      </span>
+                      {isSelf && <span className="text-xs text-teal-600 font-medium">(du)</span>}
+                      <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${ROLE_COLORS[user.role]}`}>
+                        {getRoleLabel(user.role)}
+                      </span>
+                    </div>
+                    <p className="flex items-center gap-1 text-xs text-gray-400 mt-0.5 truncate">
+                      <Mail size={11} className="flex-shrink-0" />
+                      {user.email}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {isAdmin && !isSelf && user.role !== 'owner' && (
+                      <button
+                        onClick={() => handleDelete(user.id)}
+                        disabled={deletingId === user.id}
+                        className="p-1.5 text-red-400 hover:text-red-600 disabled:opacity-30 transition-colors"
+                        title="Nutzer löschen"
+                      >
+                        {deletingId === user.id
+                          ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500" />
+                          : <Trash2 size={16} />}
+                      </button>
+                    )}
+                    {(user.role !== 'owner' || isSelf) && (
+                      <button
+                        onClick={() => handleToggleExpand(user)}
+                        className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                          isExpanded
+                            ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            : 'bg-teal-600 text-white hover:bg-teal-700'
+                        }`}
+                      >
+                        {isExpanded
+                          ? <><ChevronUp size={13} />Schließen</>
+                          : <><ChevronDown size={13} />Bearbeiten</>}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Expanded panel (mobile) */}
+                {isExpanded && editForm && (
+                  <div className="border-t border-gray-100 bg-gray-50 px-4 py-4 space-y-4">
+
+                    {/* Rolle – nur auf Mobile im Panel */}
+                    {isAdmin && !isSelf && user.role !== 'owner' && (
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Rolle</label>
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={user.role}
+                            onChange={e => handleRoleChange(user.id, e.target.value as UserRole)}
+                            disabled={savingRoleId === user.id}
+                            className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50"
+                          >
+                            {roleOptionsForActor.map(opt => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                          </select>
+                          {savingRoleId === user.id && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-teal-600" />}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Stammdaten */}
+                    <div>
+                      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Stammdaten</h3>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Vorname</label>
+                          <input type="text" value={editForm.first_name}
+                            onChange={e => setEditForm(f => f ? { ...f, first_name: e.target.value } : f)}
+                            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Nachname</label>
+                          <input type="text" value={editForm.last_name}
+                            onChange={e => setEditForm(f => f ? { ...f, last_name: e.target.value } : f)}
+                            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                        </div>
+                        <div className="col-span-2">
+                          <label className="block text-xs text-gray-500 mb-1">E-Mail</label>
+                          <input type="email" value={editForm.email}
+                            onChange={e => setEditForm(f => f ? { ...f, email: e.target.value } : f)}
+                            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                        </div>
+                        <div className="col-span-2">
+                          <label className="block text-xs text-gray-500 mb-1">Telefon</label>
+                          <input type="tel" value={editForm.phone}
+                            onChange={e => setEditForm(f => f ? { ...f, phone: e.target.value } : f)}
+                            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Straße</label>
+                          <input type="text" value={editForm.street}
+                            onChange={e => setEditForm(f => f ? { ...f, street: e.target.value } : f)}
+                            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Hausnummer</label>
+                          <input type="text" value={editForm.house_number}
+                            onChange={e => setEditForm(f => f ? { ...f, house_number: e.target.value } : f)}
+                            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">PLZ</label>
+                          <input type="text" value={editForm.postal_code}
+                            onChange={e => setEditForm(f => f ? { ...f, postal_code: e.target.value } : f)}
+                            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Stadt</label>
+                          <input type="text" value={editForm.city}
+                            onChange={e => setEditForm(f => f ? { ...f, city: e.target.value } : f)}
+                            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Passwort */}
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">
+                        Neues Passwort <span className="text-gray-400">(optional)</span>
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          value={editForm.new_password}
+                          onChange={e => setEditForm(f => f ? { ...f, new_password: e.target.value } : f)}
+                          placeholder="Leer lassen = nicht ändern"
+                          className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        />
+                        <button type="button" onClick={() => setShowPassword(p => !p)}
+                          className="px-3 text-gray-400 hover:text-gray-600 border border-gray-300 rounded-lg">
+                          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => handleSaveProfile(user.id)}
+                      disabled={savingProfile}
+                      className="flex items-center gap-2 bg-teal-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-teal-700 disabled:opacity-50 transition-colors"
+                    >
+                      {savingProfile
+                        ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                        : <Save size={16} />}
+                      Speichern
+                    </button>
+
+                    {/* Kurs zuweisen */}
+                    <div className="border-t border-gray-200 pt-4">
+                      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Kurs zuweisen</h3>
+                      <div className="flex gap-2 mb-4">
+                        <select
+                          value={selectedCourseId}
+                          onChange={e => setSelectedCourseId(e.target.value)}
+                          className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        >
+                          <option value="">Kurs auswählen…</option>
+                          {availableCoursesToAdd.map(c => (
+                            <option key={c.id} value={c.id}>
+                              {c.title}{c.date ? ` (${new Date(c.date).toLocaleDateString('de-DE')})` : ''}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={() => handleAddToCourse(user.id)}
+                          disabled={!selectedCourseId || addingCourse}
+                          className="flex items-center justify-center px-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-colors"
+                        >
+                          {addingCourse
+                            ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                            : <Plus size={18} />}
+                        </button>
+                      </div>
+                      <h4 className="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">Aktuelle Buchungen</h4>
+                      {regsLoading ? (
+                        <div className="flex items-center gap-2 text-xs text-gray-400">
+                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-teal-500" />Lade…
+                        </div>
+                      ) : userRegistrations.length === 0 ? (
+                        <p className="text-xs text-gray-400 italic">Keine aktiven Buchungen.</p>
+                      ) : (
+                        <ul className="space-y-1.5">
+                          {userRegistrations.map(reg => (
+                            <li key={reg.id} className="flex items-start gap-2 text-xs text-gray-600">
+                              <UserCheck size={13} className="text-teal-500 flex-shrink-0 mt-0.5" />
+                              <span>
+                                {reg.courses?.title ?? '—'}
+                                {reg.courses?.date && (
+                                  <span className="text-gray-400"> ({new Date(reg.courses.date).toLocaleDateString('de-DE')})</span>
+                                )}
+                                {reg.is_waitlist && (
+                                  <span className="ml-1 text-orange-500 font-medium">Warteliste #{reg.waitlist_position}</span>
+                                )}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </React.Fragment>
+          );
+        })}
+      </div>
+
+      {/* ── Desktop table (lg+) ── */}
+      <div className="hidden lg:block bg-white rounded-lg shadow overflow-x-auto w-full">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
               <th className="px-3 py-3 w-8" />
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">E-Mail</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">E-Mail</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rolle</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aktionen</th>
             </tr>
@@ -509,19 +744,15 @@ export default function Users() {
                     </td>
 
                     {/* Name */}
-                    <td className="px-3 py-4 sm:px-6">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
                         {user.first_name} {user.last_name}
                         {isSelf && <span className="ml-2 text-xs text-teal-600 font-normal">(du)</span>}
                       </div>
-                      <div className="sm:hidden text-xs text-gray-500 mt-0.5 flex items-center gap-1">
-                        <Mail size={11} className="flex-shrink-0" />
-                        <span className="truncate">{user.email}</span>
-                      </div>
                     </td>
 
                     {/* E-Mail */}
-                    <td className="px-6 py-4 whitespace-nowrap hidden sm:table-cell">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-1.5 text-sm text-gray-600">
                         <Mail size={14} className="flex-shrink-0" />
                         {user.email}
@@ -529,19 +760,18 @@ export default function Users() {
                     </td>
 
                     {/* Role */}
-                    <td className="px-3 py-4 sm:px-6">
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-2">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
                         <span className={`px-2 py-1 text-xs rounded-full font-medium ${ROLE_COLORS[user.role]}`}>
                           {getRoleLabel(user.role)}
                         </span>
-                        {/* Role dropdown: only for Admin/Owner, not for self, not for owner targets */}
                         {isAdmin && !isSelf && user.role !== 'owner' && (
                           <>
                             <select
                               value={user.role}
                               onChange={e => handleRoleChange(user.id, e.target.value as UserRole)}
                               disabled={savingRoleId === user.id}
-                              className="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 w-full sm:w-auto"
+                              className="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50"
                             >
                               {roleOptionsForActor.map(opt => (
                                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -556,17 +786,16 @@ export default function Users() {
                     </td>
 
                     {/* Actions */}
-                    <td className="px-3 py-4 sm:px-6 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
                         {(user.role !== 'owner' || isSelf) && (
                           <button
                             onClick={() => handleToggleExpand(user)}
-                            className="hidden sm:block text-teal-600 hover:text-teal-800 text-sm font-medium"
+                            className="text-teal-600 hover:text-teal-800 text-sm font-medium"
                           >
                             {isExpanded ? 'Schließen' : 'Bearbeiten'}
                           </button>
                         )}
-                        {/* Delete: only Admin/Owner, not self, not owner targets */}
                         {isAdmin && !isSelf && user.role !== 'owner' && (
                           <button
                             onClick={() => handleDelete(user.id)}
@@ -588,14 +817,14 @@ export default function Users() {
                   {isExpanded && editForm && (
                     <tr>
                       <td colSpan={5} className="bg-gray-50 border-b border-gray-100 px-0 py-0">
-                        <div className="px-4 py-4 sm:px-8 sm:py-6">
+                        <div className="px-8 py-6">
                           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
 
                             {/* ── Left: Stammdaten + Passwort ── */}
                             <div className="lg:col-span-2 space-y-4">
                               <h3 className="text-sm font-semibold text-gray-700">Stammdaten</h3>
 
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div className="grid grid-cols-2 gap-3">
                                 {/* Vorname */}
                                 <div>
                                   <label className="block text-xs text-gray-500 mb-1">Vorname</label>

@@ -37,7 +37,7 @@ const Layout: React.FC = () => {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-h-0 lg:overflow-hidden">
+      <div className="flex-1 flex flex-col min-h-0 min-w-0 lg:overflow-hidden">
         <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
         <main className="flex-1 min-h-0 overflow-x-hidden lg:overflow-y-auto lg:overscroll-y-contain lg:[webkit-overflow-scrolling:touch]">
           <div className="p-3 sm:p-6 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-[max(1rem,env(safe-area-inset-bottom))] max-[380px]:p-2">
