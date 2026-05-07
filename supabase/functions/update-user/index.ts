@@ -120,6 +120,14 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // 5b. Owner profiles can only be edited by the owner themselves
+    if (targetProfile.role === "owner" && requestingUser.id !== userId) {
+      return new Response(
+        JSON.stringify({ error: "Owner-Profile können nur vom Owner selbst bearbeitet werden." }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     // 6. Teacher restriction: only edit 'user'-role participants of own courses
     if (requesterProfile.role === "teacher") {
       if (targetProfile.role !== "user") {
