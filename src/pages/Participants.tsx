@@ -287,107 +287,180 @@ const Participants: React.FC = () => {
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Teilnehmer
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Kurs
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Kontakt
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Angemeldet
-                  </th>
-                  {isStudioAdmin(userProfile) && (
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Aktionen
-                    </th>
+        <>
+          {/* Mobile: card list */}
+          <div className="sm:hidden space-y-3">
+            {filteredParticipants.map((participant) => (
+              <div key={participant.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium text-gray-900">
+                      {participant.user.first_name} {participant.user.last_name}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-0.5 truncate">
+                      {participant.user.street} {participant.user.house_number}, {participant.user.postal_code} {participant.user.city}
+                    </div>
+                  </div>
+                  <span className={`flex-shrink-0 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                    participant.status === 'registered'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {participant.status === 'registered'
+                      ? 'Angemeldet'
+                      : participant.waitlist_position
+                        ? `WL ${participant.waitlist_position}`
+                        : 'Warteliste'}
+                  </span>
+                </div>
+
+                <div className="text-sm font-medium text-gray-800 mb-1">{participant.course.title}</div>
+                <div className="flex items-center gap-3 text-xs text-gray-500 mb-3">
+                  <span className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    {format(parseISO(participant.course.date), 'dd.MM.yyyy', { locale: de })}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    {participant.course.time}{participant.course.end_time && ` – ${participant.course.end_time}`}
+                  </span>
+                </div>
+
+                <div className="space-y-1 text-xs mb-3">
+                  <a href={`mailto:${participant.user.email}`} className="flex items-center gap-1.5 text-gray-600 hover:text-teal-600">
+                    <Mail className="w-3 h-3 flex-shrink-0" />
+                    <span className="truncate">{participant.user.email}</span>
+                  </a>
+                  {participant.user.phone && (
+                    <a href={`tel:${participant.user.phone}`} className="flex items-center gap-1.5 text-gray-600 hover:text-teal-600">
+                      <Phone className="w-3 h-3 flex-shrink-0" />
+                      {participant.user.phone}
+                    </a>
                   )}
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredParticipants.map((participant) => (
-                  <tr key={participant.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">
-                          {participant.user.first_name} {participant.user.last_name}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {participant.user.street} {participant.user.house_number}, {participant.user.postal_code} {participant.user.city}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">
-                          {participant.course.title}
-                        </div>
-                        <div className="text-sm text-gray-500 flex items-center">
-                          <Calendar className="w-3 h-3 mr-1" />
-                          {format(parseISO(participant.course.date), 'dd.MM.yyyy', { locale: de })}
-                          <Clock className="w-3 h-3 ml-2 mr-1" />
-                          {participant.course.time}{participant.course.end_time && ` - ${participant.course.end_time}`}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900 flex items-center">
-                        <Mail className="w-3 h-3 mr-1" />
-                        <a href={`mailto:${participant.user.email}`} className="hover:text-teal-600">
-                          {participant.user.email}
-                        </a>
-                      </div>
-                      <div className="text-sm text-gray-500 flex items-center mt-1">
-                        <Phone className="w-3 h-3 mr-1" />
-                        <a href={`tel:${participant.user.phone}`} className="hover:text-teal-600">
-                          {participant.user.phone}
-                        </a>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        participant.status === 'registered'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {participant.status === 'registered'
-                          ? 'Angemeldet'
-                          : participant.waitlist_position
-                            ? `Warteliste (Pos. ${participant.waitlist_position})`
-                            : 'Warteliste'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {format(parseISO(participant.registered_at), 'dd.MM.yyyy HH:mm', { locale: de })}
-                    </td>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                  <span className="text-xs text-gray-400">
+                    {format(parseISO(participant.registered_at), 'dd.MM.yyyy HH:mm', { locale: de })}
+                  </span>
+                  {isStudioAdmin(userProfile) && (
+                    <select
+                      value={participant.status}
+                      onChange={(e) => handleStatusChange(participant.id, e.target.value as 'registered' | 'waitlist')}
+                      className="text-xs border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    >
+                      <option value="registered">Angemeldet</option>
+                      <option value="waitlist">Warteliste</option>
+                    </select>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop: table */}
+          <div className="hidden sm:block bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Teilnehmer
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Kurs
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Kontakt
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Angemeldet
+                    </th>
                     {isStudioAdmin(userProfile) && (
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <select
-                          value={participant.status}
-                          onChange={(e) => handleStatusChange(participant.id, e.target.value as 'registered' | 'waitlist')}
-                          className="text-sm border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                        >
-                          <option value="registered">Angemeldet</option>
-                          <option value="waitlist">Warteliste</option>
-                        </select>
-                      </td>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Aktionen
+                      </th>
                     )}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredParticipants.map((participant) => (
+                    <tr key={participant.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {participant.user.first_name} {participant.user.last_name}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {participant.user.street} {participant.user.house_number}, {participant.user.postal_code} {participant.user.city}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {participant.course.title}
+                          </div>
+                          <div className="text-sm text-gray-500 flex items-center">
+                            <Calendar className="w-3 h-3 mr-1" />
+                            {format(parseISO(participant.course.date), 'dd.MM.yyyy', { locale: de })}
+                            <Clock className="w-3 h-3 ml-2 mr-1" />
+                            {participant.course.time}{participant.course.end_time && ` - ${participant.course.end_time}`}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900 flex items-center">
+                          <Mail className="w-3 h-3 mr-1" />
+                          <a href={`mailto:${participant.user.email}`} className="hover:text-teal-600">
+                            {participant.user.email}
+                          </a>
+                        </div>
+                        <div className="text-sm text-gray-500 flex items-center mt-1">
+                          <Phone className="w-3 h-3 mr-1" />
+                          <a href={`tel:${participant.user.phone}`} className="hover:text-teal-600">
+                            {participant.user.phone}
+                          </a>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          participant.status === 'registered'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {participant.status === 'registered'
+                            ? 'Angemeldet'
+                            : participant.waitlist_position
+                              ? `Warteliste (Pos. ${participant.waitlist_position})`
+                              : 'Warteliste'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {format(parseISO(participant.registered_at), 'dd.MM.yyyy HH:mm', { locale: de })}
+                      </td>
+                      {isStudioAdmin(userProfile) && (
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <select
+                            value={participant.status}
+                            onChange={(e) => handleStatusChange(participant.id, e.target.value as 'registered' | 'waitlist')}
+                            className="text-sm border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                          >
+                            <option value="registered">Angemeldet</option>
+                            <option value="waitlist">Warteliste</option>
+                          </select>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

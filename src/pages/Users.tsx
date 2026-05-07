@@ -449,11 +449,11 @@ export default function Users() {
   // ---------------------------------------------------------------------------
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-8">
       <FeedbackDialog dialog={feedbackDialog} onClose={() => setFeedbackDialog(null)} />
 
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Nutzerverwaltung</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Nutzerverwaltung</h1>
         <p className="text-gray-500 mt-1">
           {isTeacher
             ? 'Teilnehmer deiner Kurse – Stammdaten und Passwörter bearbeiten, Kurse zuweisen.'
@@ -467,7 +467,7 @@ export default function Users() {
             <tr>
               <th className="px-3 py-3 w-8" />
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">E-Mail</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">E-Mail</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rolle</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aktionen</th>
             </tr>
@@ -509,15 +509,19 @@ export default function Users() {
                     </td>
 
                     {/* Name */}
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 py-4 sm:px-6">
                       <div className="text-sm font-medium text-gray-900">
                         {user.first_name} {user.last_name}
                         {isSelf && <span className="ml-2 text-xs text-teal-600 font-normal">(du)</span>}
                       </div>
+                      <div className="sm:hidden text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                        <Mail size={11} className="flex-shrink-0" />
+                        <span className="truncate">{user.email}</span>
+                      </div>
                     </td>
 
                     {/* E-Mail */}
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap hidden sm:table-cell">
                       <div className="flex items-center gap-1.5 text-sm text-gray-600">
                         <Mail size={14} className="flex-shrink-0" />
                         {user.email}
@@ -525,8 +529,8 @@ export default function Users() {
                     </td>
 
                     {/* Role */}
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
+                    <td className="px-3 py-4 sm:px-6">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-2">
                         <span className={`px-2 py-1 text-xs rounded-full font-medium ${ROLE_COLORS[user.role]}`}>
                           {getRoleLabel(user.role)}
                         </span>
@@ -537,7 +541,7 @@ export default function Users() {
                               value={user.role}
                               onChange={e => handleRoleChange(user.id, e.target.value as UserRole)}
                               disabled={savingRoleId === user.id}
-                              className="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50"
+                              className="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 w-full sm:w-auto"
                             >
                               {roleOptionsForActor.map(opt => (
                                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -552,12 +556,12 @@ export default function Users() {
                     </td>
 
                     {/* Actions */}
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 py-4 sm:px-6 whitespace-nowrap">
                       <div className="flex items-center gap-3">
                         {(user.role !== 'owner' || isSelf) && (
                           <button
                             onClick={() => handleToggleExpand(user)}
-                            className="text-teal-600 hover:text-teal-800 text-sm font-medium"
+                            className="hidden sm:block text-teal-600 hover:text-teal-800 text-sm font-medium"
                           >
                             {isExpanded ? 'Schließen' : 'Bearbeiten'}
                           </button>
@@ -584,14 +588,14 @@ export default function Users() {
                   {isExpanded && editForm && (
                     <tr>
                       <td colSpan={5} className="bg-gray-50 border-b border-gray-100 px-0 py-0">
-                        <div className="px-8 py-6">
+                        <div className="px-4 py-4 sm:px-8 sm:py-6">
                           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
 
                             {/* ── Left: Stammdaten + Passwort ── */}
                             <div className="lg:col-span-2 space-y-4">
                               <h3 className="text-sm font-semibold text-gray-700">Stammdaten</h3>
 
-                              <div className="grid grid-cols-2 gap-3">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 {/* Vorname */}
                                 <div>
                                   <label className="block text-xs text-gray-500 mb-1">Vorname</label>
