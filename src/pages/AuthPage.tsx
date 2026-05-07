@@ -6,7 +6,7 @@ import { Heart } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTenant, APP_BASE_DOMAIN } from '../context/TenantContext';
 
-type AccessNotice = 'wrong_studio' | 'profile_missing' | null;
+type AccessNotice = 'wrong_studio' | 'profile_missing' | 'email_not_confirmed' | null;
 
 const AuthPage: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -61,6 +61,15 @@ const AuthPage: React.FC = () => {
     userProfile,
     signOut,
   ]);
+
+  // Eingeloggt aber E-Mail noch nicht bestätigt (nur auf Login-Tab): Hinweis + Abmelden
+  useEffect(() => {
+    if (loading || profileLoading) return;
+    if (!user || !isLogin || !userProfile) return;
+    if (isEmailConfirmed) return;
+    setAccessNotice('email_not_confirmed');
+    void signOut();
+  }, [loading, profileLoading, user, isEmailConfirmed, isLogin, userProfile, signOut]);
 
   // Nur bei passendem Mandant: Subdomain → Dashboard, Apex → Landing
   // Kein Redirect während Registrierung läuft (Register-Tab aktiv), damit
@@ -257,6 +266,22 @@ const AuthPage: React.FC = () => {
                 Für dein Konto existiert kein Eintrag in der Studio-Datenbank (z.&nbsp;B. abgebrochene Registrierung).
                 Bitte lege dein Studio über die Startseite (Jetzt kostenlos starten) erneut an oder wende dich an den
                 Support.
+              </p>
+              <button
+                type="button"
+                onClick={() => setAccessNotice(null)}
+                className="mt-3 text-teal-700 font-medium hover:underline"
+              >
+                Hinweis schließen
+              </button>
+            </div>
+          )}
+          {accessNotice === 'email_not_confirmed' && (
+            <div className="mx-8 mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-sm">
+              <p className="font-medium mb-1">E-Mail noch nicht bestätigt</p>
+              <p>
+                Bitte klicke auf den Bestätigungslink in der E-Mail, die wir dir nach der
+                Registrierung gesendet haben. Erst danach kannst du dich anmelden.
               </p>
               <button
                 type="button"

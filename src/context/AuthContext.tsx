@@ -276,11 +276,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isCourseLeader = useMemo(() => ['owner', 'admin', 'teacher'].includes(userProfile?.role ?? ''), [userProfile]);
   const isParticipant  = useMemo(() => userProfile?.role === 'user',                                    [userProfile]);
 
+  // Nur der app-seitige Wert zählt — email_confirmed_at wird von Supabase-Autoconfirm sofort
+  // gesetzt und würde die eigene Bestätigungspflicht umgehen.
   const isEmailConfirmed = useMemo(() => {
     if (!user) return false;
-    const authConfirmed = !!(user as { email_confirmed_at?: string | null }).email_confirmed_at;
-    const appConfirmed = userProfile?.email_verified === true;
-    return authConfirmed || appConfirmed;
+    return userProfile?.email_verified === true;
   }, [user, userProfile]);
 
   const value: AuthContextType = {

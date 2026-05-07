@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTenant } from '../../context/TenantContext';
 import { Eye, EyeOff, User, Mail, Lock } from 'lucide-react';
@@ -19,9 +18,8 @@ const RegisterForm: React.FC = () => {
   const [success, setSuccess] = useState(false);
   const [emailSentOnSignup, setEmailSentOnSignup] = useState(true);
 
-  const { signUp } = useAuth();
+  const { signUp, signOut } = useAuth();
   const { tenant } = useTenant();
-  const navigate = useNavigate();
 
   const handleChange = (e: React.FormEvent<HTMLInputElement>) => {
     const { name, value } = e.currentTarget;
@@ -104,6 +102,7 @@ const RegisterForm: React.FC = () => {
         }
         setEmailSentOnSignup(emailSent);
         setSuccess(true);
+        await signOut();
       }
     } catch {
       setError('Ein Fehler ist aufgetreten. Bitte versuche es später erneut.');
@@ -119,21 +118,16 @@ const RegisterForm: React.FC = () => {
           <h3 className="text-lg font-semibold text-green-800 mb-2">Registrierung erfolgreich!</h3>
           {emailSentOnSignup ? (
             <p className="text-sm text-green-600">
-              Willkommen! Wir haben eine Bestätigungsmail an <strong>{formData.email}</strong>{' '}
-              gesendet. Du kannst dich ab sofort anmelden.
+              Wir haben eine Bestätigungsmail an <strong>{formData.email}</strong> gesendet.
+              Bitte klicke auf den Link in der E-Mail, um dein Konto zu aktivieren.
+              Danach kannst du dich hier anmelden.
             </p>
           ) : (
             <p className="text-sm text-green-600">
-              Dein Konto wurde erstellt. Du kannst dich jetzt anmelden.
+              Dein Konto wurde erstellt. Nutze auf der Anmeldeseite
+              „Bestätigungsmail erneut senden", um den Bestätigungslink zu erhalten.
             </p>
           )}
-          <button
-            type="button"
-            onClick={() => navigate('/dashboard')}
-            className="mt-4 w-full bg-teal-600 text-white py-2 px-4 rounded-lg hover:bg-teal-700 transition-colors text-sm font-medium"
-          >
-            Zum Dashboard
-          </button>
         </div>
       </div>
     );
