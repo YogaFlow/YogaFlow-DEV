@@ -46,7 +46,7 @@ const Sidebar: React.FC = () => {
       );
     }
 
-    if (isOwner) {
+    if (isCourseLeader) {
       items.splice(-1, 0,
         { to: '/users', icon: UserCog, label: 'Nutzerverwaltung' },
       );
