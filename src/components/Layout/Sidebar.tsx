@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   Calendar,
@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTenant } from '../../context/TenantContext';
+import { useUnreadMessages } from '../../lib/useUnreadMessages';
 
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
   owner:   { label: 'Owner',     color: 'bg-purple-100 text-purple-800' },
@@ -24,6 +25,17 @@ const ROLE_LABELS: Record<string, { label: string; color: string }> = {
 const Sidebar: React.FC = () => {
   const { userProfile, signOut, isOwner, isAdmin, isCourseLeader } = useAuth();
   const { tenant } = useTenant();
+  const { unreadCount } = useUnreadMessages();
+
+  // Kurzer "Pop"-Effekt jedes Mal, wenn die Anzahl ungelesener Nachrichten steigt.
+  const prevUnreadRef = useRef(unreadCount);
+  const [popKey, setPopKey] = useState(0);
+  useEffect(() => {
+    if (unreadCount > prevUnreadRef.current) {
+      setPopKey((k) => k + 1);
+    }
+    prevUnreadRef.current = unreadCount;
+  }, [unreadCount]);
 
   const getNavItems = () => {
     const items = [
@@ -76,21 +88,48 @@ const Sidebar: React.FC = () => {
 
       <nav className="flex-1 p-4 overflow-y-auto">
         <ul className="space-y-2">
-          {navItems.map((item) => (
-            <li key={item.to}>
-              <NavLink
-                to={item.to}
-                className={({ isActive }) =>
-                  `flex items-center px-4 py-3 rounded-lg transition-colors ${
-                    isActive ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'
-                  }`
-                }
-              >
-                <item.icon className="w-5 h-5 mr-3" />
-                {item.label}
-              </NavLink>
-            </li>
-          ))}
+          {navItems.map((item) => {
+            const isMessages = item.to === '/messages';
+            const hasUnread = isMessages && unreadCount > 0;
+            return (
+              <li key={item.to}>
+                <NavLink
+                  to={item.to}
+                  className={({ isActive }) =>
+                    `flex items-center px-4 py-3 rounded-lg transition-colors ${
+                      isActive ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'
+                    }`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <span className="relative mr-3 inline-flex items-center justify-center">
+                        <item.icon
+                          key={isMessages ? popKey : undefined}
+                          className={`w-5 h-5 ${
+                            hasUnread
+                              ? `text-red-500 animate-pulse${popKey ? ' animate-pop' : ''}`
+                              : ''
+                          }`}
+                        />
+                        {hasUnread && (
+                          <span
+                            aria-label={`${unreadCount} ungelesene Nachrichten`}
+                            className={`absolute -top-1.5 -right-2 min-w-[1rem] h-4 px-1 rounded-full bg-red-500 text-[10px] leading-4 text-white text-center font-semibold ring-2 ${
+                              isActive ? 'ring-gray-900' : 'ring-white'
+                            }`}
+                          >
+                            {unreadCount > 9 ? '9+' : unreadCount}
+                          </span>
+                        )}
+                      </span>
+                      {item.label}
+                    </>
+                  )}
+                </NavLink>
+              </li>
+            );
+          })}
         </ul>
       </nav>
 
