@@ -142,6 +142,9 @@ const OnboardingWizard: React.FC = () => {
   };
 
   const handleSubmit = async () => {
+    // Verhindert, dass der forceNewStudio-Effekt die Seite neu lädt, wenn Supabase
+    // nach signUp() kurzzeitig eine Session setzt (user wird non-null).
+    autoSignOutHandledRef.current = true;
     setIsSubmitting(true);
     setSubmitError(null);
     const normalizedEmail = email.trim().toLowerCase();
