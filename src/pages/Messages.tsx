@@ -5,6 +5,7 @@ import { Message, Course, User } from '../types';
 import { MessageSquare, Send, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
+import { isCourseUpcoming } from '../lib/courseDateTime';
 
 export default function Messages() {
   const { userProfile, isCourseLeader } = useAuth();
@@ -33,7 +34,12 @@ export default function Messages() {
 
   const fetchCourses = async () => {
     try {
-      let query = supabase.from('courses').select('*');
+      const today = new Date().toISOString().split('T')[0];
+      let query = supabase
+        .from('courses')
+        .select('*')
+        .neq('status', 'canceled')
+        .gte('date', today);
 
       if (isCourseLeader) {
         query = query.eq('teacher_id', userProfile?.id);
@@ -44,16 +50,20 @@ export default function Messages() {
           .eq('user_id', userProfile?.id)
           .is('cancellation_timestamp', null);
 
-        if (registrations && registrations.length > 0) {
-          const courseIds = registrations.map(r => r.course_id);
-          query = query.in('id', courseIds);
+        if (!registrations || registrations.length === 0) {
+          setCourses([]);
+          return;
         }
+
+        const courseIds = registrations.map(r => r.course_id);
+        query = query.in('id', courseIds);
       }
 
       const { data, error } = await query.order('date', { ascending: true });
 
       if (error) throw error;
-      setCourses(data || []);
+      const upcomingCourses = (data || []).filter((course) => isCourseUpcoming(course));
+      setCourses(upcomingCourses);
     } catch (error) {
       console.error('Error fetching courses:', error);
     }
