@@ -77,15 +77,17 @@ const OnboardingWizard: React.FC = () => {
 
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
-  // CTA "Jetzt kostenlos starten": vorhandene Session automatisch auflösen und Onboarding neu laden.
+  // CTA "Jetzt kostenlos starten": vorhandene Session automatisch auflösen.
+  // navigate() statt window.location.replace(): kein Seiten-Reload, React-State bleibt erhalten.
   useEffect(() => {
     if (!forceNewStudio || !user || autoSignOutHandledRef.current) return;
     autoSignOutHandledRef.current = true;
     setAutoSigningOut(true);
     void supabase.auth.signOut().finally(() => {
-      window.location.replace('/onboarding');
+      navigate('/onboarding', { replace: true });
+      setAutoSigningOut(false);
     });
-  }, [forceNewStudio, user]);
+  }, [forceNewStudio, user, navigate]);
 
   // Wenn bereits eingeloggt: Studio-URL für "Zurück zum Dashboard" ermitteln
   useEffect(() => {
