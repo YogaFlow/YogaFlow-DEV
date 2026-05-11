@@ -6,6 +6,7 @@ import { MessageSquare, Send, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
 import { isCourseUpcoming } from '../lib/courseDateTime';
+import { notifyMessagesSeen } from '../lib/useUnreadMessages';
 
 export default function Messages() {
   const { userProfile, isCourseLeader } = useAuth();
@@ -25,6 +26,22 @@ export default function Messages() {
       fetchMessages();
     }
   }, [userProfile]);
+
+  // Beim Öffnen der Nachrichten-Seite gelten alle aktuell sichtbaren Nachrichten als gesehen,
+  // damit der rote Badge in der Sidebar verschwindet. Per Custom-Event wird die Sidebar
+  // sofort synchronisiert; der LocalStorage-Zeitstempel sorgt für Persistenz über Reloads.
+  useEffect(() => {
+    if (!userProfile?.id) return;
+    try {
+      localStorage.setItem(
+        `yogaflow:messages_last_seen:${userProfile.id}`,
+        new Date().toISOString(),
+      );
+    } catch {
+      // ignore
+    }
+    notifyMessagesSeen();
+  }, [userProfile?.id]);
 
   useEffect(() => {
     if (selectedCourse) {
