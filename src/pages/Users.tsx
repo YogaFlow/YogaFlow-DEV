@@ -93,17 +93,6 @@ function isLastOwnerSelfDowngrade(user: User, ownerCount: number, isSelf: boolea
   return isSelf && user.role === 'owner' && ownerCount <= 1;
 }
 
-function getRoleOptionsForTarget(
-  user: User,
-  isSelf: boolean,
-  roleOptionsForActor: { value: UserRole; label: string }[],
-): { value: UserRole; label: string }[] {
-  if (isSelf && user.role === 'owner') {
-    return roleOptionsForActor.filter(r => r.value !== 'owner');
-  }
-  return roleOptionsForActor;
-}
-
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -378,6 +367,8 @@ export default function Users() {
 
   const handleRoleChange = async (userId: string, newRole: UserRole) => {
     const targetUser = users.find(u => u.id === userId);
+    if (!targetUser || targetUser.role === newRole) return;
+
     const ownerCount = users.filter(u => u.role === 'owner').length;
 
     if (targetUser?.role === 'owner' && newRole !== 'owner' && ownerCount <= 1) {
@@ -502,7 +493,6 @@ export default function Users() {
           const ownerCount = users.filter(u => u.role === 'owner').length;
           const showRoleDropdown = canShowRoleDropdown(user, { isAdmin, isOwner, isSelf });
           const lastOwnerLocked = isLastOwnerSelfDowngrade(user, ownerCount, isSelf);
-          const roleOptions = getRoleOptionsForTarget(user, isSelf, roleOptionsForActor);
           const alreadyRegisteredIds = new Set(userRegistrations.map(r => r.course_id));
           const availableCoursesToAdd = courses.filter(c => !alreadyRegisteredIds.has(c.id));
           return (
@@ -573,8 +563,14 @@ export default function Users() {
                             title={lastOwnerLocked ? 'Du bist der einzige Owner. Ernenne zuerst einen weiteren Owner.' : undefined}
                             className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50"
                           >
-                            {roleOptions.map(opt => (
-                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            {roleOptionsForActor.map(opt => (
+                              <option
+                                key={opt.value}
+                                value={opt.value}
+                                disabled={isSelf && user.role === 'owner' && opt.value === 'owner'}
+                              >
+                                {opt.label}
+                              </option>
                             ))}
                           </select>
                           {savingRoleId === user.id && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-teal-600" />}
@@ -762,7 +758,6 @@ export default function Users() {
               const ownerCount = users.filter(u => u.role === 'owner').length;
               const showRoleDropdown = canShowRoleDropdown(user, { isAdmin, isOwner, isSelf });
               const lastOwnerLocked = isLastOwnerSelfDowngrade(user, ownerCount, isSelf);
-              const roleOptions = getRoleOptionsForTarget(user, isSelf, roleOptionsForActor);
 
               // Courses the user is already registered in (for dropdown filtering)
               const alreadyRegisteredIds = new Set(userRegistrations.map(r => r.course_id));
@@ -817,8 +812,14 @@ export default function Users() {
                                 title={lastOwnerLocked ? 'Du bist der einzige Owner. Ernenne zuerst einen weiteren Owner.' : undefined}
                                 className="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50"
                               >
-                                {roleOptions.map(opt => (
-                                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                {roleOptionsForActor.map(opt => (
+                                  <option
+                                    key={opt.value}
+                                    value={opt.value}
+                                    disabled={isSelf && user.role === 'owner' && opt.value === 'owner'}
+                                  >
+                                    {opt.label}
+                                  </option>
                                 ))}
                               </select>
                               {savingRoleId === user.id && (
