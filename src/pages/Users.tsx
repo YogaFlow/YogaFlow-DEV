@@ -80,12 +80,36 @@ function getRoleChangeErrorMessage(error: unknown): string {
   return 'Die Rolle konnte nicht geändert werden. Bitte versuche es erneut.';
 }
 
+function canShowRoleDropdown(
+  user: User,
+  ctx: { isAdmin: boolean; isOwner: boolean; isSelf: boolean },
+): boolean {
+  if (!ctx.isAdmin) return false;
+  if (user.role !== 'owner') return true;
+  return ctx.isSelf && ctx.isOwner;
+}
+
+function isLastOwnerSelfDowngrade(user: User, ownerCount: number, isSelf: boolean): boolean {
+  return isSelf && user.role === 'owner' && ownerCount <= 1;
+}
+
+function getRoleOptionsForTarget(
+  user: User,
+  isSelf: boolean,
+  roleOptionsForActor: { value: UserRole; label: string }[],
+): { value: UserRole; label: string }[] {
+  if (isSelf && user.role === 'owner') {
+    return roleOptionsForActor.filter(r => r.value !== 'owner');
+  }
+  return roleOptionsForActor;
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export default function Users() {
-  const { isCourseLeader, isOwner, isAdmin, userProfile } = useAuth();
+  const { isCourseLeader, isOwner, isAdmin, userProfile, refreshProfile } = useAuth();
   const isTeacher = userProfile?.role === 'teacher';
 
   // Actor's available role options (owner can set all; admin cannot set owner)
@@ -373,6 +397,9 @@ export default function Users() {
         .eq('id', userId);
       if (error) throw error;
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
+      if (userId === userProfile?.id) {
+        await refreshProfile();
+      }
     } catch (err) {
       setFeedbackDialog({
         title:   'Rolle kann nicht geändert werden',
@@ -472,6 +499,10 @@ export default function Users() {
         {users.map(user => {
           const isExpanded = expandedId === user.id;
           const isSelf = user.id === userProfile?.id;
+          const ownerCount = users.filter(u => u.role === 'owner').length;
+          const showRoleDropdown = canShowRoleDropdown(user, { isAdmin, isOwner, isSelf });
+          const lastOwnerLocked = isLastOwnerSelfDowngrade(user, ownerCount, isSelf);
+          const roleOptions = getRoleOptionsForTarget(user, isSelf, roleOptionsForActor);
           const alreadyRegisteredIds = new Set(userRegistrations.map(r => r.course_id));
           const availableCoursesToAdd = courses.filter(c => !alreadyRegisteredIds.has(c.id));
           return (
@@ -531,22 +562,28 @@ export default function Users() {
                   <div className="border-t border-gray-100 bg-gray-50 px-4 py-4 space-y-4">
 
                     {/* Rolle – nur auf Mobile im Panel */}
-                    {isAdmin && !isSelf && user.role !== 'owner' && (
+                    {showRoleDropdown && (
                       <div>
                         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Rolle</label>
                         <div className="flex items-center gap-2">
                           <select
                             value={user.role}
                             onChange={e => handleRoleChange(user.id, e.target.value as UserRole)}
-                            disabled={savingRoleId === user.id}
+                            disabled={savingRoleId === user.id || lastOwnerLocked}
+                            title={lastOwnerLocked ? 'Du bist der einzige Owner. Ernenne zuerst einen weiteren Owner.' : undefined}
                             className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50"
                           >
-                            {roleOptionsForActor.map(opt => (
+                            {roleOptions.map(opt => (
                               <option key={opt.value} value={opt.value}>{opt.label}</option>
                             ))}
                           </select>
                           {savingRoleId === user.id && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-teal-600" />}
                         </div>
+                        {lastOwnerLocked && (
+                          <p className="mt-1 text-xs text-amber-600">
+                            Du bist der einzige Owner. Ernenne zuerst einen weiteren Owner.
+                          </p>
+                        )}
                       </div>
                     )}
 
@@ -722,6 +759,10 @@ export default function Users() {
             {users.map(user => {
               const isExpanded = expandedId === user.id;
               const isSelf = user.id === userProfile?.id;
+              const ownerCount = users.filter(u => u.role === 'owner').length;
+              const showRoleDropdown = canShowRoleDropdown(user, { isAdmin, isOwner, isSelf });
+              const lastOwnerLocked = isLastOwnerSelfDowngrade(user, ownerCount, isSelf);
+              const roleOptions = getRoleOptionsForTarget(user, isSelf, roleOptionsForActor);
 
               // Courses the user is already registered in (for dropdown filtering)
               const alreadyRegisteredIds = new Set(userRegistrations.map(r => r.course_id));
@@ -762,26 +803,34 @@ export default function Users() {
 
                     {/* Role */}
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <span className={`px-2 py-1 text-xs rounded-full font-medium ${ROLE_COLORS[user.role]}`}>
-                          {getRoleLabel(user.role)}
-                        </span>
-                        {isAdmin && !isSelf && user.role !== 'owner' && (
-                          <>
-                            <select
-                              value={user.role}
-                              onChange={e => handleRoleChange(user.id, e.target.value as UserRole)}
-                              disabled={savingRoleId === user.id}
-                              className="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50"
-                            >
-                              {roleOptionsForActor.map(opt => (
-                                <option key={opt.value} value={opt.value}>{opt.label}</option>
-                              ))}
-                            </select>
-                            {savingRoleId === user.id && (
-                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-teal-600" />
-                            )}
-                          </>
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-1 text-xs rounded-full font-medium ${ROLE_COLORS[user.role]}`}>
+                            {getRoleLabel(user.role)}
+                          </span>
+                          {showRoleDropdown && (
+                            <>
+                              <select
+                                value={user.role}
+                                onChange={e => handleRoleChange(user.id, e.target.value as UserRole)}
+                                disabled={savingRoleId === user.id || lastOwnerLocked}
+                                title={lastOwnerLocked ? 'Du bist der einzige Owner. Ernenne zuerst einen weiteren Owner.' : undefined}
+                                className="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50"
+                              >
+                                {roleOptions.map(opt => (
+                                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                ))}
+                              </select>
+                              {savingRoleId === user.id && (
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-teal-600" />
+                              )}
+                            </>
+                          )}
+                        </div>
+                        {showRoleDropdown && lastOwnerLocked && (
+                          <p className="text-xs text-amber-600 max-w-xs">
+                            Du bist der einzige Owner. Ernenne zuerst einen weiteren Owner.
+                          </p>
                         )}
                       </div>
                     </td>

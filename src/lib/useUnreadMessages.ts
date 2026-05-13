@@ -6,13 +6,11 @@ const POLL_INTERVAL_MS = 30_000;
 const STORAGE_PREFIX = 'yogaflow:messages_last_seen:';
 const MARK_SEEN_EVENT = 'yogaflow:messages-seen';
 
+/** Baseline für noch nie besuchte Messages-Seite: zähle alle Broadcasts als ungelesen. */
+const EPOCH_BASELINE = '1970-01-01T00:00:00.000Z';
+
 const storageKey = (userId: string) => `${STORAGE_PREFIX}${userId}`;
 
-/**
- * Liest den "zuletzt gesehen"-Zeitstempel für die Messages-Seite aus dem LocalStorage.
- * Beim ersten Aufruf auf einem Browser wird der aktuelle Zeitpunkt als Baseline gesetzt,
- * damit alte Nachrichten nicht alle plötzlich als ungelesen markiert werden.
- */
 const readLastSeen = (userId: string): string => {
   try {
     const v = localStorage.getItem(storageKey(userId));
@@ -20,13 +18,7 @@ const readLastSeen = (userId: string): string => {
   } catch {
     // ignore
   }
-  const now = new Date().toISOString();
-  try {
-    localStorage.setItem(storageKey(userId), now);
-  } catch {
-    // ignore
-  }
-  return now;
+  return EPOCH_BASELINE;
 };
 
 const writeLastSeen = (userId: string, iso: string) => {
@@ -38,13 +30,52 @@ const writeLastSeen = (userId: string, iso: string) => {
 };
 
 /**
- * Zählt ungelesene Nachrichten für den eingeloggten User:
- * - direkte Nachrichten an mich (recipient_id = me, kein Broadcast)
- * - Broadcasts in Kursen, in denen ich aktuell registriert bin
- * jeweils mit created_at > lastSeen.
+ * Setzt für den User den "gesehen"-Status zurück:
+ * - direkte Nachrichten in der DB werden auf read=true gesetzt
+ * - LocalStorage-Zeitstempel für Broadcasts wird auf jetzt aktualisiert
+ * - andere Komponenten werden via Custom-Event benachrichtigt
  *
- * Refresh-Strategie: Initial-Fetch, Polling (30 s), Window-Focus,
- * und ein Cross-Komponenten-Event (`notifyMessagesSeen`) zum sofortigen Zurücksetzen.
+ * Kann aus jeder Komponente aufgerufen werden (z. B. beim Öffnen der Messages-Seite).
+ */
+export const markMessagesAsRead = async (userId: string): Promise<void> => {
+  if (!userId) return;
+  const now = new Date().toISOString();
+  writeLastSeen(userId, now);
+
+  try {
+    await supabase
+      .from('messages')
+      .update({ read: true })
+      .eq('recipient_id', userId)
+      .eq('read', false);
+  } catch (e) {
+    console.error('markMessagesAsRead: update failed', e);
+  }
+
+  try {
+    window.dispatchEvent(new CustomEvent(MARK_SEEN_EVENT));
+  } catch {
+    // ignore
+  }
+};
+
+/** Convenience-Wrapper für Aufrufer, die nur die Sidebar synchronisieren wollen. */
+export const notifyMessagesSeen = () => {
+  try {
+    window.dispatchEvent(new CustomEvent(MARK_SEEN_EVENT));
+  } catch {
+    // ignore
+  }
+};
+
+/**
+ * Zählt ungelesene Nachrichten für den eingeloggten User:
+ * - direkte Nachrichten an mich (recipient_id = me, read = false, kein Broadcast)
+ * - Broadcasts in Kursen, in denen ich aktuell registriert bin,
+ *   mit created_at > lastSeen (LocalStorage pro User).
+ *
+ * Refresh-Strategie: Initial-Fetch, Polling (30 s), Window-Focus, Sichtbarkeits-Wechsel,
+ * und ein Cross-Komponenten-Event zum sofortigen Zurücksetzen.
  */
 export function useUnreadMessages() {
   const { userProfile } = useAuth();
@@ -67,7 +98,7 @@ export function useUnreadMessages() {
         .eq('recipient_id', userId)
         .neq('sender_id', userId)
         .eq('is_broadcast', false)
-        .gt('created_at', lastSeen);
+        .eq('read', false);
 
       const { data: regs } = await supabase
         .from('registrations')
@@ -94,14 +125,6 @@ export function useUnreadMessages() {
     }
   }, [userProfile?.id]);
 
-  const markAllAsRead = useCallback(() => {
-    if (!userProfile?.id) return;
-    const now = new Date().toISOString();
-    writeLastSeen(userProfile.id, now);
-    lastSeenRef.current = now;
-    setUnreadCount(0);
-  }, [userProfile?.id]);
-
   useEffect(() => {
     if (!userProfile?.id) {
       setUnreadCount(0);
@@ -122,24 +145,21 @@ export function useUnreadMessages() {
     const onFocus = () => {
       void refresh();
     };
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') void refresh();
+    };
 
     window.addEventListener(MARK_SEEN_EVENT, onSeen);
     window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibility);
 
     return () => {
       window.clearInterval(intervalId);
       window.removeEventListener(MARK_SEEN_EVENT, onSeen);
       window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [userProfile?.id, refresh]);
 
-  return { unreadCount, refresh, markAllAsRead };
+  return { unreadCount, refresh };
 }
-
-export const notifyMessagesSeen = () => {
-  try {
-    window.dispatchEvent(new CustomEvent(MARK_SEEN_EVENT));
-  } catch {
-    // ignore
-  }
-};

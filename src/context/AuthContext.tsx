@@ -19,6 +19,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, userData: any) => Promise<any>;
   signOut: () => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ error: { message: string } | null }>;
+  refreshProfile: () => Promise<void>;
   hasRole: (role: UserRole) => boolean;
   isOwner: boolean;
   isAdmin: boolean;
@@ -269,6 +270,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { error: null };
   };
 
+  const refreshProfile = useCallback(async () => {
+    if (!user?.id) return;
+    const ac = new AbortController();
+    const profile = await fetchUserProfile(user.id, ac.signal);
+    setUserProfile(profile);
+  }, [user?.id, fetchUserProfile]);
+
   const hasRole = (role: UserRole): boolean => userProfile?.role === role;
 
   const isOwner        = useMemo(() => userProfile?.role === 'owner',                                   [userProfile]);
@@ -285,7 +293,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const value: AuthContextType = {
     user, userProfile, loading, profileLoading, isEmailConfirmed,
-    signIn, signUp, signOut, changePassword,
+    signIn, signUp, signOut, changePassword, refreshProfile,
     hasRole, isOwner, isAdmin, isCourseLeader, isParticipant,
   };
 
