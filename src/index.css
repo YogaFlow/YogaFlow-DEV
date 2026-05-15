@@ -7,16 +7,116 @@ body,
 #root {
   min-height: 100%;
 }
-/*
-  iOS Safari draws <input type="date"> with WebKit-only internals; padding on the input
-  often does not shift the visible date the same way as in Chrome. Spacing the datetime
-  edit wrapper avoids overlap between the native affordance and the date digits.
-*/
 @layer components {
-  .course-date-filter::-webkit-datetime-edit-fields-wrapper {
-    padding-block: 0.125rem;
-    padding-inline: 0.25rem;
+  .course-filter-datepicker .react-datepicker {
+    border: none;
+    font-family: inherit;
   }
+
+  .course-filter-datepicker-calendar {
+    border: none !important;
+    border-radius: 0.75rem;
+    box-shadow: none;
+    font-family: inherit;
+  }
+
+  .course-filter-datepicker .react-datepicker__header {
+    background: #fff;
+    border-bottom: 1px solid #f3f4f6;
+    border-radius: 0.75rem 0.75rem 0 0;
+    padding: 0.625rem 0 0.5rem;
+    position: relative;
+  }
+
+  .course-filter-datepicker .react-datepicker__current-month {
+    line-height: 2rem;
+    min-height: 2rem;
+    margin: 0 2.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .course-filter-datepicker .react-datepicker__navigation {
+    top: 0.625rem;
+    height: 2rem;
+    width: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: visible;
+  }
+
+  .course-filter-datepicker .react-datepicker__navigation--previous {
+    left: 0.25rem;
+  }
+
+  .course-filter-datepicker .react-datepicker__navigation--next {
+    right: 0.25rem;
+  }
+
+  .course-filter-datepicker .react-datepicker__navigation-icon {
+    position: relative;
+    top: 0;
+    width: 0;
+    height: 0;
+    overflow: visible;
+  }
+
+  .course-filter-datepicker .react-datepicker__navigation-icon::before {
+    position: absolute;
+    top: 50%;
+    margin-top: -5px;
+    border-color: #6b7280;
+    border-width: 2px 2px 0 0;
+    height: 8px;
+    width: 8px;
+  }
+
+  .course-filter-datepicker .react-datepicker__navigation-icon--next::before {
+    left: -6px;
+    transform: rotate(45deg);
+  }
+
+  .course-filter-datepicker .react-datepicker__navigation-icon--previous::before {
+    right: -6px;
+    left: auto;
+    transform: rotate(225deg);
+  }
+
+  .course-filter-datepicker .react-datepicker__navigation:hover .react-datepicker__navigation-icon::before {
+    border-color: #374151;
+  }
+
+  .course-filter-datepicker .react-datepicker__day-name,
+  .course-filter-datepicker .react-datepicker__day {
+    width: 2.25rem;
+    line-height: 2.25rem;
+    margin: 0.125rem;
+    border-radius: 9999px;
+  }
+
+  .course-filter-datepicker .react-datepicker__day:hover {
+    background-color: #f0fdfa;
+    border-radius: 9999px;
+  }
+
+  .course-filter-datepicker .react-datepicker__day--selected,
+  .course-filter-datepicker .react-datepicker__day--keyboard-selected {
+    background-color: #0d9488 !important;
+    color: #fff !important;
+    border-radius: 9999px;
+  }
+
+  .course-filter-datepicker .react-datepicker__day--today {
+    font-weight: 600;
+    color: #0d9488;
+  }
+
+  .course-filter-datepicker .react-datepicker__day--disabled {
+    color: #d1d5db;
+  }
+
 }
 
 @keyframes yogaflow-pop {

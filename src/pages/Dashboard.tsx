@@ -359,45 +359,78 @@ const Dashboard: React.FC = () => {
                   const registrationCount = 'registrationCount' in course ? (course.registrationCount || 0) : 0;
                   const maxParticipants = course.max_participants || 0;
                   const remainingSpots = Math.max(0, maxParticipants - registrationCount);
+                  const isFull = remainingSpots === 0;
+                  const isRegistration = 'course' in item;
+                  const registrationStatus = isRegistration ? item.status : null;
+                  const isRegistered = isRegistration && registrationStatus === 'registered';
 
                   return (
-                    <div key={course.id || index} className="flex items-center p-4 bg-gray-50 rounded-lg">
-                      <div className="flex-1">
-                        <h3 className="font-medium text-gray-900">{course.title}</h3>
-                        <div className="flex items-center mt-1 text-sm text-gray-600">
-                          <Calendar className="w-4 h-4 mr-1" />
-                          {formatDate(course.date)}
-                          <Clock className="w-4 h-4 ml-3 mr-1" />
-                          {course.time}{course.end_time && ` - ${course.end_time}`}
+                    <div
+                      key={course.id || index}
+                      className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md"
+                    >
+                      <div className="p-5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <h3 className="text-xl font-bold leading-tight text-gray-900">{course.title}</h3>
+                            {course.description && (
+                              <p className="mt-1 line-clamp-1 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                                {course.description}
+                              </p>
+                            )}
+                          </div>
+                          {course.price != null && (
+                            <span className="shrink-0 text-2xl font-bold text-teal-600">€{course.price}</span>
+                          )}
                         </div>
-                        <div className="flex items-center mt-1 text-sm text-gray-600">
-                          <MapPin className="w-4 h-4 mr-1" />
-                          {course.location}
+  
+                        <div className="mt-4 space-y-2 text-sm text-gray-600">
+                          <div className="flex items-center gap-2 font-medium text-gray-500">
+                            <Calendar className="h-4 w-4 shrink-0" />
+                            {formatDate(course.date)}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-4 w-4 shrink-0" />
+                            {course.time}{course.end_time && ` - ${course.end_time}`}
+                            {course.duration && ` (${course.duration} Min.)`}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <MapPin className="h-4 w-4 shrink-0" />
+                            {course.location}
+                          </div>
+                          {(isAdmin || isCourseLeader) && (
+                            <div className="flex items-center gap-2">
+                              <Users className="h-4 w-4 shrink-0" />
+                              {registrationCount}/{maxParticipants} Teilnehmer
+                            </div>
+                          )}
                         </div>
-                        {(isAdmin || isCourseLeader) && (
-                          <div className="flex items-center mt-1 text-sm text-gray-600">
-                            <Users className="w-4 h-4 mr-1" />
-                            {registrationCount}/{maxParticipants} Teilnehmer
+  
+                        {course.teacher && (
+                          <div className="mt-5 border-t border-gray-100 pt-4">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Kursleitung</p>
+                            <p className="mt-1 text-sm font-semibold text-gray-700">
+                              Lehrer: {course.teacher.first_name} {course.teacher.last_name}
+                            </p>
                           </div>
                         )}
-                        {course.teacher && (
-                          <p className="text-xs text-gray-500 mt-1">
-                            Lehrer: {course.teacher.first_name} {course.teacher.last_name}
-                          </p>
-                        )}
-                        <div className="flex items-center mt-2">
-                          <div className={`w-3 h-3 rounded-full mr-2 ${
-                            remainingSpots === 0 ? 'bg-red-500' : (remainingSpots <= 2 ? 'bg-yellow-500' : 'bg-green-500')
-                          }`}></div>
-                          <span className="text-xs text-gray-600">
-                            {remainingSpots === 0 ? 'Leider schon ausgebucht' : (remainingSpots <= 2 ? `noch ${remainingSpots} ${remainingSpots === 1 ? 'Restplatz' : 'Restplätze'}` : 'Verfügbar')}
-                          </span>
+  
+                        <div className="mt-5 flex items-center justify-between gap-3 border-t border-gray-100 pt-4">
+                          <div className="flex items-center gap-2">
+                            <div className={`h-2.5 w-2.5 rounded-full ${
+                              isFull ? 'bg-red-500' : (remainingSpots <= 2 ? 'bg-yellow-500' : 'bg-green-500')
+                            }`} />
+                            <span className="text-sm font-medium text-gray-600">
+                              {isFull ? 'Leider schon ausgebucht' : (remainingSpots <= 2 ? `noch ${remainingSpots} ${remainingSpots === 1 ? 'Restplatz' : 'Restplätze'}` : 'Verfügbar')}
+                            </span>
+                          </div>
+  
+                          {isRegistered && (
+                            <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-green-700">
+                              Angemeldet
+                            </span>
+                          )}
                         </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-semibold text-teal-600">
-                          {course.price != null ? `€${course.price}` : ''}
-                        </p>
                       </div>
                     </div>
                   );
