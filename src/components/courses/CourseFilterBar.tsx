@@ -143,17 +143,31 @@ const CourseFilterBar: React.FC<CourseFilterBarProps> = ({
           {dateChooseChip}
         </div>
 
-        {/* Mobile: scrollable chips */}
+        {/* Mobile: scrollable chips with fade hint */}
         <div className="flex items-center gap-2 md:hidden">
-          <div className="-mx-1 flex flex-1 items-center gap-2 overflow-x-auto px-1 pb-0.5 [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1">
-            {customChip}
-            {renderPresetChips(false)}
+          <div className="relative min-w-0 flex-1">
+            {!isCustom && (
+              <div
+                className="pointer-events-none absolute inset-y-0 left-0 z-10 w-5 bg-gradient-to-r from-white to-transparent"
+                aria-hidden
+              />
+            )}
+            <div
+              className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-l from-white to-transparent"
+              aria-hidden
+            />
+            <div className="overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="flex w-max items-center gap-2 py-0.5 pl-1 pr-4">
+                {customChip}
+                {renderPresetChips(false)}
+              </div>
+            </div>
           </div>
           <button
             type="button"
             onClick={handleCalendarClick}
             aria-label="Datum auswählen"
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-600 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-600 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
           >
             <Calendar className="h-5 w-5" />
           </button>
