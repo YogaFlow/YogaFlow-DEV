@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Clock, MapPin, Users, Plus, Search } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Plus } from 'lucide-react';
+import CourseFilterBar from '../components/courses/CourseFilterBar';
+import {
+  EMPTY_DATE_FILTER,
+  CourseDateFilterState,
+  matchesCourseDateFilter,
+} from '../lib/courseDateFilter';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Course, Registration } from '../types';
@@ -17,8 +23,7 @@ const Courses: React.FC = () => {
   const [participantCounts, setParticipantCounts] = useState<Record<string, { registered: number; waitlist: number }>>({});
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterDate, setFilterDate] = useState('');
-  const [view, setView] = useState<'grid' | 'list'>('grid');
+  const [dateFilter, setDateFilter] = useState<CourseDateFilterState>(EMPTY_DATE_FILTER);
   const [feedbackDialog, setFeedbackDialog] = useState<{
     title: string;
     message: string;
@@ -301,7 +306,7 @@ const Courses: React.FC = () => {
   const filteredCourses = courses.filter(course => {
     const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           course.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDate = !filterDate || course.date === filterDate;
+    const matchesDate = matchesCourseDateFilter(course.date, dateFilter);
     return matchesSearch && matchesDate && isCourseUpcoming(course);
   });
 
@@ -360,79 +365,26 @@ const Courses: React.FC = () => {
         )}
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Kurse suchen..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-            />
-          </div>
-          
-          <div className="grid w-full grid-cols-[2.75rem_minmax(0,1fr)] items-stretch rounded-lg border border-gray-300 bg-white focus-within:border-transparent focus-within:ring-2 focus-within:ring-teal-500">
-            <div
-              className="flex items-center justify-center border-r border-gray-200 bg-white"
-              aria-hidden
-            >
-              <Calendar className="h-4 w-4 shrink-0 text-gray-400" />
-            </div>
-            <div className="min-w-0">
-              <input
-                type="date"
-                value={filterDate}
-                onChange={(e) => setFilterDate(e.target.value)}
-                aria-label="Kurse nach Datum filtern"
-                className="course-date-filter h-full w-full min-w-0 border-0 bg-transparent py-2 pl-2 pr-2 text-gray-900 focus:outline-none focus:ring-0 sm:pr-3"
-              />
-            </div>
-          </div>
+      <CourseFilterBar
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        filterState={dateFilter}
+        onFilterChange={setDateFilter}
+      />
 
-          <div className="flex bg-gray-100 rounded-lg p-1">
-            <button
-              onClick={() => setView('grid')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                view === 'grid' 
-                  ? 'bg-white text-teal-600 shadow-sm' 
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Raster
-            </button>
-            <button
-              onClick={() => setView('list')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                view === 'list' 
-                  ? 'bg-white text-teal-600 shadow-sm' 
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Liste
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Courses Grid/List */}
+      {/* Courses grid */}
       {filteredCourses.length === 0 ? (
         <div className="text-center py-12">
           <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">Keine Kurse gefunden</h3>
           <p className="text-gray-600">
-            {searchTerm || filterDate 
+            {searchTerm || dateFilter.preset
               ? 'Versuchen Sie andere Suchkriterien.' 
               : 'Derzeit sind keine Kurse verfügbar.'}
           </p>
         </div>
       ) : (
-        <div className={view === 'grid' 
-          ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' 
-          : 'space-y-4'
-        }>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filteredCourses.map((course) => {
             const registeredCount = participantCounts[course.id]?.registered || 0;
             const isRegistered = isUserRegistered(course.id);
@@ -441,12 +393,11 @@ const Courses: React.FC = () => {
             const isFull = registeredCount >= course.max_participants;
 
             return (
-              <div key={course.id} className={`bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow ${
-                view === 'list' ? 'flex' : ''
-              }`}>
-                {view === 'grid' ? (
-                  <>
-                    <div className="p-5">
+              <div
+                key={course.id}
+                className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md"
+              >
+                <div className="p-5">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <h3 className="text-xl font-bold leading-tight text-gray-900">{course.title}</h3>
@@ -536,104 +487,6 @@ const Courses: React.FC = () => {
                         </div>
                       )}
                     </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex-1 p-5">
-                      <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_13rem] md:items-start">
-                        <div className="min-w-0">
-                          <h3 className="text-3xl font-bold leading-tight text-gray-900">{course.title}</h3>
-                          <p className="mt-1 line-clamp-1 text-xs font-semibold uppercase tracking-wide text-gray-400">
-                            {course.description}
-                          </p>
-
-                          <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-gray-600">
-                            <div className="flex items-center gap-1.5">
-                              <Calendar className="h-4 w-4 shrink-0 text-gray-400" />
-                              {formatDate(course.date)}
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <Clock className="h-4 w-4 shrink-0 text-gray-400" />
-                              {course.time}{course.end_time && ` - ${course.end_time}`}
-                              {course.duration && ` (${course.duration} Min.)`}
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <MapPin className="h-4 w-4 shrink-0 text-gray-400" />
-                              {course.location}
-                            </div>
-                            {(isAdmin || isCourseLeader) && (
-                              <div className="flex items-center gap-1.5">
-                                <Users className="h-4 w-4 shrink-0 text-gray-400" />
-                                {registeredCount}/{course.max_participants} Teilnehmer
-                              </div>
-                            )}
-                          </div>
-
-                          {course.teacher && (
-                            <div className="mt-5 border-t border-gray-100 pt-4">
-                              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Kursleitung</p>
-                              <p className="mt-1 text-sm font-semibold text-gray-700">
-                                Lehrer: {course.teacher.first_name} {course.teacher.last_name}
-                              </p>
-                            </div>
-                          )}
-
-                          <div className="mt-4 flex items-center gap-2">
-                            <div className={`h-2.5 w-2.5 rounded-full ${
-                              isFull ? 'bg-red-500' : (course.max_participants - registeredCount <= 2 ? 'bg-yellow-500' : 'bg-green-500')
-                            }`}></div>
-                            <span className="text-sm font-medium text-gray-600">
-                              {isFull ? 'Leider schon ausgebucht' : (course.max_participants - registeredCount <= 2 ? `noch ${course.max_participants - registeredCount} ${course.max_participants - registeredCount === 1 ? 'Restplatz' : 'Restplätze'}` : 'Verfügbar')}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="border-t border-gray-100 pt-4 md:border-l md:border-t-0 md:pl-5 md:pt-0">
-                          <div className="text-left md:text-right">
-                            <span className="text-4xl font-bold text-teal-600">€{course.price}</span>
-                          </div>
-
-                          {course.status === 'active' && userProfile?.role === 'user' && course.teacher_id !== userProfile?.id && (
-                            <div className="mt-4 space-y-2">
-                              {isRegistered ? (
-                                <>
-                                  <div className={`inline-flex w-full items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold uppercase tracking-wide ${
-                                    registrationStatus === 'registered'
-                                      ? 'bg-green-100 text-green-700'
-                                      : 'bg-yellow-100 text-yellow-700'
-                                  }`}>
-                                    {registrationStatus === 'registered'
-                                      ? 'Angemeldet'
-                                      : waitlistPosition
-                                        ? `Warteliste (Pos. ${waitlistPosition})`
-                                        : 'Warteliste'}
-                                  </div>
-                                  <button
-                                    onClick={() => handleUnregister(course.id)}
-                                    className="w-full rounded-lg px-4 py-2 text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-colors"
-                                  >
-                                    Abmelden
-                                  </button>
-                                </>
-                              ) : (
-                                <button
-                                  onClick={() => handleRegister(course.id)}
-                                  className={`w-full px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                                    isFull
-                                      ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                                      : 'bg-teal-600 text-white hover:bg-teal-700'
-                                  }`}
-                                >
-                                  {isFull ? 'Warteliste' : 'Anmelden'}
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                )}
               </div>
             );
           })}
