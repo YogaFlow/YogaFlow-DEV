@@ -79,7 +79,7 @@ const CourseFilterDatePicker: React.FC<CourseFilterDatePickerProps> = ({
   }> = ({ className, children }) => (
     <div className="course-filter-datepicker">
       <CalendarContainer className={className}>{children}</CalendarContainer>
-      <div className="flex items-center justify-between border-t border-gray-100 px-3 py-2">
+      <div className="course-filter-datepicker-footer flex items-center justify-between border-t border-gray-100 px-3 py-2">
         <button
           type="button"
           onClick={handleToday}
@@ -128,7 +128,7 @@ const CourseFilterDatePicker: React.FC<CourseFilterDatePickerProps> = ({
         />
         <div
           ref={containerRef}
-          className="relative z-10 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl"
+          className="course-filter-datepicker-modal relative z-10 w-[min(100%,20.5rem)] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl"
         >
           {calendar}
         </div>
