@@ -128,7 +128,7 @@ const CourseFilterDatePicker: React.FC<CourseFilterDatePickerProps> = ({
         />
         <div
           ref={containerRef}
-          className="course-filter-datepicker-modal relative z-10 w-[min(100%,20.5rem)] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl"
+          className="course-filter-datepicker-modal relative z-10 w-[min(calc(100vw-2rem),23rem)] rounded-2xl border border-gray-200 bg-white shadow-xl"
         >
           {calendar}
         </div>
