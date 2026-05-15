@@ -84,6 +84,22 @@ export interface Message {
   course?: Course;
 }
 
+export type UserNotificationType = 'course_added' | 'course_waitlisted';
+
+export interface UserNotification {
+  id: string;
+  tenant_id: string;
+  user_id: string;
+  type: UserNotificationType;
+  title?: string | null;
+  body: string;
+  course_id?: string | null;
+  action_path: string;
+  metadata?: Record<string, unknown>;
+  read_at?: string | null;
+  created_at: string;
+}
+
 export interface GlobalSettings {
   id: string;
   key: string;
