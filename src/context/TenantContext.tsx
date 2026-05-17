@@ -163,7 +163,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const base = APP_BASE_DOMAIN.toLowerCase();
     if (host === base && base.split('.').filter(Boolean).length >= 3) {
       console.warn(
-        '[YogaFlow] VITE_APP_BASE_DOMAIN ist gleich dem aktuellen Hostnamen (z. B. eine Studio-Subdomain). ' +
+        '[Omlify] VITE_APP_BASE_DOMAIN ist gleich dem aktuellen Hostnamen (z. B. eine Studio-Subdomain). ' +
           'In Cloudflare muss die Variable nur die gemeinsame Apex-Domain sein (z. B. omlify.de), nicht studionr1.omlify.de.',
       );
     }

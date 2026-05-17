@@ -166,7 +166,7 @@ export default function Settings() {
         <div className="space-y-2 text-sm text-gray-600">
           <div className="flex justify-between">
             <span>Anwendungsname:</span>
-            <span className="font-medium text-gray-900">YogaFlow Manager</span>
+            <span className="font-medium text-gray-900">Omlify</span>
           </div>
           <div className="flex justify-between">
             <span>Datenbankstatus:</span>
