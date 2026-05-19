@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useNavigate, useSearchParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { TenantProvider, useTenant, APP_BASE_DOMAIN } from './context/TenantContext';
+import { TenantProvider, useTenant, APP_BASE_DOMAIN, withDevTenant } from './context/TenantContext';
 import AuthPage from './pages/AuthPage';
 import Dashboard from './pages/Dashboard';
 import Courses from './pages/Courses';
@@ -46,15 +46,15 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   }
 
   if (user && isEmailConfirmed && !userProfile) {
-    return <Navigate to="/auth?profile_missing=1" replace />;
+    return <Navigate to={withDevTenant('/auth?profile_missing=1')} replace />;
   }
 
   if (user && isEmailConfirmed && userProfile && tenant && userProfile.tenant_id !== tenant.id) {
-    return <Navigate to="/auth?wrong_studio=1" replace />;
+    return <Navigate to={withDevTenant('/auth?wrong_studio=1')} replace />;
   }
 
   if (!user || !isEmailConfirmed) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to={withDevTenant('/auth')} replace />;
   }
 
   return <>{children}</>;
@@ -220,19 +220,19 @@ const HomeRoute: React.FC = () => {
 
     const memberOk =
       !!user && isEmailConfirmed && !!userProfile && userProfile.tenant_id === tenant.id;
-    if (memberOk) return <Navigate to="/dashboard" replace />;
+    if (memberOk) return <Navigate to={withDevTenant('/dashboard')} replace />;
 
     // Profil lädt noch im Hintergrund: warten bevor Redirect-Entscheidung getroffen wird.
     if (user && isEmailConfirmed && profileLoading) return <Spinner />;
 
     if (user && isEmailConfirmed && userProfile && userProfile.tenant_id !== tenant.id) {
-      return <Navigate to="/auth?wrong_studio=1" replace />;
+      return <Navigate to={withDevTenant('/auth?wrong_studio=1')} replace />;
     }
     if (user && isEmailConfirmed && !userProfile) {
-      return <Navigate to="/auth?profile_missing=1" replace />;
+      return <Navigate to={withDevTenant('/auth?profile_missing=1')} replace />;
     }
 
-    return <Navigate to="/auth" replace />;
+    return <Navigate to={withDevTenant('/auth')} replace />;
   }
 
   return <LandingPage />;
