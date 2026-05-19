@@ -14,7 +14,6 @@ const TENANT_ID = randomUUID();
 const SKIP_EMAILS = new Set([
   'andre.thaller@outlook.de',
   'yogaflowapp@outlook.de',
-  'juliusbne@gmail.com',
 ]);
 
 function parseCsv(text) {
