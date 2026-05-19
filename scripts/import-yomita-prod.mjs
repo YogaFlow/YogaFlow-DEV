@@ -140,6 +140,8 @@ for (const a of authRows) {
   lines.push(`INSERT INTO auth.users (
   instance_id, id, aud, role, email, encrypted_password,
   email_confirmed_at,
+  confirmation_token, recovery_token, email_change_token_new,
+  email_change_token_current, reauthentication_token, phone_change_token,
   raw_app_meta_data, raw_user_meta_data,
   created_at, updated_at, is_sso_user, is_anonymous
 ) VALUES (
@@ -150,6 +152,7 @@ for (const a of authRows) {
   ${sqlStr(a.email)},
   ${sqlStr(a.encrypted_password)},
   ${sqlTs(confirmed)},
+  '', '', '', '', '', '',
   ${sqlStr(appMeta)}::jsonb,
   ${sqlStr(userMeta)}::jsonb,
   ${sqlTs(a.created_at)},
