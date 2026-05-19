@@ -3,11 +3,25 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CheckCircle, XCircle, Loader } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
+const DEV_SLUG_KEY = '__dev_tenant_slug__';
+const SLUG_RE = /^[a-z0-9]{3,30}$/;
+
 const VerifyEmail: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('');
+  const tenantParam = searchParams.get('tenant')?.trim().toLowerCase() ?? '';
+
+  useEffect(() => {
+    if (import.meta.env.DEV && SLUG_RE.test(tenantParam)) {
+      try {
+        sessionStorage.setItem(DEV_SLUG_KEY, tenantParam);
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [tenantParam]);
 
   useEffect(() => {
     const token = searchParams.get('token');
@@ -54,7 +68,11 @@ const VerifyEmail: React.FC = () => {
           }
           setStatus('success');
           setMessage('Ihre E-Mail-Adresse wurde erfolgreich bestätigt!');
-          setTimeout(() => navigate('/auth?verified=1'), 3000);
+          const authQuery = new URLSearchParams({ verified: '1' });
+          if (import.meta.env.DEV && SLUG_RE.test(tenantParam)) {
+            authQuery.set('tenant', tenantParam);
+          }
+          setTimeout(() => navigate(`/auth?${authQuery.toString()}`), 3000);
         } else {
           setStatus('error');
           setMessage(data.error || 'Fehler bei der Verifizierung.');
@@ -110,7 +128,14 @@ const VerifyEmail: React.FC = () => {
                 {message}
               </p>
               <button
-                onClick={() => navigate('/auth')}
+                onClick={() => {
+                  const authQuery = new URLSearchParams();
+                  if (import.meta.env.DEV && SLUG_RE.test(tenantParam)) {
+                    authQuery.set('tenant', tenantParam);
+                  }
+                  const qs = authQuery.toString();
+                  navigate(qs ? `/auth?${qs}` : '/auth');
+                }}
                 className="w-full bg-teal-600 text-white py-3 rounded-lg hover:bg-teal-700 transition-colors"
               >
                 Zur Anmeldung

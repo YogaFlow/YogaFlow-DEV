@@ -170,7 +170,7 @@ const LandingPage: React.FC = () => {
                 height={578}
                 alt="Omlify Dashboard – Kursübersicht und Studio-Verwaltung"
                 className="w-full h-auto rounded-xl [image-rendering:-webkit-optimize-contrast]"
-                fetchPriority="high"
+                fetchpriority="high"
                 decoding="async"
               />
             </div>
