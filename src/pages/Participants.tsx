@@ -10,6 +10,7 @@ import { de } from 'date-fns/locale';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
 import { isCourseUpcoming } from '../lib/courseDateTime';
 import { runPastRegistrationCleanup } from '../lib/registrationMaintenance';
+import { formatUserAddress } from '../lib/userAddress';
 
 interface ParticipantWithDetails extends Registration {
   user: User;
@@ -250,7 +251,7 @@ const Participants: React.FC = () => {
               <option value="">Alle Kurse</option>
               {courses.map(course => (
                 <option key={course.id} value={course.id}>
-                  {course.title}
+                  {course.title} – {format(parseISO(course.date), 'dd.MM.yyyy', { locale: de })}
                 </option>
               ))}
             </select>
@@ -297,9 +298,11 @@ const Participants: React.FC = () => {
                     <div className="text-sm font-medium text-gray-900">
                       {participant.user.first_name} {participant.user.last_name}
                     </div>
-                    <div className="text-xs text-gray-500 mt-0.5 truncate">
-                      {participant.user.street} {participant.user.house_number}, {participant.user.postal_code} {participant.user.city}
-                    </div>
+                    {formatUserAddress(participant.user) && (
+                      <div className="text-xs text-gray-500 mt-0.5 truncate">
+                        {formatUserAddress(participant.user)}
+                      </div>
+                    )}
                   </div>
                   <span className={`flex-shrink-0 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                     participant.status === 'registered'
@@ -394,9 +397,11 @@ const Participants: React.FC = () => {
                           <div className="text-sm font-medium text-gray-900">
                             {participant.user.first_name} {participant.user.last_name}
                           </div>
-                          <div className="text-sm text-gray-500">
-                            {participant.user.street} {participant.user.house_number}, {participant.user.postal_code} {participant.user.city}
-                          </div>
+                          {formatUserAddress(participant.user) && (
+                            <div className="text-sm text-gray-500">
+                              {formatUserAddress(participant.user)}
+                            </div>
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
