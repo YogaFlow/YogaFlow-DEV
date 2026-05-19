@@ -267,9 +267,11 @@ const AuthPage: React.FC = () => {
           )}
           {loginBlockReason === 'email_not_confirmed' && (
             <div className="mx-8 mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-sm">
-              <p className="font-medium mb-1">E-Mail noch nicht bestätigt</p>
+              <p className="font-medium mb-1">E-Mail noch nicht bestätigt (Omlify)</p>
               <p>
-                Bitte bestätige deine E-Mail über den Link in der Registrierungsmail, bevor du dich anmelden kannst.
+                Bitte den Link aus der <strong>Omlify</strong>-Bestätigungsmail öffnen (Button „E-Mail-Adresse
+                bestätigen“) oder unten „Bestätigungsmail erneut senden“ nutzen. Eine Supabase-Systemmail allein reicht
+                nicht.
               </p>
             </div>
           )}
@@ -318,10 +320,10 @@ const AuthPage: React.FC = () => {
           )}
           {accessNotice === 'email_not_confirmed' && (
             <div className="mx-8 mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-sm">
-              <p className="font-medium mb-1">E-Mail noch nicht bestätigt</p>
+              <p className="font-medium mb-1">E-Mail noch nicht bestätigt (Omlify)</p>
               <p>
-                Bitte klicke auf den Bestätigungslink in der E-Mail, die wir dir nach der
-                Registrierung gesendet haben. Erst danach kannst du dich anmelden.
+                Bitte den Link aus der <strong>Omlify</strong>-Bestätigungsmail öffnen (grüner Button
+                „E-Mail-Adresse bestätigen“). Eine separate Supabase-Mail reicht für die Anmeldung nicht aus.
               </p>
               <button
                 type="button"

@@ -53,40 +53,24 @@ Deno.serve(async (req: Request) => {
 
     const userId = result.user_id;
 
-    // Zuerst Supabase Auth bestätigen (Login), dann App-Profil — vermeidet Zustand „public.users ja, Auth nein“.
-    const { error: authSyncError } = await supabase.auth.admin.updateUserById(userId, {
-      email_confirm: true,
+    // Zuerst App-Flag (public.users) — maßgeblich für Login; danach Auth-Sync (kann in DEV schon gesetzt sein).
+    const { error: confirmError } = await supabase.rpc("complete_email_verification", {
+      p_user_id: userId,
+      p_token: token,
     });
-    if (authSyncError) {
-      console.error("auth.admin.updateUserById (email_confirm):", authSyncError);
-      return new Response(
-        JSON.stringify({
-          error:
-            "Die Bestätigung konnte nicht abgeschlossen werden. Bitte fordern Sie eine neue Bestätigungsmail an oder wenden Sie sich an den Support.",
-        }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const { error: updateError } = await supabase
-      .from("users")
-      .update({
-        email_verified: true,
-        email_verified_at: new Date().toISOString(),
-      })
-      .eq("id", userId);
-
-    if (updateError) {
-      console.error("User update error:", updateError);
+    if (confirmError) {
+      console.error("complete_email_verification:", confirmError);
       return new Response(
         JSON.stringify({ error: "Fehler beim Aktualisieren des Benutzerstatus" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const { error: markError } = await supabase.rpc("mark_token_used", { p_token: token });
-    if (markError) {
-      console.error("Error marking token as used:", markError);
+    const { error: authSyncError } = await supabase.auth.admin.updateUserById(userId, {
+      email_confirm: true,
+    });
+    if (authSyncError) {
+      console.warn("auth.admin.updateUserById (email_confirm, ggf. bereits bestätigt):", authSyncError);
     }
 
     return new Response(
