@@ -84,8 +84,11 @@ const EditCourse: React.FC = () => {
 
   useEffect(() => {
     fetchCourse();
-    fetchCourseLeaders();
   }, [courseId]);
+
+  useEffect(() => {
+    if (userProfile) fetchCourseLeaders();
+  }, [userProfile]);
 
   useEffect(() => {
     if (formData.time && formData.duration) {
@@ -158,6 +161,18 @@ const EditCourse: React.FC = () => {
   };
 
   const fetchCourseLeaders = async () => {
+    if (!userProfile) return;
+
+    if (userProfile.role === 'teacher') {
+      setCourseLeaders([{
+        id: userProfile.id,
+        first_name: userProfile.first_name,
+        last_name: userProfile.last_name,
+        email: userProfile.email,
+      }]);
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('users')

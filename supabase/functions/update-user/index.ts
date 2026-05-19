@@ -128,45 +128,12 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // 6. Teacher restriction: only edit 'user'-role participants of own courses
-    if (requesterProfile.role === "teacher") {
-      if (targetProfile.role !== "user") {
-        return new Response(
-          JSON.stringify({ error: "Teachers can only edit participants (role: user)" }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
-
-      const { data: teacherCourses } = await adminClient
-        .from("courses")
-        .select("id")
-        .eq("teacher_id", requestingUser.id)
-        .eq("tenant_id", requesterProfile.tenant_id);
-
-      const courseIds = (teacherCourses ?? []).map((c: { id: string }) => c.id);
-
-      if (courseIds.length === 0) {
-        return new Response(
-          JSON.stringify({ error: "Teacher has no courses" }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
-
-      const { data: sharedReg } = await adminClient
-        .from("registrations")
-        .select("id")
-        .eq("user_id", userId)
-        .in("course_id", courseIds)
-        .is("cancellation_timestamp", null)
-        .limit(1)
-        .maybeSingle();
-
-      if (!sharedReg) {
-        return new Response(
-          JSON.stringify({ error: "Participant is not registered in any of your courses" }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
+    // 6. Teacher restriction: only edit tenant participants (role: user)
+    if (requesterProfile.role === "teacher" && targetProfile.role !== "user") {
+      return new Response(
+        JSON.stringify({ error: "Teachers can only edit participants (role: user)" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     // 7. Build profile update (only whitelisted fields)

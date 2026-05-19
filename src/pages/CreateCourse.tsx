@@ -83,8 +83,11 @@ const CreateCourse: React.FC = () => {
 
   useEffect(() => {
     fetchDefaultSettings();
-    fetchCourseLeaders();
   }, []);
+
+  useEffect(() => {
+    if (userProfile) fetchCourseLeaders();
+  }, [userProfile]);
 
   useEffect(() => {
     if (userProfile && courseLeaders.length > 0) {
@@ -132,6 +135,18 @@ const CreateCourse: React.FC = () => {
   };
 
   const fetchCourseLeaders = async () => {
+    if (!userProfile) return;
+
+    if (userProfile.role === 'teacher') {
+      setCourseLeaders([{
+        id: userProfile.id,
+        first_name: userProfile.first_name,
+        last_name: userProfile.last_name,
+        email: userProfile.email,
+      }]);
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('users')
