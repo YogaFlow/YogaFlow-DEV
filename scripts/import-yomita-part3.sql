@@ -1,0 +1,1603 @@
+-- Yomita registrations import (trigger disabled for past courses)
+ALTER TABLE public.registrations DISABLE TRIGGER prevent_past_course_registration;
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '01bb5759-964f-44dc-aa16-f4dd3ec25de1'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '30045a46-204d-43e6-8d33-90c977df486f'::uuid,
+  '7f3ddc2d-78f9-4cf8-a318-4fed234cb7cc'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 04:23:57.741694+00'::timestamptz,
+  '2026-04-23 04:23:57.741694+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '0429fb30-6626-43eb-af4f-45bc66b8e87a'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '8f600c58-3a57-4506-98fc-f2d4ef08e4a8'::uuid,
+  'a3856216-c52c-41e3-9d61-2c20bcdb02ab'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-22 20:33:22.817303+00'::timestamptz,
+  '2026-04-22 20:33:22.817303+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '04977ef4-1198-4138-8c84-2121cfb75264'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '30045a46-204d-43e6-8d33-90c977df486f'::uuid,
+  '2f65224e-8ee1-4442-a9b5-56142d1f9413'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-22 20:36:44.094428+00'::timestamptz,
+  '2026-04-22 20:36:44.094428+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '06ed7339-8855-44a5-8970-68a3e01ec28a'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '51f56177-d67c-4b49-9154-009bcef0e046'::uuid,
+  '7f3ddc2d-78f9-4cf8-a318-4fed234cb7cc'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-07 18:13:10.517534+00'::timestamptz,
+  '2026-04-07 18:13:10.517534+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '077d9555-8dc9-44db-9e53-cf2b815bb0a5'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'd0cfc4a6-3189-4365-b86c-b478dcadbf68'::uuid,
+  '30eef8e2-74b1-410a-b1de-decf7d376866'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-09 12:09:23.543736+00'::timestamptz,
+  '2026-04-09 12:09:23.543736+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '10f770fe-b18b-48c3-8999-4d18fe4e1103'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '33f3a7f7-57b2-45e2-be39-f62dc171bb84'::uuid,
+  'ac7a314f-6903-47b8-9096-243d6b24842e'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 06:29:43.222224+00'::timestamptz,
+  '2026-04-23 06:29:43.222224+00'::timestamptz,
+  '2026-04-23 06:29:50.531733+00'::timestamptz,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '13b33a0a-e2f2-4a22-ad86-09ebdf9d2187'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '2a877fe9-c5d5-4075-b496-98fd3d9956c3'::uuid,
+  'e2d34978-a240-4e01-9794-1859b0e6ba29'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 05:55:20.259222+00'::timestamptz,
+  '2026-04-23 05:55:20.259222+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '16c9b1e8-b9e3-4adf-9dea-a4d27ebf0612'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'f2f1dfcb-61eb-4b94-86db-61539a60ea96'::uuid,
+  '570d3b6c-7220-4f35-a867-25eca400b2d4'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-19 13:16:50.772361+00'::timestamptz,
+  '2026-04-19 13:16:50.772361+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '19401d56-a239-45c7-84fd-5ddb348fc65f'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '30045a46-204d-43e6-8d33-90c977df486f'::uuid,
+  'df756576-1390-4e27-a37c-1ee086061a16'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 05:25:46.158216+00'::timestamptz,
+  '2026-04-23 05:25:46.158216+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '2118c6e2-f10f-4d35-b95a-b5d3d106fcdc'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '2a877fe9-c5d5-4075-b496-98fd3d9956c3'::uuid,
+  'c6377894-2826-4efe-84ff-2efeae0aed98'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 05:02:52.715121+00'::timestamptz,
+  '2026-04-23 05:02:52.715121+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '2315de26-8329-401b-8f99-d6777c25980a'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'f2f1dfcb-61eb-4b94-86db-61539a60ea96'::uuid,
+  'a3856216-c52c-41e3-9d61-2c20bcdb02ab'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-21 18:51:28.290356+00'::timestamptz,
+  '2026-04-21 18:51:28.290356+00'::timestamptz,
+  '2026-05-06 05:44:41.322201+00'::timestamptz,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '23f50362-f5af-48ba-bebf-f74ecf5f404c'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'd0cfc4a6-3189-4365-b86c-b478dcadbf68'::uuid,
+  'ac7a314f-6903-47b8-9096-243d6b24842e'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 06:28:59.148891+00'::timestamptz,
+  '2026-04-23 06:28:59.148891+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '2447f82c-c945-44e7-9a9f-a0e55dcf8a47'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '33f3a7f7-57b2-45e2-be39-f62dc171bb84'::uuid,
+  'aa8af330-e808-4e39-87a9-131aef59079a'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 04:01:34.395579+00'::timestamptz,
+  '2026-04-23 04:01:34.395579+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '25091d9d-8c97-4d64-9193-d7f744dbf8d2'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '5617adc0-3247-438f-99ce-70bc36e871b3'::uuid,
+  'f81c8ff0-cc12-429b-9e85-8ee8e8a07138'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-22 20:56:51.584406+00'::timestamptz,
+  '2026-04-22 20:56:51.584406+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '284f43f0-ba23-4da2-a755-98faae64f386'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'e9a23ef7-5424-478c-9a02-8bf2ad6705e3'::uuid,
+  'f63447c3-a2b4-4064-97fe-22428a032a2d'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-22 21:17:58.819192+00'::timestamptz,
+  '2026-04-22 21:17:58.819192+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '2b6a302a-0a55-4ac2-8a02-8481d6a2dcbe'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'e9a23ef7-5424-478c-9a02-8bf2ad6705e3'::uuid,
+  '47b11b34-6853-49e7-8006-4b2009ff711b'::uuid,
+  'waitlist'::public.registration_status,
+  '2026-04-28 17:41:02.17753+00'::timestamptz,
+  '2026-04-28 17:41:02.17753+00'::timestamptz,
+  NULL,
+  true,
+  1
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '2db70591-8772-451e-9eaf-8e3b76b3428f'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '5617adc0-3247-438f-99ce-70bc36e871b3'::uuid,
+  'fac5a9c9-0dc1-427c-aab4-db097ab8fa16'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 04:20:23.065535+00'::timestamptz,
+  '2026-04-23 04:20:23.065535+00'::timestamptz,
+  '2026-05-11 17:43:39.437789+00'::timestamptz,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '2ed714e8-f004-4a0d-be74-e5cf422af326'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'db98d548-8c2e-40ed-9ec4-c2120afbcd49'::uuid,
+  'e4a096c1-8fc5-4979-950f-89b90d986133'::uuid,
+  'registered'::public.registration_status,
+  '2026-03-27 13:47:58.894235+00'::timestamptz,
+  '2026-03-27 13:47:58.894235+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '30fbbc32-9b8c-4ecd-b3ca-fcf77744c00e'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '8f600c58-3a57-4506-98fc-f2d4ef08e4a8'::uuid,
+  '4b249308-86e6-4fab-942f-a36e787534a7'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 05:26:08.32555+00'::timestamptz,
+  '2026-04-23 05:26:08.32555+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '31bb88b1-5efe-4457-96dc-30e1acd46b07'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '8f600c58-3a57-4506-98fc-f2d4ef08e4a8'::uuid,
+  'e4a096c1-8fc5-4979-950f-89b90d986133'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-22 20:32:03.712819+00'::timestamptz,
+  '2026-04-22 20:32:03.712819+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '37fb331e-f0e4-45af-aa00-263451f65552'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '51f56177-d67c-4b49-9154-009bcef0e046'::uuid,
+  '2f65224e-8ee1-4442-a9b5-56142d1f9413'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-21 07:21:57.759866+00'::timestamptz,
+  '2026-04-21 07:21:57.759866+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '39006a31-3bd1-4f38-ae24-c33f87b37fec'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'e9a23ef7-5424-478c-9a02-8bf2ad6705e3'::uuid,
+  'ac7a314f-6903-47b8-9096-243d6b24842e'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 06:29:30.408174+00'::timestamptz,
+  '2026-04-23 06:29:30.408174+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '3b878400-2547-447d-a215-862fbc9fd2e5'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'e9a23ef7-5424-478c-9a02-8bf2ad6705e3'::uuid,
+  '2f65224e-8ee1-4442-a9b5-56142d1f9413'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-22 20:36:24.59253+00'::timestamptz,
+  '2026-04-22 20:36:24.59253+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '3d469b96-3da7-45ed-a28f-f71ea3bb0de8'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'd6058a79-91ac-4d04-84c5-2f747cb36330'::uuid,
+  '7f3ddc2d-78f9-4cf8-a318-4fed234cb7cc'::uuid,
+  'registered'::public.registration_status,
+  '2026-05-06 16:55:50.712586+00'::timestamptz,
+  '2026-05-06 16:55:50.712586+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '3dd0181b-d8af-40ca-84cc-0b0a8ef47005'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '8f600c58-3a57-4506-98fc-f2d4ef08e4a8'::uuid,
+  'e2d34978-a240-4e01-9794-1859b0e6ba29'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 05:54:43.686236+00'::timestamptz,
+  '2026-04-23 05:54:43.686236+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '40e689a9-910c-4d40-87fd-502ae14095a8'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '8f600c58-3a57-4506-98fc-f2d4ef08e4a8'::uuid,
+  'fac5a9c9-0dc1-427c-aab4-db097ab8fa16'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 04:20:39.602466+00'::timestamptz,
+  '2026-04-23 04:20:39.602466+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '420ab90a-cad5-4545-a4b3-1a7f18166c71'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '30045a46-204d-43e6-8d33-90c977df486f'::uuid,
+  'f81c8ff0-cc12-429b-9e85-8ee8e8a07138'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-22 20:58:05.8358+00'::timestamptz,
+  '2026-04-22 20:58:05.8358+00'::timestamptz,
+  '2026-05-11 07:30:36.507584+00'::timestamptz,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '45e47d66-b8ad-4d7b-bcc3-a46d0251d7ac'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'd0cfc4a6-3189-4365-b86c-b478dcadbf68'::uuid,
+  '65012a0a-cc60-4c73-890f-46a9740c4c52'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 05:51:11.067056+00'::timestamptz,
+  '2026-04-23 05:51:11.067056+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '463891bf-837d-483b-8656-f84d1a575ff5'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '85ad90eb-e21b-45ae-8d73-58038c502f73'::uuid,
+  '2f65224e-8ee1-4442-a9b5-56142d1f9413'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-22 20:36:17.383627+00'::timestamptz,
+  '2026-04-22 20:36:17.383627+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '479b265b-a740-446a-b987-fb7a69e8bd5f'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'd0cfc4a6-3189-4365-b86c-b478dcadbf68'::uuid,
+  '17b9d410-e078-4014-aa4f-5c16e678042b'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 08:22:28.78819+00'::timestamptz,
+  '2026-04-23 08:22:28.78819+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '4a99b370-128c-4620-925f-31c7d7ba274b'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '85ad90eb-e21b-45ae-8d73-58038c502f73'::uuid,
+  '47b11b34-6853-49e7-8006-4b2009ff711b'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-28 17:40:38.835614+00'::timestamptz,
+  '2026-04-28 17:40:38.835614+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '4b47d2bd-9196-47a7-af07-c13e34a9c83d'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '33f3a7f7-57b2-45e2-be39-f62dc171bb84'::uuid,
+  '7f3ddc2d-78f9-4cf8-a318-4fed234cb7cc'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 04:23:49.703274+00'::timestamptz,
+  '2026-04-23 04:23:49.703274+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '4da1608e-ff9a-4d6a-925c-cd8a38bf9735'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'db98d548-8c2e-40ed-9ec4-c2120afbcd49'::uuid,
+  '4b249308-86e6-4fab-942f-a36e787534a7'::uuid,
+  'registered'::public.registration_status,
+  '2026-03-19 21:56:35.170269+00'::timestamptz,
+  '2026-03-19 21:56:35.170269+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '4e0369db-dc65-480c-a533-a6e74415af55'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '2a877fe9-c5d5-4075-b496-98fd3d9956c3'::uuid,
+  'a3856216-c52c-41e3-9d61-2c20bcdb02ab'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-22 20:33:33.586742+00'::timestamptz,
+  '2026-04-22 20:33:33.586742+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '4e4c02d2-86b0-4506-9bae-9dbf415551ed'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '2a877fe9-c5d5-4075-b496-98fd3d9956c3'::uuid,
+  'e4a096c1-8fc5-4979-950f-89b90d986133'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-22 20:32:12.508314+00'::timestamptz,
+  '2026-04-22 20:32:12.508314+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '4fc50e3d-8688-4086-b719-dbe084722840'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '85ad90eb-e21b-45ae-8d73-58038c502f73'::uuid,
+  '767daf20-2720-461a-a1ba-2c84de4693ae'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 07:14:25.268822+00'::timestamptz,
+  '2026-04-23 07:14:25.268822+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '4fe89ba4-43f5-4d39-8036-716716c787dc'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '2a877fe9-c5d5-4075-b496-98fd3d9956c3'::uuid,
+  'fac5a9c9-0dc1-427c-aab4-db097ab8fa16'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 04:20:48.457204+00'::timestamptz,
+  '2026-04-23 04:20:48.457204+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '5265f329-0943-4c0f-8da3-889a458d99a5'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '5617adc0-3247-438f-99ce-70bc36e871b3'::uuid,
+  'aa8af330-e808-4e39-87a9-131aef59079a'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 04:01:10.707926+00'::timestamptz,
+  '2026-04-23 04:01:10.707926+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '52ffde96-474a-4bfc-9dd5-fd7c7b8bdbed'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'f2f1dfcb-61eb-4b94-86db-61539a60ea96'::uuid,
+  '65012a0a-cc60-4c73-890f-46a9740c4c52'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 05:51:31.685057+00'::timestamptz,
+  '2026-04-23 05:51:31.685057+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '577b85a6-0c88-43f8-992b-d58877a97776'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'f2f1dfcb-61eb-4b94-86db-61539a60ea96'::uuid,
+  'e4a096c1-8fc5-4979-950f-89b90d986133'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-22 20:31:40.773577+00'::timestamptz,
+  '2026-04-22 20:31:40.773577+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '57b17bc1-3ef9-4415-b655-3b0528899b9b'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '85ad90eb-e21b-45ae-8d73-58038c502f73'::uuid,
+  'a3856216-c52c-41e3-9d61-2c20bcdb02ab'::uuid,
+  'waitlist'::public.registration_status,
+  '2026-05-06 05:44:44.524207+00'::timestamptz,
+  '2026-05-06 05:44:44.524207+00'::timestamptz,
+  NULL,
+  true,
+  1
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '58ddeabf-f07a-4469-9853-6e29929b01f3'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '33f3a7f7-57b2-45e2-be39-f62dc171bb84'::uuid,
+  'df756576-1390-4e27-a37c-1ee086061a16'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 05:25:39.884342+00'::timestamptz,
+  '2026-04-23 05:25:39.884342+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '5991ece6-cc74-4d74-a019-6361672d5981'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'd6058a79-91ac-4d04-84c5-2f747cb36330'::uuid,
+  '974cc271-26c9-4f96-a194-453cc61ac93f'::uuid,
+  'registered'::public.registration_status,
+  '2026-05-06 06:15:18.194749+00'::timestamptz,
+  '2026-05-06 06:15:18.194749+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '59b25404-b877-4343-b6af-f013a57159be'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '85ad90eb-e21b-45ae-8d73-58038c502f73'::uuid,
+  '7f3ddc2d-78f9-4cf8-a318-4fed234cb7cc'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 04:23:23.385478+00'::timestamptz,
+  '2026-04-23 04:23:23.385478+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '5f9c48a9-272d-42ee-bab0-ce103a958f96'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '85ad90eb-e21b-45ae-8d73-58038c502f73'::uuid,
+  '30eef8e2-74b1-410a-b1de-decf7d376866'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-26 17:37:32.452138+00'::timestamptz,
+  '2026-04-26 17:37:32.452138+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '610f3a5b-5726-46e2-b4de-a7376b89c931'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '30045a46-204d-43e6-8d33-90c977df486f'::uuid,
+  'f63447c3-a2b4-4064-97fe-22428a032a2d'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-22 21:18:42.423252+00'::timestamptz,
+  '2026-04-22 21:18:42.423252+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '612ec058-adb2-4d6b-a409-42335f883ea6'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'd0cfc4a6-3189-4365-b86c-b478dcadbf68'::uuid,
+  '4b249308-86e6-4fab-942f-a36e787534a7'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-08 16:08:54.137428+00'::timestamptz,
+  '2026-04-08 16:08:54.137428+00'::timestamptz,
+  '2026-04-22 05:30:41.278737+00'::timestamptz,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '64f5ec07-6f8e-4d7f-a313-42cd3bda3d02'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '8f600c58-3a57-4506-98fc-f2d4ef08e4a8'::uuid,
+  '30eef8e2-74b1-410a-b1de-decf7d376866'::uuid,
+  'waitlist'::public.registration_status,
+  '2026-04-26 17:39:20.078327+00'::timestamptz,
+  '2026-04-26 17:39:20.078327+00'::timestamptz,
+  '2026-04-26 17:39:31.731591+00'::timestamptz,
+  true,
+  2
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '65104715-d0d4-49b8-9d14-6c742833608d'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '30045a46-204d-43e6-8d33-90c977df486f'::uuid,
+  'aa8af330-e808-4e39-87a9-131aef59079a'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 04:02:08.260982+00'::timestamptz,
+  '2026-04-23 04:02:08.260982+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '65884f2f-bc53-4063-a6ce-6d20f668ac20'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '85ad90eb-e21b-45ae-8d73-58038c502f73'::uuid,
+  'aa8af330-e808-4e39-87a9-131aef59079a'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 03:59:57.072+00'::timestamptz,
+  '2026-04-23 03:59:57.072+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '6acbd08a-0b0a-463c-b598-b46140fb0947'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '2a877fe9-c5d5-4075-b496-98fd3d9956c3'::uuid,
+  '30eef8e2-74b1-410a-b1de-decf7d376866'::uuid,
+  'waitlist'::public.registration_status,
+  '2026-04-26 17:39:59.489593+00'::timestamptz,
+  '2026-04-26 17:39:59.489593+00'::timestamptz,
+  NULL,
+  true,
+  2
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '6b5478a3-2c8d-4471-87d8-4619668d3c52'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'db98d548-8c2e-40ed-9ec4-c2120afbcd49'::uuid,
+  'c6377894-2826-4efe-84ff-2efeae0aed98'::uuid,
+  'registered'::public.registration_status,
+  '2026-03-26 06:34:22.875191+00'::timestamptz,
+  '2026-03-26 06:34:22.875191+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '6d8400b5-8080-4c07-92ef-7bac553033d4'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'd6058a79-91ac-4d04-84c5-2f747cb36330'::uuid,
+  'a3856216-c52c-41e3-9d61-2c20bcdb02ab'::uuid,
+  'registered'::public.registration_status,
+  '2026-05-06 05:44:08.945704+00'::timestamptz,
+  '2026-05-06 05:44:08.945704+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '6db11ec1-9515-4508-963d-cacd3c24e583'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'f2f1dfcb-61eb-4b94-86db-61539a60ea96'::uuid,
+  'c6377894-2826-4efe-84ff-2efeae0aed98'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-22 06:01:20.078575+00'::timestamptz,
+  '2026-04-22 06:01:20.078575+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '6e68b5be-b20e-4178-ad49-5c7242e58671'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'e9a23ef7-5424-478c-9a02-8bf2ad6705e3'::uuid,
+  '4b249308-86e6-4fab-942f-a36e787534a7'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 05:25:59.98512+00'::timestamptz,
+  '2026-04-23 05:25:59.98512+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '6eb798dd-d268-42b9-8fa9-cccc4a3f8e2e'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '33f3a7f7-57b2-45e2-be39-f62dc171bb84'::uuid,
+  '4b249308-86e6-4fab-942f-a36e787534a7'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 05:26:17.96518+00'::timestamptz,
+  '2026-04-23 05:26:17.96518+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '6fc2c794-8e81-4258-a07d-b33c906a7e22'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'e9a23ef7-5424-478c-9a02-8bf2ad6705e3'::uuid,
+  'df756576-1390-4e27-a37c-1ee086061a16'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 05:25:30.72944+00'::timestamptz,
+  '2026-04-23 05:25:30.72944+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '6fcc6523-22b0-4142-9e13-b3784539ddee'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '8f600c58-3a57-4506-98fc-f2d4ef08e4a8'::uuid,
+  'c6e80666-7afb-40e7-922a-26ac14f43024'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-22 21:02:31.839912+00'::timestamptz,
+  '2026-04-22 21:02:31.839912+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '7db0bd5f-3e25-4a9d-8ca9-205011029c8d'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'f2f1dfcb-61eb-4b94-86db-61539a60ea96'::uuid,
+  'e2d34978-a240-4e01-9794-1859b0e6ba29'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 05:53:48.701284+00'::timestamptz,
+  '2026-04-23 05:53:48.701284+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '7fdf7190-7a03-434a-b6de-7e8f0b5360de'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'd0cfc4a6-3189-4365-b86c-b478dcadbf68'::uuid,
+  '570d3b6c-7220-4f35-a867-25eca400b2d4'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-09 03:12:15.414202+00'::timestamptz,
+  '2026-04-09 03:12:15.414202+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '92292547-d5f8-4d59-a5e8-a67d5d60a438'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'd0cfc4a6-3189-4365-b86c-b478dcadbf68'::uuid,
+  'c6377894-2826-4efe-84ff-2efeae0aed98'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-08 18:32:49.447224+00'::timestamptz,
+  '2026-04-08 18:32:49.447224+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '9382bef8-4727-4416-8b8e-6912e744a4d7'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'f2f1dfcb-61eb-4b94-86db-61539a60ea96'::uuid,
+  '30eef8e2-74b1-410a-b1de-decf7d376866'::uuid,
+  'waitlist'::public.registration_status,
+  '2026-04-26 17:36:44.505703+00'::timestamptz,
+  '2026-04-26 17:36:44.505703+00'::timestamptz,
+  '2026-04-26 17:37:46.686446+00'::timestamptz,
+  true,
+  2
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '954e5e41-ff0e-4b4f-ae8b-928b4b1a9895'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'db98d548-8c2e-40ed-9ec4-c2120afbcd49'::uuid,
+  '17b9d410-e078-4014-aa4f-5c16e678042b'::uuid,
+  'registered'::public.registration_status,
+  '2026-03-23 21:44:40.413104+00'::timestamptz,
+  '2026-03-23 21:44:40.413104+00'::timestamptz,
+  '2026-05-13 04:12:45.066798+00'::timestamptz,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '98b42c5e-bb32-49ab-83e6-b23beb90bfbc'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'db98d548-8c2e-40ed-9ec4-c2120afbcd49'::uuid,
+  'c6e80666-7afb-40e7-922a-26ac14f43024'::uuid,
+  'registered'::public.registration_status,
+  '2026-03-25 19:04:35.614912+00'::timestamptz,
+  '2026-03-25 19:04:35.614912+00'::timestamptz,
+  '2026-05-13 05:26:52.984414+00'::timestamptz,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '997d24f7-4872-4f42-bb18-8455efe3a705'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '8f600c58-3a57-4506-98fc-f2d4ef08e4a8'::uuid,
+  'ac7a314f-6903-47b8-9096-243d6b24842e'::uuid,
+  'waitlist'::public.registration_status,
+  '2026-04-23 07:45:43.803505+00'::timestamptz,
+  '2026-04-23 07:45:43.803505+00'::timestamptz,
+  NULL,
+  true,
+  1
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'a24c8ce0-1f12-4488-a1d5-5e66a8cee3ec'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'd6058a79-91ac-4d04-84c5-2f747cb36330'::uuid,
+  '0b0fcce2-15cc-4c06-bd84-129d3b35d7d6'::uuid,
+  'registered'::public.registration_status,
+  '2026-05-10 13:01:07.404534+00'::timestamptz,
+  '2026-05-10 13:01:07.404534+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'a367ce65-5d7f-4177-af3e-c4e800852675'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '30045a46-204d-43e6-8d33-90c977df486f'::uuid,
+  '767daf20-2720-461a-a1ba-2c84de4693ae'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 07:15:04.435513+00'::timestamptz,
+  '2026-04-23 07:15:04.435513+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'a3f07b43-63c8-4f29-a8f2-d613f1988c66'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '33f3a7f7-57b2-45e2-be39-f62dc171bb84'::uuid,
+  'f81c8ff0-cc12-429b-9e85-8ee8e8a07138'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-22 20:57:27.640796+00'::timestamptz,
+  '2026-04-22 20:57:27.640796+00'::timestamptz,
+  '2026-05-11 07:30:30.975717+00'::timestamptz,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'a5748dfc-aef2-4157-9591-2152a3ecb073'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'db98d548-8c2e-40ed-9ec4-c2120afbcd49'::uuid,
+  '30eef8e2-74b1-410a-b1de-decf7d376866'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-09 12:04:23.837026+00'::timestamptz,
+  '2026-04-09 12:04:23.837026+00'::timestamptz,
+  '2026-04-09 12:06:31.984741+00'::timestamptz,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'a902441b-04e6-41bb-bcda-d405853a98a0'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '5617adc0-3247-438f-99ce-70bc36e871b3'::uuid,
+  'ac7a314f-6903-47b8-9096-243d6b24842e'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 06:29:35.79532+00'::timestamptz,
+  '2026-04-23 06:29:35.79532+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'ab7c7ada-2997-4586-8c72-05add0365bb7'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '5617adc0-3247-438f-99ce-70bc36e871b3'::uuid,
+  '2f65224e-8ee1-4442-a9b5-56142d1f9413'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-22 20:36:32.354943+00'::timestamptz,
+  '2026-04-22 20:36:32.354943+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'ab857b73-6ced-48c5-bb37-0fc594885076'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '51f56177-d67c-4b49-9154-009bcef0e046'::uuid,
+  '4b249308-86e6-4fab-942f-a36e787534a7'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-22 05:30:36.814316+00'::timestamptz,
+  '2026-04-22 05:30:36.814316+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'ac976ef1-acd0-42a2-acaf-d18bd09f548c'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'd0cfc4a6-3189-4365-b86c-b478dcadbf68'::uuid,
+  'a3856216-c52c-41e3-9d61-2c20bcdb02ab'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-08 18:00:22.802583+00'::timestamptz,
+  '2026-04-08 18:00:22.802583+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'ad3551e8-5c0c-4b49-984c-4afb6450d7dc'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '8f600c58-3a57-4506-98fc-f2d4ef08e4a8'::uuid,
+  'c6377894-2826-4efe-84ff-2efeae0aed98'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 05:02:42.33331+00'::timestamptz,
+  '2026-04-23 05:02:42.33331+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'af8b92c0-e146-4907-87ba-5d1d44fadffc'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '5617adc0-3247-438f-99ce-70bc36e871b3'::uuid,
+  '7f3ddc2d-78f9-4cf8-a318-4fed234cb7cc'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 04:23:43.881345+00'::timestamptz,
+  '2026-04-23 04:23:43.881345+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'b1e55fad-cad2-40d1-8059-d6281bf9a92f'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'd6058a79-91ac-4d04-84c5-2f747cb36330'::uuid,
+  'd7e35357-4209-4429-8ecb-86cea5255fc9'::uuid,
+  'registered'::public.registration_status,
+  '2026-05-11 19:25:15.361319+00'::timestamptz,
+  '2026-05-11 19:25:15.361319+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'b8d3da43-6b02-48a7-8c21-5c1c936147fd'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '5617adc0-3247-438f-99ce-70bc36e871b3'::uuid,
+  'df756576-1390-4e27-a37c-1ee086061a16'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 05:25:34.690813+00'::timestamptz,
+  '2026-04-23 05:25:34.690813+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'bdc0d1c0-e188-49be-9a82-07323fb6e30b'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '5617adc0-3247-438f-99ce-70bc36e871b3'::uuid,
+  '767daf20-2720-461a-a1ba-2c84de4693ae'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 07:14:49.630983+00'::timestamptz,
+  '2026-04-23 07:14:49.630983+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'c66f278e-58e0-40e6-8db2-ea07868023d4'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'f2f1dfcb-61eb-4b94-86db-61539a60ea96'::uuid,
+  'ac7a314f-6903-47b8-9096-243d6b24842e'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 07:45:08.794486+00'::timestamptz,
+  '2026-04-23 07:45:08.794486+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'c7dae917-ad4d-4996-a4ca-cfaa11a28cc2'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '51f56177-d67c-4b49-9154-009bcef0e046'::uuid,
+  'df756576-1390-4e27-a37c-1ee086061a16'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-07 19:04:22.114586+00'::timestamptz,
+  '2026-04-07 19:04:22.114586+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'cb21e650-0262-4e1e-ab16-22156a215c88'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'e9a23ef7-5424-478c-9a02-8bf2ad6705e3'::uuid,
+  '7f3ddc2d-78f9-4cf8-a318-4fed234cb7cc'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 04:23:35.428447+00'::timestamptz,
+  '2026-04-23 04:23:35.428447+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'cb4cc973-1445-4d5a-83e7-c73031b87a18'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '5617adc0-3247-438f-99ce-70bc36e871b3'::uuid,
+  '47b11b34-6853-49e7-8006-4b2009ff711b'::uuid,
+  'waitlist'::public.registration_status,
+  '2026-04-28 17:41:11.791354+00'::timestamptz,
+  '2026-04-28 17:41:11.791354+00'::timestamptz,
+  NULL,
+  true,
+  2
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'cc04284a-8302-4873-919a-5bf559432ce2'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '33f3a7f7-57b2-45e2-be39-f62dc171bb84'::uuid,
+  '767daf20-2720-461a-a1ba-2c84de4693ae'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 07:14:59.524425+00'::timestamptz,
+  '2026-04-23 07:14:59.524425+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'cca66b3c-618f-4bc8-8b42-b3163ae61afe'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '85ad90eb-e21b-45ae-8d73-58038c502f73'::uuid,
+  'ac7a314f-6903-47b8-9096-243d6b24842e'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 06:29:20.617083+00'::timestamptz,
+  '2026-04-23 06:29:20.617083+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'cd75524f-67b4-4bdd-a263-15271fe3a559'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'f2f1dfcb-61eb-4b94-86db-61539a60ea96'::uuid,
+  '4b249308-86e6-4fab-942f-a36e787534a7'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 05:25:40.017698+00'::timestamptz,
+  '2026-04-23 05:25:40.017698+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'cdd5f633-ec14-4245-ba3c-deaf19f1267c'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '30045a46-204d-43e6-8d33-90c977df486f'::uuid,
+  '17b9d410-e078-4014-aa4f-5c16e678042b'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 08:23:40.146043+00'::timestamptz,
+  '2026-04-23 08:23:40.146043+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'd04b4ce3-a005-4e25-8313-2f10bc5f5594'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '51f56177-d67c-4b49-9154-009bcef0e046'::uuid,
+  '767daf20-2720-461a-a1ba-2c84de4693ae'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-21 12:49:24.893561+00'::timestamptz,
+  '2026-04-21 12:49:24.893561+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'd0e41ae4-3635-48fc-a670-4c8cbbe3e759'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '30045a46-204d-43e6-8d33-90c977df486f'::uuid,
+  '47b11b34-6853-49e7-8006-4b2009ff711b'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-28 17:41:29.355167+00'::timestamptz,
+  '2026-04-28 17:41:29.355167+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'db2489d5-c29b-4a68-976b-0529ed42227c'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'db98d548-8c2e-40ed-9ec4-c2120afbcd49'::uuid,
+  'fac5a9c9-0dc1-427c-aab4-db097ab8fa16'::uuid,
+  'registered'::public.registration_status,
+  '2026-03-21 20:28:03.441427+00'::timestamptz,
+  '2026-03-21 20:28:03.441427+00'::timestamptz,
+  '2026-05-11 17:39:55.740735+00'::timestamptz,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'dd37500b-2924-4418-8f54-245fd469695a'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'd6058a79-91ac-4d04-84c5-2f747cb36330'::uuid,
+  '17b9d410-e078-4014-aa4f-5c16e678042b'::uuid,
+  'registered'::public.registration_status,
+  '2026-05-05 06:14:54.6687+00'::timestamptz,
+  '2026-05-05 06:14:54.6687+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'dd575164-47b0-4416-b06c-ea516ee9745c'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'e9a23ef7-5424-478c-9a02-8bf2ad6705e3'::uuid,
+  '767daf20-2720-461a-a1ba-2c84de4693ae'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 07:14:36.169623+00'::timestamptz,
+  '2026-04-23 07:14:36.169623+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'de616bc9-079e-4b9b-9fbd-4ffd14a146eb'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'e9a23ef7-5424-478c-9a02-8bf2ad6705e3'::uuid,
+  'aa8af330-e808-4e39-87a9-131aef59079a'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 04:00:46.4881+00'::timestamptz,
+  '2026-04-23 04:00:46.4881+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'e035d3e7-52c0-4ecd-98c2-b5c55fd220ee'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'db98d548-8c2e-40ed-9ec4-c2120afbcd49'::uuid,
+  'a3856216-c52c-41e3-9d61-2c20bcdb02ab'::uuid,
+  'registered'::public.registration_status,
+  '2026-03-15 16:29:32.477768+00'::timestamptz,
+  '2026-03-15 16:29:32.477768+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'e17be49e-a39b-4c07-96fe-ab5b14bc55b5'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '2a877fe9-c5d5-4075-b496-98fd3d9956c3'::uuid,
+  '65012a0a-cc60-4c73-890f-46a9740c4c52'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 05:51:54.761571+00'::timestamptz,
+  '2026-04-23 05:51:54.761571+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'e5b39ca6-17b1-48f9-ad87-5ccedb6394f3'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'db98d548-8c2e-40ed-9ec4-c2120afbcd49'::uuid,
+  '65012a0a-cc60-4c73-890f-46a9740c4c52'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 05:50:52.127827+00'::timestamptz,
+  '2026-04-23 05:50:52.127827+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'e903b291-94d3-46da-88a3-091653fc25af'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '8f600c58-3a57-4506-98fc-f2d4ef08e4a8'::uuid,
+  '65012a0a-cc60-4c73-890f-46a9740c4c52'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 05:51:49.554714+00'::timestamptz,
+  '2026-04-23 05:51:49.554714+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'e9b5df3e-77a2-4830-ba92-1037f5536ec6'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '85ad90eb-e21b-45ae-8d73-58038c502f73'::uuid,
+  'df756576-1390-4e27-a37c-1ee086061a16'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 05:25:26.065602+00'::timestamptz,
+  '2026-04-23 05:25:26.065602+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'ed7d9df1-c5e2-4a9d-bf1a-f2674455d38e'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '2a877fe9-c5d5-4075-b496-98fd3d9956c3'::uuid,
+  'c6e80666-7afb-40e7-922a-26ac14f43024'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-22 21:02:39.838511+00'::timestamptz,
+  '2026-04-22 21:02:39.838511+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'ee7886f3-b5c7-48f1-ae51-d4c3c4e435e0'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '2a877fe9-c5d5-4075-b496-98fd3d9956c3'::uuid,
+  'ac7a314f-6903-47b8-9096-243d6b24842e'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-23 06:29:53.689864+00'::timestamptz,
+  '2026-04-23 06:29:53.689864+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'ee9435af-cd34-46db-a1d2-132a26ad178c'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '33f3a7f7-57b2-45e2-be39-f62dc171bb84'::uuid,
+  'f63447c3-a2b4-4064-97fe-22428a032a2d'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-22 21:18:37.154878+00'::timestamptz,
+  '2026-04-22 21:18:37.154878+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+ALTER TABLE public.registrations ENABLE TRIGGER prevent_past_course_registration;
