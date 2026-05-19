@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { resolveEmailLinkBaseUrl } from "../_shared/email_link_base_url.ts";
+import { buildEmailActionLink } from "../_shared/email_link_base_url.ts";
 import { fetchStudioSlugForUser } from "../_shared/studio_slug_for_user.ts";
 
 const corsHeaders = {
@@ -57,8 +57,7 @@ Deno.serve(async (req: Request) => {
       } else {
         const token = tokenData as string;
         const studioSlug = await fetchStudioSlugForUser(supabase, userData.id);
-        const baseUrl = resolveEmailLinkBaseUrl(req, studioSlug);
-        const resetLink = `${baseUrl}/reset-password?token=${token}`;
+        const resetLink = buildEmailActionLink(req, studioSlug, "reset-password", token);
 
         const emailHtml = `
           <!DOCTYPE html>

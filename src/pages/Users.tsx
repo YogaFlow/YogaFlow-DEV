@@ -138,39 +138,14 @@ export default function Users() {
     setLoading(true);
     try {
       if (isTeacher) {
-        // Teacher: only participants of their own courses
-        const { data: teacherCourses, error: coursesErr } = await supabase
-          .from('courses')
-          .select('id')
-          .eq('teacher_id', userProfile!.id);
-        if (coursesErr) throw coursesErr;
-
-        if (!teacherCourses || teacherCourses.length === 0) {
-          setUsers([]);
-          return;
-        }
-
-        const courseIds = teacherCourses.map(c => c.id);
-        const { data: regs, error: regsErr } = await supabase
-          .from('registrations')
-          .select('user_id, users(*)')
-          .in('course_id', courseIds)
-          .is('cancellation_timestamp', null);
-        if (regsErr) throw regsErr;
-
-        const seen = new Set<string>();
-        const uniqueUsers: User[] = [];
-        for (const reg of regs ?? []) {
-          const u = (reg as unknown as { users: User }).users;
-          if (u && u.role === 'user' && !seen.has(u.id)) {
-            seen.add(u.id);
-            uniqueUsers.push(u);
-          }
-        }
-        uniqueUsers.sort((a, b) =>
-          `${a.last_name}${a.first_name}`.localeCompare(`${b.last_name}${b.first_name}`, 'de'),
-        );
-        setUsers(uniqueUsers);
+        // Teacher: all participants (role=user) in tenant
+        const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('role', 'user')
+          .order('last_name', { ascending: true });
+        if (error) throw error;
+        setUsers(data || []);
       } else {
         // Admin/Owner: all users in tenant
         const { data, error } = await supabase
@@ -475,7 +450,7 @@ export default function Users() {
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Nutzerverwaltung</h1>
         <p className="text-sm text-gray-500 mt-1">
           {isTeacher
-            ? 'Teilnehmer deiner Kurse – Stammdaten und Passwörter bearbeiten, Kurse zuweisen.'
+            ? 'Alle Teilnehmer deines Studios – Stammdaten und Passwörter bearbeiten, Kurse zuweisen.'
             : 'Alle Studio-Nutzer verwalten – Stammdaten, Passwörter, Rollen und Kursbelegung.'}
         </p>
       </div>
@@ -484,7 +459,7 @@ export default function Users() {
       <div className="lg:hidden space-y-2">
         {users.length === 0 && (
           <div className="bg-white rounded-xl border border-gray-200 px-6 py-12 text-center text-gray-500 text-sm">
-            {isTeacher ? 'Keine Teilnehmer in deinen Kursen gefunden.' : 'Noch keine Nutzer gefunden.'}
+            {isTeacher ? 'Noch keine Teilnehmer gefunden.' : 'Noch keine Nutzer gefunden.'}
           </div>
         )}
         {users.map(user => {
@@ -746,7 +721,7 @@ export default function Users() {
               <tr>
                 <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
                   {isTeacher
-                    ? 'Keine Teilnehmer in deinen Kursen gefunden.'
+                    ? 'Noch keine Teilnehmer gefunden.'
                     : 'Noch keine Nutzer gefunden.'}
                 </td>
               </tr>

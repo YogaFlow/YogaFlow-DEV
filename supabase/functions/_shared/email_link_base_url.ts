@@ -18,6 +18,20 @@ export function emailLinkBaseUrl(req: Request): string {
 
 const SLUG_RE = /^[a-z0-9]{3,30}$/;
 
+export type EmailActionPath = "verify-email" | "reset-password";
+
+/** True when the SPA called the Edge Function from localhost (local `npm run dev`). */
+export function isLocalDevOrigin(req: Request): boolean {
+  const origin = req.headers.get("origin")?.trim() ?? "";
+  if (!origin) return false;
+  try {
+    const host = new URL(origin).hostname.toLowerCase();
+    return host === "localhost" || host === "127.0.0.1" || host.endsWith(".localhost");
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Apex-Host aus dem Browser-Origin, z. B. `https://omlify.de` → `omlify.de`.
  * Bei `https://studio1.omlify.de` → `null` (bereits Studio-Subdomain, Link-Basis bleibt Origin).
@@ -40,8 +54,14 @@ export function apexHostFromRequestOrigin(req: Request): string | null {
  * Studio-Link `https://{slug}.{domain}` wenn Slug bekannt ist und
  * - `APP_BASE_DOMAIN` gesetzt ist, oder
  * - Origin eine Apex-URL ist (z. B. `omlify.de` / `www.omlify.de`) — dann ohne extra Secret.
+ *
+ * Bei localhost-Origin immer die Origin (z. B. http://localhost:5173) — keine Prod-Subdomain in Mails.
  */
 export function resolveEmailLinkBaseUrl(req: Request, studioSlug: string | null): string {
+  if (isLocalDevOrigin(req)) {
+    return emailLinkBaseUrl(req);
+  }
+
   const slug = (studioSlug ?? "").trim().toLowerCase();
   const rawDomain = Deno.env.get("APP_BASE_DOMAIN")?.trim().toLowerCase() ?? "";
   const domainFromEnv = rawDomain.replace(/^https?:\/\//, "").replace(/\/+$/, "");
@@ -55,4 +75,21 @@ export function resolveEmailLinkBaseUrl(req: Request, studioSlug: string | null)
     }
   }
   return emailLinkBaseUrl(req);
+}
+
+/** Vollständiger Link für verify-email / reset-password inkl. `tenant` auf localhost. */
+export function buildEmailActionLink(
+  req: Request,
+  studioSlug: string | null,
+  path: EmailActionPath,
+  token: string,
+): string {
+  const baseUrl = resolveEmailLinkBaseUrl(req, studioSlug);
+  const url = new URL(`${baseUrl}/${path}`);
+  url.searchParams.set("token", token);
+  const slug = (studioSlug ?? "").trim().toLowerCase();
+  if (isLocalDevOrigin(req) && slug.length > 0 && SLUG_RE.test(slug)) {
+    url.searchParams.set("tenant", slug);
+  }
+  return url.toString();
 }

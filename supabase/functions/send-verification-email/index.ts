@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { resolveEmailLinkBaseUrl } from "../_shared/email_link_base_url.ts";
+import { buildEmailActionLink } from "../_shared/email_link_base_url.ts";
 import { fetchStudioSlugForUser, verifyClientStudioSlugHint } from "../_shared/studio_slug_for_user.ts";
 
 const corsHeaders = {
@@ -89,8 +89,7 @@ Deno.serve(async (req: Request) => {
     const slugFromDb = await fetchStudioSlugForUser(supabase, userId);
     const slugFromHint = await verifyClientStudioSlugHint(supabase, userId, clientStudioSlug);
     const studioSlug = slugFromDb ?? slugFromHint;
-    const baseUrl = resolveEmailLinkBaseUrl(req, studioSlug);
-    const verificationLink = `${baseUrl}/verify-email?token=${token}`;
+    const verificationLink = buildEmailActionLink(req, studioSlug, "verify-email", token);
 
     const emailHtml = `
       <!DOCTYPE html>

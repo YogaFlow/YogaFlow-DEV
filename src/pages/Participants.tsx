@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Course, Registration, User } from '../types';
-import { isCourseManagerRole, isStudioAdmin, isTeacherOnly } from '../lib/userRoles';
+import { isCourseManagerRole, isStudioAdmin } from '../lib/userRoles';
 import { Calendar, Clock, MapPin, Users, Mail, Phone, Search, Filter, Download } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -42,13 +42,9 @@ const Participants: React.FC = () => {
 
       try {
         await runPastRegistrationCleanup();
-        let coursesQuery = supabase.from('courses').select('*');
-
-        if (isTeacherOnly(userProfile)) {
-          coursesQuery = coursesQuery.eq('teacher_id', userProfile.id);
-        }
-
-        const { data: coursesData, error: coursesError } = await coursesQuery
+        const { data: coursesData, error: coursesError } = await supabase
+          .from('courses')
+          .select('*')
           .order('date', { ascending: true });
 
         if (coursesError) throw coursesError;
@@ -56,28 +52,13 @@ const Participants: React.FC = () => {
         if (!isMounted) return;
         setCourses(upcomingCourses);
 
-        let registrationsQuery = supabase
+        const { data: registrationsData, error: registrationsError } = await supabase
           .from('registrations')
           .select(`
             *,
             user:users(*),
             course:courses(*)
-          `);
-
-        if (isTeacherOnly(userProfile)) {
-          const courseIds = upcomingCourses.map(c => c.id) || [];
-          if (courseIds.length > 0) {
-            registrationsQuery = registrationsQuery.in('course_id', courseIds);
-          } else {
-            if (isMounted) {
-              setParticipants([]);
-              setLoading(false);
-            }
-            return;
-          }
-        }
-
-        const { data: registrationsData, error: registrationsError } = await registrationsQuery
+          `)
           .order('registered_at', { ascending: false });
 
         if (registrationsError) throw registrationsError;
@@ -213,7 +194,11 @@ const Participants: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Teilnehmer</h1>
-          <p className="text-gray-600">Verwalten Sie Kursteilnehmer und Anmeldungen</p>
+          <p className="text-gray-600">
+            {userProfile && userProfile.role === 'teacher'
+              ? 'Alle Studio-Anmeldungen für kommende Kurse'
+              : 'Verwalten Sie Kursteilnehmer und Anmeldungen'}
+          </p>
         </div>
         
         {filteredParticipants.length > 0 && (

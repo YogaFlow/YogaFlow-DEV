@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useNavigate, useSearchParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { TenantProvider, useTenant, APP_BASE_DOMAIN } from './context/TenantContext';
 import AuthPage from './pages/AuthPage';
@@ -124,6 +124,31 @@ const TenantGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <>{children}</>;
 };
 
+/** Falls ein Mail-Client nur die Root-URL öffnet, Token trotzdem auf /verify-email verarbeiten. */
+const EmailTokenFromRootRedirect: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = searchParams.get('token');
+    if (!token) return;
+    const next = new URLSearchParams({ token });
+    const tenant = searchParams.get('tenant');
+    if (tenant) next.set('tenant', tenant);
+    navigate(`/verify-email?${next.toString()}`, { replace: true });
+  }, [searchParams, navigate]);
+
+  return null;
+};
+
+const HomeRouteWithTokenRedirect: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  if (searchParams.get('token')) {
+    return <EmailTokenFromRootRedirect />;
+  }
+  return <HomeRoute />;
+};
+
 const Spinner = () => (
   <div className="min-h-screen bg-gray-100 flex items-center justify-center">
     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600" />
@@ -230,7 +255,7 @@ function App() {
             <Route path="/verify-email"    element={<VerifyEmail />} />
 
             {/* Apex: Landing Page / Subdomain: Redirect zu Dashboard */}
-            <Route path="/" element={<HomeRoute />} />
+            <Route path="/" element={<HomeRouteWithTokenRedirect />} />
 
             {/* Öffentlich: Onboarding (kein Tenant-Kontext erforderlich) */}
             <Route path="/onboarding" element={<OnboardingWizard />} />
