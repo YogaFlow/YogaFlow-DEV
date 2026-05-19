@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import LoginForm from '../components/Auth/LoginForm';
 import RegisterForm from '../components/Auth/RegisterForm';
 import { Heart } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useTenant, APP_BASE_DOMAIN } from '../context/TenantContext';
+import { useTenant, APP_BASE_DOMAIN, withDevTenant } from '../context/TenantContext';
 
 type AccessNotice = 'wrong_studio' | 'profile_missing' | 'email_not_confirmed' | null;
 
@@ -84,7 +84,7 @@ const AuthPage: React.FC = () => {
     }
     if (tenantLoading || notFound || !tenant) return;
     if (!userProfile || userProfile.tenant_id !== tenant.id) return;
-    navigate('/dashboard', { replace: true });
+    navigate(withDevTenant('/dashboard'), { replace: true });
   }, [
     loading,
     profileLoading,
@@ -129,6 +129,15 @@ const AuthPage: React.FC = () => {
     next.delete('studio');
     setSearchParams(next, { replace: true });
   }, [searchParams, setSearchParams]);
+
+  /** Eingeloggt, aber Redirect blockiert — ohne sichtbares Feedback wirkte der Login „leer“. */
+  const loginBlockReason = useMemo((): AccessNotice => {
+    if (!user || loading || profileLoading || !tenantSlug || !tenant || accessNotice) return null;
+    if (!userProfile) return 'profile_missing';
+    if (!isEmailConfirmed) return 'email_not_confirmed';
+    if (userProfile.tenant_id !== tenant.id) return 'wrong_studio';
+    return null;
+  }, [user, loading, profileLoading, tenantSlug, tenant, accessNotice, userProfile, isEmailConfirmed]);
 
   if (loading) {
     return (
@@ -240,6 +249,37 @@ const AuthPage: React.FC = () => {
           {showVerifiedMessage && (
             <div className="mx-8 mt-6 p-4 bg-green-50 border border-green-200 rounded-lg text-center text-green-800 text-sm">
               E-Mail bestätigt. Sie können sich jetzt anmelden.
+            </div>
+          )}
+          {user && profileLoading && (
+            <div className="mx-8 mt-6 p-4 bg-teal-50 border border-teal-200 rounded-lg text-teal-900 text-sm text-center">
+              Anmeldung erfolgreich — Profil wird geladen …
+            </div>
+          )}
+          {loginBlockReason === 'profile_missing' && (
+            <div className="mx-8 mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-sm">
+              <p className="font-medium mb-1">Anmeldung erkannt, Profil fehlt</p>
+              <p>
+                Die Anmeldung war erfolgreich, aber es gibt keinen Eintrag in der Studio-Datenbank. Bitte registriere
+                dich erneut oder wende dich an den Support.
+              </p>
+            </div>
+          )}
+          {loginBlockReason === 'email_not_confirmed' && (
+            <div className="mx-8 mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-sm">
+              <p className="font-medium mb-1">E-Mail noch nicht bestätigt</p>
+              <p>
+                Bitte bestätige deine E-Mail über den Link in der Registrierungsmail, bevor du dich anmelden kannst.
+              </p>
+            </div>
+          )}
+          {loginBlockReason === 'wrong_studio' && (
+            <div className="mx-8 mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-sm">
+              <p className="font-medium mb-1">Falsches Studio</p>
+              <p>
+                Dieses Konto gehört nicht zu <span className="font-mono">{tenantSlug}</span>. Bitte nutze die
+                Anmeldeseite deines Studios oder ein anderes Konto.
+              </p>
             </div>
           )}
           {accessNotice === 'wrong_studio' && (

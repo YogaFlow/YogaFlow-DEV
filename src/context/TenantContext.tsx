@@ -99,6 +99,34 @@ export function buildStudioAuthHref(slug: string): string {
   return `${protocol}//${trimmed}.${APP_BASE_DOMAIN}/auth`;
 }
 
+/** Aktueller DEV-Tenant-Slug (URL ?tenant= oder sessionStorage). */
+export function getDevTenantSlug(): string | null {
+  if (!import.meta.env.DEV || typeof window === 'undefined') return null;
+  const fromUrl = new URLSearchParams(window.location.search).get('tenant')?.trim().toLowerCase() ?? '';
+  if (fromUrl && /^[a-z0-9]{3,30}$/.test(fromUrl)) return fromUrl;
+  const fromStore = sessionStorage.getItem(DEV_SLUG_KEY)?.trim().toLowerCase() ?? '';
+  return fromStore && /^[a-z0-9]{3,30}$/.test(fromStore) ? fromStore : null;
+}
+
+/**
+ * Hängt in DEV `?tenant=` an interne Pfade, damit Redirects (z. B. /auth, /dashboard)
+ * den Studio-Kontext behalten, wenn sessionStorage nach signOut geleert wurde.
+ */
+export function withDevTenant(path: string, extraParams?: Record<string, string>): string {
+  if (!import.meta.env.DEV) return path;
+  const slug = getDevTenantSlug();
+  if (!slug) return path;
+  const [pathname, existingSearch = ''] = path.split('?');
+  const params = new URLSearchParams(existingSearch);
+  params.set('tenant', slug);
+  if (extraParams) {
+    for (const [key, value] of Object.entries(extraParams)) {
+      params.set(key, value);
+    }
+  }
+  return `${pathname}?${params.toString()}`;
+}
+
 interface TenantContextType {
   tenant: Tenant | null;
   tenantSlug: string | null;

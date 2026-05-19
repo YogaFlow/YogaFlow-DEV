@@ -160,31 +160,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     };
 
+    const applySession = (session: Session | null) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        startProfileLoad(session.user.id);
+      } else {
+        profileLoadGenerationRef.current += 1;
+        setUserProfile(null);
+        setProfileLoading(false);
+      }
+    };
+
+    const markAuthReady = () => {
+      initialSessionReceived = true;
+      window.clearTimeout(safetyTimer);
+    };
+
+    // Fallback falls INITIAL_SESSION in seltenen Fällen (HMR, langsames Netz) ausbleibt.
+    void supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isMounted || initialSessionReceived) return;
+      markAuthReady();
+      applySession(session);
+      setLoading(false);
+    });
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event: AuthChangeEvent, session: Session | null) => {
         if (!isMounted) return;
 
         if (event === 'INITIAL_SESSION') {
-          initialSessionReceived = true;
-          window.clearTimeout(safetyTimer);
-          // Session-Zustand sofort setzen, loading sofort freigeben.
-          // Profil lädt im Hintergrund via profileLoading.
-          setUser(session?.user ?? null);
-          if (session?.user) {
-            startProfileLoad(session.user.id);
-          } else {
-            setUserProfile(null);
-          }
+          markAuthReady();
+          applySession(session);
           setLoading(false);
           return;
         }
 
         if (event === 'TOKEN_REFRESHED') {
+          if (session?.user) markAuthReady();
           setUser(session?.user ?? null);
           return;
         }
 
         if (event === 'SIGNED_OUT') {
+          markAuthReady();
           profileLoadGenerationRef.current += 1;
           setUser(null);
           setUserProfile(null);
@@ -194,14 +212,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         // SIGNED_IN, USER_UPDATED, PASSWORD_RECOVERY, etc.
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          startProfileLoad(session.user.id);
-        } else {
-          profileLoadGenerationRef.current += 1;
-          setUserProfile(null);
-          setProfileLoading(false);
-        }
+        if (session?.user) markAuthReady();
+        applySession(session);
       },
     );
 
