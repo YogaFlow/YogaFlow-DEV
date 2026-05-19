@@ -6,7 +6,8 @@ INSERT INTO auth.users (
   instance_id, id, aud, role, email, encrypted_password,
   email_confirmed_at,
   confirmation_token, recovery_token, email_change_token_new,
-  email_change_token_current, reauthentication_token, phone_change_token,
+  email_change, email_change_token_current, reauthentication_token,
+  phone_change, phone_change_token,
   raw_app_meta_data, raw_user_meta_data,
   created_at, updated_at, is_sso_user, is_anonymous
 ) VALUES (
@@ -17,7 +18,7 @@ INSERT INTO auth.users (
   'juliusbne@gmail.com',
   '$2a$10$3.m637MaJo65sFgSa43TkOuVazgUD/JkgJDvNl5mnpzi.0ALMjc2a',
   '2026-02-23 14:30:33.389387+00'::timestamptz,
-  '', '', '', '', '', '',
+  '', '', '', '', '', '', '', '',
   '{"provider": "email", "providers": ["email"]}'::jsonb,
   '{"sub": "d54ac880-4600-4e60-ba22-2b07c88ba0e0", "tenant_id": "892370b8-49a1-4699-b480-2f722e4f9fe3", "role": "user", "first_name": "Julius", "last_name": "Blaschke", "street": "Fliederweg ", "house_number": "40", "postal_code": "41468", "city": "Neuss", "phone": "01783226430", "email_verified": true}'::jsonb,
   '2026-02-23 14:30:33.269276+00'::timestamptz,
