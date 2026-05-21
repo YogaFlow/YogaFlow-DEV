@@ -1,12 +1,103 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { Message, Course, User } from '../types';
-import { MessageSquare, Send, Users } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Send, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
 import { isCourseUpcoming } from '../lib/courseDateTime';
-import { markMessagesAsRead } from '../lib/useUnreadMessages';
+import {
+  getConversationUnreadCount,
+  getMessagesLastSeen,
+  markConversationAsRead,
+} from '../lib/useUnreadMessages';
+import { isStudioAdmin, isTeacherOnly } from '../lib/userRoles';
+
+type Conversation = {
+  key: string;
+  isBroadcast: boolean;
+  displayName: string;
+  messages: Message[];
+  lastMessageAt: Date;
+  preview: string;
+  unreadCount: number;
+};
+
+function getDirectConversationKey(userId1: string, userId2: string): string {
+  return [userId1, userId2].sort().join(':');
+}
+
+function getMessageConversationKey(message: Message, currentUserId: string): string | null {
+  if (message.is_broadcast) {
+    return `broadcast:${message.course_id}`;
+  }
+  const otherId =
+    message.sender_id === currentUserId ? message.recipient_id : message.sender_id;
+  if (!otherId) return null;
+  return getDirectConversationKey(currentUserId, otherId);
+}
+
+function getUserDisplayName(user: { first_name?: string; last_name?: string } | undefined): string {
+  if (!user) return 'Unbekannt';
+  return `${user.first_name ?? ''} ${user.last_name ?? ''}`.trim() || 'Unbekannt';
+}
+
+function buildConversations(
+  messages: Message[],
+  currentUserId: string,
+  lastSeen: string
+): Conversation[] {
+  const byKey = new Map<string, Message[]>();
+
+  for (const message of messages) {
+    const key = getMessageConversationKey(message, currentUserId);
+    if (!key) continue;
+    const list = byKey.get(key) ?? [];
+    list.push(message);
+    byKey.set(key, list);
+  }
+
+  const conversations: Conversation[] = [];
+
+  for (const [key, threadMessages] of byKey) {
+    const sorted = [...threadMessages].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+    const latest = sorted[sorted.length - 1];
+    const isBroadcast = key.startsWith('broadcast:');
+
+    let displayName: string;
+    if (isBroadcast) {
+      const courseTitle = (latest.course as { title?: string } | undefined)?.title ?? 'Kurs';
+      const senderName = getUserDisplayName(latest.sender as User | undefined);
+      displayName =
+        latest.sender_id === currentUserId
+          ? `Rundnachricht – ${courseTitle}`
+          : `${senderName} – Rundnachricht (${courseTitle})`;
+    } else {
+      const sample = sorted.find((m) => !m.is_broadcast) ?? latest;
+      const otherUser =
+        sample.sender_id === currentUserId
+          ? (sample.recipient as User | undefined)
+          : (sample.sender as User | undefined);
+      displayName = getUserDisplayName(otherUser);
+    }
+
+    conversations.push({
+      key,
+      isBroadcast,
+      displayName,
+      messages: sorted,
+      lastMessageAt: new Date(latest.created_at),
+      preview: latest.content,
+      unreadCount: getConversationUnreadCount(sorted, currentUserId, lastSeen, isBroadcast),
+    });
+  }
+
+  return conversations.sort(
+    (a, b) => b.lastMessageAt.getTime() - a.lastMessageAt.getTime()
+  );
+}
 
 export default function Messages() {
   const { userProfile, isCourseLeader } = useAuth();
@@ -19,6 +110,26 @@ export default function Messages() {
   const [participants, setParticipants] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [feedbackDialog, setFeedbackDialog] = useState<FeedbackDialogState | null>(null);
+  const [activeConversationKey, setActiveConversationKey] = useState<string | null>(null);
+  const [messagesLastSeen, setMessagesLastSeen] = useState<string>(() =>
+    userProfile?.id ? getMessagesLastSeen(userProfile.id) : ''
+  );
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollChatToBottom = useCallback(() => {
+    const container = chatScrollRef.current;
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
+    chatEndRef.current?.scrollIntoView({ block: 'end' });
+  }, []);
+
+  useEffect(() => {
+    if (userProfile?.id) {
+      setMessagesLastSeen(getMessagesLastSeen(userProfile.id));
+    }
+  }, [userProfile?.id]);
 
   useEffect(() => {
     if (userProfile) {
@@ -27,12 +138,23 @@ export default function Messages() {
     }
   }, [userProfile]);
 
-  // Beim Öffnen der Nachrichten-Seite gelten alle aktuell sichtbaren Nachrichten als gesehen:
-  // direkte Nachrichten werden in der DB auf read=true gesetzt, Broadcasts via LocalStorage-
-  // Zeitstempel markiert. Die Sidebar bekommt das per Custom-Event sofort mit.
   useEffect(() => {
     if (!userProfile?.id) return;
-    void markMessagesAsRead(userProfile.id);
+
+    const pollId = window.setInterval(() => {
+      void fetchMessages();
+    }, 30_000);
+
+    const onFocus = () => {
+      setMessagesLastSeen(getMessagesLastSeen(userProfile.id));
+      void fetchMessages();
+    };
+    window.addEventListener('focus', onFocus);
+
+    return () => {
+      window.clearInterval(pollId);
+      window.removeEventListener('focus', onFocus);
+    };
   }, [userProfile?.id]);
 
   useEffect(() => {
@@ -46,11 +168,15 @@ export default function Messages() {
       const today = new Date().toISOString().split('T')[0];
       let query = supabase
         .from('courses')
-        .select('*')
+        .select('*, teacher:users!courses_teacher_id_fkey(first_name, last_name)')
         .neq('status', 'canceled')
         .gte('date', today);
 
-      if (isCourseLeader) {
+      if (isStudioAdmin(userProfile)) {
+        if (userProfile?.tenant_id) {
+          query = query.eq('tenant_id', userProfile.tenant_id);
+        }
+      } else if (isTeacherOnly(userProfile)) {
         query = query.eq('teacher_id', userProfile?.id);
       } else {
         const { data: registrations } = await supabase
@@ -203,9 +329,66 @@ export default function Messages() {
     }
   };
 
-  const filteredMessages = selectedCourse
-    ? messages.filter(m => m.course_id === selectedCourse)
-    : messages;
+  const conversations = useMemo(
+    () =>
+      userProfile?.id
+        ? buildConversations(messages, userProfile.id, messagesLastSeen)
+        : [],
+    [messages, userProfile?.id, messagesLastSeen]
+  );
+
+  const handleOpenConversation = async (conversationKey: string) => {
+    const conversation = conversations.find((c) => c.key === conversationKey);
+    if (!conversation || !userProfile?.id) {
+      setActiveConversationKey(conversationKey);
+      return;
+    }
+
+    if (conversation.unreadCount > 0) {
+      await markConversationAsRead(userProfile.id, conversationKey, conversation.messages);
+      setMessagesLastSeen(getMessagesLastSeen(userProfile.id));
+      await fetchMessages();
+    }
+
+    setActiveConversationKey(conversationKey);
+    requestAnimationFrame(() => scrollChatToBottom());
+  };
+
+  const activeConversation = useMemo(
+    () => conversations.find((c) => c.key === activeConversationKey) ?? null,
+    [conversations, activeConversationKey]
+  );
+
+  const activeConversationMessageCount = activeConversation?.messages.length ?? 0;
+  const activeConversationLastMessageId =
+    activeConversation?.messages[activeConversationMessageCount - 1]?.id ?? null;
+
+  useEffect(() => {
+    if (!activeConversationKey) return;
+    const frameId = requestAnimationFrame(() => {
+      scrollChatToBottom();
+    });
+    return () => cancelAnimationFrame(frameId);
+  }, [
+    activeConversationKey,
+    activeConversationMessageCount,
+    activeConversationLastMessageId,
+    scrollChatToBottom,
+  ]);
+
+  useEffect(() => {
+    if (
+      activeConversationKey &&
+      !conversations.some((c) => c.key === activeConversationKey)
+    ) {
+      setActiveConversationKey(null);
+    }
+  }, [conversations, activeConversationKey]);
+
+  const selectedCourseData = courses.find((c) => c.id === selectedCourse);
+  const courseLeaderLabel = selectedCourseData?.teacher
+    ? `Kursleiter – ${selectedCourseData.teacher.first_name} ${selectedCourseData.teacher.last_name}`.trim()
+    : 'Kursleiter';
 
   if (loading) {
     return (
@@ -283,8 +466,8 @@ export default function Messages() {
                         </option>
                       ))
                     ) : (
-                      <option value={courses.find(c => c.id === selectedCourse)?.teacher_id}>
-                        Kursleiter
+                      <option value={selectedCourseData?.teacher_id ?? ''}>
+                        {courseLeaderLabel}
                       </option>
                     )}
                   </select>
@@ -316,50 +499,119 @@ export default function Messages() {
           </div>
         </div>
 
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Nachrichtenverlauf</h2>
-            <div className="space-y-4 max-h-[600px] overflow-y-auto">
-              {filteredMessages.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">Noch keine Nachrichten</p>
-              ) : (
-                filteredMessages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`p-4 rounded-lg ${
-                      message.sender_id === userProfile?.id
-                        ? 'bg-gray-100 ml-8'
-                        : 'bg-white border border-gray-200 mr-8'
-                    }`}
+        <div className="lg:col-span-2 lg:min-h-0">
+          <div className="bg-white rounded-lg shadow p-6 flex flex-col min-h-[400px] lg:h-[calc(100vh-10rem)] lg:max-h-[720px]">
+            {activeConversation ? (
+              <>
+                <div className="flex shrink-0 items-center gap-3 mb-4 pb-4 border-b border-gray-200">
+                  <button
+                    type="button"
+                    onClick={() => setActiveConversationKey(null)}
+                    className="p-2 rounded-lg hover:bg-gray-100 text-gray-700 transition-colors"
+                    aria-label="Zurück zur Konversationsliste"
                   >
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {message.sender_id === userProfile?.id
-                            ? 'Sie'
-                            : `${(message.sender as any)?.first_name} ${(message.sender as any)?.last_name}`}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {(message.course as any)?.title}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-gray-500">
-                          {format(new Date(message.created_at), 'dd.MM.yyyy HH:mm')}
-                        </p>
-                        {message.is_broadcast && (
-                          <span className="inline-flex items-center gap-1 text-xs text-gray-600 mt-1">
-                            <Users size={12} />
-                            Rundnachricht
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <p className="text-gray-700 whitespace-pre-wrap">{message.content}</p>
+                    <ArrowLeft size={20} />
+                  </button>
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-lg font-semibold text-gray-900 truncate">
+                      {activeConversation.displayName}
+                    </h2>
+                    {activeConversation.isBroadcast && (
+                      <span className="inline-flex items-center gap-1 text-xs text-gray-600">
+                        <Users size={12} />
+                        Rundnachricht
+                      </span>
+                    )}
                   </div>
-                ))
-              )}
-            </div>
+                </div>
+                <div
+                  ref={chatScrollRef}
+                  className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain space-y-4 pr-1 -mr-1"
+                  role="log"
+                  aria-label="Chatverlauf"
+                >
+                  {activeConversation.messages.map((message) => {
+                    const isOwnMessage = message.sender_id === userProfile?.id;
+                    const senderLabel = isOwnMessage
+                      ? 'Sie'
+                      : getUserDisplayName(message.sender as User | undefined);
+
+                    return (
+                      <div
+                        key={message.id}
+                        className={`p-4 rounded-lg ${
+                          isOwnMessage
+                            ? 'bg-gray-100 ml-8'
+                            : 'bg-white border border-gray-200 mr-8'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start mb-1 gap-2">
+                          <p className="text-xs font-medium text-gray-700 truncate">
+                            {senderLabel}
+                          </p>
+                          <p className="text-xs text-gray-500 shrink-0">
+                            {format(new Date(message.created_at), 'dd.MM.yyyy HH:mm')}
+                          </p>
+                        </div>
+                        <p className="text-xs text-gray-500 truncate mb-2">
+                          {(message.course as { title?: string } | undefined)?.title}
+                        </p>
+                        <p className="text-gray-700 whitespace-pre-wrap">{message.content}</p>
+                      </div>
+                    );
+                  })}
+                  <div ref={chatEndRef} aria-hidden className="h-px shrink-0" />
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4 shrink-0">Nachrichtenverlauf</h2>
+                <div className="space-y-2 flex-1 min-h-0 overflow-y-auto overscroll-y-contain">
+                  {conversations.length === 0 ? (
+                    <p className="text-gray-500 text-center py-8">Noch keine Nachrichten</p>
+                  ) : (
+                    conversations.map((conversation) => (
+                      <button
+                        key={conversation.key}
+                        type="button"
+                        onClick={() => void handleOpenConversation(conversation.key)}
+                        className="w-full text-left p-4 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex justify-between items-start gap-2 mb-1">
+                          <p className="font-medium text-gray-900 truncate">
+                            {conversation.displayName}
+                          </p>
+                          <div className="flex flex-col items-end shrink-0">
+                            <p
+                              className={`text-xs shrink-0 ${
+                                conversation.unreadCount > 0
+                                  ? 'text-emerald-600 font-medium'
+                                  : 'text-gray-500'
+                              }`}
+                            >
+                              {format(conversation.lastMessageAt, 'dd.MM.yyyy HH:mm')}
+                            </p>
+                            {conversation.unreadCount > 0 && (
+                              <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 mt-1 text-xs font-semibold text-emerald-700 tabular-nums rounded-full border border-emerald-500 bg-emerald-50">
+                                {conversation.unreadCount > 9
+                                  ? '9+'
+                                  : conversation.unreadCount}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {conversation.isBroadcast && (
+                            <Users size={14} className="text-gray-500 shrink-0" />
+                          )}
+                          <p className="text-sm text-gray-600 truncate">{conversation.preview}</p>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

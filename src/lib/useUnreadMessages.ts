@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from './supabase';
 import { useAuth } from '../context/AuthContext';
+import { Message } from '../types';
 
 const POLL_INTERVAL_MS = 30_000;
 const STORAGE_PREFIX = 'yogaflow:messages_last_seen:';
 const MARK_SEEN_EVENT = 'yogaflow:messages-seen';
 
 /** Baseline für noch nie besuchte Messages-Seite: zähle alle Broadcasts als ungelesen. */
-const EPOCH_BASELINE = '1970-01-01T00:00:00.000Z';
+export const MESSAGES_EPOCH_BASELINE = '1970-01-01T00:00:00.000Z';
 
 const storageKey = (userId: string) => `${STORAGE_PREFIX}${userId}`;
 
@@ -18,8 +19,36 @@ const readLastSeen = (userId: string): string => {
   } catch {
     // ignore
   }
-  return EPOCH_BASELINE;
+  return MESSAGES_EPOCH_BASELINE;
 };
+
+/** LocalStorage-Zeitstempel für gesehene Rundnachrichten (pro User). */
+export const getMessagesLastSeen = (userId: string): string => readLastSeen(userId);
+
+export function getConversationUnreadCount(
+  threadMessages: Message[],
+  currentUserId: string,
+  lastSeen: string,
+  isBroadcast: boolean
+): number {
+  const lastSeenMs = new Date(lastSeen).getTime();
+
+  return threadMessages.filter((message) => {
+    if (message.sender_id === currentUserId) return false;
+
+    if (isBroadcast) {
+      return (
+        message.is_broadcast && new Date(message.created_at).getTime() > lastSeenMs
+      );
+    }
+
+    return (
+      !message.is_broadcast &&
+      message.recipient_id === currentUserId &&
+      !message.read
+    );
+  }).length;
+}
 
 const writeLastSeen = (userId: string, iso: string) => {
   try {
@@ -66,6 +95,55 @@ export const notifyMessagesSeen = () => {
   } catch {
     // ignore
   }
+};
+
+/**
+ * Markiert alle Nachrichten eines Konversations-Threads als gelesen.
+ * Direktnachrichten: read=true in der DB. Rundnachrichten: lastSeen wird fortgeschrieben.
+ */
+export const markConversationAsRead = async (
+  userId: string,
+  conversationKey: string,
+  threadMessages: Message[]
+): Promise<void> => {
+  if (!userId) return;
+
+  if (conversationKey.startsWith('broadcast:')) {
+    const courseId = conversationKey.slice('broadcast:'.length);
+    const incoming = threadMessages.filter(
+      (m) =>
+        m.is_broadcast &&
+        m.course_id === courseId &&
+        m.sender_id !== userId
+    );
+    if (incoming.length === 0) return;
+
+    const latestIncoming = incoming.reduce((latest, m) =>
+      new Date(m.created_at) > new Date(latest) ? m.created_at : latest
+    , incoming[0].created_at);
+
+    const currentLastSeen = readLastSeen(userId);
+    if (new Date(latestIncoming) > new Date(currentLastSeen)) {
+      writeLastSeen(userId, latestIncoming);
+    }
+  } else {
+    const [id1, id2] = conversationKey.split(':');
+    const otherUserId = id1 === userId ? id2 : id1;
+    if (!otherUserId) return;
+
+    try {
+      await supabase
+        .from('messages')
+        .update({ read: true })
+        .eq('recipient_id', userId)
+        .eq('sender_id', otherUserId)
+        .eq('read', false);
+    } catch (e) {
+      console.error('markConversationAsRead: update failed', e);
+    }
+  }
+
+  notifyMessagesSeen();
 };
 
 /**
@@ -140,7 +218,7 @@ export function useUnreadMessages() {
     const onSeen = () => {
       if (!userProfile.id) return;
       lastSeenRef.current = readLastSeen(userProfile.id);
-      setUnreadCount(0);
+      void refresh();
     };
     const onFocus = () => {
       void refresh();
