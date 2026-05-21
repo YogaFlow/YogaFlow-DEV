@@ -11,7 +11,9 @@
       "Bash(git checkout *)",
       "Bash(supabase --version)",
       "Bash(supabase status *)",
-      "Bash(supabase db *)"
+      "Bash(supabase db *)",
+      "Bash(wrangler whoami *)",
+      "PowerShell(npx wrangler whoami 2>&1)"
     ]
   }
 }
