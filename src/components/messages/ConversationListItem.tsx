@@ -21,7 +21,7 @@ const ConversationListItem: React.FC<ConversationListItemProps> = ({
       onClick={onClick}
       className={`w-full text-left flex items-start gap-3 p-3 rounded-lg transition-colors ${
         isActive
-          ? 'bg-teal-50 border border-teal-200'
+          ? 'bg-teal-900/[0.07] border border-teal-700/30'
           : 'border border-transparent hover:bg-gray-50'
       }`}
     >
