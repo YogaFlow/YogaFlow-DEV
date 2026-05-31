@@ -13,7 +13,6 @@ interface CourseFilterDatePickerProps {
   onClose: () => void;
   selectedIso: string | null;
   onSelect: (isoDate: string) => void;
-  onClear: () => void;
   variant: 'popover' | 'modal';
   anchorRef?: React.RefObject<HTMLElement | null>;
 }
@@ -23,7 +22,6 @@ const CourseFilterDatePicker: React.FC<CourseFilterDatePickerProps> = ({
   onClose,
   selectedIso,
   onSelect,
-  onClear,
   variant,
   anchorRef,
 }) => {
@@ -48,11 +46,6 @@ const CourseFilterDatePicker: React.FC<CourseFilterDatePickerProps> = ({
     onClose();
   }, [onSelect, onClose]);
 
-  const handleClear = useCallback(() => {
-    onClear();
-    onClose();
-  }, [onClear, onClose]);
-
   useEffect(() => {
     if (!isOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
@@ -76,16 +69,11 @@ const CourseFilterDatePicker: React.FC<CourseFilterDatePickerProps> = ({
 
   const CustomContainer = useCallback(
     ({ className, children }: { className?: string; children?: React.ReactNode }) => (
-      <DatePickerCalendarContainer
-        className={className}
-        onToday={handleToday}
-        showClear
-        onClear={handleClear}
-      >
+      <DatePickerCalendarContainer className={className} onToday={handleToday}>
         {children}
       </DatePickerCalendarContainer>
     ),
-    [handleToday, handleClear]
+    [handleToday]
   );
 
   if (!isOpen) return null;
