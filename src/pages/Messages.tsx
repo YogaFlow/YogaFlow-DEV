@@ -339,7 +339,7 @@ export default function Messages() {
   );
 
   return (
-    <div className="messages-page flex flex-col flex-1 min-h-0 overflow-hidden p-4 lg:p-0">
+    <div className="messages-page flex flex-col max-lg:flex-none lg:flex-1 lg:min-h-0 lg:overflow-hidden p-4 lg:p-0">
       <FeedbackDialog dialog={feedbackDialog} onClose={() => setFeedbackDialog(null)} />
 
       <ChatDeleteConfirmDialog
@@ -369,7 +369,7 @@ export default function Messages() {
         sending={sending}
       />
 
-      <div className="flex items-center gap-3 mb-3 lg:mb-4 shrink-0">
+      <div className="flex items-center gap-3 mb-3 shrink-0 lg:mb-4">
         <MessageSquare size={26} className="text-gray-900 lg:w-7 lg:h-7" />
         <h1 className="text-xl lg:text-2xl font-bold text-gray-900">Nachrichten</h1>
       </div>
@@ -381,7 +381,7 @@ export default function Messages() {
       </div>
 
       {/* Mobile: list OR fullscreen chat */}
-      <div className="lg:hidden flex-1 min-h-0">
+      <div className="lg:hidden">
         {!isMobileChatOpen ? (
           listPanel
         ) : (
