@@ -6,8 +6,6 @@ interface DatePickerCalendarContainerProps {
   children?: React.ReactNode;
   onToday: () => void;
   todayDisabled?: boolean;
-  showClear?: boolean;
-  onClear?: () => void;
 }
 
 const DatePickerCalendarContainer: React.FC<DatePickerCalendarContainerProps> = ({
@@ -15,8 +13,6 @@ const DatePickerCalendarContainer: React.FC<DatePickerCalendarContainerProps> = 
   children,
   onToday,
   todayDisabled = false,
-  showClear = false,
-  onClear,
 }) => (
   <div className="yogaflow-datepicker">
     <CalendarContainer className={className}>{children}</CalendarContainer>
@@ -29,15 +25,6 @@ const DatePickerCalendarContainer: React.FC<DatePickerCalendarContainerProps> = 
       >
         Heute
       </button>
-      {showClear && onClear && (
-        <button
-          type="button"
-          onClick={onClear}
-          className="ml-auto text-sm font-medium text-red-600 hover:text-red-700"
-        >
-          Löschen
-        </button>
-      )}
     </div>
   </div>
 );

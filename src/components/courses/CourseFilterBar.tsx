@@ -64,11 +64,6 @@ const CourseFilterBar: React.FC<CourseFilterBarProps> = ({
     setPickerOpen(false);
   };
 
-  const handleCustomClear = () => {
-    onFilterChange(clearDateFilter());
-    setPickerOpen(false);
-  };
-
   const renderPresetChips = (compact: boolean) => {
     return QUICK_PRESETS.map(({ id, label }) => (
       <FilterChip
@@ -106,7 +101,6 @@ const CourseFilterBar: React.FC<CourseFilterBarProps> = ({
           anchorRef={dateChipRef}
           selectedIso={filterState.customDate}
           onSelect={handleCustomSelect}
-          onClear={handleCustomClear}
           onClose={() => setPickerOpen(false)}
         />
       )}
@@ -180,7 +174,6 @@ const CourseFilterBar: React.FC<CourseFilterBarProps> = ({
           variant="modal"
           selectedIso={filterState.customDate}
           onSelect={handleCustomSelect}
-          onClear={handleCustomClear}
           onClose={() => setPickerOpen(false)}
         />
       )}
