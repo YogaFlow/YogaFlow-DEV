@@ -47,7 +47,6 @@ export default function Messages() {
   const [feedbackDialog, setFeedbackDialog] = useState<FeedbackDialogState | null>(null);
   const [activeConversationKey, setActiveConversationKey] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
-  const [hasAutoSelected, setHasAutoSelected] = useState(false);
   const [isMobileChatOpen, setIsMobileChatOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -104,32 +103,13 @@ export default function Messages() {
   }, [activeConversation?.isBroadcast, isCourseLeader, participants]);
 
   useEffect(() => {
-    if (!loading && !hasAutoSelected && conversations.length > 0) {
-      setActiveConversationKey(conversations[0].key);
-      setHasAutoSelected(true);
-    }
-  }, [loading, hasAutoSelected, conversations]);
-
-  useEffect(() => {
     if (
       activeConversationKey &&
       !conversations.some((c) => c.key === activeConversationKey)
     ) {
-      setActiveConversationKey(conversations[0]?.key ?? null);
+      setActiveConversationKey(null);
     }
   }, [conversations, activeConversationKey]);
-
-  useEffect(() => {
-    const isMobile = window.matchMedia('(max-width: 1023px)').matches;
-    if (
-      !isMobile &&
-      hasAutoSelected &&
-      !activeConversationKey &&
-      conversations.length > 0
-    ) {
-      setActiveConversationKey(conversations[0].key);
-    }
-  }, [conversations, activeConversationKey, hasAutoSelected]);
 
   useEffect(() => {
     if (!activeConversationKey) return;
