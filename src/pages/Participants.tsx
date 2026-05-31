@@ -3,8 +3,8 @@ import { useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Course, Registration, User } from '../types';
-import { isCourseManagerRole, isStudioAdmin } from '../lib/userRoles';
-import { Calendar, Clock, MapPin, Users, Mail, Phone, Search, Filter, Download } from 'lucide-react';
+import { isCourseManagerRole, isStudioAdmin, isTeacherOnly } from '../lib/userRoles';
+import { Calendar, Clock, Users, Mail, Phone, Search, Filter, Download, UserMinus } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
@@ -27,6 +27,7 @@ const Participants: React.FC = () => {
   const [selectedCourse, setSelectedCourse] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [feedbackDialog, setFeedbackDialog] = useState<FeedbackDialogState | null>(null);
+  const [unregisteringId, setUnregisteringId] = useState<string | null>(null);
 
   useEffect(() => {
     if (courseId) {
@@ -87,30 +88,78 @@ const Participants: React.FC = () => {
     };
   }, [userProfile]);
 
-  const handleStatusChange = async (registrationId: string, newStatus: 'registered' | 'waitlist') => {
+  const isActiveRegistration = (participant: ParticipantWithDetails) =>
+    participant.status === 'registered' && !participant.is_waitlist;
+
+  const canUnregisterParticipant = (participant: ParticipantWithDetails): boolean => {
+    if (!userProfile) return false;
+    if (isStudioAdmin(userProfile)) return true;
+    if (isTeacherOnly(userProfile)) {
+      return (
+        participant.course.teacher_id === userProfile.id &&
+        isActiveRegistration(participant)
+      );
+    }
+    return false;
+  };
+
+  const handleUnregister = async (participant: ParticipantWithDetails) => {
+    const name = `${participant.user.first_name} ${participant.user.last_name}`.trim();
+    const courseTitle = participant.course.title;
+    if (
+      !window.confirm(
+        `Möchten Sie ${name || 'diesen Teilnehmer'} wirklich vom Kurs „${courseTitle}" abmelden?`
+      )
+    ) {
+      return;
+    }
+
+    setUnregisteringId(participant.id);
     try {
-      const { error } = await supabase
-        .from('registrations')
-        .update({ status: newStatus })
-        .eq('id', registrationId);
+      const { data, error } = await supabase.rpc('admin_unregister_user_from_course', {
+        p_user_id: participant.user_id,
+        p_course_id: participant.course_id,
+      });
 
       if (error) throw error;
 
-      // Update local state
-      setParticipants(prev => 
-        prev.map(p => 
-          p.id === registrationId 
-            ? { ...p, status: newStatus }
-            : p
-        )
-      );
-    } catch (error) {
-      console.error('Error updating status:', error);
+      type RpcResult = { success: boolean; error?: string; message?: string };
+      const result = data as RpcResult;
+
+      if (!result.success) {
+        if (result.error === 'not_registered') {
+          setFeedbackDialog({
+            title: 'Hinweis',
+            message: 'Für diesen Kurs liegt keine aktive Anmeldung vor.',
+            type: 'info',
+          });
+        } else if (result.error === 'Teachers can only unregister active participants from their own courses') {
+          setFeedbackDialog({
+            title: 'Keine Berechtigung',
+            message: 'Lehrer können nur aktive Teilnehmer bei eigenen Kursen abmelden.',
+            type: 'error',
+          });
+        } else {
+          throw new Error(result.error || 'Abmeldung fehlgeschlagen.');
+        }
+        return;
+      }
+
+      setParticipants(prev => prev.filter(p => p.id !== participant.id));
       setFeedbackDialog({
-        title: 'Aktualisierung fehlgeschlagen',
-        message: 'Fehler beim Aktualisieren des Status. Bitte versuchen Sie es erneut.',
+        title: 'Abgemeldet',
+        message: result.message || 'Teilnehmer wurde erfolgreich abgemeldet.',
+        type: 'success',
+      });
+    } catch (error) {
+      console.error('Error unregistering participant:', error);
+      setFeedbackDialog({
+        title: 'Abmeldung fehlgeschlagen',
+        message: error instanceof Error ? error.message : 'Fehler beim Abmelden. Bitte versuchen Sie es erneut.',
         type: 'error',
       });
+    } finally {
+      setUnregisteringId(null);
     }
   };
 
@@ -168,7 +217,8 @@ const Participants: React.FC = () => {
     return matchesSearch && matchesCourse && matchesStatus;
   });
 
-  // Check permissions
+  const showActionsColumn = filteredParticipants.some(canUnregisterParticipant);
+
   const hasPermission = isCourseManagerRole(userProfile);
 
   if (!hasPermission) {
@@ -331,15 +381,20 @@ const Participants: React.FC = () => {
                   <span className="text-xs text-gray-400">
                     {format(parseISO(participant.registered_at), 'dd.MM.yyyy HH:mm', { locale: de })}
                   </span>
-                  {isStudioAdmin(userProfile) && (
-                    <select
-                      value={participant.status}
-                      onChange={(e) => handleStatusChange(participant.id, e.target.value as 'registered' | 'waitlist')}
-                      className="text-xs border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  {canUnregisterParticipant(participant) && (
+                    <button
+                      type="button"
+                      onClick={() => handleUnregister(participant)}
+                      disabled={unregisteringId === participant.id}
+                      className="inline-flex items-center gap-1 text-xs font-medium text-red-600 hover:text-red-700 disabled:opacity-50"
                     >
-                      <option value="registered">Angemeldet</option>
-                      <option value="waitlist">Warteliste</option>
-                    </select>
+                      {unregisteringId === participant.id ? (
+                        <span className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-600" />
+                      ) : (
+                        <UserMinus className="w-3 h-3" />
+                      )}
+                      Abmelden
+                    </button>
                   )}
                 </div>
               </div>
@@ -367,7 +422,7 @@ const Participants: React.FC = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Angemeldet
                     </th>
-                    {isStudioAdmin(userProfile) && (
+                    {showActionsColumn && (
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Aktionen
                       </th>
@@ -432,16 +487,25 @@ const Participants: React.FC = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {format(parseISO(participant.registered_at), 'dd.MM.yyyy HH:mm', { locale: de })}
                       </td>
-                      {isStudioAdmin(userProfile) && (
+                      {showActionsColumn && (
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <select
-                            value={participant.status}
-                            onChange={(e) => handleStatusChange(participant.id, e.target.value as 'registered' | 'waitlist')}
-                            className="text-sm border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                          >
-                            <option value="registered">Angemeldet</option>
-                            <option value="waitlist">Warteliste</option>
-                          </select>
+                          {canUnregisterParticipant(participant) ? (
+                            <button
+                              type="button"
+                              onClick={() => handleUnregister(participant)}
+                              disabled={unregisteringId === participant.id}
+                              className="inline-flex items-center gap-1.5 text-red-600 hover:text-red-700 disabled:opacity-50"
+                            >
+                              {unregisteringId === participant.id ? (
+                                <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600" />
+                              ) : (
+                                <UserMinus className="w-4 h-4" />
+                              )}
+                              Abmelden
+                            </button>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
                         </td>
                       )}
                     </tr>

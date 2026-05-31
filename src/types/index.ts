@@ -84,7 +84,7 @@ export interface Message {
   course?: Course;
 }
 
-export type UserNotificationType = 'course_added' | 'course_waitlisted';
+export type UserNotificationType = 'course_added' | 'course_waitlisted' | 'course_removed';
 
 export interface UserNotification {
   id: string;
