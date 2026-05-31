@@ -6,13 +6,14 @@ import Header from './Header';
 const Layout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const isMessagesPage = /\/messages\/?$/.test(location.pathname);
 
   useEffect(() => {
     setSidebarOpen(false);
   }, [location.pathname]);
 
   return (
-    <div className="flex min-h-screen bg-gray-50 lg:h-screen">
+    <div className="flex min-h-screen bg-gray-50 lg:h-screen lg:overflow-hidden">
       {/* Sidebar for desktop */}
       <div className="hidden lg:flex lg:w-64 lg:flex-col">
         <Sidebar />
@@ -39,8 +40,18 @@ const Layout: React.FC = () => {
       {/* Main content */}
       <div className="flex-1 flex flex-col min-h-0 min-w-0 lg:overflow-hidden">
         <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
-        <main className="flex-1 min-h-0 overflow-x-hidden lg:overflow-y-auto lg:overscroll-y-contain lg:[webkit-overflow-scrolling:touch]">
-          <div className="p-3 sm:p-6 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-[max(1rem,env(safe-area-inset-bottom))] max-[380px]:p-2">
+        <main
+          className={`flex-1 min-h-0 overflow-x-hidden ${
+            isMessagesPage
+              ? 'lg:overflow-hidden lg:flex lg:flex-col'
+              : 'lg:overflow-y-auto lg:overscroll-y-contain lg:[webkit-overflow-scrolling:touch]'
+          }`}
+        >
+          <div
+            className={`p-3 sm:p-6 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-[max(1rem,env(safe-area-inset-bottom))] max-[380px]:p-2 ${
+              isMessagesPage ? 'lg:flex-1 lg:min-h-0 lg:flex lg:flex-col lg:overflow-hidden lg:pb-6' : ''
+            }`}
+          >
             <Outlet />
           </div>
         </main>
