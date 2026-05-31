@@ -132,12 +132,12 @@ const AuthPage: React.FC = () => {
 
   /** Eingeloggt, aber Redirect blockiert — ohne sichtbares Feedback wirkte der Login „leer“. */
   const loginBlockReason = useMemo((): AccessNotice => {
-    if (!user || loading || profileLoading || !tenantSlug || !tenant || accessNotice) return null;
+    if (!isLogin || !user || loading || profileLoading || !tenantSlug || !tenant || accessNotice) return null;
     if (!userProfile) return 'profile_missing';
     if (!isEmailConfirmed) return 'email_not_confirmed';
     if (userProfile.tenant_id !== tenant.id) return 'wrong_studio';
     return null;
-  }, [user, loading, profileLoading, tenantSlug, tenant, accessNotice, userProfile, isEmailConfirmed]);
+  }, [isLogin, user, loading, profileLoading, tenantSlug, tenant, accessNotice, userProfile, isEmailConfirmed]);
 
   if (loading) {
     return (
@@ -251,7 +251,7 @@ const AuthPage: React.FC = () => {
               E-Mail bestätigt. Sie können sich jetzt anmelden.
             </div>
           )}
-          {user && profileLoading && (
+          {isLogin && user && profileLoading && (
             <div className="mx-8 mt-6 p-4 bg-teal-50 border border-teal-200 rounded-lg text-teal-900 text-sm text-center">
               Anmeldung erfolgreich — Profil wird geladen …
             </div>
