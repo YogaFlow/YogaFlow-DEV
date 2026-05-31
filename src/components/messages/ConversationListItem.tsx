@@ -19,10 +19,8 @@ const ConversationListItem: React.FC<ConversationListItemProps> = ({
     <button
       type="button"
       onClick={onClick}
-      className={`w-full text-left flex items-start gap-3 p-3 rounded-lg transition-colors ${
-        isActive
-          ? 'bg-teal-900/[0.07] border border-teal-700/30'
-          : 'border border-transparent hover:bg-gray-50'
+      className={`w-full text-left flex items-start gap-3 px-3 py-3 transition-colors ${
+        isActive ? 'bg-teal-900/[0.07]' : 'hover:bg-gray-50'
       }`}
     >
       <ChatAvatar size="sm" className="mt-0.5" />
