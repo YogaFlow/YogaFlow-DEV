@@ -231,7 +231,8 @@ const Dashboard: React.FC = () => {
         title: 'Gesamt Teilnehmer',
         value: stats.totalParticipants,
         icon: Users,
-        color: 'bg-green-500'
+        color: 'bg-green-500',
+        path: '/participants'
       }
     ];
 
