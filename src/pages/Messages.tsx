@@ -359,7 +359,7 @@ export default function Messages() {
   );
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 overflow-hidden p-4 lg:p-0">
+    <div className="messages-page flex flex-col flex-1 min-h-0 overflow-hidden p-4 lg:p-0">
       <FeedbackDialog dialog={feedbackDialog} onClose={() => setFeedbackDialog(null)} />
 
       <ChatDeleteConfirmDialog

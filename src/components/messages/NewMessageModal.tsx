@@ -117,7 +117,7 @@ const NewMessageModal: React.FC<NewMessageModalProps> = ({
             <select
               value={selectedCourse}
               onChange={(e) => onSelectedCourseChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-base"
               required
             >
               <option value="">Kurs auswählen</option>
@@ -152,7 +152,7 @@ const NewMessageModal: React.FC<NewMessageModalProps> = ({
               <select
                 value={recipientId}
                 onChange={(e) => onRecipientIdChange(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-base"
                 required={!isBroadcast}
               >
                 <option value="">Empfänger auswählen</option>
@@ -179,7 +179,7 @@ const NewMessageModal: React.FC<NewMessageModalProps> = ({
                 value={message}
                 onChange={(e) => onMessageChange(e.target.value)}
                 rows={4}
-                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none text-sm"
+                className="w-full px-3 py-2.5 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none text-base"
                 placeholder="Geben Sie hier Ihre Nachricht ein..."
                 required
               />
