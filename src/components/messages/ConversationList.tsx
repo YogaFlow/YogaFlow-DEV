@@ -46,19 +46,23 @@ const ConversationList: React.FC<ConversationListProps> = ({
         </div>
       )}
 
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain p-2 space-y-0.5">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain">
         {conversations.length === 0 ? (
           <p className="text-gray-500 text-center py-8 text-sm">
             {searchTerm.trim() ? 'Keine Unterhaltungen gefunden' : 'Noch keine Nachrichten'}
           </p>
         ) : (
-          conversations.map((conversation) => (
-            <ConversationListItem
-              key={conversation.key}
-              conversation={conversation}
-              isActive={activeConversationKey === conversation.key}
-              onClick={() => onSelectConversation(conversation.key)}
-            />
+          conversations.map((conversation, index) => (
+            <div key={conversation.key}>
+              <ConversationListItem
+                conversation={conversation}
+                isActive={activeConversationKey === conversation.key}
+                onClick={() => onSelectConversation(conversation.key)}
+              />
+              {index < conversations.length - 1 && (
+                <div className="mx-4 border-b border-gray-200" />
+              )}
+            </div>
           ))
         )}
       </div>
