@@ -23,7 +23,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
   showHeader = true,
 }) => {
   return (
-    <div className="flex flex-col h-full min-h-0 bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+    <div className="flex flex-col max-lg:h-auto lg:h-full lg:min-h-0 bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
       {showHeader && (
         <div className="shrink-0 p-4 border-b border-gray-100 space-y-3">
           <button
@@ -46,7 +46,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
         </div>
       )}
 
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain">
+      <div className="max-lg:overflow-visible lg:flex-1 lg:min-h-0 lg:overflow-y-auto overscroll-y-contain">
         {conversations.length === 0 ? (
           <p className="text-gray-500 text-center py-8 text-sm">
             {searchTerm.trim() ? 'Keine Unterhaltungen gefunden' : 'Noch keine Nachrichten'}
