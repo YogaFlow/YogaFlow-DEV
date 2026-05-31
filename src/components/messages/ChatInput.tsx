@@ -115,7 +115,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
             <select
               value={directRecipientId}
               onChange={(e) => onDirectRecipientChange(e.target.value)}
-              className="flex-1 min-w-[140px] text-xs border border-gray-300 rounded-lg px-2 py-1 focus:ring-2 focus:ring-teal-500"
+              className="flex-1 min-w-[140px] text-base border border-gray-300 rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-teal-500"
               required={!isBroadcastMode}
             >
               <option value="">Empfänger wählen</option>
@@ -162,7 +162,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
           rows={1}
           placeholder={placeholder}
           disabled={disabled}
-          className="flex-1 min-h-[44px] max-h-32 resize-none rounded-2xl border border-gray-300 px-4 py-2.5 text-sm focus:border-transparent focus:ring-2 focus:ring-teal-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
+          className="flex-1 min-h-[44px] max-h-32 resize-none rounded-2xl border border-gray-300 px-4 py-2.5 text-base focus:border-transparent focus:ring-2 focus:ring-teal-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
         />
 
         <button

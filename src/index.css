@@ -244,3 +244,12 @@ body,
   transform-origin: center;
 }
 
+/* iOS Safari: kein Auto-Zoom bei Fokus auf Eingabefelder (min. 16px) */
+@media screen and (max-width: 1023px) {
+  .messages-page input:not([type='checkbox']):not([type='radio']),
+  .messages-page select,
+  .messages-page textarea {
+    font-size: 16px;
+  }
+}
+
