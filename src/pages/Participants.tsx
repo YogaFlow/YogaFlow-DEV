@@ -8,6 +8,7 @@ import { Calendar, Clock, Users, Mail, Phone, Search, Filter, Download, UserMinu
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
+import ConfirmDialog, { ConfirmDialogState } from '../components/ui/ConfirmDialog';
 import { isCourseUpcoming } from '../lib/courseDateTime';
 import { runPastRegistrationCleanup } from '../lib/registrationMaintenance';
 import { formatUserAddress } from '../lib/userAddress';
@@ -27,6 +28,8 @@ const Participants: React.FC = () => {
   const [selectedCourse, setSelectedCourse] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [feedbackDialog, setFeedbackDialog] = useState<FeedbackDialogState | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
+  const [pendingUnregister, setPendingUnregister] = useState<ParticipantWithDetails | null>(null);
   const [unregisteringId, setUnregisteringId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -103,16 +106,28 @@ const Participants: React.FC = () => {
     return false;
   };
 
-  const handleUnregister = async (participant: ParticipantWithDetails) => {
+  const requestUnregister = (participant: ParticipantWithDetails) => {
     const name = `${participant.user.first_name} ${participant.user.last_name}`.trim();
     const courseTitle = participant.course.title;
-    if (
-      !window.confirm(
-        `Möchten Sie ${name || 'diesen Teilnehmer'} wirklich vom Kurs „${courseTitle}" abmelden?`
-      )
-    ) {
-      return;
-    }
+    setPendingUnregister(participant);
+    setConfirmDialog({
+      title: 'Teilnehmer abmelden',
+      message: `Möchten Sie ${name || 'diesen Teilnehmer'} wirklich vom Kurs „${courseTitle}" abmelden?`,
+      confirmLabel: 'Abmelden',
+      cancelLabel: 'Abbrechen',
+      variant: 'danger',
+    });
+  };
+
+  const cancelUnregister = () => {
+    if (unregisteringId) return;
+    setConfirmDialog(null);
+    setPendingUnregister(null);
+  };
+
+  const executeUnregister = async () => {
+    const participant = pendingUnregister;
+    if (!participant) return;
 
     setUnregisteringId(participant.id);
     try {
@@ -160,6 +175,8 @@ const Participants: React.FC = () => {
       });
     } finally {
       setUnregisteringId(null);
+      setConfirmDialog(null);
+      setPendingUnregister(null);
     }
   };
 
@@ -241,6 +258,12 @@ const Participants: React.FC = () => {
   return (
     <div className="space-y-6">
       <FeedbackDialog dialog={feedbackDialog} onClose={() => setFeedbackDialog(null)} />
+      <ConfirmDialog
+        dialog={confirmDialog}
+        loading={!!unregisteringId}
+        onConfirm={executeUnregister}
+        onCancel={cancelUnregister}
+      />
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Teilnehmer</h1>
@@ -384,7 +407,7 @@ const Participants: React.FC = () => {
                   {canUnregisterParticipant(participant) && (
                     <button
                       type="button"
-                      onClick={() => handleUnregister(participant)}
+                      onClick={() => requestUnregister(participant)}
                       disabled={unregisteringId === participant.id}
                       className="inline-flex items-center gap-1 text-xs font-medium text-red-600 hover:text-red-700 disabled:opacity-50"
                     >
@@ -492,7 +515,7 @@ const Participants: React.FC = () => {
                           {canUnregisterParticipant(participant) ? (
                             <button
                               type="button"
-                              onClick={() => handleUnregister(participant)}
+                              onClick={() => requestUnregister(participant)}
                               disabled={unregisteringId === participant.id}
                               className="inline-flex items-center gap-1.5 text-red-600 hover:text-red-700 disabled:opacity-50"
                             >
