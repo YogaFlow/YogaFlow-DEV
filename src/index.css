@@ -8,19 +8,19 @@ body,
   min-height: 100%;
 }
 @layer components {
-  .course-filter-datepicker .react-datepicker {
+  .yogaflow-datepicker .react-datepicker {
     border: none;
     font-family: inherit;
   }
 
-  .course-filter-datepicker-calendar {
+  .yogaflow-datepicker-calendar {
     border: none !important;
     border-radius: 0.75rem;
     box-shadow: none;
     font-family: inherit;
   }
 
-  .course-filter-datepicker .react-datepicker__header {
+  .yogaflow-datepicker .react-datepicker__header {
     background: #fff;
     border-bottom: 1px solid #f3f4f6;
     border-radius: 0.75rem 0.75rem 0 0;
@@ -28,7 +28,7 @@ body,
     position: relative;
   }
 
-  .course-filter-datepicker .react-datepicker__current-month {
+  .yogaflow-datepicker .react-datepicker__current-month {
     line-height: 2rem;
     min-height: 2rem;
     margin: 0 2.75rem;
@@ -37,7 +37,7 @@ body,
     justify-content: center;
   }
 
-  .course-filter-datepicker .react-datepicker__navigation {
+  .yogaflow-datepicker .react-datepicker__navigation {
     top: 0.625rem;
     height: 2rem;
     width: 2rem;
@@ -47,15 +47,15 @@ body,
     overflow: visible;
   }
 
-  .course-filter-datepicker .react-datepicker__navigation--previous {
+  .yogaflow-datepicker .react-datepicker__navigation--previous {
     left: 0.25rem;
   }
 
-  .course-filter-datepicker .react-datepicker__navigation--next {
+  .yogaflow-datepicker .react-datepicker__navigation--next {
     right: 0.25rem;
   }
 
-  .course-filter-datepicker .react-datepicker__navigation-icon {
+  .yogaflow-datepicker .react-datepicker__navigation-icon {
     position: relative;
     top: 0;
     width: 0;
@@ -63,7 +63,7 @@ body,
     overflow: visible;
   }
 
-  .course-filter-datepicker .react-datepicker__navigation-icon::before {
+  .yogaflow-datepicker .react-datepicker__navigation-icon::before {
     position: absolute;
     top: 50%;
     margin-top: -5px;
@@ -73,69 +73,126 @@ body,
     width: 8px;
   }
 
-  .course-filter-datepicker .react-datepicker__navigation-icon--next::before {
+  .yogaflow-datepicker .react-datepicker__navigation-icon--next::before {
     left: -6px;
     transform: rotate(45deg);
   }
 
-  .course-filter-datepicker .react-datepicker__navigation-icon--previous::before {
+  .yogaflow-datepicker .react-datepicker__navigation-icon--previous::before {
     right: -6px;
     left: auto;
     transform: rotate(225deg);
   }
 
-  .course-filter-datepicker .react-datepicker__navigation:hover .react-datepicker__navigation-icon::before {
+  .yogaflow-datepicker .react-datepicker__navigation:hover .react-datepicker__navigation-icon::before {
     border-color: #374151;
   }
 
-  .course-filter-datepicker .react-datepicker__day-name,
-  .course-filter-datepicker .react-datepicker__day {
+  .yogaflow-datepicker .react-datepicker__day-name,
+  .yogaflow-datepicker .react-datepicker__day {
     width: 2.25rem;
     line-height: 2.25rem;
     margin: 0.125rem;
     border-radius: 9999px;
   }
 
-  .course-filter-datepicker .react-datepicker__day:hover {
+  .yogaflow-datepicker .react-datepicker__day:hover {
     background-color: #f0fdfa;
     border-radius: 9999px;
   }
 
-  .course-filter-datepicker .react-datepicker__day--selected,
-  .course-filter-datepicker .react-datepicker__day--keyboard-selected {
+  .yogaflow-datepicker .react-datepicker__day--selected,
+  .yogaflow-datepicker .react-datepicker__day--keyboard-selected {
     background-color: #0d9488 !important;
     color: #fff !important;
     border-radius: 9999px;
   }
 
-  .course-filter-datepicker .react-datepicker__day--today {
+  .yogaflow-datepicker .react-datepicker__day--today {
     font-weight: 600;
     color: #0d9488;
   }
 
-  .course-filter-datepicker .react-datepicker__day--disabled {
+  .yogaflow-datepicker .react-datepicker__day--disabled {
     color: #d1d5db;
+  }
+
+  .yogaflow-datepicker-popper {
+    z-index: 50 !important;
+  }
+
+  .yogaflow-datepicker-popper .yogaflow-datepicker {
+    overflow: hidden;
+    border-radius: 0.75rem;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    box-shadow:
+      0 10px 15px -3px rgb(0 0 0 / 0.1),
+      0 4px 6px -4px rgb(0 0 0 / 0.1);
+  }
+
+  .yogaflow-timepicker-popper {
+    z-index: 50 !important;
+  }
+
+  .yogaflow-timepicker-popper .react-datepicker {
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    box-shadow:
+      0 10px 15px -3px rgb(0 0 0 / 0.1),
+      0 4px 6px -4px rgb(0 0 0 / 0.1);
+    font-family: inherit;
+  }
+
+  .yogaflow-timepicker-popper .react-datepicker__time-container {
+    border-left: none;
+    width: 100%;
+  }
+
+  .yogaflow-timepicker-popper .react-datepicker__time-box {
+    width: 100% !important;
+  }
+
+  .yogaflow-timepicker-popper .react-datepicker__time-list-item {
+    padding: 0.625rem 1rem !important;
+    height: auto !important;
+  }
+
+  .yogaflow-timepicker-popper .react-datepicker__time-list-item--selected {
+    background-color: #0d9488 !important;
+    color: #fff !important;
+    font-weight: 600;
+  }
+
+  .yogaflow-timepicker-popper .react-datepicker__time-list-item:hover {
+    background-color: #f0fdfa !important;
+    color: #0f766e !important;
+  }
+
+  .yogaflow-timepicker-popper .react-datepicker__time-list-item--selected:hover {
+    background-color: #0d9488 !important;
+    color: #fff !important;
   }
 
   /* Mobile modal: larger touch targets, fit grid, visible nav */
   @media (max-width: 767px) {
-    .course-filter-datepicker-modal .react-datepicker {
+    .yogaflow-datepicker-modal .react-datepicker {
       font-size: 1rem;
       width: 100%;
     }
 
-    .course-filter-datepicker-modal .react-datepicker__month-container {
+    .yogaflow-datepicker-modal .react-datepicker__month-container {
       float: none;
       width: 100%;
     }
 
-    .course-filter-datepicker-modal .react-datepicker__header {
+    .yogaflow-datepicker-modal .react-datepicker__header {
       padding: 0.75rem 0.5rem 0.625rem;
       overflow: visible;
     }
 
-    .course-filter-datepicker-modal .react-datepicker__current-month,
-    .course-filter-datepicker-modal h2.react-datepicker__current-month {
+    .yogaflow-datepicker-modal .react-datepicker__current-month,
+    .yogaflow-datepicker-modal h2.react-datepicker__current-month {
       font-size: 1.125rem;
       line-height: 2.5rem;
       min-height: 2.5rem;
@@ -148,7 +205,7 @@ body,
       display: block;
     }
 
-    .course-filter-datepicker-modal .react-datepicker__navigation {
+    .yogaflow-datepicker-modal .react-datepicker__navigation {
       top: 0.75rem;
       height: 2.5rem;
       width: 2.5rem;
@@ -156,20 +213,20 @@ body,
       overflow: visible !important;
     }
 
-    .course-filter-datepicker-modal .react-datepicker__navigation--previous {
+    .yogaflow-datepicker-modal .react-datepicker__navigation--previous {
       left: 0.375rem;
     }
 
-    .course-filter-datepicker-modal .react-datepicker__navigation--next {
+    .yogaflow-datepicker-modal .react-datepicker__navigation--next {
       right: 0.375rem;
     }
 
-    .course-filter-datepicker-modal .react-datepicker__navigation-icon {
+    .yogaflow-datepicker-modal .react-datepicker__navigation-icon {
       width: 1.25rem;
       height: 1.25rem;
     }
 
-    .course-filter-datepicker-modal .react-datepicker__navigation-icon::before {
+    .yogaflow-datepicker-modal .react-datepicker__navigation-icon::before {
       height: 10px;
       width: 10px;
       margin-top: -5px;
@@ -177,27 +234,27 @@ body,
       border-width: 2.5px 2.5px 0 0;
     }
 
-    .course-filter-datepicker-modal .react-datepicker__navigation-icon--next::before {
+    .yogaflow-datepicker-modal .react-datepicker__navigation-icon--next::before {
       left: 50%;
       margin-left: -6px;
       transform: rotate(45deg);
     }
 
-    .course-filter-datepicker-modal .react-datepicker__navigation-icon--previous::before {
+    .yogaflow-datepicker-modal .react-datepicker__navigation-icon--previous::before {
       right: 50%;
       left: auto;
       margin-right: -6px;
       transform: rotate(225deg);
     }
 
-    .course-filter-datepicker-modal .react-datepicker__day-names {
+    .yogaflow-datepicker-modal .react-datepicker__day-names {
       display: flex;
       justify-content: center;
       margin-top: 0.25rem;
     }
 
-    .course-filter-datepicker-modal .react-datepicker__day-name,
-    .course-filter-datepicker-modal .react-datepicker__day {
+    .yogaflow-datepicker-modal .react-datepicker__day-name,
+    .yogaflow-datepicker-modal .react-datepicker__day {
       width: 2.625rem;
       line-height: 2.625rem;
       margin: 0.125rem;
@@ -205,27 +262,27 @@ body,
       flex-shrink: 0;
     }
 
-    .course-filter-datepicker-modal .react-datepicker__day-name {
+    .yogaflow-datepicker-modal .react-datepicker__day-name {
       line-height: 1.75rem;
       font-weight: 600;
     }
 
-    .course-filter-datepicker-modal .react-datepicker__week {
+    .yogaflow-datepicker-modal .react-datepicker__week {
       display: flex;
       justify-content: center;
     }
 
-    .course-filter-datepicker-modal .react-datepicker__month {
+    .yogaflow-datepicker-modal .react-datepicker__month {
       margin: 0.5rem auto 0.625rem;
       width: fit-content;
       max-width: 100%;
     }
 
-    .course-filter-datepicker-modal .course-filter-datepicker-footer {
+    .yogaflow-datepicker-modal .yogaflow-datepicker-footer {
       padding: 0.75rem 1rem;
     }
 
-    .course-filter-datepicker-modal .course-filter-datepicker-footer button {
+    .yogaflow-datepicker-modal .yogaflow-datepicker-footer button {
       font-size: 1rem;
       min-height: 2.75rem;
       padding: 0 0.5rem;

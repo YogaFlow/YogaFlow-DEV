@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useRef } from 'react';
-import ReactDatePicker, { registerLocale, CalendarContainer } from 'react-datepicker';
+import ReactDatePicker, { registerLocale } from 'react-datepicker';
 import { de } from 'date-fns/locale';
 import { parseISO } from 'date-fns';
 import 'react-datepicker/dist/react-datepicker.css';
 import { toIsoDate } from '../../lib/courseDateFilter';
+import DatePickerCalendarContainer from '../DateTimePicker/DatePickerCalendarContainer';
 
 registerLocale('de', de);
 
@@ -73,29 +74,18 @@ const CourseFilterDatePicker: React.FC<CourseFilterDatePickerProps> = ({
     return () => document.removeEventListener('mousedown', onPointerDown);
   }, [isOpen, onClose, variant, anchorRef]);
 
-  const CustomContainer: React.FC<{
-    className?: string;
-    children?: React.ReactNode;
-  }> = ({ className, children }) => (
-    <div className="course-filter-datepicker">
-      <CalendarContainer className={className}>{children}</CalendarContainer>
-      <div className="course-filter-datepicker-footer flex items-center justify-between border-t border-gray-100 px-3 py-2">
-        <button
-          type="button"
-          onClick={handleToday}
-          className="text-sm font-medium text-teal-600 hover:text-teal-700"
-        >
-          Heute
-        </button>
-        <button
-          type="button"
-          onClick={handleClear}
-          className="text-sm font-medium text-red-600 hover:text-red-700"
-        >
-          Löschen
-        </button>
-      </div>
-    </div>
+  const CustomContainer = useCallback(
+    ({ className, children }: { className?: string; children?: React.ReactNode }) => (
+      <DatePickerCalendarContainer
+        className={className}
+        onToday={handleToday}
+        showClear
+        onClear={handleClear}
+      >
+        {children}
+      </DatePickerCalendarContainer>
+    ),
+    [handleToday, handleClear]
   );
 
   if (!isOpen) return null;
@@ -107,7 +97,7 @@ const CourseFilterDatePicker: React.FC<CourseFilterDatePickerProps> = ({
       onChange={handleSelect}
       minDate={today}
       locale="de"
-      calendarClassName="course-filter-datepicker-calendar"
+      calendarClassName="yogaflow-datepicker-calendar"
       calendarContainer={CustomContainer}
     />
   );
@@ -128,7 +118,7 @@ const CourseFilterDatePicker: React.FC<CourseFilterDatePickerProps> = ({
         />
         <div
           ref={containerRef}
-          className="course-filter-datepicker-modal relative z-10 w-[min(calc(100vw-2rem),23rem)] rounded-2xl border border-gray-200 bg-white shadow-xl"
+          className="yogaflow-datepicker-modal relative z-10 w-[min(calc(100vw-2rem),23rem)] rounded-2xl border border-gray-200 bg-white shadow-xl"
         >
           {calendar}
         </div>
