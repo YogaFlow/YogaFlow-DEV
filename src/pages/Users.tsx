@@ -93,6 +93,10 @@ function isLastOwnerSelfDowngrade(user: User, ownerCount: number, isSelf: boolea
   return isSelf && user.role === 'owner' && ownerCount <= 1;
 }
 
+function canAssignCourseToUser(role: UserRole): boolean {
+  return role === 'user';
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -592,32 +596,36 @@ export default function Users() {
                       Speichern
                     </button>
 
-                    {/* Kurs zuweisen */}
+                    {/* Kurse */}
                     <div className="border-t border-gray-200 pt-4">
-                      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Kurs zuweisen</h3>
-                      <div className="flex gap-2 mb-4">
-                        <select
-                          value={selectedCourseId}
-                          onChange={e => setSelectedCourseId(e.target.value)}
-                          className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                        >
-                          <option value="">Kurs auswählen…</option>
-                          {availableCoursesToAdd.map(c => (
-                            <option key={c.id} value={c.id}>
-                              {c.title}{c.date ? ` (${new Date(c.date).toLocaleDateString('de-DE')})` : ''}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          onClick={() => handleAddToCourse(user.id)}
-                          disabled={!selectedCourseId || addingCourse}
-                          className="flex items-center justify-center px-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-colors"
-                        >
-                          {addingCourse
-                            ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                            : <Plus size={18} />}
-                        </button>
-                      </div>
+                      {canAssignCourseToUser(user.role) && (
+                        <>
+                          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Kurs zuweisen</h3>
+                          <div className="flex gap-2 mb-4">
+                            <select
+                              value={selectedCourseId}
+                              onChange={e => setSelectedCourseId(e.target.value)}
+                              className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                            >
+                              <option value="">Kurs auswählen…</option>
+                              {availableCoursesToAdd.map(c => (
+                                <option key={c.id} value={c.id}>
+                                  {c.title}{c.date ? ` (${new Date(c.date).toLocaleDateString('de-DE')})` : ''}
+                                </option>
+                              ))}
+                            </select>
+                            <button
+                              onClick={() => handleAddToCourse(user.id)}
+                              disabled={!selectedCourseId || addingCourse}
+                              className="flex items-center justify-center px-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-colors"
+                            >
+                              {addingCourse
+                                ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                                : <Plus size={18} />}
+                            </button>
+                          </div>
+                        </>
+                      )}
                       <h4 className="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">Aktuelle Buchungen</h4>
                       {regsLoading ? (
                         <div className="flex items-center gap-2 text-xs text-gray-400">
@@ -907,37 +915,40 @@ export default function Users() {
 
                             {/* ── Right: Kurse ── */}
                             <div>
-                              <h3 className="text-sm font-semibold text-gray-700 mb-3">Kurs zuweisen</h3>
-
-                              <div className="mb-5 lg:mt-[5px]">
-                                <label className="block text-xs text-gray-500 mb-1">Kurs</label>
-                                <div className="flex gap-2">
-                                  <select
-                                    value={selectedCourseId}
-                                    onChange={e => setSelectedCourseId(e.target.value)}
-                                    className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                                  >
-                                    <option value="">Kurs auswählen…</option>
-                                    {availableCoursesToAdd.map(c => (
-                                      <option key={c.id} value={c.id}>
-                                        {c.title}
-                                        {c.date ? ` (${new Date(c.date).toLocaleDateString('de-DE')})` : ''}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  <button
-                                    onClick={() => handleAddToCourse(user.id)}
-                                    disabled={!selectedCourseId || addingCourse}
-                                    title="Hinzufügen"
-                                    className="flex items-center justify-center px-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-colors"
-                                  >
-                                    {addingCourse
-                                      ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                                      : <Plus size={18} />
-                                    }
-                                  </button>
-                                </div>
-                              </div>
+                              {canAssignCourseToUser(user.role) && (
+                                <>
+                                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Kurs zuweisen</h3>
+                                  <div className="mb-5 lg:mt-[5px]">
+                                    <label className="block text-xs text-gray-500 mb-1">Kurs</label>
+                                    <div className="flex gap-2">
+                                      <select
+                                        value={selectedCourseId}
+                                        onChange={e => setSelectedCourseId(e.target.value)}
+                                        className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                      >
+                                        <option value="">Kurs auswählen…</option>
+                                        {availableCoursesToAdd.map(c => (
+                                          <option key={c.id} value={c.id}>
+                                            {c.title}
+                                            {c.date ? ` (${new Date(c.date).toLocaleDateString('de-DE')})` : ''}
+                                          </option>
+                                        ))}
+                                      </select>
+                                      <button
+                                        onClick={() => handleAddToCourse(user.id)}
+                                        disabled={!selectedCourseId || addingCourse}
+                                        title="Hinzufügen"
+                                        className="flex items-center justify-center px-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-colors"
+                                      >
+                                        {addingCourse
+                                          ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                                          : <Plus size={18} />
+                                        }
+                                      </button>
+                                    </div>
+                                  </div>
+                                </>
+                              )}
 
                               <h4 className="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">
                                 Aktuelle Buchungen
