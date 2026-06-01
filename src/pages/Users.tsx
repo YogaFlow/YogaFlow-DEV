@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { User, UserRole, Course } from '../types';
 import { useAuth } from '../context/AuthContext';
 import {
-  Trash2, Mail, ChevronDown, ChevronUp, Save, Plus,
+  Mail, ChevronDown, ChevronUp, Save, Plus,
   Eye, EyeOff, UserCheck,
 } from 'lucide-react';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
@@ -121,7 +121,6 @@ export default function Users() {
   const [savingProfile, setSavingProfile]       = useState(false);
   const [addingCourse, setAddingCourse]         = useState(false);
   const [savingRoleId, setSavingRoleId]         = useState<string | null>(null);
-  const [deletingId, setDeletingId]             = useState<string | null>(null);
   const [feedbackDialog, setFeedbackDialog]     = useState<FeedbackDialogState | null>(null);
 
   // ---------------------------------------------------------------------------
@@ -378,45 +377,6 @@ export default function Users() {
   };
 
   // ---------------------------------------------------------------------------
-  // Delete user (Admin/Owner only)
-  // ---------------------------------------------------------------------------
-
-  const handleDelete = async (userId: string) => {
-    if (userId === userProfile?.id) {
-      setFeedbackDialog({ title: 'Hinweis', message: 'Du kannst dich nicht selbst löschen.', type: 'info' });
-      return;
-    }
-    if (!confirm('Diesen Nutzer wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.')) return;
-
-    setDeletingId(userId);
-    try {
-      const { error: fnError } = await supabase.functions.invoke('delete-user', {
-        body: { userId },
-      });
-
-      if (fnError) {
-        let message = fnError.message || 'Löschen fehlgeschlagen';
-        try {
-          const body = await (fnError as any).context?.json?.();
-          message = body?.error || body?.details || message;
-        } catch { /* ignore parse errors */ }
-        throw new Error(message);
-      }
-
-      setUsers(prev => prev.filter(u => u.id !== userId));
-      if (expandedId === userId) setExpandedId(null);
-    } catch (err: unknown) {
-      setFeedbackDialog({
-        title:   'Löschen fehlgeschlagen',
-        message: 'Fehler: ' + (err instanceof Error ? err.message : String(err)),
-        type: 'error',
-      });
-    } finally {
-      setDeletingId(null);
-    }
-  };
-
-  // ---------------------------------------------------------------------------
   // Access guard
   // ---------------------------------------------------------------------------
 
@@ -493,18 +453,6 @@ export default function Users() {
                     </p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    {isAdmin && !isSelf && user.role !== 'owner' && (
-                      <button
-                        onClick={() => handleDelete(user.id)}
-                        disabled={deletingId === user.id}
-                        className="p-1.5 text-red-400 hover:text-red-600 disabled:opacity-30 transition-colors"
-                        title="Nutzer löschen"
-                      >
-                        {deletingId === user.id
-                          ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500" />
-                          : <Trash2 size={16} />}
-                      </button>
-                    )}
                     {(user.role !== 'owner' || isSelf) && (
                       <button
                         onClick={() => handleToggleExpand(user)}
@@ -820,19 +768,6 @@ export default function Users() {
                             className="text-teal-600 hover:text-teal-800 text-sm font-medium"
                           >
                             {isExpanded ? 'Schließen' : 'Bearbeiten'}
-                          </button>
-                        )}
-                        {isAdmin && !isSelf && user.role !== 'owner' && (
-                          <button
-                            onClick={() => handleDelete(user.id)}
-                            disabled={deletingId === user.id}
-                            className="text-red-400 hover:text-red-600 disabled:opacity-30 transition-colors"
-                            title="Nutzer löschen"
-                          >
-                            {deletingId === user.id
-                              ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500" />
-                              : <Trash2 size={16} />
-                            }
                           </button>
                         )}
                       </div>
