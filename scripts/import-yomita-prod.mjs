@@ -1,20 +1,46 @@
 /**
- * One-off PROD import: legacy Yoga app → tenant "Yomita" (slug yomita).
- * Uses auth trigger for public.users (no DISABLE TRIGGER — requires owner on auth.users).
+ * Generate SQL to import legacy Yoga app data into tenant Yomita.
+ * Reads CSV exports from the old Supabase project; writes split SQL parts for execution.
+ *
+ * Usage:
+ *   node scripts/import-yomita-prod.mjs
+ *   node scripts/import-yomita-prod.mjs --auth "C:/path/auth.csv" --profiles "..." --courses "..." --registrations "..."
  */
 import { readFileSync, writeFileSync } from 'fs';
-import { randomUUID } from 'crypto';
 
 const DOWNLOADS = 'C:/Users/49178/Downloads';
 const TENANT_NAME = 'Yomita';
 const TENANT_SLUG = 'yomita';
+const TENANT_ID = '892370b8-49a1-4699-b480-2f722e4f9fe3';
 const OWNER_EMAIL = 'tanja@die-thallers.de';
-const TENANT_ID = randomUUID();
+
+const DEFAULT_PATHS = {
+  auth: `${DOWNLOADS}/users_rows (2).csv`,
+  profiles: `${DOWNLOADS}/users_rows (3).csv`,
+  courses: `${DOWNLOADS}/courses_rows (1).csv`,
+  registrations: `${DOWNLOADS}/registrations_rows (1).csv`,
+};
 
 const SKIP_EMAILS = new Set([
-  'andre.thaller@outlook.de',
   'yogaflowapp@outlook.de',
+  ...(process.env.YOMITA_SKIP_EMAILS ?? '')
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean),
 ]);
+
+function parseArgs(argv) {
+  const paths = { ...DEFAULT_PATHS };
+  for (let i = 2; i < argv.length; i++) {
+    const key = argv[i];
+    const val = argv[i + 1];
+    if (key === '--auth' && val) paths.auth = val;
+    if (key === '--profiles' && val) paths.profiles = val;
+    if (key === '--courses' && val) paths.courses = val;
+    if (key === '--registrations' && val) paths.registrations = val;
+  }
+  return paths;
+}
 
 function parseCsv(text) {
   const rows = [];
@@ -100,42 +126,12 @@ function mergeUserMeta(a, p, role) {
   return JSON.stringify(merged);
 }
 
-const authRows = parseCsv(readFileSync(`${DOWNLOADS}/users_rows.csv`, 'utf8'));
-const profileRows = parseCsv(readFileSync(`${DOWNLOADS}/users_rows (1).csv`, 'utf8'));
-const courseRows = parseCsv(readFileSync(`${DOWNLOADS}/courses_rows.csv`, 'utf8'));
-const regRows = parseCsv(readFileSync(`${DOWNLOADS}/registrations_rows.csv`, 'utf8'));
-
-const profileById = new Map(profileRows.map((p) => [p.id, p]));
-const importedUserIds = new Set();
-const skippedUsers = [];
-
-for (const a of authRows) {
-  if (SKIP_EMAILS.has(a.email?.toLowerCase())) {
-    skippedUsers.push(a.email);
-    continue;
-  }
-  importedUserIds.add(a.id);
-}
-
-const lines = [];
-lines.push('-- Yomita legacy import');
-lines.push(`-- tenant_id: ${TENANT_ID}`);
-lines.push('');
-lines.push(
-  `INSERT INTO public.tenants (id, name, slug) VALUES ('${TENANT_ID}'::uuid, ${sqlStr(TENANT_NAME)}, ${sqlStr(TENANT_SLUG)});`,
-);
-lines.push('');
-
-for (const a of authRows) {
-  if (SKIP_EMAILS.has(a.email?.toLowerCase())) continue;
-  const p = profileById.get(a.id);
-  if (!p) throw new Error(`Missing profile for ${a.id}`);
-
+function buildAuthBlock(a, p) {
   const role = a.email?.toLowerCase() === OWNER_EMAIL.toLowerCase() ? 'owner' : 'user';
   const confirmed = a.email_confirmed_at || a.confirmed_at || p.created_at;
   const appMeta = a.raw_app_meta_data || '{"provider":"email","providers":["email"]}';
   const userMeta = mergeUserMeta(a, p, role);
-
+  const lines = [];
   lines.push(`-- auth: ${a.email}`);
   lines.push(`INSERT INTO auth.users (
   instance_id, id, aud, role, email, encrypted_password,
@@ -161,7 +157,6 @@ for (const a of authRows) {
   false,
   false
 ) ON CONFLICT (id) DO NOTHING;`);
-
   lines.push(`INSERT INTO auth.identities (
   id, user_id, provider_id, provider, identity_data,
   created_at, updated_at, last_sign_in_at
@@ -176,20 +171,26 @@ for (const a of authRows) {
   ${sqlTs(a.last_sign_in_at || confirmed)}
 ) ON CONFLICT (id) DO NOTHING;`);
   lines.push('');
+  return lines;
 }
 
-lines.push(`-- Mark all Yomita users verified (app gate)`);
-lines.push(`UPDATE public.users SET
+function buildVerificationUpdate() {
+  return [
+    '-- Mark all Yomita users verified (app gate)',
+    `UPDATE public.users SET
   email_verified = true,
   email_verified_at = COALESCE(email_verified_at, created_at),
   gdpr_consent = true,
   gdpr_consent_date = COALESCE(gdpr_consent_date, created_at)
-WHERE tenant_id = '${TENANT_ID}'::uuid;`);
-lines.push('');
+WHERE tenant_id = '${TENANT_ID}'::uuid;`,
+    '',
+  ];
+}
 
-lines.push('-- courses');
-for (const c of courseRows) {
-  lines.push(`INSERT INTO public.courses (
+function buildCoursesBlock(courseRows) {
+  const lines = ['-- courses'];
+  for (const c of courseRows) {
+    lines.push(`INSERT INTO public.courses (
   id, tenant_id, title, description, date, time, end_time, location, room,
   max_participants, price, teacher_id, status, duration, prerequisites, frequency, series_id,
   created_at, updated_at
@@ -214,25 +215,30 @@ for (const c of courseRows) {
   ${sqlTs(c.created_at)},
   ${sqlTs(c.updated_at)}
 );`);
+  }
+  lines.push('');
+  return lines;
 }
 
-lines.push('');
-lines.push('-- registrations (past-course trigger disabled during import)');
-lines.push('ALTER TABLE public.registrations DISABLE TRIGGER prevent_past_course_registration;');
-let skippedRegs = 0;
-for (const r of regRows) {
-  if (!importedUserIds.has(r.user_id)) {
-    skippedRegs++;
-    continue;
-  }
-  let status = r.status;
-  if (status === 'cancelled') {
-    status = r.is_waitlist === 'true' ? 'waitlist' : 'registered';
-  }
-  if (status !== 'registered' && status !== 'waitlist') {
-    status = r.is_waitlist === 'true' ? 'waitlist' : 'registered';
-  }
-  lines.push(`INSERT INTO public.registrations (
+function buildRegistrationsBlock(regRows, importedUserIds) {
+  const lines = [
+    '-- registrations (past-course trigger disabled during import)',
+    'ALTER TABLE public.registrations DISABLE TRIGGER prevent_past_course_registration;',
+  ];
+  let skippedRegs = 0;
+  for (const r of regRows) {
+    if (!importedUserIds.has(r.user_id)) {
+      skippedRegs++;
+      continue;
+    }
+    let status = r.status;
+    if (status === 'cancelled') {
+      status = r.is_waitlist === 'true' ? 'waitlist' : 'registered';
+    }
+    if (status !== 'registered' && status !== 'waitlist') {
+      status = r.is_waitlist === 'true' ? 'waitlist' : 'registered';
+    }
+    lines.push(`INSERT INTO public.registrations (
   id, tenant_id, course_id, user_id, status,
   registered_at, signup_timestamp, cancellation_timestamp,
   is_waitlist, waitlist_position
@@ -248,12 +254,73 @@ for (const r of regRows) {
   ${sqlBool(r.is_waitlist)},
   ${r.waitlist_position ? sqlNum(r.waitlist_position) : 'NULL'}
 );`);
+  }
+  lines.push('ALTER TABLE public.registrations ENABLE TRIGGER prevent_past_course_registration;');
+  return { lines, skippedRegs };
 }
-lines.push('ALTER TABLE public.registrations ENABLE TRIGGER prevent_past_course_registration;');
 
-const sql = lines.join('\n');
-writeFileSync('scripts/import-yomita-prod.sql', sql, 'utf8');
+const paths = parseArgs(process.argv);
+console.error('CSV inputs:', paths);
+
+const authRows = parseCsv(readFileSync(paths.auth, 'utf8'));
+const profileRows = parseCsv(readFileSync(paths.profiles, 'utf8'));
+const courseRows = parseCsv(readFileSync(paths.courses, 'utf8'));
+const regRows = parseCsv(readFileSync(paths.registrations, 'utf8'));
+
+const profileById = new Map(profileRows.map((p) => [p.id, p]));
+const importedAuth = [];
+const skippedUsers = [];
+
+for (const a of authRows) {
+  if (SKIP_EMAILS.has(a.email?.toLowerCase())) {
+    skippedUsers.push(a.email);
+    continue;
+  }
+  const p = profileById.get(a.id);
+  if (!p) throw new Error(`Missing profile for auth user ${a.id} (${a.email})`);
+  importedAuth.push({ a, p });
+}
+
+const importedUserIds = new Set(importedAuth.map(({ a }) => a.id));
+
+const header = [
+  '-- Yomita legacy import (generated)',
+  `-- tenant_id: ${TENANT_ID}`,
+  `-- auth_csv: ${paths.auth}`,
+  `-- profiles_csv: ${paths.profiles}`,
+  `-- courses_csv: ${paths.courses}`,
+  `-- registrations_csv: ${paths.registrations}`,
+  '',
+];
+
+const tenantInsert = [
+  `INSERT INTO public.tenants (id, name, slug) VALUES ('${TENANT_ID}'::uuid, ${sqlStr(TENANT_NAME)}, ${sqlStr(TENANT_SLUG)});`,
+  '',
+];
+
+const authBlocks = importedAuth.flatMap(({ a, p }) => buildAuthBlock(a, p));
+const mid = Math.ceil(authBlocks.length / 2);
+
+const part1a = [...header, ...tenantInsert, ...authBlocks.slice(0, mid)].join('\n');
+const part1b = [
+  ...header,
+  ...authBlocks.slice(mid),
+  ...buildVerificationUpdate(),
+].join('\n');
+const part2 = [...header, ...buildVerificationUpdate(), ...buildCoursesBlock(courseRows)].join('\n');
+
+const { lines: regLines, skippedRegs } = buildRegistrationsBlock(regRows, importedUserIds);
+const part3 = [...header, ...regLines].join('\n');
+
+const fullSql = [...header, ...tenantInsert, ...authBlocks, ...buildVerificationUpdate(), ...buildCoursesBlock(courseRows), ...regLines].join('\n');
+
+writeFileSync('scripts/import-yomita-prod.sql', fullSql, 'utf8');
+writeFileSync('scripts/import-yomita-part1a.sql', part1a, 'utf8');
+writeFileSync('scripts/import-yomita-part1b.sql', part1b, 'utf8');
+writeFileSync('scripts/import-yomita-part2.sql', part2, 'utf8');
+writeFileSync('scripts/import-yomita-part3.sql', part3, 'utf8');
+
 console.error(`tenant_id=${TENANT_ID}`);
-console.error(`users=${importedUserIds.size} skipped=${skippedUsers.join(',')}`);
-console.error(`courses=${courseRows.length} registrations=${regRows.length - skippedRegs}`);
-console.log(sql);
+console.error(`users=${importedUserIds.size} skipped=${skippedUsers.join(',') || '(none)'}`);
+console.error(`courses=${courseRows.length} registrations=${regRows.length - skippedRegs} skipped_regs=${skippedRegs}`);
+console.error('Wrote: import-yomita-prod.sql, part1a, part1b, part2, part3');

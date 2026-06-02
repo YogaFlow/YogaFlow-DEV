@@ -1,5 +1,9 @@
--- Yomita legacy import
+-- Yomita legacy import (generated)
 -- tenant_id: 892370b8-49a1-4699-b480-2f722e4f9fe3
+-- auth_csv: C:/Users/49178/Downloads/users_rows (2).csv
+-- profiles_csv: C:/Users/49178/Downloads/users_rows (3).csv
+-- courses_csv: C:/Users/49178/Downloads/courses_rows (1).csv
+-- registrations_csv: C:/Users/49178/Downloads/registrations_rows (1).csv
 
 INSERT INTO public.tenants (id, name, slug) VALUES ('892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid, 'Yomita', 'yomita');
 
@@ -7,6 +11,9 @@ INSERT INTO public.tenants (id, name, slug) VALUES ('892370b8-49a1-4699-b480-2f7
 INSERT INTO auth.users (
   instance_id, id, aud, role, email, encrypted_password,
   email_confirmed_at,
+  confirmation_token, recovery_token, email_change_token_new,
+  email_change, email_change_token_current, reauthentication_token,
+  phone_change, phone_change_token,
   raw_app_meta_data, raw_user_meta_data,
   created_at, updated_at, is_sso_user, is_anonymous
 ) VALUES (
@@ -17,6 +24,7 @@ INSERT INTO auth.users (
   'stefanie.neck@web.de',
   '$2a$10$ngfwvMN3FidKaVrPXuag1uzR/08smTfcQfFu/s2ys0ZTi5V4PhNZm',
   '2026-05-10 13:00:38.072024+00'::timestamptz,
+  '', '', '', '', '', '', '', '',
   '{"provider": "email", "providers": ["email"]}'::jsonb,
   '{"sub":"0b0fcce2-15cc-4c06-bd84-129d3b35d7d6","city":"Grevenbroich","email":"stefanie.neck@web.de","phone":"1739223711","street":"Am Reiherbusch","last_name":"Neck","first_name":"Stefanie","postal_code":"41516","house_number":"12a","email_verified":true,"phone_verified":false,"tenant_id":"892370b8-49a1-4699-b480-2f722e4f9fe3","role":"user"}'::jsonb,
   '2026-05-10 13:00:37.976273+00'::timestamptz,
@@ -42,6 +50,9 @@ INSERT INTO auth.identities (
 INSERT INTO auth.users (
   instance_id, id, aud, role, email, encrypted_password,
   email_confirmed_at,
+  confirmation_token, recovery_token, email_change_token_new,
+  email_change, email_change_token_current, reauthentication_token,
+  phone_change, phone_change_token,
   raw_app_meta_data, raw_user_meta_data,
   created_at, updated_at, is_sso_user, is_anonymous
 ) VALUES (
@@ -52,10 +63,11 @@ INSERT INTO auth.users (
   'gajansen@web.de',
   '$2a$10$7KButQ6AzTJG5DAc2B9V4eyS0nzDZLIc.4rb3.BxePGsu1aDirXj2',
   '2026-02-22 17:41:15.620699+00'::timestamptz,
+  '', '', '', '', '', '', '', '',
   '{"provider": "email", "providers": ["email"]}'::jsonb,
   '{"sub":"17b9d410-e078-4014-aa4f-5c16e678042b","city":"Neuss","email":"gajansen@web.de","phone":"01727455771","street":"Dunantstrasse ","last_name":"Jansen","first_name":"Gabriele","postal_code":"41468","house_number":"21","email_verified":true,"phone_verified":false,"tenant_id":"892370b8-49a1-4699-b480-2f722e4f9fe3","role":"user"}'::jsonb,
   '2026-02-22 17:41:15.525688+00'::timestamptz,
-  '2026-05-13 04:11:54.674331+00'::timestamptz,
+  '2026-05-28 01:54:48.790074+00'::timestamptz,
   false,
   false
 ) ON CONFLICT (id) DO NOTHING;
@@ -69,7 +81,7 @@ INSERT INTO auth.identities (
   'email',
   jsonb_build_object('sub', '17b9d410-e078-4014-aa4f-5c16e678042b', 'email', 'gajansen@web.de', 'email_verified', true, 'phone_verified', false),
   '2026-02-22 17:41:15.525688+00'::timestamptz,
-  '2026-05-13 04:11:54.674331+00'::timestamptz,
+  '2026-05-28 01:54:48.790074+00'::timestamptz,
   '2026-02-22 17:41:15.644161+00'::timestamptz
 ) ON CONFLICT (id) DO NOTHING;
 
@@ -77,6 +89,9 @@ INSERT INTO auth.identities (
 INSERT INTO auth.users (
   instance_id, id, aud, role, email, encrypted_password,
   email_confirmed_at,
+  confirmation_token, recovery_token, email_change_token_new,
+  email_change, email_change_token_current, reauthentication_token,
+  phone_change, phone_change_token,
   raw_app_meta_data, raw_user_meta_data,
   created_at, updated_at, is_sso_user, is_anonymous
 ) VALUES (
@@ -87,10 +102,11 @@ INSERT INTO auth.users (
   'tanja@die-thallers.de',
   '$2a$10$er7l9Rffgmul5M1jFFTX/edCoyh8FfFBzoDZrRRA3DKdIQorQhdIW',
   '2026-01-22 18:01:27.666288+00'::timestamptz,
+  '', '', '', '', '', '', '', '',
   '{"provider": "email", "providers": ["email"]}'::jsonb,
   '{"sub":"2ef0b4bf-69da-480e-9533-2bdf162dfc18","email":"tanja@die-thallers.de","last_name":"Thaller","first_name":"Tanja","email_verified":true,"phone_verified":false,"tenant_id":"892370b8-49a1-4699-b480-2f722e4f9fe3","role":"owner","street":"Holunderweg","house_number":"6","postal_code":"41468","city":"Neuss","phone":"015209464468"}'::jsonb,
   '2026-01-22 18:01:27.545962+00'::timestamptz,
-  '2026-05-13 08:39:09.786816+00'::timestamptz,
+  '2026-06-02 17:36:33.573259+00'::timestamptz,
   false,
   false
 ) ON CONFLICT (id) DO NOTHING;
@@ -104,14 +120,17 @@ INSERT INTO auth.identities (
   'email',
   jsonb_build_object('sub', '2ef0b4bf-69da-480e-9533-2bdf162dfc18', 'email', 'tanja@die-thallers.de', 'email_verified', true, 'phone_verified', false),
   '2026-01-22 18:01:27.545962+00'::timestamptz,
-  '2026-05-13 08:39:09.786816+00'::timestamptz,
-  '2026-05-13 08:39:09.736143+00'::timestamptz
+  '2026-06-02 17:36:33.573259+00'::timestamptz,
+  '2026-06-02 17:36:33.476614+00'::timestamptz
 ) ON CONFLICT (id) DO NOTHING;
 
 -- auth: heike.huesgen@web.de
 INSERT INTO auth.users (
   instance_id, id, aud, role, email, encrypted_password,
   email_confirmed_at,
+  confirmation_token, recovery_token, email_change_token_new,
+  email_change, email_change_token_current, reauthentication_token,
+  phone_change, phone_change_token,
   raw_app_meta_data, raw_user_meta_data,
   created_at, updated_at, is_sso_user, is_anonymous
 ) VALUES (
@@ -122,6 +141,7 @@ INSERT INTO auth.users (
   'heike.huesgen@web.de',
   '$2a$10$fixCu.WjkXL1a1beZjKbqeL9T4aZ.BgpeKfCLIdDh3/M8C8XNB4K6',
   '2026-02-04 19:49:34.152624+00'::timestamptz,
+  '', '', '', '', '', '', '', '',
   '{"provider": "email", "providers": ["email"]}'::jsonb,
   '{"sub":"2f65224e-8ee1-4442-a9b5-56142d1f9413","city":"Neuss","email":"heike.huesgen@web.de","phone":"01729374125","street":"Konradstraße","last_name":"Hüsgen ","first_name":"Heike","postal_code":"41468","house_number":"7","email_verified":true,"phone_verified":false,"tenant_id":"892370b8-49a1-4699-b480-2f722e4f9fe3","role":"user"}'::jsonb,
   '2026-02-04 19:49:34.117608+00'::timestamptz,
@@ -147,6 +167,9 @@ INSERT INTO auth.identities (
 INSERT INTO auth.users (
   instance_id, id, aud, role, email, encrypted_password,
   email_confirmed_at,
+  confirmation_token, recovery_token, email_change_token_new,
+  email_change, email_change_token_current, reauthentication_token,
+  phone_change, phone_change_token,
   raw_app_meta_data, raw_user_meta_data,
   created_at, updated_at, is_sso_user, is_anonymous
 ) VALUES (
@@ -157,10 +180,11 @@ INSERT INTO auth.users (
   'neuetafel@aol.com',
   '$2a$10$Pvg5TqiQjEy1NaeqrLELgOjhf6ZZ7oYJEdwRRfUwVkWo2s7GnTDCW',
   '2026-02-23 11:17:54.746422+00'::timestamptz,
+  '', '', '', '', '', '', '', '',
   '{"provider": "email", "providers": ["email"]}'::jsonb,
   '{"sub":"30eef8e2-74b1-410a-b1de-decf7d376866","city":"Neuss","email":"neuetafel@aol.com","phone":"01764886497","street":"Schlehenweg ","last_name":"Tafel","first_name":"Sabine ","postal_code":"41468","house_number":"10","email_verified":true,"phone_verified":false,"tenant_id":"892370b8-49a1-4699-b480-2f722e4f9fe3","role":"user"}'::jsonb,
   '2026-02-23 11:17:54.623072+00'::timestamptz,
-  '2026-04-26 17:32:11.841092+00'::timestamptz,
+  '2026-05-27 16:11:32.888643+00'::timestamptz,
   false,
   false
 ) ON CONFLICT (id) DO NOTHING;
@@ -174,7 +198,7 @@ INSERT INTO auth.identities (
   'email',
   jsonb_build_object('sub', '30eef8e2-74b1-410a-b1de-decf7d376866', 'email', 'neuetafel@aol.com', 'email_verified', true, 'phone_verified', false),
   '2026-02-23 11:17:54.623072+00'::timestamptz,
-  '2026-04-26 17:32:11.841092+00'::timestamptz,
+  '2026-05-27 16:11:32.888643+00'::timestamptz,
   '2026-04-26 17:32:11.801463+00'::timestamptz
 ) ON CONFLICT (id) DO NOTHING;
 
@@ -182,6 +206,9 @@ INSERT INTO auth.identities (
 INSERT INTO auth.users (
   instance_id, id, aud, role, email, encrypted_password,
   email_confirmed_at,
+  confirmation_token, recovery_token, email_change_token_new,
+  email_change, email_change_token_current, reauthentication_token,
+  phone_change, phone_change_token,
   raw_app_meta_data, raw_user_meta_data,
   created_at, updated_at, is_sso_user, is_anonymous
 ) VALUES (
@@ -192,6 +219,7 @@ INSERT INTO auth.users (
   'katy-albrecht@t-online.de',
   '$2a$10$l67zlRX7Lz4pKwPw4jaKx.KP9Z1HechiaNlkcrlw9A4W8Vy6640zC',
   '2026-03-27 07:46:29.759115+00'::timestamptz,
+  '', '', '', '', '', '', '', '',
   '{"provider": "email", "providers": ["email"]}'::jsonb,
   '{"sub":"3c7289d8-b471-4b29-8877-abaee929764e","city":"Düsseldorf ","email":"katy-albrecht@t-online.de","phone":"17664807595","street":"Kleverst","last_name":"Albrecht","first_name":"Katy","postal_code":"40477","house_number":"64","email_verified":true,"phone_verified":false,"tenant_id":"892370b8-49a1-4699-b480-2f722e4f9fe3","role":"user"}'::jsonb,
   '2026-03-27 07:46:29.69746+00'::timestamptz,
@@ -217,6 +245,9 @@ INSERT INTO auth.identities (
 INSERT INTO auth.users (
   instance_id, id, aud, role, email, encrypted_password,
   email_confirmed_at,
+  confirmation_token, recovery_token, email_change_token_new,
+  email_change, email_change_token_current, reauthentication_token,
+  phone_change, phone_change_token,
   raw_app_meta_data, raw_user_meta_data,
   created_at, updated_at, is_sso_user, is_anonymous
 ) VALUES (
@@ -227,6 +258,7 @@ INSERT INTO auth.users (
   'kathrin.hutmacher@gmx.de',
   '$2a$10$v3/vvlDhGItTNPQV2586aeEgAez2cjLovv1yiKn6BbPW1.tT1W3nG',
   '2026-02-02 17:49:49.863149+00'::timestamptz,
+  '', '', '', '', '', '', '', '',
   '{"provider": "email", "providers": ["email"]}'::jsonb,
   '{"sub":"47b11b34-6853-49e7-8006-4b2009ff711b","city":"Neuss","email":"kathrin.hutmacher@gmx.de","phone":"015229712228","street":"Hochstr","last_name":"Päßler ","first_name":"Kathrin ","postal_code":"41460","house_number":"13","email_verified":true,"phone_verified":false,"tenant_id":"892370b8-49a1-4699-b480-2f722e4f9fe3","role":"user"}'::jsonb,
   '2026-02-02 17:49:49.74797+00'::timestamptz,
@@ -248,10 +280,52 @@ INSERT INTO auth.identities (
   '2026-02-17 12:50:18.029332+00'::timestamptz
 ) ON CONFLICT (id) DO NOTHING;
 
+-- auth: a.mennen@t-online.de
+INSERT INTO auth.users (
+  instance_id, id, aud, role, email, encrypted_password,
+  email_confirmed_at,
+  confirmation_token, recovery_token, email_change_token_new,
+  email_change, email_change_token_current, reauthentication_token,
+  phone_change, phone_change_token,
+  raw_app_meta_data, raw_user_meta_data,
+  created_at, updated_at, is_sso_user, is_anonymous
+) VALUES (
+  '00000000-0000-0000-0000-000000000000'::uuid,
+  '493b0cfd-1cf7-4d9a-9b82-5bd5e4c40be4'::uuid,
+  'authenticated',
+  'authenticated',
+  'a.mennen@t-online.de',
+  '$2a$10$xZysRNRPn9NL8gzCnLoYzuuI2GbI1GK/ZMCm9KXFAE1JsnK9fGEWy',
+  '2026-05-28 17:37:32.569267+00'::timestamptz,
+  '', '', '', '', '', '', '', '',
+  '{"provider": "email", "providers": ["email"]}'::jsonb,
+  '{"sub":"493b0cfd-1cf7-4d9a-9b82-5bd5e4c40be4","city":"Neuss","email":"a.mennen@t-online.de","phone":"015756169140","street":"Dietrichstrasse ","last_name":"Mennen","first_name":"Anne","postal_code":"41468","house_number":"28","email_verified":true,"phone_verified":false,"tenant_id":"892370b8-49a1-4699-b480-2f722e4f9fe3","role":"user"}'::jsonb,
+  '2026-05-28 17:37:32.462454+00'::timestamptz,
+  '2026-05-28 17:37:32.630882+00'::timestamptz,
+  false,
+  false
+) ON CONFLICT (id) DO NOTHING;
+INSERT INTO auth.identities (
+  id, user_id, provider_id, provider, identity_data,
+  created_at, updated_at, last_sign_in_at
+) VALUES (
+  '493b0cfd-1cf7-4d9a-9b82-5bd5e4c40be4'::uuid,
+  '493b0cfd-1cf7-4d9a-9b82-5bd5e4c40be4'::uuid,
+  '493b0cfd-1cf7-4d9a-9b82-5bd5e4c40be4'::text,
+  'email',
+  jsonb_build_object('sub', '493b0cfd-1cf7-4d9a-9b82-5bd5e4c40be4', 'email', 'a.mennen@t-online.de', 'email_verified', true, 'phone_verified', false),
+  '2026-05-28 17:37:32.462454+00'::timestamptz,
+  '2026-05-28 17:37:32.630882+00'::timestamptz,
+  '2026-05-28 17:37:32.5864+00'::timestamptz
+) ON CONFLICT (id) DO NOTHING;
+
 -- auth: anne1104@gmx.net
 INSERT INTO auth.users (
   instance_id, id, aud, role, email, encrypted_password,
   email_confirmed_at,
+  confirmation_token, recovery_token, email_change_token_new,
+  email_change, email_change_token_current, reauthentication_token,
+  phone_change, phone_change_token,
   raw_app_meta_data, raw_user_meta_data,
   created_at, updated_at, is_sso_user, is_anonymous
 ) VALUES (
@@ -262,10 +336,11 @@ INSERT INTO auth.users (
   'anne1104@gmx.net',
   '$2a$10$dhxF97DsUDaczoWgAZBQm.X0..3sojhbQcGqHsGJW9OSFYz2Sw1mS',
   '2026-02-15 11:20:50.601013+00'::timestamptz,
+  '', '', '', '', '', '', '', '',
   '{"provider": "email", "providers": ["email"]}'::jsonb,
   '{"sub":"4b249308-86e6-4fab-942f-a36e787534a7","city":"Meerbusch ","email":"anne1104@gmx.net","phone":"01772991649","street":"Nordstr. ","last_name":"Jung","first_name":"Anne-Katrin ","postal_code":"40667","house_number":"79","email_verified":true,"phone_verified":false,"tenant_id":"892370b8-49a1-4699-b480-2f722e4f9fe3","role":"user"}'::jsonb,
   '2026-02-15 11:20:50.576121+00'::timestamptz,
-  '2026-05-12 19:49:45.168593+00'::timestamptz,
+  '2026-05-17 16:50:38.31312+00'::timestamptz,
   false,
   false
 ) ON CONFLICT (id) DO NOTHING;
@@ -279,14 +354,17 @@ INSERT INTO auth.identities (
   'email',
   jsonb_build_object('sub', '4b249308-86e6-4fab-942f-a36e787534a7', 'email', 'anne1104@gmx.net', 'email_verified', true, 'phone_verified', false),
   '2026-02-15 11:20:50.576121+00'::timestamptz,
-  '2026-05-12 19:49:45.168593+00'::timestamptz,
-  '2026-05-12 19:49:45.097522+00'::timestamptz
+  '2026-05-17 16:50:38.31312+00'::timestamptz,
+  '2026-05-17 16:50:38.254525+00'::timestamptz
 ) ON CONFLICT (id) DO NOTHING;
 
 -- auth: kirsten.nill@yahoo.de
 INSERT INTO auth.users (
   instance_id, id, aud, role, email, encrypted_password,
   email_confirmed_at,
+  confirmation_token, recovery_token, email_change_token_new,
+  email_change, email_change_token_current, reauthentication_token,
+  phone_change, phone_change_token,
   raw_app_meta_data, raw_user_meta_data,
   created_at, updated_at, is_sso_user, is_anonymous
 ) VALUES (
@@ -297,6 +375,7 @@ INSERT INTO auth.users (
   'kirsten.nill@yahoo.de',
   '$2a$10$NnMGkhGpR633GmMsUkfiTukkrZG2WxQS6yMTVUIw8TbXzYf51JCDC',
   '2026-02-22 12:47:16.427619+00'::timestamptz,
+  '', '', '', '', '', '', '', '',
   '{"provider": "email", "providers": ["email"]}'::jsonb,
   '{"sub":"570d3b6c-7220-4f35-a867-25eca400b2d4","city":"Neuss","email":"kirsten.nill@yahoo.de","phone":"015128974428","street":"Nixhütter Weg ","last_name":"Nill","first_name":"Kirsten","postal_code":"41468","house_number":"56","email_verified":true,"phone_verified":false,"tenant_id":"892370b8-49a1-4699-b480-2f722e4f9fe3","role":"user"}'::jsonb,
   '2026-02-22 12:47:16.422327+00'::timestamptz,
@@ -322,6 +401,9 @@ INSERT INTO auth.identities (
 INSERT INTO auth.users (
   instance_id, id, aud, role, email, encrypted_password,
   email_confirmed_at,
+  confirmation_token, recovery_token, email_change_token_new,
+  email_change, email_change_token_current, reauthentication_token,
+  phone_change, phone_change_token,
   raw_app_meta_data, raw_user_meta_data,
   created_at, updated_at, is_sso_user, is_anonymous
 ) VALUES (
@@ -332,10 +414,11 @@ INSERT INTO auth.users (
   'nahidnadjafi@gmx.de',
   '$2a$10$P0jIuPE1GgGrXZdgzdcXSu2Pt0P9AJuRIcqDGxWCF4x4r2v2Htlkm',
   '2026-02-23 11:45:33.685807+00'::timestamptz,
+  '', '', '', '', '', '', '', '',
   '{"provider": "email", "providers": ["email"]}'::jsonb,
   '{"sub":"65012a0a-cc60-4c73-890f-46a9740c4c52","city":"Neuss","email":"nahidnadjafi@gmx.de","phone":"01731373333","street":"Pliniusweg ","last_name":"Nadjafi","first_name":"Nahid","postal_code":"41464","house_number":"36","email_verified":true,"phone_verified":false,"tenant_id":"892370b8-49a1-4699-b480-2f722e4f9fe3","role":"user"}'::jsonb,
   '2026-02-23 11:45:33.651754+00'::timestamptz,
-  '2026-05-11 15:37:54.76548+00'::timestamptz,
+  '2026-05-27 18:09:02.416402+00'::timestamptz,
   false,
   false
 ) ON CONFLICT (id) DO NOTHING;
@@ -349,7 +432,7 @@ INSERT INTO auth.identities (
   'email',
   jsonb_build_object('sub', '65012a0a-cc60-4c73-890f-46a9740c4c52', 'email', 'nahidnadjafi@gmx.de', 'email_verified', true, 'phone_verified', false),
   '2026-02-23 11:45:33.651754+00'::timestamptz,
-  '2026-05-11 15:37:54.76548+00'::timestamptz,
+  '2026-05-27 18:09:02.416402+00'::timestamptz,
   '2026-04-23 05:49:16.48312+00'::timestamptz
 ) ON CONFLICT (id) DO NOTHING;
 
@@ -357,6 +440,9 @@ INSERT INTO auth.identities (
 INSERT INTO auth.users (
   instance_id, id, aud, role, email, encrypted_password,
   email_confirmed_at,
+  confirmation_token, recovery_token, email_change_token_new,
+  email_change, email_change_token_current, reauthentication_token,
+  phone_change, phone_change_token,
   raw_app_meta_data, raw_user_meta_data,
   created_at, updated_at, is_sso_user, is_anonymous
 ) VALUES (
@@ -367,6 +453,7 @@ INSERT INTO auth.users (
   'andre@die-thallers.de',
   '$2a$10$/DDQQI6sC6ZvS7BiaGIv7u00FjpZ.SOU9oatS02Kn3gAHlsvBJO8K',
   '2026-01-23 12:54:41.125276+00'::timestamptz,
+  '', '', '', '', '', '', '', '',
   '{"provider": "email", "providers": ["email"]}'::jsonb,
   '{"sub":"6cbcbb0d-02cd-4d88-b44e-9e63a2247242","city":"Neuss","email":"andre@die-thallers.de","phone":"015734673729","street":"Holunderweg","last_name":"Thaller","first_name":"André","postal_code":"41468","house_number":"6","email_verified":true,"phone_verified":false,"tenant_id":"892370b8-49a1-4699-b480-2f722e4f9fe3","role":"user"}'::jsonb,
   '2026-01-23 12:54:41.086439+00'::timestamptz,
@@ -392,6 +479,9 @@ INSERT INTO auth.identities (
 INSERT INTO auth.users (
   instance_id, id, aud, role, email, encrypted_password,
   email_confirmed_at,
+  confirmation_token, recovery_token, email_change_token_new,
+  email_change, email_change_token_current, reauthentication_token,
+  phone_change, phone_change_token,
   raw_app_meta_data, raw_user_meta_data,
   created_at, updated_at, is_sso_user, is_anonymous
 ) VALUES (
@@ -402,10 +492,11 @@ INSERT INTO auth.users (
   'nicola.schnitzler@sid-marketing.de',
   '$2a$10$/g19FlPIVyMydIwKY7m2..oGWw2YSJ1HQkV.LIMCCY4RxQ2smd.ga',
   '2026-02-02 10:09:16.885751+00'::timestamptz,
+  '', '', '', '', '', '', '', '',
   '{"provider": "email", "providers": ["email"]}'::jsonb,
   '{"sub":"767daf20-2720-461a-a1ba-2c84de4693ae","city":"Neuss","email":"nicola.schnitzler@sid-marketing.de","phone":"01704406924","street":"Hagebuttenweg","last_name":"Schnitzler","first_name":"Nicola","postal_code":"41468","house_number":"2","email_verified":true,"phone_verified":false,"tenant_id":"892370b8-49a1-4699-b480-2f722e4f9fe3","role":"user"}'::jsonb,
   '2026-02-02 10:09:16.791749+00'::timestamptz,
-  '2026-05-12 05:46:20.379774+00'::timestamptz,
+  '2026-05-28 06:45:01.189841+00'::timestamptz,
   false,
   false
 ) ON CONFLICT (id) DO NOTHING;
@@ -419,7 +510,7 @@ INSERT INTO auth.identities (
   'email',
   jsonb_build_object('sub', '767daf20-2720-461a-a1ba-2c84de4693ae', 'email', 'nicola.schnitzler@sid-marketing.de', 'email_verified', true, 'phone_verified', false),
   '2026-02-02 10:09:16.791749+00'::timestamptz,
-  '2026-05-12 05:46:20.379774+00'::timestamptz,
+  '2026-05-28 06:45:01.189841+00'::timestamptz,
   '2026-02-02 10:09:16.908718+00'::timestamptz
 ) ON CONFLICT (id) DO NOTHING;
 
@@ -427,6 +518,9 @@ INSERT INTO auth.identities (
 INSERT INTO auth.users (
   instance_id, id, aud, role, email, encrypted_password,
   email_confirmed_at,
+  confirmation_token, recovery_token, email_change_token_new,
+  email_change, email_change_token_current, reauthentication_token,
+  phone_change, phone_change_token,
   raw_app_meta_data, raw_user_meta_data,
   created_at, updated_at, is_sso_user, is_anonymous
 ) VALUES (
@@ -437,10 +531,11 @@ INSERT INTO auth.users (
   'irene.meyers@online.de',
   '$2a$10$AVjqX1.XqqDaHjDiAmYWduNE.QN3JEMdQ1NLWR7qun1xjDexG8QM.',
   '2026-02-03 21:03:53.717326+00'::timestamptz,
+  '', '', '', '', '', '', '', '',
   '{"provider": "email", "providers": ["email"]}'::jsonb,
   '{"sub":"7f3ddc2d-78f9-4cf8-a318-4fed234cb7cc","city":"Neuss","email":"irene.meyers@online.de","phone":"015209897377","street":"Gagelweg","last_name":"Meyers","first_name":"Irene","postal_code":"41468","house_number":"17","email_verified":true,"phone_verified":false,"tenant_id":"892370b8-49a1-4699-b480-2f722e4f9fe3","role":"user"}'::jsonb,
   '2026-02-03 21:03:53.603835+00'::timestamptz,
-  '2026-05-06 18:02:38.596886+00'::timestamptz,
+  '2026-05-17 17:48:01.04723+00'::timestamptz,
   false,
   false
 ) ON CONFLICT (id) DO NOTHING;
@@ -454,7 +549,7 @@ INSERT INTO auth.identities (
   'email',
   jsonb_build_object('sub', '7f3ddc2d-78f9-4cf8-a318-4fed234cb7cc', 'email', 'irene.meyers@online.de', 'email_verified', true, 'phone_verified', false),
   '2026-02-03 21:03:53.603835+00'::timestamptz,
-  '2026-05-06 18:02:38.596886+00'::timestamptz,
+  '2026-05-17 17:48:01.04723+00'::timestamptz,
   '2026-02-03 21:03:53.740324+00'::timestamptz
 ) ON CONFLICT (id) DO NOTHING;
 
@@ -462,6 +557,9 @@ INSERT INTO auth.identities (
 INSERT INTO auth.users (
   instance_id, id, aud, role, email, encrypted_password,
   email_confirmed_at,
+  confirmation_token, recovery_token, email_change_token_new,
+  email_change, email_change_token_current, reauthentication_token,
+  phone_change, phone_change_token,
   raw_app_meta_data, raw_user_meta_data,
   created_at, updated_at, is_sso_user, is_anonymous
 ) VALUES (
@@ -472,6 +570,7 @@ INSERT INTO auth.users (
   'volkervonderohe@yahoo.de',
   '$2a$10$xchvncQLHZWMRCXDQfmhXOAlIuzMXO0OhaiZCmBwtwUWc5XL/aI7G',
   '2026-05-06 06:14:34.542568+00'::timestamptz,
+  '', '', '', '', '', '', '', '',
   '{"provider": "email", "providers": ["email"]}'::jsonb,
   '{"sub":"974cc271-26c9-4f96-a194-453cc61ac93f","city":"Neuss","email":"volkervonderohe@yahoo.de","phone":"01795718397","street":"Holunderweg","last_name":"von der Ohe","first_name":"Barbara","postal_code":"41468","house_number":"6a","email_verified":true,"phone_verified":false,"tenant_id":"892370b8-49a1-4699-b480-2f722e4f9fe3","role":"user"}'::jsonb,
   '2026-05-06 06:14:34.460549+00'::timestamptz,
@@ -497,6 +596,9 @@ INSERT INTO auth.identities (
 INSERT INTO auth.users (
   instance_id, id, aud, role, email, encrypted_password,
   email_confirmed_at,
+  confirmation_token, recovery_token, email_change_token_new,
+  email_change, email_change_token_current, reauthentication_token,
+  phone_change, phone_change_token,
   raw_app_meta_data, raw_user_meta_data,
   created_at, updated_at, is_sso_user, is_anonymous
 ) VALUES (
@@ -507,10 +609,11 @@ INSERT INTO auth.users (
   'akoehler4@gmx.de',
   '$2a$10$zxMgnxGA.QTPRC0GGgdWZ.hPtOBwbRl3AJhCFV.re7cKR6oj8MbXW',
   '2026-02-15 11:14:15.524363+00'::timestamptz,
+  '', '', '', '', '', '', '', '',
   '{"provider": "email", "providers": ["email"]}'::jsonb,
   '{"sub":"a3856216-c52c-41e3-9d61-2c20bcdb02ab","city":"Neuss","email":"akoehler4@gmx.de","phone":"01794610499","street":"Weissdornweg ","last_name":"Köhler","first_name":"Andrea","postal_code":"41468","house_number":"22","email_verified":true,"phone_verified":false,"tenant_id":"892370b8-49a1-4699-b480-2f722e4f9fe3","role":"user"}'::jsonb,
   '2026-02-15 11:14:15.428418+00'::timestamptz,
-  '2026-05-12 15:21:58.234962+00'::timestamptz,
+  '2026-06-01 16:49:20.371999+00'::timestamptz,
   false,
   false
 ) ON CONFLICT (id) DO NOTHING;
@@ -524,7 +627,7 @@ INSERT INTO auth.identities (
   'email',
   jsonb_build_object('sub', 'a3856216-c52c-41e3-9d61-2c20bcdb02ab', 'email', 'akoehler4@gmx.de', 'email_verified', true, 'phone_verified', false),
   '2026-02-15 11:14:15.428418+00'::timestamptz,
-  '2026-05-12 15:21:58.234962+00'::timestamptz,
+  '2026-06-01 16:49:20.371999+00'::timestamptz,
   '2026-02-15 11:14:15.542171+00'::timestamptz
 ) ON CONFLICT (id) DO NOTHING;
 
@@ -532,6 +635,9 @@ INSERT INTO auth.identities (
 INSERT INTO auth.users (
   instance_id, id, aud, role, email, encrypted_password,
   email_confirmed_at,
+  confirmation_token, recovery_token, email_change_token_new,
+  email_change, email_change_token_current, reauthentication_token,
+  phone_change, phone_change_token,
   raw_app_meta_data, raw_user_meta_data,
   created_at, updated_at, is_sso_user, is_anonymous
 ) VALUES (
@@ -542,10 +648,11 @@ INSERT INTO auth.users (
   'lara.becker1985@gmail.com',
   '$2a$10$eyT55OhMf2qTMHew1FF3GeIqhpSQkAWDg4DWRT62PYQ4LSLCx9VRW',
   '2026-02-22 13:51:08.200018+00'::timestamptz,
+  '', '', '', '', '', '', '', '',
   '{"provider": "email", "providers": ["email"]}'::jsonb,
   '{"sub":"aa8af330-e808-4e39-87a9-131aef59079a","city":"Neuss","email":"lara.becker1985@gmail.com","phone":"01779352228","street":"Grüner Weg","last_name":"Becker","first_name":"Lara","postal_code":"41468","house_number":"12A","email_verified":true,"phone_verified":false,"tenant_id":"892370b8-49a1-4699-b480-2f722e4f9fe3","role":"user"}'::jsonb,
   '2026-02-22 13:51:08.117876+00'::timestamptz,
-  '2026-04-24 07:39:38.4047+00'::timestamptz,
+  '2026-05-29 13:12:08.330238+00'::timestamptz,
   false,
   false
 ) ON CONFLICT (id) DO NOTHING;
@@ -559,7 +666,7 @@ INSERT INTO auth.identities (
   'email',
   jsonb_build_object('sub', 'aa8af330-e808-4e39-87a9-131aef59079a', 'email', 'lara.becker1985@gmail.com', 'email_verified', true, 'phone_verified', false),
   '2026-02-22 13:51:08.117876+00'::timestamptz,
-  '2026-04-24 07:39:38.4047+00'::timestamptz,
+  '2026-05-29 13:12:08.330238+00'::timestamptz,
   '2026-02-22 13:51:08.217484+00'::timestamptz
 ) ON CONFLICT (id) DO NOTHING;
 
@@ -567,6 +674,9 @@ INSERT INTO auth.identities (
 INSERT INTO auth.users (
   instance_id, id, aud, role, email, encrypted_password,
   email_confirmed_at,
+  confirmation_token, recovery_token, email_change_token_new,
+  email_change, email_change_token_current, reauthentication_token,
+  phone_change, phone_change_token,
   raw_app_meta_data, raw_user_meta_data,
   created_at, updated_at, is_sso_user, is_anonymous
 ) VALUES (
@@ -577,10 +687,11 @@ INSERT INTO auth.users (
   'kirsten.schoenstein-nill1@currenta.biz',
   '$2a$10$z54sk9dgEPDDEyho5jNjO.MHMibGmXZIhhD2JgWw3N.lZLdmvL7f6',
   '2026-04-23 06:25:12.5882+00'::timestamptz,
+  '', '', '', '', '', '', '', '',
   '{"provider": "email", "providers": ["email"]}'::jsonb,
   '{"sub":"ac7a314f-6903-47b8-9096-243d6b24842e","city":"Neuss","email":"kirsten.schoenstein-nill1@currenta.biz","phone":"015128974428","street":"Nixhütter Weg","last_name":"Nill","first_name":"Kirsten","postal_code":"41468","house_number":"56","email_verified":true,"phone_verified":false,"tenant_id":"892370b8-49a1-4699-b480-2f722e4f9fe3","role":"user"}'::jsonb,
   '2026-04-23 06:25:12.50197+00'::timestamptz,
-  '2026-05-01 05:45:09.696909+00'::timestamptz,
+  '2026-06-01 07:42:21.250972+00'::timestamptz,
   false,
   false
 ) ON CONFLICT (id) DO NOTHING;
@@ -594,14 +705,17 @@ INSERT INTO auth.identities (
   'email',
   jsonb_build_object('sub', 'ac7a314f-6903-47b8-9096-243d6b24842e', 'email', 'kirsten.schoenstein-nill1@currenta.biz', 'email_verified', true, 'phone_verified', false),
   '2026-04-23 06:25:12.50197+00'::timestamptz,
-  '2026-05-01 05:45:09.696909+00'::timestamptz,
-  '2026-04-23 09:10:06.195519+00'::timestamptz
+  '2026-06-01 07:42:21.250972+00'::timestamptz,
+  '2026-05-26 11:25:56.764157+00'::timestamptz
 ) ON CONFLICT (id) DO NOTHING;
 
 -- auth: caroline.pusch@gmx.net
 INSERT INTO auth.users (
   instance_id, id, aud, role, email, encrypted_password,
   email_confirmed_at,
+  confirmation_token, recovery_token, email_change_token_new,
+  email_change, email_change_token_current, reauthentication_token,
+  phone_change, phone_change_token,
   raw_app_meta_data, raw_user_meta_data,
   created_at, updated_at, is_sso_user, is_anonymous
 ) VALUES (
@@ -612,10 +726,11 @@ INSERT INTO auth.users (
   'caroline.pusch@gmx.net',
   '$2a$10$eoKc4XuLI0Uubbpb.luG5.qLo0GXw/2c.5.7NhVo7pWlHDvCGMO8G',
   '2026-02-22 12:45:23.140916+00'::timestamptz,
+  '', '', '', '', '', '', '', '',
   '{"provider": "email", "providers": ["email"]}'::jsonb,
   '{"sub":"c6377894-2826-4efe-84ff-2efeae0aed98","city":"Neuss","email":"caroline.pusch@gmx.net","phone":"00491608277292","street":"Fliederweg","last_name":"Pusch","first_name":"Caroline","postal_code":"41468","house_number":"35","email_verified":true,"phone_verified":false,"tenant_id":"892370b8-49a1-4699-b480-2f722e4f9fe3","role":"user"}'::jsonb,
   '2026-02-22 12:45:23.121962+00'::timestamptz,
-  '2026-05-04 14:29:47.586242+00'::timestamptz,
+  '2026-05-31 15:12:39.719042+00'::timestamptz,
   false,
   false
 ) ON CONFLICT (id) DO NOTHING;
@@ -629,14 +744,17 @@ INSERT INTO auth.identities (
   'email',
   jsonb_build_object('sub', 'c6377894-2826-4efe-84ff-2efeae0aed98', 'email', 'caroline.pusch@gmx.net', 'email_verified', true, 'phone_verified', false),
   '2026-02-22 12:45:23.121962+00'::timestamptz,
-  '2026-05-04 14:29:47.586242+00'::timestamptz,
-  '2026-02-22 12:45:23.145177+00'::timestamptz
+  '2026-05-31 15:12:39.719042+00'::timestamptz,
+  '2026-05-26 15:37:08.643342+00'::timestamptz
 ) ON CONFLICT (id) DO NOTHING;
 
 -- auth: susafalken@gmx.net
 INSERT INTO auth.users (
   instance_id, id, aud, role, email, encrypted_password,
   email_confirmed_at,
+  confirmation_token, recovery_token, email_change_token_new,
+  email_change, email_change_token_current, reauthentication_token,
+  phone_change, phone_change_token,
   raw_app_meta_data, raw_user_meta_data,
   created_at, updated_at, is_sso_user, is_anonymous
 ) VALUES (
@@ -647,10 +765,11 @@ INSERT INTO auth.users (
   'susafalken@gmx.net',
   '$2a$10$mSk/tprazUy/KuCO./AtQOqAyv0xyqmWF5M8DAOkcIwb6RWn/CGIK',
   '2026-02-22 14:14:12.406846+00'::timestamptz,
+  '', '', '', '', '', '', '', '',
   '{"provider": "email", "providers": ["email"]}'::jsonb,
   '{"sub":"c6e80666-7afb-40e7-922a-26ac14f43024","city":"Neuss","email":"susafalken@gmx.net","phone":"01738103509","street":"Lupinenstraße","last_name":"Falkenberg","first_name":"Susanne","postal_code":"41466","house_number":"53","email_verified":true,"phone_verified":false,"tenant_id":"892370b8-49a1-4699-b480-2f722e4f9fe3","role":"user"}'::jsonb,
   '2026-02-22 14:14:12.346338+00'::timestamptz,
-  '2026-05-13 05:19:11.85606+00'::timestamptz,
+  '2026-05-14 11:14:14.712429+00'::timestamptz,
   false,
   false
 ) ON CONFLICT (id) DO NOTHING;
@@ -664,7 +783,7 @@ INSERT INTO auth.identities (
   'email',
   jsonb_build_object('sub', 'c6e80666-7afb-40e7-922a-26ac14f43024', 'email', 'susafalken@gmx.net', 'email_verified', true, 'phone_verified', false),
   '2026-02-22 14:14:12.346338+00'::timestamptz,
-  '2026-05-13 05:19:11.85606+00'::timestamptz,
+  '2026-05-14 11:14:14.712429+00'::timestamptz,
   '2026-02-22 14:14:12.425373+00'::timestamptz
 ) ON CONFLICT (id) DO NOTHING;
 
@@ -672,6 +791,9 @@ INSERT INTO auth.identities (
 INSERT INTO auth.users (
   instance_id, id, aud, role, email, encrypted_password,
   email_confirmed_at,
+  confirmation_token, recovery_token, email_change_token_new,
+  email_change, email_change_token_current, reauthentication_token,
+  phone_change, phone_change_token,
   raw_app_meta_data, raw_user_meta_data,
   created_at, updated_at, is_sso_user, is_anonymous
 ) VALUES (
@@ -682,6 +804,7 @@ INSERT INTO auth.users (
   'txxx@mail.de',
   '$2a$10$6CmC2fuSaaoE92402hgk6.bQLvPcQ6qcJWxKy9fc9g8PNei.T.1Xu',
   '2026-01-23 12:18:54.49722+00'::timestamptz,
+  '', '', '', '', '', '', '', '',
   '{"provider": "email", "providers": ["email"]}'::jsonb,
   '{"sub":"d53d3b2d-b59b-4140-acc3-0d7f161565a7","city":"Neuss","email":"txxx@mail.de","phone":"02131123456","street":"Holunderweg","last_name":"Thaller","first_name":"Test","postal_code":"41468","house_number":"6","email_verified":true,"phone_verified":false,"tenant_id":"892370b8-49a1-4699-b480-2f722e4f9fe3","role":"user"}'::jsonb,
   '2026-01-23 12:18:54.440442+00'::timestamptz,
@@ -703,10 +826,52 @@ INSERT INTO auth.identities (
   '2026-01-23 22:59:42.844136+00'::timestamptz
 ) ON CONFLICT (id) DO NOTHING;
 
+-- auth: juliusbne@gmail.com
+INSERT INTO auth.users (
+  instance_id, id, aud, role, email, encrypted_password,
+  email_confirmed_at,
+  confirmation_token, recovery_token, email_change_token_new,
+  email_change, email_change_token_current, reauthentication_token,
+  phone_change, phone_change_token,
+  raw_app_meta_data, raw_user_meta_data,
+  created_at, updated_at, is_sso_user, is_anonymous
+) VALUES (
+  '00000000-0000-0000-0000-000000000000'::uuid,
+  'd54ac880-4600-4e60-ba22-2b07c88ba0e0'::uuid,
+  'authenticated',
+  'authenticated',
+  'juliusbne@gmail.com',
+  '$2a$10$3.m637MaJo65sFgSa43TkOuVazgUD/JkgJDvNl5mnpzi.0ALMjc2a',
+  '2026-02-23 14:30:33.389387+00'::timestamptz,
+  '', '', '', '', '', '', '', '',
+  '{"provider": "email", "providers": ["email"]}'::jsonb,
+  '{"sub":"d54ac880-4600-4e60-ba22-2b07c88ba0e0","city":"Neuss","email":"juliusbne@gmail.com","phone":"01783226430","street":"Fliederweg ","last_name":"Blaschke","first_name":"Julius","postal_code":"41468","house_number":"40","email_verified":true,"phone_verified":false,"tenant_id":"892370b8-49a1-4699-b480-2f722e4f9fe3","role":"user"}'::jsonb,
+  '2026-02-23 14:30:33.269276+00'::timestamptz,
+  '2026-06-02 18:59:01.593146+00'::timestamptz,
+  false,
+  false
+) ON CONFLICT (id) DO NOTHING;
+INSERT INTO auth.identities (
+  id, user_id, provider_id, provider, identity_data,
+  created_at, updated_at, last_sign_in_at
+) VALUES (
+  'd54ac880-4600-4e60-ba22-2b07c88ba0e0'::uuid,
+  'd54ac880-4600-4e60-ba22-2b07c88ba0e0'::uuid,
+  'd54ac880-4600-4e60-ba22-2b07c88ba0e0'::text,
+  'email',
+  jsonb_build_object('sub', 'd54ac880-4600-4e60-ba22-2b07c88ba0e0', 'email', 'juliusbne@gmail.com', 'email_verified', true, 'phone_verified', false),
+  '2026-02-23 14:30:33.269276+00'::timestamptz,
+  '2026-06-02 18:59:01.593146+00'::timestamptz,
+  '2026-06-02 18:59:01.533114+00'::timestamptz
+) ON CONFLICT (id) DO NOTHING;
+
 -- auth: drealenk@gmail.com
 INSERT INTO auth.users (
   instance_id, id, aud, role, email, encrypted_password,
   email_confirmed_at,
+  confirmation_token, recovery_token, email_change_token_new,
+  email_change, email_change_token_current, reauthentication_token,
+  phone_change, phone_change_token,
   raw_app_meta_data, raw_user_meta_data,
   created_at, updated_at, is_sso_user, is_anonymous
 ) VALUES (
@@ -717,6 +882,7 @@ INSERT INTO auth.users (
   'drealenk@gmail.com',
   '$2a$10$dEApptP0bMvYz1v78zRLSOkm51yyZZNQid9nXu05i1oNbXL9.jUT6',
   '2026-05-11 19:24:21.870344+00'::timestamptz,
+  '', '', '', '', '', '', '', '',
   '{"provider": "email", "providers": ["email"]}'::jsonb,
   '{"sub":"d7e35357-4209-4429-8ecb-86cea5255fc9","city":"Grevenbroich","email":"drealenk@gmail.com","phone":"015174230936","street":"Brombergestrasse ","last_name":"Schmitz","first_name":"Andrea ","postal_code":"41516","house_number":"15","email_verified":true,"phone_verified":false,"tenant_id":"892370b8-49a1-4699-b480-2f722e4f9fe3","role":"user"}'::jsonb,
   '2026-05-11 19:24:21.767588+00'::timestamptz,
@@ -742,6 +908,9 @@ INSERT INTO auth.identities (
 INSERT INTO auth.users (
   instance_id, id, aud, role, email, encrypted_password,
   email_confirmed_at,
+  confirmation_token, recovery_token, email_change_token_new,
+  email_change, email_change_token_current, reauthentication_token,
+  phone_change, phone_change_token,
   raw_app_meta_data, raw_user_meta_data,
   created_at, updated_at, is_sso_user, is_anonymous
 ) VALUES (
@@ -752,6 +921,7 @@ INSERT INTO auth.users (
   'eva.neumeister@gmx.de',
   '$2a$10$rpIQREVd8/r9R7pHPGzlku7XCBu0C.tevgbjftP9LNqtf8zNlVrYi',
   '2026-02-22 15:21:03.40386+00'::timestamptz,
+  '', '', '', '', '', '', '', '',
   '{"provider": "email", "providers": ["email"]}'::jsonb,
   '{"sub":"df756576-1390-4e27-a37c-1ee086061a16","city":"Neuss","email":"eva.neumeister@gmx.de","phone":"015776455801","street":"Gagelweg","last_name":"Vosdellen ","first_name":"Eva ","postal_code":"41468","house_number":"22","email_verified":true,"phone_verified":false,"tenant_id":"892370b8-49a1-4699-b480-2f722e4f9fe3","role":"user"}'::jsonb,
   '2026-02-22 15:21:03.323085+00'::timestamptz,
@@ -777,6 +947,9 @@ INSERT INTO auth.identities (
 INSERT INTO auth.users (
   instance_id, id, aud, role, email, encrypted_password,
   email_confirmed_at,
+  confirmation_token, recovery_token, email_change_token_new,
+  email_change, email_change_token_current, reauthentication_token,
+  phone_change, phone_change_token,
   raw_app_meta_data, raw_user_meta_data,
   created_at, updated_at, is_sso_user, is_anonymous
 ) VALUES (
@@ -787,10 +960,11 @@ INSERT INTO auth.users (
   'marianne_cremer@t-online.de',
   '$2a$10$xzltzgQd1QhBfRcVBL5v2.b5UM/7PWKHuCMfFPqVkfFhfEKcbqB8q',
   '2026-02-15 11:30:05.545982+00'::timestamptz,
+  '', '', '', '', '', '', '', '',
   '{"provider": "email", "providers": ["email"]}'::jsonb,
   '{"sub":"e2d34978-a240-4e01-9794-1859b0e6ba29","city":"Neuss","email":"marianne_cremer@t-online.de","phone":"01721491133","street":"Haselweg","last_name":"Cremer","first_name":"Marianne","postal_code":"41468","house_number":"18","email_verified":true,"phone_verified":false,"tenant_id":"892370b8-49a1-4699-b480-2f722e4f9fe3","role":"user"}'::jsonb,
   '2026-02-15 11:30:05.492655+00'::timestamptz,
-  '2026-04-23 05:51:33.217709+00'::timestamptz,
+  '2026-05-23 17:55:12.298767+00'::timestamptz,
   false,
   false
 ) ON CONFLICT (id) DO NOTHING;
@@ -804,7 +978,7 @@ INSERT INTO auth.identities (
   'email',
   jsonb_build_object('sub', 'e2d34978-a240-4e01-9794-1859b0e6ba29', 'email', 'marianne_cremer@t-online.de', 'email_verified', true, 'phone_verified', false),
   '2026-02-15 11:30:05.492655+00'::timestamptz,
-  '2026-04-23 05:51:33.217709+00'::timestamptz,
+  '2026-05-23 17:55:12.298767+00'::timestamptz,
   '2026-02-15 11:30:05.556236+00'::timestamptz
 ) ON CONFLICT (id) DO NOTHING;
 
@@ -812,6 +986,9 @@ INSERT INTO auth.identities (
 INSERT INTO auth.users (
   instance_id, id, aud, role, email, encrypted_password,
   email_confirmed_at,
+  confirmation_token, recovery_token, email_change_token_new,
+  email_change, email_change_token_current, reauthentication_token,
+  phone_change, phone_change_token,
   raw_app_meta_data, raw_user_meta_data,
   created_at, updated_at, is_sso_user, is_anonymous
 ) VALUES (
@@ -822,10 +999,11 @@ INSERT INTO auth.users (
   'antjebauer@hotmail.com',
   '$2a$10$tvuCm39hxwu2.MkLy1htmeaYeJTcf3V7xZinC7eeJFWBNqLFE8myq',
   '2026-02-22 12:47:01.108889+00'::timestamptz,
+  '', '', '', '', '', '', '', '',
   '{"provider": "email", "providers": ["email"]}'::jsonb,
   '{"sub":"e4a096c1-8fc5-4979-950f-89b90d986133","city":"Neuss","email":"antjebauer@hotmail.com","phone":"01777639292","street":"Fliederweg ","last_name":"Bauer","first_name":"Antje","postal_code":"41468","house_number":"30","email_verified":true,"phone_verified":false,"tenant_id":"892370b8-49a1-4699-b480-2f722e4f9fe3","role":"user"}'::jsonb,
   '2026-02-22 12:47:01.099402+00'::timestamptz,
-  '2026-05-12 11:29:25.046347+00'::timestamptz,
+  '2026-06-02 06:20:15.457428+00'::timestamptz,
   false,
   false
 ) ON CONFLICT (id) DO NOTHING;
@@ -839,14 +1017,56 @@ INSERT INTO auth.identities (
   'email',
   jsonb_build_object('sub', 'e4a096c1-8fc5-4979-950f-89b90d986133', 'email', 'antjebauer@hotmail.com', 'email_verified', true, 'phone_verified', false),
   '2026-02-22 12:47:01.099402+00'::timestamptz,
-  '2026-05-12 11:29:25.046347+00'::timestamptz,
+  '2026-06-02 06:20:15.457428+00'::timestamptz,
   '2026-03-11 22:32:34.353401+00'::timestamptz
+) ON CONFLICT (id) DO NOTHING;
+
+-- auth: cursor-agent-1780221886@example.com
+INSERT INTO auth.users (
+  instance_id, id, aud, role, email, encrypted_password,
+  email_confirmed_at,
+  confirmation_token, recovery_token, email_change_token_new,
+  email_change, email_change_token_current, reauthentication_token,
+  phone_change, phone_change_token,
+  raw_app_meta_data, raw_user_meta_data,
+  created_at, updated_at, is_sso_user, is_anonymous
+) VALUES (
+  '00000000-0000-0000-0000-000000000000'::uuid,
+  'e7093d1f-c493-476c-add8-046b70d02965'::uuid,
+  'authenticated',
+  'authenticated',
+  'cursor-agent-1780221886@example.com',
+  '$2a$10$otp1yBERAfKEBCUdJcd/TuiGDqFQdIrHpj6t5Hqeeyo.Mj4SaWg4a',
+  '2026-05-31 10:04:47.376811+00'::timestamptz,
+  '', '', '', '', '', '', '', '',
+  '{"provider": "email", "providers": ["email"]}'::jsonb,
+  '{"sub":"e7093d1f-c493-476c-add8-046b70d02965","email":"cursor-agent-1780221886@example.com","email_verified":true,"phone_verified":false,"tenant_id":"892370b8-49a1-4699-b480-2f722e4f9fe3","role":"user","first_name":"","last_name":"","street":null,"house_number":null,"postal_code":null,"city":null,"phone":null}'::jsonb,
+  '2026-05-31 10:04:47.282617+00'::timestamptz,
+  '2026-05-31 10:06:47.087111+00'::timestamptz,
+  false,
+  false
+) ON CONFLICT (id) DO NOTHING;
+INSERT INTO auth.identities (
+  id, user_id, provider_id, provider, identity_data,
+  created_at, updated_at, last_sign_in_at
+) VALUES (
+  'e7093d1f-c493-476c-add8-046b70d02965'::uuid,
+  'e7093d1f-c493-476c-add8-046b70d02965'::uuid,
+  'e7093d1f-c493-476c-add8-046b70d02965'::text,
+  'email',
+  jsonb_build_object('sub', 'e7093d1f-c493-476c-add8-046b70d02965', 'email', 'cursor-agent-1780221886@example.com', 'email_verified', true, 'phone_verified', false),
+  '2026-05-31 10:04:47.282617+00'::timestamptz,
+  '2026-05-31 10:06:47.087111+00'::timestamptz,
+  '2026-05-31 10:06:47.023297+00'::timestamptz
 ) ON CONFLICT (id) DO NOTHING;
 
 -- auth: andrea.karnath@arcor.de
 INSERT INTO auth.users (
   instance_id, id, aud, role, email, encrypted_password,
   email_confirmed_at,
+  confirmation_token, recovery_token, email_change_token_new,
+  email_change, email_change_token_current, reauthentication_token,
+  phone_change, phone_change_token,
   raw_app_meta_data, raw_user_meta_data,
   created_at, updated_at, is_sso_user, is_anonymous
 ) VALUES (
@@ -857,10 +1077,11 @@ INSERT INTO auth.users (
   'andrea.karnath@arcor.de',
   '$2a$10$Ip3f2SPxwIQxt51TqY3mG.147j34dbAvo2NpaE8u1ddleIMWOzJV6',
   '2026-02-02 10:25:42.280276+00'::timestamptz,
+  '', '', '', '', '', '', '', '',
   '{"provider": "email", "providers": ["email"]}'::jsonb,
   '{"sub":"f63447c3-a2b4-4064-97fe-22428a032a2d","city":"Neuss","email":"andrea.karnath@arcor.de","phone":"01781682285","street":"Pliniusweg ","last_name":"Karnath ","first_name":"Andrea ","postal_code":"41464","house_number":"46","email_verified":true,"phone_verified":false,"tenant_id":"892370b8-49a1-4699-b480-2f722e4f9fe3","role":"user"}'::jsonb,
   '2026-02-02 10:25:42.191777+00'::timestamptz,
-  '2026-05-05 05:53:28.500384+00'::timestamptz,
+  '2026-05-19 08:13:25.34337+00'::timestamptz,
   false,
   false
 ) ON CONFLICT (id) DO NOTHING;
@@ -874,7 +1095,7 @@ INSERT INTO auth.identities (
   'email',
   jsonb_build_object('sub', 'f63447c3-a2b4-4064-97fe-22428a032a2d', 'email', 'andrea.karnath@arcor.de', 'email_verified', true, 'phone_verified', false),
   '2026-02-02 10:25:42.191777+00'::timestamptz,
-  '2026-05-05 05:53:28.500384+00'::timestamptz,
+  '2026-05-19 08:13:25.34337+00'::timestamptz,
   '2026-04-11 21:16:50.020378+00'::timestamptz
 ) ON CONFLICT (id) DO NOTHING;
 
@@ -882,6 +1103,9 @@ INSERT INTO auth.identities (
 INSERT INTO auth.users (
   instance_id, id, aud, role, email, encrypted_password,
   email_confirmed_at,
+  confirmation_token, recovery_token, email_change_token_new,
+  email_change, email_change_token_current, reauthentication_token,
+  phone_change, phone_change_token,
   raw_app_meta_data, raw_user_meta_data,
   created_at, updated_at, is_sso_user, is_anonymous
 ) VALUES (
@@ -892,6 +1116,7 @@ INSERT INTO auth.users (
   'spollotzek@web.de',
   '$2a$10$4R1L0h0GS9rIENb.xDJFcuD9INpx1trRCeg/6EUclMsEiY4igcI6C',
   '2026-02-22 15:52:19.073635+00'::timestamptz,
+  '', '', '', '', '', '', '', '',
   '{"provider": "email", "providers": ["email"]}'::jsonb,
   '{"sub":"f81c8ff0-cc12-429b-9e85-8ee8e8a07138","city":"Neuss","email":"spollotzek@web.de","phone":"01604162080","street":"Fliederweg","last_name":"Pollotzek","first_name":"Stefanie","postal_code":"41468","house_number":"13a","email_verified":true,"phone_verified":false,"tenant_id":"892370b8-49a1-4699-b480-2f722e4f9fe3","role":"user"}'::jsonb,
   '2026-02-22 15:52:19.021876+00'::timestamptz,
@@ -917,6 +1142,9 @@ INSERT INTO auth.identities (
 INSERT INTO auth.users (
   instance_id, id, aud, role, email, encrypted_password,
   email_confirmed_at,
+  confirmation_token, recovery_token, email_change_token_new,
+  email_change, email_change_token_current, reauthentication_token,
+  phone_change, phone_change_token,
   raw_app_meta_data, raw_user_meta_data,
   created_at, updated_at, is_sso_user, is_anonymous
 ) VALUES (
@@ -927,10 +1155,11 @@ INSERT INTO auth.users (
   'elke.leven@arcor.de',
   '$2a$10$SSovN4fbE8fn//w9dlfyV.5bJkfwmK/VbAvzoFydGJONtQMwxScTW',
   '2026-02-22 12:41:58.744438+00'::timestamptz,
+  '', '', '', '', '', '', '', '',
   '{"provider": "email", "providers": ["email"]}'::jsonb,
   '{"sub":"fac5a9c9-0dc1-427c-aab4-db097ab8fa16","city":"Neuss","email":"elke.leven@arcor.de","phone":"01794959236","street":"Melissenstraße ","last_name":"Leven","first_name":"Elke","postal_code":"41466","house_number":"1","email_verified":true,"phone_verified":false,"tenant_id":"892370b8-49a1-4699-b480-2f722e4f9fe3","role":"user"}'::jsonb,
   '2026-02-22 12:41:58.686075+00'::timestamptz,
-  '2026-05-11 17:38:53.590081+00'::timestamptz,
+  '2026-05-28 13:57:55.313827+00'::timestamptz,
   false,
   false
 ) ON CONFLICT (id) DO NOTHING;
@@ -944,7 +1173,7 @@ INSERT INTO auth.identities (
   'email',
   jsonb_build_object('sub', 'fac5a9c9-0dc1-427c-aab4-db097ab8fa16', 'email', 'elke.leven@arcor.de', 'email_verified', true, 'phone_verified', false),
   '2026-02-22 12:41:58.686075+00'::timestamptz,
-  '2026-05-11 17:38:53.590081+00'::timestamptz,
+  '2026-05-28 13:57:55.313827+00'::timestamptz,
   '2026-02-22 12:41:58.765788+00'::timestamptz
 ) ON CONFLICT (id) DO NOTHING;
 
@@ -952,6 +1181,9 @@ INSERT INTO auth.identities (
 INSERT INTO auth.users (
   instance_id, id, aud, role, email, encrypted_password,
   email_confirmed_at,
+  confirmation_token, recovery_token, email_change_token_new,
+  email_change, email_change_token_current, reauthentication_token,
+  phone_change, phone_change_token,
   raw_app_meta_data, raw_user_meta_data,
   created_at, updated_at, is_sso_user, is_anonymous
 ) VALUES (
@@ -962,6 +1194,7 @@ INSERT INTO auth.users (
   'andrethaller@icloud.de',
   '$2a$10$3K5xtlGaQcAM07AOOX4iA.8oGd.h9eNlBvR8Ifj/djOFoaZ8bKn8q',
   '2026-02-06 13:26:14.294605+00'::timestamptz,
+  '', '', '', '', '', '', '', '',
   '{"provider": "email", "providers": ["email"]}'::jsonb,
   '{"sub":"ffd06ae6-242c-4ea2-a5a5-76f219740548","city":"Neuss","email":"andrethaller@icloud.de","phone":"015734673729","street":"Holunderweg","last_name":"Thaller","first_name":"André","postal_code":"41468","house_number":"6","email_verified":true,"phone_verified":false,"tenant_id":"892370b8-49a1-4699-b480-2f722e4f9fe3","role":"user"}'::jsonb,
   '2026-02-06 13:26:14.258226+00'::timestamptz,
@@ -1072,31 +1305,6 @@ INSERT INTO public.courses (
   max_participants, price, teacher_id, status, duration, prerequisites, frequency, series_id,
   created_at, updated_at
 ) VALUES (
-  '51f56177-d67c-4b49-9154-009bcef0e046'::uuid,
-  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  'Yoga am Dienstag',
-  'Vinyasa für Fortgeschrittene',
-  '2026-05-26'::date,
-  '18:00:00'::time,
-  '19:30:00'::time,
-  'Gagelweg',
-  NULL,
-  8,
-  12.00,
-  '2ef0b4bf-69da-480e-9533-2bdf162dfc18'::uuid,
-  'active',
-  90,
-  NULL,
-  'one_time',
-  NULL,
-  '2026-04-05 15:14:34.144443+00'::timestamptz,
-  '2026-04-05 15:14:34.144443+00'::timestamptz
-);
-INSERT INTO public.courses (
-  id, tenant_id, title, description, date, time, end_time, location, room,
-  max_participants, price, teacher_id, status, duration, prerequisites, frequency, series_id,
-  created_at, updated_at
-) VALUES (
   '5617adc0-3247-438f-99ce-70bc36e871b3'::uuid,
   '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
   'Yoga am Dienstag',
@@ -1122,11 +1330,11 @@ INSERT INTO public.courses (
   max_participants, price, teacher_id, status, duration, prerequisites, frequency, series_id,
   created_at, updated_at
 ) VALUES (
-  '85ad90eb-e21b-45ae-8d73-58038c502f73'::uuid,
+  '6fb5de10-582d-4193-9676-b67bd61ffb3c'::uuid,
   '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  'Yoga am Dienstag',
-  'Vinyasa für Fortgeschrittene',
-  '2026-06-02'::date,
+  'Yoga am Mittwoch',
+  'Hatha/Vinyasa für alle',
+  '2026-07-01'::date,
   '18:00:00'::time,
   '19:30:00'::time,
   'Gagelweg',
@@ -1138,9 +1346,34 @@ INSERT INTO public.courses (
   90,
   NULL,
   'one_time',
-  '35f08238-f358-430a-999f-21a6cb211040'::uuid,
-  '2026-04-22 20:26:47.833385+00'::timestamptz,
-  '2026-04-22 20:26:47.833385+00'::timestamptz
+  'e45e73a8-f039-4002-b428-4ef40455f0c6'::uuid,
+  '2026-05-18 14:57:43.832903+00'::timestamptz,
+  '2026-05-18 14:57:43.832903+00'::timestamptz
+);
+INSERT INTO public.courses (
+  id, tenant_id, title, description, date, time, end_time, location, room,
+  max_participants, price, teacher_id, status, duration, prerequisites, frequency, series_id,
+  created_at, updated_at
+) VALUES (
+  '8953f8b5-e0eb-4a0c-ad01-f61e2e56147b'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'Yoga am Mittwoch',
+  'Hatha/Vinyasa für alle',
+  '2026-07-08'::date,
+  '18:00:00'::time,
+  '19:30:00'::time,
+  'Gagelweg',
+  NULL,
+  8,
+  12.00,
+  '2ef0b4bf-69da-480e-9533-2bdf162dfc18'::uuid,
+  'active',
+  90,
+  NULL,
+  'one_time',
+  'e45e73a8-f039-4002-b428-4ef40455f0c6'::uuid,
+  '2026-05-18 14:57:43.832903+00'::timestamptz,
+  '2026-05-18 14:57:43.832903+00'::timestamptz
 );
 INSERT INTO public.courses (
   id, tenant_id, title, description, date, time, end_time, location, room,
@@ -1172,43 +1405,17 @@ INSERT INTO public.courses (
   max_participants, price, teacher_id, status, duration, prerequisites, frequency, series_id,
   created_at, updated_at
 ) VALUES (
-  'd0cfc4a6-3189-4365-b86c-b478dcadbf68'::uuid,
-  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  'Yoga am Mittwoch',
-  'Hatha-Yoga/Vinyasa für alle',
-  '2026-05-27'::date,
-  '18:00:00'::time,
-  '19:30:00'::time,
-  'Gagelweg',
-  NULL,
-  8,
-  12.00,
-  '2ef0b4bf-69da-480e-9533-2bdf162dfc18'::uuid,
-  'active',
-  90,
-  NULL,
-  'one_time',
-  NULL,
-  '2026-04-08 08:32:52.458948+00'::timestamptz,
-  '2026-04-08 08:32:52.458948+00'::timestamptz
-);
-INSERT INTO public.courses (
-  id, tenant_id, title, description, date, time, end_time, location, room,
-  max_participants, price, teacher_id, status, duration, prerequisites, frequency, series_id,
-  created_at, updated_at
-) VALUES (
   'd6058a79-91ac-4d04-84c5-2f747cb36330'::uuid,
   '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
   'YOGA & AYURVEDA (Tagesrereat)',
-  'Gemeinsam mit der kreativen Ayurveda-Köchin Monika im wunderschönen Celebrate Yoga in Leichlingen. 
-Noch zum Frühbucherpreis! Ab 01.06.2026 129,- Euro.',
+  'Gemeinsam mit der kreativen Ayurveda-Köchin Monika im wunderschönen Celebrate Yoga in Leichlingen.',
   '2026-07-12'::date,
   '09:00:00'::time,
   '17:00:00'::time,
   'Celebrate Yoga, Leichlingen',
   NULL,
   10,
-  99.00,
+  129.00,
   '2ef0b4bf-69da-480e-9533-2bdf162dfc18'::uuid,
   'active',
   480,
@@ -1216,32 +1423,7 @@ Noch zum Frühbucherpreis! Ab 01.06.2026 129,- Euro.',
   'one_time',
   NULL,
   '2026-05-03 10:37:34.417922+00'::timestamptz,
-  '2026-05-03 10:37:34.417922+00'::timestamptz
-);
-INSERT INTO public.courses (
-  id, tenant_id, title, description, date, time, end_time, location, room,
-  max_participants, price, teacher_id, status, duration, prerequisites, frequency, series_id,
-  created_at, updated_at
-) VALUES (
-  'db98d548-8c2e-40ed-9ec4-c2120afbcd49'::uuid,
-  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  'Yoga am Mittwoch',
-  'Hatha/Vinyasa für alle',
-  '2026-05-13'::date,
-  '18:00:00'::time,
-  '19:30:00'::time,
-  'Gagelweg',
-  NULL,
-  8,
-  12.00,
-  '2ef0b4bf-69da-480e-9533-2bdf162dfc18'::uuid,
-  'active',
-  90,
-  NULL,
-  'one_time',
-  NULL,
-  '2026-03-13 21:00:01.11986+00'::timestamptz,
-  '2026-03-13 21:00:01.11986+00'::timestamptz
+  '2026-05-31 20:02:23.156358+00'::timestamptz
 );
 INSERT INTO public.courses (
   id, tenant_id, title, description, date, time, end_time, location, room,
@@ -1294,7 +1476,8 @@ INSERT INTO public.courses (
   '2026-04-17 04:40:34.093596+00'::timestamptz
 );
 
--- registrations
+-- registrations (past-course trigger disabled during import)
+ALTER TABLE public.registrations DISABLE TRIGGER prevent_past_course_registration;
 INSERT INTO public.registrations (
   id, tenant_id, course_id, user_id, status,
   registered_at, signup_timestamp, cancellation_timestamp,
@@ -1348,13 +1531,13 @@ INSERT INTO public.registrations (
   registered_at, signup_timestamp, cancellation_timestamp,
   is_waitlist, waitlist_position
 ) VALUES (
-  '06ed7339-8855-44a5-8970-68a3e01ec28a'::uuid,
+  '071beee4-851e-4515-988d-b8de94e019ad'::uuid,
   '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  '51f56177-d67c-4b49-9154-009bcef0e046'::uuid,
-  '7f3ddc2d-78f9-4cf8-a318-4fed234cb7cc'::uuid,
+  '6fb5de10-582d-4193-9676-b67bd61ffb3c'::uuid,
+  'ac7a314f-6903-47b8-9096-243d6b24842e'::uuid,
   'registered'::public.registration_status,
-  '2026-04-07 18:13:10.517534+00'::timestamptz,
-  '2026-04-07 18:13:10.517534+00'::timestamptz,
+  '2026-05-26 11:26:55.570328+00'::timestamptz,
+  '2026-05-26 11:26:55.570328+00'::timestamptz,
   NULL,
   false,
   NULL
@@ -1364,16 +1547,64 @@ INSERT INTO public.registrations (
   registered_at, signup_timestamp, cancellation_timestamp,
   is_waitlist, waitlist_position
 ) VALUES (
-  '077d9555-8dc9-44db-9e53-cf2b815bb0a5'::uuid,
+  '08ab6849-4096-41e8-8816-8b147a0764fd'::uuid,
   '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  'd0cfc4a6-3189-4365-b86c-b478dcadbf68'::uuid,
+  '5617adc0-3247-438f-99ce-70bc36e871b3'::uuid,
   '30eef8e2-74b1-410a-b1de-decf7d376866'::uuid,
+  'waitlist'::public.registration_status,
+  '2026-05-27 16:24:30.893722+00'::timestamptz,
+  '2026-05-27 16:24:30.893722+00'::timestamptz,
+  '2026-05-27 16:24:34.468808+00'::timestamptz,
+  true,
+  3
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '0bd0bf3c-c4fc-4a0d-a3fd-d5e2a77ecd10'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '8953f8b5-e0eb-4a0c-ad01-f61e2e56147b'::uuid,
+  'c6377894-2826-4efe-84ff-2efeae0aed98'::uuid,
   'registered'::public.registration_status,
-  '2026-04-09 12:09:23.543736+00'::timestamptz,
-  '2026-04-09 12:09:23.543736+00'::timestamptz,
+  '2026-05-27 19:13:09.138246+00'::timestamptz,
+  '2026-05-27 19:13:09.138246+00'::timestamptz,
   NULL,
   false,
   NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '0dc9478c-036d-4b26-b770-9fbf4d8a04a9'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'e9a23ef7-5424-478c-9a02-8bf2ad6705e3'::uuid,
+  '30eef8e2-74b1-410a-b1de-decf7d376866'::uuid,
+  'waitlist'::public.registration_status,
+  '2026-05-27 16:23:25.506906+00'::timestamptz,
+  '2026-05-27 16:23:25.506906+00'::timestamptz,
+  NULL,
+  true,
+  2
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '1093be0f-b654-4960-8b4e-1feb3be40303'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '33f3a7f7-57b2-45e2-be39-f62dc171bb84'::uuid,
+  '30eef8e2-74b1-410a-b1de-decf7d376866'::uuid,
+  'waitlist'::public.registration_status,
+  '2026-05-27 16:17:38.897033+00'::timestamptz,
+  '2026-05-27 16:17:38.897033+00'::timestamptz,
+  NULL,
+  true,
+  1
 );
 INSERT INTO public.registrations (
   id, tenant_id, course_id, user_id, status,
@@ -1476,22 +1707,6 @@ INSERT INTO public.registrations (
   registered_at, signup_timestamp, cancellation_timestamp,
   is_waitlist, waitlist_position
 ) VALUES (
-  '23f50362-f5af-48ba-bebf-f74ecf5f404c'::uuid,
-  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  'd0cfc4a6-3189-4365-b86c-b478dcadbf68'::uuid,
-  'ac7a314f-6903-47b8-9096-243d6b24842e'::uuid,
-  'registered'::public.registration_status,
-  '2026-04-23 06:28:59.148891+00'::timestamptz,
-  '2026-04-23 06:28:59.148891+00'::timestamptz,
-  NULL,
-  false,
-  NULL
-);
-INSERT INTO public.registrations (
-  id, tenant_id, course_id, user_id, status,
-  registered_at, signup_timestamp, cancellation_timestamp,
-  is_waitlist, waitlist_position
-) VALUES (
   '2447f82c-c945-44e7-9a9f-a0e55dcf8a47'::uuid,
   '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
   '33f3a7f7-57b2-45e2-be39-f62dc171bb84'::uuid,
@@ -1540,6 +1755,22 @@ INSERT INTO public.registrations (
   registered_at, signup_timestamp, cancellation_timestamp,
   is_waitlist, waitlist_position
 ) VALUES (
+  '28a4c312-5fbb-48ff-b679-3ec0658777ca'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '8953f8b5-e0eb-4a0c-ad01-f61e2e56147b'::uuid,
+  'e4a096c1-8fc5-4979-950f-89b90d986133'::uuid,
+  'registered'::public.registration_status,
+  '2026-05-28 20:25:38.374946+00'::timestamptz,
+  '2026-05-28 20:25:38.374946+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
   '2b6a302a-0a55-4ac2-8a02-8481d6a2dcbe'::uuid,
   '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
   'e9a23ef7-5424-478c-9a02-8bf2ad6705e3'::uuid,
@@ -1564,22 +1795,6 @@ INSERT INTO public.registrations (
   '2026-04-23 04:20:23.065535+00'::timestamptz,
   '2026-04-23 04:20:23.065535+00'::timestamptz,
   '2026-05-11 17:43:39.437789+00'::timestamptz,
-  false,
-  NULL
-);
-INSERT INTO public.registrations (
-  id, tenant_id, course_id, user_id, status,
-  registered_at, signup_timestamp, cancellation_timestamp,
-  is_waitlist, waitlist_position
-) VALUES (
-  '2ed714e8-f004-4a0d-be74-e5cf422af326'::uuid,
-  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  'db98d548-8c2e-40ed-9ec4-c2120afbcd49'::uuid,
-  'e4a096c1-8fc5-4979-950f-89b90d986133'::uuid,
-  'registered'::public.registration_status,
-  '2026-03-27 13:47:58.894235+00'::timestamptz,
-  '2026-03-27 13:47:58.894235+00'::timestamptz,
-  NULL,
   false,
   NULL
 );
@@ -1620,13 +1835,13 @@ INSERT INTO public.registrations (
   registered_at, signup_timestamp, cancellation_timestamp,
   is_waitlist, waitlist_position
 ) VALUES (
-  '37fb331e-f0e4-45af-aa00-263451f65552'::uuid,
+  '39006a31-3bd1-4f38-ae24-c33f87b37fec'::uuid,
   '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  '51f56177-d67c-4b49-9154-009bcef0e046'::uuid,
-  '2f65224e-8ee1-4442-a9b5-56142d1f9413'::uuid,
+  'e9a23ef7-5424-478c-9a02-8bf2ad6705e3'::uuid,
+  'ac7a314f-6903-47b8-9096-243d6b24842e'::uuid,
   'registered'::public.registration_status,
-  '2026-04-21 07:21:57.759866+00'::timestamptz,
-  '2026-04-21 07:21:57.759866+00'::timestamptz,
+  '2026-04-23 06:29:30.408174+00'::timestamptz,
+  '2026-04-23 06:29:30.408174+00'::timestamptz,
   NULL,
   false,
   NULL
@@ -1636,13 +1851,13 @@ INSERT INTO public.registrations (
   registered_at, signup_timestamp, cancellation_timestamp,
   is_waitlist, waitlist_position
 ) VALUES (
-  '39006a31-3bd1-4f38-ae24-c33f87b37fec'::uuid,
+  '3962a884-a550-43a5-9019-8c0f534a80bd'::uuid,
   '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  'e9a23ef7-5424-478c-9a02-8bf2ad6705e3'::uuid,
-  'ac7a314f-6903-47b8-9096-243d6b24842e'::uuid,
+  '6fb5de10-582d-4193-9676-b67bd61ffb3c'::uuid,
+  '30eef8e2-74b1-410a-b1de-decf7d376866'::uuid,
   'registered'::public.registration_status,
-  '2026-04-23 06:29:30.408174+00'::timestamptz,
-  '2026-04-23 06:29:30.408174+00'::timestamptz,
+  '2026-05-27 16:19:08.139467+00'::timestamptz,
+  '2026-05-27 16:19:08.139467+00'::timestamptz,
   NULL,
   false,
   NULL
@@ -1732,70 +1947,6 @@ INSERT INTO public.registrations (
   registered_at, signup_timestamp, cancellation_timestamp,
   is_waitlist, waitlist_position
 ) VALUES (
-  '45e47d66-b8ad-4d7b-bcc3-a46d0251d7ac'::uuid,
-  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  'd0cfc4a6-3189-4365-b86c-b478dcadbf68'::uuid,
-  '65012a0a-cc60-4c73-890f-46a9740c4c52'::uuid,
-  'registered'::public.registration_status,
-  '2026-04-23 05:51:11.067056+00'::timestamptz,
-  '2026-04-23 05:51:11.067056+00'::timestamptz,
-  NULL,
-  false,
-  NULL
-);
-INSERT INTO public.registrations (
-  id, tenant_id, course_id, user_id, status,
-  registered_at, signup_timestamp, cancellation_timestamp,
-  is_waitlist, waitlist_position
-) VALUES (
-  '463891bf-837d-483b-8656-f84d1a575ff5'::uuid,
-  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  '85ad90eb-e21b-45ae-8d73-58038c502f73'::uuid,
-  '2f65224e-8ee1-4442-a9b5-56142d1f9413'::uuid,
-  'registered'::public.registration_status,
-  '2026-04-22 20:36:17.383627+00'::timestamptz,
-  '2026-04-22 20:36:17.383627+00'::timestamptz,
-  NULL,
-  false,
-  NULL
-);
-INSERT INTO public.registrations (
-  id, tenant_id, course_id, user_id, status,
-  registered_at, signup_timestamp, cancellation_timestamp,
-  is_waitlist, waitlist_position
-) VALUES (
-  '479b265b-a740-446a-b987-fb7a69e8bd5f'::uuid,
-  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  'd0cfc4a6-3189-4365-b86c-b478dcadbf68'::uuid,
-  '17b9d410-e078-4014-aa4f-5c16e678042b'::uuid,
-  'registered'::public.registration_status,
-  '2026-04-23 08:22:28.78819+00'::timestamptz,
-  '2026-04-23 08:22:28.78819+00'::timestamptz,
-  NULL,
-  false,
-  NULL
-);
-INSERT INTO public.registrations (
-  id, tenant_id, course_id, user_id, status,
-  registered_at, signup_timestamp, cancellation_timestamp,
-  is_waitlist, waitlist_position
-) VALUES (
-  '4a99b370-128c-4620-925f-31c7d7ba274b'::uuid,
-  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  '85ad90eb-e21b-45ae-8d73-58038c502f73'::uuid,
-  '47b11b34-6853-49e7-8006-4b2009ff711b'::uuid,
-  'registered'::public.registration_status,
-  '2026-04-28 17:40:38.835614+00'::timestamptz,
-  '2026-04-28 17:40:38.835614+00'::timestamptz,
-  NULL,
-  false,
-  NULL
-);
-INSERT INTO public.registrations (
-  id, tenant_id, course_id, user_id, status,
-  registered_at, signup_timestamp, cancellation_timestamp,
-  is_waitlist, waitlist_position
-) VALUES (
   '4b47d2bd-9196-47a7-af07-c13e34a9c83d'::uuid,
   '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
   '33f3a7f7-57b2-45e2-be39-f62dc171bb84'::uuid,
@@ -1803,22 +1954,6 @@ INSERT INTO public.registrations (
   'registered'::public.registration_status,
   '2026-04-23 04:23:49.703274+00'::timestamptz,
   '2026-04-23 04:23:49.703274+00'::timestamptz,
-  NULL,
-  false,
-  NULL
-);
-INSERT INTO public.registrations (
-  id, tenant_id, course_id, user_id, status,
-  registered_at, signup_timestamp, cancellation_timestamp,
-  is_waitlist, waitlist_position
-) VALUES (
-  '4da1608e-ff9a-4d6a-925c-cd8a38bf9735'::uuid,
-  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  'db98d548-8c2e-40ed-9ec4-c2120afbcd49'::uuid,
-  '4b249308-86e6-4fab-942f-a36e787534a7'::uuid,
-  'registered'::public.registration_status,
-  '2026-03-19 21:56:35.170269+00'::timestamptz,
-  '2026-03-19 21:56:35.170269+00'::timestamptz,
   NULL,
   false,
   NULL
@@ -1851,22 +1986,6 @@ INSERT INTO public.registrations (
   'registered'::public.registration_status,
   '2026-04-22 20:32:12.508314+00'::timestamptz,
   '2026-04-22 20:32:12.508314+00'::timestamptz,
-  NULL,
-  false,
-  NULL
-);
-INSERT INTO public.registrations (
-  id, tenant_id, course_id, user_id, status,
-  registered_at, signup_timestamp, cancellation_timestamp,
-  is_waitlist, waitlist_position
-) VALUES (
-  '4fc50e3d-8688-4086-b719-dbe084722840'::uuid,
-  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  '85ad90eb-e21b-45ae-8d73-58038c502f73'::uuid,
-  '767daf20-2720-461a-a1ba-2c84de4693ae'::uuid,
-  'registered'::public.registration_status,
-  '2026-04-23 07:14:25.268822+00'::timestamptz,
-  '2026-04-23 07:14:25.268822+00'::timestamptz,
   NULL,
   false,
   NULL
@@ -1924,6 +2043,38 @@ INSERT INTO public.registrations (
   registered_at, signup_timestamp, cancellation_timestamp,
   is_waitlist, waitlist_position
 ) VALUES (
+  '53518c71-e432-482f-9c95-0206aac7c480'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'd6058a79-91ac-4d04-84c5-2f747cb36330'::uuid,
+  'c6377894-2826-4efe-84ff-2efeae0aed98'::uuid,
+  'registered'::public.registration_status,
+  '2026-05-17 10:17:17.896201+00'::timestamptz,
+  '2026-05-17 10:17:17.896201+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '56e87779-7ee2-4c09-84ee-5e69fe021a10'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '6fb5de10-582d-4193-9676-b67bd61ffb3c'::uuid,
+  'c6377894-2826-4efe-84ff-2efeae0aed98'::uuid,
+  'registered'::public.registration_status,
+  '2026-05-27 19:13:01.51228+00'::timestamptz,
+  '2026-05-27 19:13:01.51228+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
   '577b85a6-0c88-43f8-992b-d58877a97776'::uuid,
   '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
   'f2f1dfcb-61eb-4b94-86db-61539a60ea96'::uuid,
@@ -1934,22 +2085,6 @@ INSERT INTO public.registrations (
   NULL,
   false,
   NULL
-);
-INSERT INTO public.registrations (
-  id, tenant_id, course_id, user_id, status,
-  registered_at, signup_timestamp, cancellation_timestamp,
-  is_waitlist, waitlist_position
-) VALUES (
-  '57b17bc1-3ef9-4415-b655-3b0528899b9b'::uuid,
-  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  '85ad90eb-e21b-45ae-8d73-58038c502f73'::uuid,
-  'a3856216-c52c-41e3-9d61-2c20bcdb02ab'::uuid,
-  'waitlist'::public.registration_status,
-  '2026-05-06 05:44:44.524207+00'::timestamptz,
-  '2026-05-06 05:44:44.524207+00'::timestamptz,
-  NULL,
-  true,
-  1
 );
 INSERT INTO public.registrations (
   id, tenant_id, course_id, user_id, status,
@@ -1988,38 +2123,6 @@ INSERT INTO public.registrations (
   registered_at, signup_timestamp, cancellation_timestamp,
   is_waitlist, waitlist_position
 ) VALUES (
-  '59b25404-b877-4343-b6af-f013a57159be'::uuid,
-  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  '85ad90eb-e21b-45ae-8d73-58038c502f73'::uuid,
-  '7f3ddc2d-78f9-4cf8-a318-4fed234cb7cc'::uuid,
-  'registered'::public.registration_status,
-  '2026-04-23 04:23:23.385478+00'::timestamptz,
-  '2026-04-23 04:23:23.385478+00'::timestamptz,
-  NULL,
-  false,
-  NULL
-);
-INSERT INTO public.registrations (
-  id, tenant_id, course_id, user_id, status,
-  registered_at, signup_timestamp, cancellation_timestamp,
-  is_waitlist, waitlist_position
-) VALUES (
-  '5f9c48a9-272d-42ee-bab0-ce103a958f96'::uuid,
-  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  '85ad90eb-e21b-45ae-8d73-58038c502f73'::uuid,
-  '30eef8e2-74b1-410a-b1de-decf7d376866'::uuid,
-  'registered'::public.registration_status,
-  '2026-04-26 17:37:32.452138+00'::timestamptz,
-  '2026-04-26 17:37:32.452138+00'::timestamptz,
-  NULL,
-  false,
-  NULL
-);
-INSERT INTO public.registrations (
-  id, tenant_id, course_id, user_id, status,
-  registered_at, signup_timestamp, cancellation_timestamp,
-  is_waitlist, waitlist_position
-) VALUES (
   '610f3a5b-5726-46e2-b4de-a7376b89c931'::uuid,
   '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
   '30045a46-204d-43e6-8d33-90c977df486f'::uuid,
@@ -2036,30 +2139,14 @@ INSERT INTO public.registrations (
   registered_at, signup_timestamp, cancellation_timestamp,
   is_waitlist, waitlist_position
 ) VALUES (
-  '612ec058-adb2-4d6b-a409-42335f883ea6'::uuid,
-  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  'd0cfc4a6-3189-4365-b86c-b478dcadbf68'::uuid,
-  '4b249308-86e6-4fab-942f-a36e787534a7'::uuid,
-  'registered'::public.registration_status,
-  '2026-04-08 16:08:54.137428+00'::timestamptz,
-  '2026-04-08 16:08:54.137428+00'::timestamptz,
-  '2026-04-22 05:30:41.278737+00'::timestamptz,
-  false,
-  NULL
-);
-INSERT INTO public.registrations (
-  id, tenant_id, course_id, user_id, status,
-  registered_at, signup_timestamp, cancellation_timestamp,
-  is_waitlist, waitlist_position
-) VALUES (
   '64f5ec07-6f8e-4d7f-a313-42cd3bda3d02'::uuid,
   '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
   '8f600c58-3a57-4506-98fc-f2d4ef08e4a8'::uuid,
   '30eef8e2-74b1-410a-b1de-decf7d376866'::uuid,
   'waitlist'::public.registration_status,
-  '2026-04-26 17:39:20.078327+00'::timestamptz,
-  '2026-04-26 17:39:20.078327+00'::timestamptz,
-  '2026-04-26 17:39:31.731591+00'::timestamptz,
+  '2026-05-27 16:24:40.888359+00'::timestamptz,
+  '2026-05-27 16:24:40.888359+00'::timestamptz,
+  '2026-05-27 16:24:46.107856+00'::timestamptz,
   true,
   2
 );
@@ -2084,13 +2171,13 @@ INSERT INTO public.registrations (
   registered_at, signup_timestamp, cancellation_timestamp,
   is_waitlist, waitlist_position
 ) VALUES (
-  '65884f2f-bc53-4063-a6ce-6d20f668ac20'::uuid,
+  '69bbed05-4d7c-412f-9bfb-b339ef42f7fd'::uuid,
   '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  '85ad90eb-e21b-45ae-8d73-58038c502f73'::uuid,
-  'aa8af330-e808-4e39-87a9-131aef59079a'::uuid,
+  '8953f8b5-e0eb-4a0c-ad01-f61e2e56147b'::uuid,
+  'e2d34978-a240-4e01-9794-1859b0e6ba29'::uuid,
   'registered'::public.registration_status,
-  '2026-04-23 03:59:57.072+00'::timestamptz,
-  '2026-04-23 03:59:57.072+00'::timestamptz,
+  '2026-05-23 17:58:24.573825+00'::timestamptz,
+  '2026-05-23 17:58:24.573825+00'::timestamptz,
   NULL,
   false,
   NULL
@@ -2105,9 +2192,9 @@ INSERT INTO public.registrations (
   '2a877fe9-c5d5-4075-b496-98fd3d9956c3'::uuid,
   '30eef8e2-74b1-410a-b1de-decf7d376866'::uuid,
   'waitlist'::public.registration_status,
-  '2026-04-26 17:39:59.489593+00'::timestamptz,
-  '2026-04-26 17:39:59.489593+00'::timestamptz,
-  NULL,
+  '2026-05-27 16:25:22.188633+00'::timestamptz,
+  '2026-05-27 16:25:22.188633+00'::timestamptz,
+  '2026-05-27 16:25:27.965728+00'::timestamptz,
   true,
   2
 );
@@ -2116,13 +2203,13 @@ INSERT INTO public.registrations (
   registered_at, signup_timestamp, cancellation_timestamp,
   is_waitlist, waitlist_position
 ) VALUES (
-  '6b5478a3-2c8d-4471-87d8-4619668d3c52'::uuid,
+  '6c24ff42-e368-4f3f-80d5-7c877c23679c'::uuid,
   '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  'db98d548-8c2e-40ed-9ec4-c2120afbcd49'::uuid,
-  'c6377894-2826-4efe-84ff-2efeae0aed98'::uuid,
+  '6fb5de10-582d-4193-9676-b67bd61ffb3c'::uuid,
+  '65012a0a-cc60-4c73-890f-46a9740c4c52'::uuid,
   'registered'::public.registration_status,
-  '2026-03-26 06:34:22.875191+00'::timestamptz,
-  '2026-03-26 06:34:22.875191+00'::timestamptz,
+  '2026-05-27 16:07:43.844433+00'::timestamptz,
+  '2026-05-27 16:07:43.844433+00'::timestamptz,
   NULL,
   false,
   NULL
@@ -2228,6 +2315,22 @@ INSERT INTO public.registrations (
   registered_at, signup_timestamp, cancellation_timestamp,
   is_waitlist, waitlist_position
 ) VALUES (
+  '7368d427-20e7-4d63-9cde-a4ef252a6d65'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'd6058a79-91ac-4d04-84c5-2f747cb36330'::uuid,
+  '493b0cfd-1cf7-4d9a-9b82-5bd5e4c40be4'::uuid,
+  'registered'::public.registration_status,
+  '2026-05-28 17:38:22.775824+00'::timestamptz,
+  '2026-05-28 17:38:22.775824+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
   '7db0bd5f-3e25-4a9d-8ca9-205011029c8d'::uuid,
   '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
   'f2f1dfcb-61eb-4b94-86db-61539a60ea96'::uuid,
@@ -2244,13 +2347,13 @@ INSERT INTO public.registrations (
   registered_at, signup_timestamp, cancellation_timestamp,
   is_waitlist, waitlist_position
 ) VALUES (
-  '7fdf7190-7a03-434a-b6de-7e8f0b5360de'::uuid,
+  '80e9609a-602d-465b-ab5d-dc67f65e0212'::uuid,
   '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  'd0cfc4a6-3189-4365-b86c-b478dcadbf68'::uuid,
-  '570d3b6c-7220-4f35-a867-25eca400b2d4'::uuid,
+  '8953f8b5-e0eb-4a0c-ad01-f61e2e56147b'::uuid,
+  'fac5a9c9-0dc1-427c-aab4-db097ab8fa16'::uuid,
   'registered'::public.registration_status,
-  '2026-04-09 03:12:15.414202+00'::timestamptz,
-  '2026-04-09 03:12:15.414202+00'::timestamptz,
+  '2026-05-28 13:58:28.602484+00'::timestamptz,
+  '2026-05-28 13:58:28.602484+00'::timestamptz,
   NULL,
   false,
   NULL
@@ -2260,13 +2363,29 @@ INSERT INTO public.registrations (
   registered_at, signup_timestamp, cancellation_timestamp,
   is_waitlist, waitlist_position
 ) VALUES (
-  '92292547-d5f8-4d59-a5e8-a67d5d60a438'::uuid,
+  '83dd7ad9-a0b6-48de-9938-11764493754b'::uuid,
   '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  'd0cfc4a6-3189-4365-b86c-b478dcadbf68'::uuid,
-  'c6377894-2826-4efe-84ff-2efeae0aed98'::uuid,
+  '8953f8b5-e0eb-4a0c-ad01-f61e2e56147b'::uuid,
+  '65012a0a-cc60-4c73-890f-46a9740c4c52'::uuid,
   'registered'::public.registration_status,
-  '2026-04-08 18:32:49.447224+00'::timestamptz,
-  '2026-04-08 18:32:49.447224+00'::timestamptz,
+  '2026-05-27 16:06:54.366218+00'::timestamptz,
+  '2026-05-27 16:06:54.366218+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  '9084773f-4fc0-4d03-b678-cbfe9f3db1e6'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '8953f8b5-e0eb-4a0c-ad01-f61e2e56147b'::uuid,
+  '30eef8e2-74b1-410a-b1de-decf7d376866'::uuid,
+  'registered'::public.registration_status,
+  '2026-05-27 16:26:19.085092+00'::timestamptz,
+  '2026-05-27 16:26:19.085092+00'::timestamptz,
   NULL,
   false,
   NULL
@@ -2281,43 +2400,11 @@ INSERT INTO public.registrations (
   'f2f1dfcb-61eb-4b94-86db-61539a60ea96'::uuid,
   '30eef8e2-74b1-410a-b1de-decf7d376866'::uuid,
   'waitlist'::public.registration_status,
-  '2026-04-26 17:36:44.505703+00'::timestamptz,
-  '2026-04-26 17:36:44.505703+00'::timestamptz,
-  '2026-04-26 17:37:46.686446+00'::timestamptz,
+  '2026-05-27 16:22:04.953005+00'::timestamptz,
+  '2026-05-27 16:22:04.953005+00'::timestamptz,
+  '2026-05-27 16:22:13.309971+00'::timestamptz,
   true,
-  2
-);
-INSERT INTO public.registrations (
-  id, tenant_id, course_id, user_id, status,
-  registered_at, signup_timestamp, cancellation_timestamp,
-  is_waitlist, waitlist_position
-) VALUES (
-  '954e5e41-ff0e-4b4f-ae8b-928b4b1a9895'::uuid,
-  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  'db98d548-8c2e-40ed-9ec4-c2120afbcd49'::uuid,
-  '17b9d410-e078-4014-aa4f-5c16e678042b'::uuid,
-  'registered'::public.registration_status,
-  '2026-03-23 21:44:40.413104+00'::timestamptz,
-  '2026-03-23 21:44:40.413104+00'::timestamptz,
-  '2026-05-13 04:12:45.066798+00'::timestamptz,
-  false,
-  NULL
-);
-INSERT INTO public.registrations (
-  id, tenant_id, course_id, user_id, status,
-  registered_at, signup_timestamp, cancellation_timestamp,
-  is_waitlist, waitlist_position
-) VALUES (
-  '98b42c5e-bb32-49ab-83e6-b23beb90bfbc'::uuid,
-  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  'db98d548-8c2e-40ed-9ec4-c2120afbcd49'::uuid,
-  'c6e80666-7afb-40e7-922a-26ac14f43024'::uuid,
-  'registered'::public.registration_status,
-  '2026-03-25 19:04:35.614912+00'::timestamptz,
-  '2026-03-25 19:04:35.614912+00'::timestamptz,
-  '2026-05-13 05:26:52.984414+00'::timestamptz,
-  false,
-  NULL
+  1
 );
 INSERT INTO public.registrations (
   id, tenant_id, course_id, user_id, status,
@@ -2388,22 +2475,6 @@ INSERT INTO public.registrations (
   registered_at, signup_timestamp, cancellation_timestamp,
   is_waitlist, waitlist_position
 ) VALUES (
-  'a5748dfc-aef2-4157-9591-2152a3ecb073'::uuid,
-  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  'db98d548-8c2e-40ed-9ec4-c2120afbcd49'::uuid,
-  '30eef8e2-74b1-410a-b1de-decf7d376866'::uuid,
-  'registered'::public.registration_status,
-  '2026-04-09 12:04:23.837026+00'::timestamptz,
-  '2026-04-09 12:04:23.837026+00'::timestamptz,
-  '2026-04-09 12:06:31.984741+00'::timestamptz,
-  false,
-  NULL
-);
-INSERT INTO public.registrations (
-  id, tenant_id, course_id, user_id, status,
-  registered_at, signup_timestamp, cancellation_timestamp,
-  is_waitlist, waitlist_position
-) VALUES (
   'a902441b-04e6-41bb-bcda-d405853a98a0'::uuid,
   '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
   '5617adc0-3247-438f-99ce-70bc36e871b3'::uuid,
@@ -2420,6 +2491,22 @@ INSERT INTO public.registrations (
   registered_at, signup_timestamp, cancellation_timestamp,
   is_waitlist, waitlist_position
 ) VALUES (
+  'aab7c9b2-7c89-460e-84d9-773f23b99cd3'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '8953f8b5-e0eb-4a0c-ad01-f61e2e56147b'::uuid,
+  'a3856216-c52c-41e3-9d61-2c20bcdb02ab'::uuid,
+  'registered'::public.registration_status,
+  '2026-05-26 07:53:41.33501+00'::timestamptz,
+  '2026-05-26 07:53:41.33501+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
   'ab7c7ada-2997-4586-8c72-05add0365bb7'::uuid,
   '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
   '5617adc0-3247-438f-99ce-70bc36e871b3'::uuid,
@@ -2427,38 +2514,6 @@ INSERT INTO public.registrations (
   'registered'::public.registration_status,
   '2026-04-22 20:36:32.354943+00'::timestamptz,
   '2026-04-22 20:36:32.354943+00'::timestamptz,
-  NULL,
-  false,
-  NULL
-);
-INSERT INTO public.registrations (
-  id, tenant_id, course_id, user_id, status,
-  registered_at, signup_timestamp, cancellation_timestamp,
-  is_waitlist, waitlist_position
-) VALUES (
-  'ab857b73-6ced-48c5-bb37-0fc594885076'::uuid,
-  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  '51f56177-d67c-4b49-9154-009bcef0e046'::uuid,
-  '4b249308-86e6-4fab-942f-a36e787534a7'::uuid,
-  'registered'::public.registration_status,
-  '2026-04-22 05:30:36.814316+00'::timestamptz,
-  '2026-04-22 05:30:36.814316+00'::timestamptz,
-  NULL,
-  false,
-  NULL
-);
-INSERT INTO public.registrations (
-  id, tenant_id, course_id, user_id, status,
-  registered_at, signup_timestamp, cancellation_timestamp,
-  is_waitlist, waitlist_position
-) VALUES (
-  'ac976ef1-acd0-42a2-acaf-d18bd09f548c'::uuid,
-  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  'd0cfc4a6-3189-4365-b86c-b478dcadbf68'::uuid,
-  'a3856216-c52c-41e3-9d61-2c20bcdb02ab'::uuid,
-  'registered'::public.registration_status,
-  '2026-04-08 18:00:22.802583+00'::timestamptz,
-  '2026-04-08 18:00:22.802583+00'::timestamptz,
   NULL,
   false,
   NULL
@@ -2564,22 +2619,6 @@ INSERT INTO public.registrations (
   registered_at, signup_timestamp, cancellation_timestamp,
   is_waitlist, waitlist_position
 ) VALUES (
-  'c7dae917-ad4d-4996-a4ca-cfaa11a28cc2'::uuid,
-  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  '51f56177-d67c-4b49-9154-009bcef0e046'::uuid,
-  'df756576-1390-4e27-a37c-1ee086061a16'::uuid,
-  'registered'::public.registration_status,
-  '2026-04-07 19:04:22.114586+00'::timestamptz,
-  '2026-04-07 19:04:22.114586+00'::timestamptz,
-  NULL,
-  false,
-  NULL
-);
-INSERT INTO public.registrations (
-  id, tenant_id, course_id, user_id, status,
-  registered_at, signup_timestamp, cancellation_timestamp,
-  is_waitlist, waitlist_position
-) VALUES (
   'cb21e650-0262-4e1e-ab16-22156a215c88'::uuid,
   '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
   'e9a23ef7-5424-478c-9a02-8bf2ad6705e3'::uuid,
@@ -2628,22 +2667,6 @@ INSERT INTO public.registrations (
   registered_at, signup_timestamp, cancellation_timestamp,
   is_waitlist, waitlist_position
 ) VALUES (
-  'cca66b3c-618f-4bc8-8b42-b3163ae61afe'::uuid,
-  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  '85ad90eb-e21b-45ae-8d73-58038c502f73'::uuid,
-  'ac7a314f-6903-47b8-9096-243d6b24842e'::uuid,
-  'registered'::public.registration_status,
-  '2026-04-23 06:29:20.617083+00'::timestamptz,
-  '2026-04-23 06:29:20.617083+00'::timestamptz,
-  NULL,
-  false,
-  NULL
-);
-INSERT INTO public.registrations (
-  id, tenant_id, course_id, user_id, status,
-  registered_at, signup_timestamp, cancellation_timestamp,
-  is_waitlist, waitlist_position
-) VALUES (
   'cd75524f-67b4-4bdd-a263-15271fe3a559'::uuid,
   '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
   'f2f1dfcb-61eb-4b94-86db-61539a60ea96'::uuid,
@@ -2676,22 +2699,6 @@ INSERT INTO public.registrations (
   registered_at, signup_timestamp, cancellation_timestamp,
   is_waitlist, waitlist_position
 ) VALUES (
-  'd04b4ce3-a005-4e25-8313-2f10bc5f5594'::uuid,
-  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  '51f56177-d67c-4b49-9154-009bcef0e046'::uuid,
-  '767daf20-2720-461a-a1ba-2c84de4693ae'::uuid,
-  'registered'::public.registration_status,
-  '2026-04-21 12:49:24.893561+00'::timestamptz,
-  '2026-04-21 12:49:24.893561+00'::timestamptz,
-  NULL,
-  false,
-  NULL
-);
-INSERT INTO public.registrations (
-  id, tenant_id, course_id, user_id, status,
-  registered_at, signup_timestamp, cancellation_timestamp,
-  is_waitlist, waitlist_position
-) VALUES (
   'd0e41ae4-3635-48fc-a670-4c8cbbe3e759'::uuid,
   '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
   '30045a46-204d-43e6-8d33-90c977df486f'::uuid,
@@ -2700,22 +2707,6 @@ INSERT INTO public.registrations (
   '2026-04-28 17:41:29.355167+00'::timestamptz,
   '2026-04-28 17:41:29.355167+00'::timestamptz,
   NULL,
-  false,
-  NULL
-);
-INSERT INTO public.registrations (
-  id, tenant_id, course_id, user_id, status,
-  registered_at, signup_timestamp, cancellation_timestamp,
-  is_waitlist, waitlist_position
-) VALUES (
-  'db2489d5-c29b-4a68-976b-0529ed42227c'::uuid,
-  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  'db98d548-8c2e-40ed-9ec4-c2120afbcd49'::uuid,
-  'fac5a9c9-0dc1-427c-aab4-db097ab8fa16'::uuid,
-  'registered'::public.registration_status,
-  '2026-03-21 20:28:03.441427+00'::timestamptz,
-  '2026-03-21 20:28:03.441427+00'::timestamptz,
-  '2026-05-11 17:39:55.740735+00'::timestamptz,
   false,
   NULL
 );
@@ -2772,13 +2763,13 @@ INSERT INTO public.registrations (
   registered_at, signup_timestamp, cancellation_timestamp,
   is_waitlist, waitlist_position
 ) VALUES (
-  'e035d3e7-52c0-4ecd-98c2-b5c55fd220ee'::uuid,
+  'df2b7655-1128-4e9f-967f-614f57e1de51'::uuid,
   '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  'db98d548-8c2e-40ed-9ec4-c2120afbcd49'::uuid,
-  'a3856216-c52c-41e3-9d61-2c20bcdb02ab'::uuid,
+  'd6058a79-91ac-4d04-84c5-2f747cb36330'::uuid,
+  'e4a096c1-8fc5-4979-950f-89b90d986133'::uuid,
   'registered'::public.registration_status,
-  '2026-03-15 16:29:32.477768+00'::timestamptz,
-  '2026-03-15 16:29:32.477768+00'::timestamptz,
+  '2026-05-13 22:13:11.859087+00'::timestamptz,
+  '2026-05-13 22:13:11.859087+00'::timestamptz,
   NULL,
   false,
   NULL
@@ -2804,22 +2795,6 @@ INSERT INTO public.registrations (
   registered_at, signup_timestamp, cancellation_timestamp,
   is_waitlist, waitlist_position
 ) VALUES (
-  'e5b39ca6-17b1-48f9-ad87-5ccedb6394f3'::uuid,
-  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  'db98d548-8c2e-40ed-9ec4-c2120afbcd49'::uuid,
-  '65012a0a-cc60-4c73-890f-46a9740c4c52'::uuid,
-  'registered'::public.registration_status,
-  '2026-04-23 05:50:52.127827+00'::timestamptz,
-  '2026-04-23 05:50:52.127827+00'::timestamptz,
-  NULL,
-  false,
-  NULL
-);
-INSERT INTO public.registrations (
-  id, tenant_id, course_id, user_id, status,
-  registered_at, signup_timestamp, cancellation_timestamp,
-  is_waitlist, waitlist_position
-) VALUES (
   'e903b291-94d3-46da-88a3-091653fc25af'::uuid,
   '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
   '8f600c58-3a57-4506-98fc-f2d4ef08e4a8'::uuid,
@@ -2836,13 +2811,13 @@ INSERT INTO public.registrations (
   registered_at, signup_timestamp, cancellation_timestamp,
   is_waitlist, waitlist_position
 ) VALUES (
-  'e9b5df3e-77a2-4830-ba92-1037f5536ec6'::uuid,
+  'e9cbb8f6-3dd5-4588-b136-a1ef31cbfad5'::uuid,
   '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  '85ad90eb-e21b-45ae-8d73-58038c502f73'::uuid,
-  'df756576-1390-4e27-a37c-1ee086061a16'::uuid,
+  '8953f8b5-e0eb-4a0c-ad01-f61e2e56147b'::uuid,
+  'ac7a314f-6903-47b8-9096-243d6b24842e'::uuid,
   'registered'::public.registration_status,
-  '2026-04-23 05:25:26.065602+00'::timestamptz,
-  '2026-04-23 05:25:26.065602+00'::timestamptz,
+  '2026-05-26 11:27:06.100106+00'::timestamptz,
+  '2026-05-26 11:27:06.100106+00'::timestamptz,
   NULL,
   false,
   NULL
@@ -2895,3 +2870,132 @@ INSERT INTO public.registrations (
   false,
   NULL
 );
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'efa75bcd-c8c2-4cc8-abe0-66fbe3d8b193'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '6fb5de10-582d-4193-9676-b67bd61ffb3c'::uuid,
+  'a3856216-c52c-41e3-9d61-2c20bcdb02ab'::uuid,
+  'registered'::public.registration_status,
+  '2026-05-26 07:53:33.739524+00'::timestamptz,
+  '2026-05-26 07:53:33.739524+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'f1f1ed98-62a7-4cd8-ba53-26ada7acdf21'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '33f3a7f7-57b2-45e2-be39-f62dc171bb84'::uuid,
+  '2f65224e-8ee1-4442-a9b5-56142d1f9413'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-22 20:36:38.076179+00'::timestamptz,
+  '2026-04-22 20:36:38.076179+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'f68f79a4-3d94-449d-a06a-9580b9662825'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '5617adc0-3247-438f-99ce-70bc36e871b3'::uuid,
+  'f63447c3-a2b4-4064-97fe-22428a032a2d'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-22 21:18:09.341207+00'::timestamptz,
+  '2026-04-22 21:18:09.341207+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'f6a82344-27e1-4e79-93f9-55e8fb702dab'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '6fb5de10-582d-4193-9676-b67bd61ffb3c'::uuid,
+  'e4a096c1-8fc5-4979-950f-89b90d986133'::uuid,
+  'registered'::public.registration_status,
+  '2026-05-28 20:25:28.714478+00'::timestamptz,
+  '2026-05-28 20:25:28.714478+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'f71434e8-84b6-464e-9968-e74d06684613'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '33f3a7f7-57b2-45e2-be39-f62dc171bb84'::uuid,
+  '47b11b34-6853-49e7-8006-4b2009ff711b'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-28 17:41:19.72146+00'::timestamptz,
+  '2026-04-28 17:41:19.72146+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'fb142b03-67fc-43f8-b087-82626c185ff5'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'f2f1dfcb-61eb-4b94-86db-61539a60ea96'::uuid,
+  'c6e80666-7afb-40e7-922a-26ac14f43024'::uuid,
+  'registered'::public.registration_status,
+  '2026-04-22 21:02:20.777788+00'::timestamptz,
+  '2026-04-22 21:02:20.777788+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'fe6f68a4-1272-415f-b92d-5da3b3c68fcf'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '6fb5de10-582d-4193-9676-b67bd61ffb3c'::uuid,
+  'e2d34978-a240-4e01-9794-1859b0e6ba29'::uuid,
+  'registered'::public.registration_status,
+  '2026-05-23 17:57:26.561715+00'::timestamptz,
+  '2026-05-23 17:57:26.561715+00'::timestamptz,
+  NULL,
+  false,
+  NULL
+);
+INSERT INTO public.registrations (
+  id, tenant_id, course_id, user_id, status,
+  registered_at, signup_timestamp, cancellation_timestamp,
+  is_waitlist, waitlist_position
+) VALUES (
+  'feb1b6c8-997a-45ee-a6cf-358596c5ece8'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  '2a877fe9-c5d5-4075-b496-98fd3d9956c3'::uuid,
+  '17b9d410-e078-4014-aa4f-5c16e678042b'::uuid,
+  'waitlist'::public.registration_status,
+  '2026-04-23 08:23:03.16236+00'::timestamptz,
+  '2026-04-23 08:23:03.16236+00'::timestamptz,
+  NULL,
+  true,
+  1
+);
+ALTER TABLE public.registrations ENABLE TRIGGER prevent_past_course_registration;
