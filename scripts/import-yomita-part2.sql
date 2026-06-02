@@ -1,3 +1,11 @@
+-- Yomita legacy import (generated)
+-- tenant_id: 892370b8-49a1-4699-b480-2f722e4f9fe3
+-- auth_csv: C:/Users/49178/Downloads/users_rows (2).csv
+-- profiles_csv: C:/Users/49178/Downloads/users_rows (3).csv
+-- courses_csv: C:/Users/49178/Downloads/courses_rows (1).csv
+-- registrations_csv: C:/Users/49178/Downloads/registrations_rows (1).csv
+
+-- Mark all Yomita users verified (app gate)
 UPDATE public.users SET
   email_verified = true,
   email_verified_at = COALESCE(email_verified_at, created_at),
@@ -86,31 +94,6 @@ INSERT INTO public.courses (
   max_participants, price, teacher_id, status, duration, prerequisites, frequency, series_id,
   created_at, updated_at
 ) VALUES (
-  '51f56177-d67c-4b49-9154-009bcef0e046'::uuid,
-  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  'Yoga am Dienstag',
-  'Vinyasa für Fortgeschrittene',
-  '2026-05-26'::date,
-  '18:00:00'::time,
-  '19:30:00'::time,
-  'Gagelweg',
-  NULL,
-  8,
-  12.00,
-  '2ef0b4bf-69da-480e-9533-2bdf162dfc18'::uuid,
-  'active',
-  90,
-  NULL,
-  'one_time',
-  NULL,
-  '2026-04-05 15:14:34.144443+00'::timestamptz,
-  '2026-04-05 15:14:34.144443+00'::timestamptz
-);
-INSERT INTO public.courses (
-  id, tenant_id, title, description, date, time, end_time, location, room,
-  max_participants, price, teacher_id, status, duration, prerequisites, frequency, series_id,
-  created_at, updated_at
-) VALUES (
   '5617adc0-3247-438f-99ce-70bc36e871b3'::uuid,
   '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
   'Yoga am Dienstag',
@@ -136,11 +119,11 @@ INSERT INTO public.courses (
   max_participants, price, teacher_id, status, duration, prerequisites, frequency, series_id,
   created_at, updated_at
 ) VALUES (
-  '85ad90eb-e21b-45ae-8d73-58038c502f73'::uuid,
+  '6fb5de10-582d-4193-9676-b67bd61ffb3c'::uuid,
   '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  'Yoga am Dienstag',
-  'Vinyasa für Fortgeschrittene',
-  '2026-06-02'::date,
+  'Yoga am Mittwoch',
+  'Hatha/Vinyasa für alle',
+  '2026-07-01'::date,
   '18:00:00'::time,
   '19:30:00'::time,
   'Gagelweg',
@@ -152,9 +135,34 @@ INSERT INTO public.courses (
   90,
   NULL,
   'one_time',
-  '35f08238-f358-430a-999f-21a6cb211040'::uuid,
-  '2026-04-22 20:26:47.833385+00'::timestamptz,
-  '2026-04-22 20:26:47.833385+00'::timestamptz
+  'e45e73a8-f039-4002-b428-4ef40455f0c6'::uuid,
+  '2026-05-18 14:57:43.832903+00'::timestamptz,
+  '2026-05-18 14:57:43.832903+00'::timestamptz
+);
+INSERT INTO public.courses (
+  id, tenant_id, title, description, date, time, end_time, location, room,
+  max_participants, price, teacher_id, status, duration, prerequisites, frequency, series_id,
+  created_at, updated_at
+) VALUES (
+  '8953f8b5-e0eb-4a0c-ad01-f61e2e56147b'::uuid,
+  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
+  'Yoga am Mittwoch',
+  'Hatha/Vinyasa für alle',
+  '2026-07-08'::date,
+  '18:00:00'::time,
+  '19:30:00'::time,
+  'Gagelweg',
+  NULL,
+  8,
+  12.00,
+  '2ef0b4bf-69da-480e-9533-2bdf162dfc18'::uuid,
+  'active',
+  90,
+  NULL,
+  'one_time',
+  'e45e73a8-f039-4002-b428-4ef40455f0c6'::uuid,
+  '2026-05-18 14:57:43.832903+00'::timestamptz,
+  '2026-05-18 14:57:43.832903+00'::timestamptz
 );
 INSERT INTO public.courses (
   id, tenant_id, title, description, date, time, end_time, location, room,
@@ -186,43 +194,17 @@ INSERT INTO public.courses (
   max_participants, price, teacher_id, status, duration, prerequisites, frequency, series_id,
   created_at, updated_at
 ) VALUES (
-  'd0cfc4a6-3189-4365-b86c-b478dcadbf68'::uuid,
-  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  'Yoga am Mittwoch',
-  'Hatha-Yoga/Vinyasa für alle',
-  '2026-05-27'::date,
-  '18:00:00'::time,
-  '19:30:00'::time,
-  'Gagelweg',
-  NULL,
-  8,
-  12.00,
-  '2ef0b4bf-69da-480e-9533-2bdf162dfc18'::uuid,
-  'active',
-  90,
-  NULL,
-  'one_time',
-  NULL,
-  '2026-04-08 08:32:52.458948+00'::timestamptz,
-  '2026-04-08 08:32:52.458948+00'::timestamptz
-);
-INSERT INTO public.courses (
-  id, tenant_id, title, description, date, time, end_time, location, room,
-  max_participants, price, teacher_id, status, duration, prerequisites, frequency, series_id,
-  created_at, updated_at
-) VALUES (
   'd6058a79-91ac-4d04-84c5-2f747cb36330'::uuid,
   '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
   'YOGA & AYURVEDA (Tagesrereat)',
-  'Gemeinsam mit der kreativen Ayurveda-Köchin Monika im wunderschönen Celebrate Yoga in Leichlingen. 
-Noch zum Frühbucherpreis! Ab 01.06.2026 129,- Euro.',
+  'Gemeinsam mit der kreativen Ayurveda-Köchin Monika im wunderschönen Celebrate Yoga in Leichlingen.',
   '2026-07-12'::date,
   '09:00:00'::time,
   '17:00:00'::time,
   'Celebrate Yoga, Leichlingen',
   NULL,
   10,
-  99.00,
+  129.00,
   '2ef0b4bf-69da-480e-9533-2bdf162dfc18'::uuid,
   'active',
   480,
@@ -230,32 +212,7 @@ Noch zum Frühbucherpreis! Ab 01.06.2026 129,- Euro.',
   'one_time',
   NULL,
   '2026-05-03 10:37:34.417922+00'::timestamptz,
-  '2026-05-03 10:37:34.417922+00'::timestamptz
-);
-INSERT INTO public.courses (
-  id, tenant_id, title, description, date, time, end_time, location, room,
-  max_participants, price, teacher_id, status, duration, prerequisites, frequency, series_id,
-  created_at, updated_at
-) VALUES (
-  'db98d548-8c2e-40ed-9ec4-c2120afbcd49'::uuid,
-  '892370b8-49a1-4699-b480-2f722e4f9fe3'::uuid,
-  'Yoga am Mittwoch',
-  'Hatha/Vinyasa für alle',
-  '2026-05-13'::date,
-  '18:00:00'::time,
-  '19:30:00'::time,
-  'Gagelweg',
-  NULL,
-  8,
-  12.00,
-  '2ef0b4bf-69da-480e-9533-2bdf162dfc18'::uuid,
-  'active',
-  90,
-  NULL,
-  'one_time',
-  NULL,
-  '2026-03-13 21:00:01.11986+00'::timestamptz,
-  '2026-03-13 21:00:01.11986+00'::timestamptz
+  '2026-05-31 20:02:23.156358+00'::timestamptz
 );
 INSERT INTO public.courses (
   id, tenant_id, title, description, date, time, end_time, location, room,
@@ -307,5 +264,3 @@ INSERT INTO public.courses (
   '2026-04-17 04:40:34.093596+00'::timestamptz,
   '2026-04-17 04:40:34.093596+00'::timestamptz
 );
-
--- registrations
