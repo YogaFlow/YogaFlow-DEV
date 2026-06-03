@@ -43,7 +43,7 @@ const MyCourses: React.FC = () => {
           .select(`
             *,
             teacher:users!courses_teacher_id_fkey(first_name, last_name),
-            registrations:registrations(user_id, status, is_waitlist)
+            registrations:registrations(user_id, status, is_waitlist, cancellation_timestamp)
           `)
           .eq('teacher_id', userProfile.id)
           .order('date', { ascending: true })
@@ -339,8 +339,12 @@ const MyCourses: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {courses.map((course) => {
-            const registeredCount = course.registrations?.filter((r: any) => r.status === 'registered' && !r.is_waitlist).length || 0;
-            const waitlistCount = course.registrations?.filter((r: any) => r.is_waitlist).length || 0;
+            const registeredCount = course.registrations?.filter(
+              (r) => r.status === 'registered' && !r.is_waitlist && !r.cancellation_timestamp
+            ).length ?? 0;
+            const waitlistCount = course.registrations?.filter(
+              (r) => r.is_waitlist && !r.cancellation_timestamp
+            ).length ?? 0;
             const isFull = registeredCount >= (course.max_participants || 0);
             return (
               <div key={course.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
@@ -406,7 +410,7 @@ const MyCourses: React.FC = () => {
                         <Edit className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => handleDeleteClick(course.id, course.title, course.series_id)}
+                        onClick={() => handleDeleteClick(course.id, course.title, course.series_id ?? null)}
                         className="p-2 text-gray-400 hover:text-red-600 transition-colors"
                         title="Löschen"
                       >
