@@ -31,6 +31,13 @@ export interface User {
 export type CourseStatus = 'active' | 'canceled' | 'not_planned';
 export type CourseFrequency = 'one_time' | 'weekly';
 
+export type CourseRegistrationSummary = {
+  user_id: string;
+  status: 'registered' | 'waitlist';
+  is_waitlist: boolean;
+  cancellation_timestamp?: string | null;
+};
+
 export interface Course {
   id: string;
   tenant_id: string;
@@ -50,6 +57,7 @@ export interface Course {
   frequency: CourseFrequency;
   series_id?: string;
   teacher?: User;
+  registrations?: CourseRegistrationSummary[];
   created_at: string;
   updated_at: string;
 }
