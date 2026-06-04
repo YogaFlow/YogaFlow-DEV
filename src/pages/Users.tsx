@@ -195,7 +195,9 @@ export default function Users() {
         .is('cancellation_timestamp', null)
         .order('registered_at', { ascending: false });
       if (error) throw error;
-      return (data as unknown as RegWithCourse[]) || [];
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const regs = (data as unknown as RegWithCourse[]) || [];
+      return regs.filter(r => !r.courses?.date || new Date(r.courses.date) >= today);
     } catch {
       return [];
     }
@@ -438,7 +440,8 @@ export default function Users() {
           const showRoleDropdown = canShowRoleDropdown(user, { isAdmin, isOwner, isSelf });
           const lastOwnerLocked = isLastOwnerSelfDowngrade(user, ownerCount, isSelf);
           const alreadyRegisteredIds = new Set(userRegistrations.map(r => r.course_id));
-          const availableCoursesToAdd = courses.filter(c => !alreadyRegisteredIds.has(c.id));
+          const today = new Date(); today.setHours(0, 0, 0, 0);
+          const availableCoursesToAdd = courses.filter(c => !alreadyRegisteredIds.has(c.id) && (!c.date || new Date(c.date) >= today));
           return (
             <React.Fragment key={user.id}>
               <div className={`bg-white rounded-xl border shadow-sm overflow-hidden transition-colors ${
@@ -694,7 +697,8 @@ export default function Users() {
 
               // Courses the user is already registered in (for dropdown filtering)
               const alreadyRegisteredIds = new Set(userRegistrations.map(r => r.course_id));
-              const availableCoursesToAdd = courses.filter(c => !alreadyRegisteredIds.has(c.id));
+              const today = new Date(); today.setHours(0, 0, 0, 0);
+              const availableCoursesToAdd = courses.filter(c => !alreadyRegisteredIds.has(c.id) && (!c.date || new Date(c.date) >= today));
 
               return (
                 <React.Fragment key={user.id}>
