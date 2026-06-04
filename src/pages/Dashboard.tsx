@@ -179,7 +179,7 @@ const Dashboard: React.FC = () => {
               course:courses(id, date, time)
             `)
             .eq('user_id', userProfile.id)
-            .eq('status', 'registered')
+            .in('status', ['registered', 'waitlist'])
             .is('cancellation_timestamp', null);
           myCoursesCount = (data || []).filter((item: any) => item.course && isCourseUpcoming(item.course)).length;
         }
