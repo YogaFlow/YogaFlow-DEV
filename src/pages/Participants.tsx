@@ -189,12 +189,23 @@ const Participants: React.FC = () => {
   };
 
   const exportParticipants = () => {
-    const csvContent = [
-      ['Kurs', 'Datum', 'Teilnehmer', 'E-Mail', 'Telefon', 'Status', 'Anmeldedatum'].join(','),
+    const formatCourseDate = (dateString: string | undefined) => {
+      if (!dateString) return '';
+      try {
+        return format(parseISO(dateString), 'dd.MM.yyyy', { locale: de });
+      } catch {
+        return dateString;
+      }
+    };
+
+    const escapeCell = (value: string) => `"${value.replace(/"/g, '""')}"`;
+
+    const rows = [
+      ['Kurs', 'Datum', 'Teilnehmer', 'E-Mail', 'Telefon', 'Status', 'Anmeldedatum'],
       ...filteredParticipants.map(p => [
-        `"${p.course?.title || ''}"`,
-        p.course?.date || '',
-        `"${p.user?.first_name || ''} ${p.user?.last_name || ''}"`,
+        p.course?.title || '',
+        formatCourseDate(p.course?.date),
+        `${p.user?.first_name || ''} ${p.user?.last_name || ''}`.trim(),
         p.user?.email || '',
         p.user?.phone || '',
         p.status === 'registered'
@@ -203,10 +214,14 @@ const Participants: React.FC = () => {
             ? `Warteliste (Pos. ${p.waitlist_position})`
             : 'Warteliste',
         formatRegistrationDate(p.registered_at)
-      ].join(','))
-    ].join('\n');
+      ])
+    ];
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const csvContent = rows
+      .map(row => row.map(escapeCell).join(';'))
+      .join('\n');
+
+    const blob = new Blob(['﻿' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
