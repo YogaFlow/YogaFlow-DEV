@@ -80,7 +80,7 @@ const MyCourses: React.FC = () => {
           `
           )
           .eq('user_id', userProfile.id)
-          .eq('status', 'registered')
+          .in('status', ['registered', 'waitlist'])
           .is('cancellation_timestamp', null);
 
         if (error) throw error;
@@ -279,8 +279,10 @@ const MyCourses: React.FC = () => {
                         Lehrer: {course.teacher.first_name} {course.teacher.last_name}
                       </p>
                     )}
-                    <div className="mt-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-50 text-teal-700">
-                      {isWaitlist ? 'Warteliste' : 'Angemeldet'}
+                    <div className={`mt-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${isWaitlist ? 'bg-yellow-50 text-yellow-700' : 'bg-teal-50 text-teal-700'}`}>
+                      {isWaitlist
+                        ? (registration.waitlist_position ? `Warteliste (Pos. ${registration.waitlist_position})` : 'Warteliste')
+                        : 'Angemeldet'}
                     </div>
                   </div>
                   <div className="text-right">
