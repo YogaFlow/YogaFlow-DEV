@@ -123,7 +123,12 @@ const Dashboard: React.FC = () => {
           );
 
           if (!isMounted) return;
-          setRegistrations(registrationsWithCounts);
+          const sortedRegistrations = registrationsWithCounts.sort((a, b) => {
+            const dateA = a.course?.date ?? '';
+            const dateB = b.course?.date ?? '';
+            return dateA.localeCompare(dateB);
+          });
+          setRegistrations(sortedRegistrations);
         }
 
         await fetchStats();
