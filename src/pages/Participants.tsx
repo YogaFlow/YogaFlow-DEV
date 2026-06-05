@@ -168,9 +168,13 @@ const Participants: React.FC = () => {
       });
     } catch (error) {
       console.error('Error unregistering participant:', error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : (error as { message?: string })?.message ?? 'Fehler beim Abmelden. Bitte versuchen Sie es erneut.';
       setFeedbackDialog({
         title: 'Abmeldung fehlgeschlagen',
-        message: error instanceof Error ? error.message : 'Fehler beim Abmelden. Bitte versuchen Sie es erneut.',
+        message,
         type: 'error',
       });
     } finally {
