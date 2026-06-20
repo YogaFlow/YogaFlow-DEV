@@ -86,10 +86,16 @@ const MyCourses: React.FC = () => {
         if (error) throw error;
         if (!isMounted) return;
 
-        const futureRegistrations = (data || []).filter(
-          (registration: any) =>
-            registration.course && isCourseUpcoming(registration.course)
-        );
+        const futureRegistrations = (data || [])
+          .filter(
+            (registration: any) =>
+              registration.course && isCourseUpcoming(registration.course)
+          )
+          .sort((a: any, b: any) => {
+            const dateA = `${a.course.date}T${a.course.time}`;
+            const dateB = `${b.course.date}T${b.course.time}`;
+            return dateA.localeCompare(dateB);
+          });
 
         setRegistrations(futureRegistrations);
       } catch (error) {
