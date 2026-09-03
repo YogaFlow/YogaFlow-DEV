@@ -75,14 +75,30 @@ Deno.serve(async (req: Request) => {
     },
   });
 
+  /**
+   * Schutzschalter fuer Nicht-Produktionsumgebungen.
+   *
+   * Ist EMAIL_REDIRECT_TO gesetzt, geht JEDE Mail nur an diese eine Adresse; der eigentliche
+   * Empfaenger steht im Betreff, damit beim Testen sichtbar bleibt, wer sie bekommen haette.
+   * In PROD ist die Variable nicht gesetzt — dort aendert sich nichts am Verhalten.
+   */
+  const redirectTo = Deno.env.get("EMAIL_REDIRECT_TO")?.trim();
+  let recipient = toEmail;
+  let finalSubject = subject;
+  if (redirectTo) {
+    console.log("EMAIL_REDIRECT_TO aktiv:", toEmail, "->", redirectTo);
+    recipient = redirectTo;
+    finalSubject = `[DEV → ${toEmail}] ${subject}`;
+  }
+
   const fromAddress = Deno.env.get("SENDER_EMAIL")?.trim() || smtpUser;
   const from = `"Omlify" <${fromAddress}>`;
 
   try {
     const info = await transport.sendMail({
       from,
-      to: toEmail,
-      subject,
+      to: recipient,
+      subject: finalSubject,
       html: htmlContent,
     });
 

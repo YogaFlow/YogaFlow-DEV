@@ -99,6 +99,20 @@ export function buildStudioAuthHref(slug: string): string {
   return `${protocol}//${trimmed}.${APP_BASE_DOMAIN}/auth`;
 }
 
+/**
+ * Link auf die Apex-Seite (Landing / Onboarding), von überall aus.
+ *
+ * Leitet Protokoll und Port aus der aktuellen Adresse ab, statt `https://` fest zu verdrahten:
+ * auf `yomita.localhost:5173` ergibt das `http://localhost:5173` statt des nicht existierenden
+ * `https://localhost`. In PROD unverändert `https://omlify.de`.
+ */
+export function buildApexHref(): string {
+  if (typeof window === 'undefined') return `https://${APP_BASE_DOMAIN}`;
+  const { protocol, hostname, port } = window.location;
+  const host = slugFromHostname(hostname, APP_BASE_DOMAIN) ? APP_BASE_DOMAIN : hostname;
+  return `${protocol}//${host}${port ? `:${port}` : ''}`;
+}
+
 /** Aktueller DEV-Tenant-Slug (URL ?tenant= oder sessionStorage). */
 export function getDevTenantSlug(): string | null {
   if (!import.meta.env.DEV || typeof window === 'undefined') return null;

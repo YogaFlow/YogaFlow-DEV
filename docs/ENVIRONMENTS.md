@@ -6,8 +6,9 @@ Diese App nutzt zwei getrennte Umgebungen, damit die **Live-Datenbank (PROD)** b
 
 | Umgebung | Zweck | Datenbank |
 |----------|--------|-----------|
-| **DEV** | Entwicklung und Tests (lokal, ggf. Cloudflare Preview-Builds) | Supabase-Projekt im DEV-Account (z.B. „yogaflow-dev“) |
-| **PROD** | Live-Website für echte Nutzer | Supabase-Projekt im PROD-Account (bestehendes Live-Projekt) |
+| **Lokal** | Schnelle Entwicklungsschleife auf dem eigenen Rechner, `localhost:5173` und `<slug>.localhost:5173` | DEV-Projekt |
+| **DEV** | Deploytes Frontend auf `omlify-dev.de` und `*.omlify-dev.de`; hier nimmt der Geschäftspartner ab | DEV-Projekt („Yogaflow DEV“) |
+| **PROD** | Live-Website auf `omlify.de` und `*.omlify.de` für echte Nutzer | PROD-Projekt |
 
 Die App entscheidet **nicht** im Code, ob sie DEV oder PROD nutzt. Es zählen nur die **Environment Variables** (Env-Variablen): `VITE_SUPABASE_URL` und `VITE_SUPABASE_ANON_KEY`. Welche Werte dort stehen, bestimmt die Datenbank.
 
@@ -30,29 +31,34 @@ Die App entscheidet **nicht** im Code, ob sie DEV oder PROD nutzt. Es zählen nu
 
 Beim Start mit `npm run dev` zeigt die Konsole z.B.: „Supabase configured with URL: …“ – dort sollte die **DEV**-URL erscheinen.
 
-## Supabase CLI: einmalig Login und Verlinkung mit DEV
+## Supabase CLI: Kommandos mit explizitem Ziel
 
-Damit du Migrationen mit `npm run db:push` auf die DEV-Datenbank anwenden kannst, musst du **einmal** Login und Verlinkung durchführen.
+Seit dem DEV-Setup läuft **jede** Supabase-Operation über `scripts/db.mjs`. Das Ziel steht im
+Kommando, nicht in unsichtbarem lokalem Zustand:
 
-### In Cursor (empfohlen): Command Prompt + Access Token
+| Kommando | Wirkung |
+|----------|---------|
+| `npm run db:status:dev` | zeigt, welche Migrationen auf DEV schon laufen (nur lesen) |
+| `npm run db:push:dev` | wendet ausstehende Migrationen auf DEV an |
+| `npm run functions:dev` | deployt alle Edge Functions nach DEV |
+| `npm run secrets:dev` | spielt `supabase/.env.dev` als Edge-Function-Secrets ein |
+| `npm run deploy:dev` | baut und deployt das Frontend auf den DEV-Worker |
 
-1. **Terminal in Cursor:** Ein neues Terminal (Ctrl+Shift+ö) nutzt unter Windows automatisch **Command Prompt** (cmd), falls so in den Einstellungen eingestellt. So umgehst du die PowerShell-Execution-Policy.
-2. **Access Token erzeugen:** Im Browser bei [supabase.com](https://supabase.com) anmelden, zu [Account → Tokens](https://supabase.com/dashboard/account/tokens) gehen, **„Generate new token“** wählen (keinen Experimental-Token), Namen vergeben, Token erzeugen und **sofort kopieren**.
-3. **Im Cursor-Terminal** (im Projektordner), **in derselben Sitzung** nacheinander:
-   - Token setzen (nur für diese Sitzung, nicht ins Repo committen):
-     - **cmd:** `set SUPABASE_ACCESS_TOKEN=dein_kopierter_token`
-     - **PowerShell:** `$env:SUPABASE_ACCESS_TOKEN="dein_kopierter_token"`
-   - Verlinken: `npm run supabase:link`  
-     Wenn nach dem **Datenbank-Passwort** gefragt wird: Das Passwort von „Yogaflow DEV“ eingeben (bei Projekterstellung vergeben; bei Bedarf unter Dashboard → **Settings** → **Database** zurücksetzen).
-   - Migrationen anwenden: `npm run db:push`  
-     (Falls „Cannot find project ref“ erscheint: zuerst Schritt 3 mit Token und `npm run supabase:link` in **demselben** Terminal ausführen.)
-4. Danach reicht bei Schema-Änderungen: Migration anlegen, dann `npm run db:push` (siehe [DATABASE_WORKFLOW_SCHRITT_FÜR_SCHRITT.md](DATABASE_WORKFLOW_SCHRITT_FÜR_SCHRITT.md)).
+Dieselben Kommandos gibt es mit `:prod`. Sie sind zusätzlich abgesichert: Sie brechen ab,
+wenn der aktuelle Git-Branch nicht `main` ist, und verlangen die getippte Eingabe `PROD`.
+`npm run db:status:prod` ist davon ausgenommen, weil es nur liest.
 
-### Alternative: Browser-Login
+### Einmalige Einrichtung
 
-1. **Anmelden:** Im Projektordner `npx supabase login` ausführen (in cmd). Es öffnet sich der Browser – bei Supabase anmelden und Zugriff erlauben.
-2. **Mit DEV verlinken:** `npm run supabase:link` ausführen. Bei Aufforderung das **Datenbank-Passwort** von „Yogaflow DEV“ eingeben.
-3. **Migrationen anwenden:** `npm run db:push` ausführen.
+1. `.env.deploy.example` als `.env.deploy` kopieren.
+2. Projekt-Refs, Pooler-Hosts und Datenbank-Passwörter eintragen (aus dem Passwortmanager).
+   Den Pooler-Host findest du im Supabase-Dashboard unter **Connect → Session pooler** —
+   es ist der Teil vor `.pooler.supabase.com`.
+3. `.env.deploy` steht in `.gitignore` und darf **niemals** committet werden.
+
+`supabase link` und `supabase db push` von Hand werden nicht mehr gebraucht. Wer sie trotzdem
+benutzt, umgeht die Absicherung — genau das war vorher das Risiko: `db push` traf immer die
+Datenbank, mit der zuletzt verlinkt wurde, und dieser Zustand lag unsichtbar in `supabase/.temp/`.
 
 ## Wichtige Regeln
 

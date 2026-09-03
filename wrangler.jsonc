@@ -1,3 +1,14 @@
+// Deploy-Konfiguration fuer Cloudflare Workers — DIES ist die wirksame Datei
+// (wrangler.toml daneben wird ignoriert, siehe Hinweis dort).
+//
+// Zwei Worker teilen sich diese eine Konfiguration; sie unterscheiden sich nur im Namen:
+//
+//   PROD  npm run deploy       -> Worker "yogaflow-dev"  (Name historisch, bedient omlify.de)
+//   DEV   npm run deploy:dev   -> Worker "omlify-dev"    (bedient omlify-dev.de)
+//
+// Die Umgebung entscheidet sich NICHT hier, sondern ueber die VITE_*-Build-Variablen,
+// die im jeweiligen Cloudflare-Projekt hinterlegt sind. Der Worker-Name unten ist der
+// Vorgabewert (PROD); "deploy:dev" ueberschreibt ihn mit --name.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "yogaflow-dev",
