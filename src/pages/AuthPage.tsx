@@ -320,10 +320,11 @@ const AuthPage: React.FC = () => {
           )}
           {accessNotice === 'email_not_confirmed' && (
             <div className="mx-8 mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-sm">
-              <p className="font-medium mb-1">E-Mail noch nicht bestätigt (Omlify)</p>
+              <p className="font-medium mb-1">E-Mail-Adresse noch nicht bestätigt</p>
               <p>
-                Bitte den Link aus der <strong>Omlify</strong>-Bestätigungsmail öffnen (grüner Button
-                „E-Mail-Adresse bestätigen“). Eine separate Supabase-Mail reicht für die Anmeldung nicht aus.
+                Bitte den Link aus der Bestätigungsmail öffnen (grüner Button „E-Mail-Adresse
+                bestätigen“). Falls keine Mail angekommen ist, kannst du sie dir unten erneut
+                zusenden lassen.
               </p>
               <button
                 type="button"
