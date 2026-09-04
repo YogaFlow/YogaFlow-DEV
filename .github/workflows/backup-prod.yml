@@ -52,6 +52,13 @@ jobs:
             exit 1
           fi
           # Passwort URL-kodieren, sonst zerlegen Sonderzeichen wie # und + die URL
+          # Kopierte Secrets tragen oft einen Zeilenumbruch mit. Bei Ref und Host
+          # allen Leerraum entfernen; beim Passwort nur Steuerzeichen, damit ein
+          # Passwort mit Leerzeichen unversehrt bleibt.
+          REF=$(printf '%s' "$REF" | tr -d '[:space:]')
+          HOST=$(printf '%s' "$HOST" | tr -d '[:space:]')
+          PW=$(printf '%s' "$PW" | tr -d '[:cntrl:]')
+          export PW
           ENC=$(node -e 'process.stdout.write(encodeURIComponent(process.env.PW))')
           URL="postgresql://postgres.${REF}:${ENC}@${HOST}.pooler.supabase.com:5432/postgres"
           echo "::add-mask::$URL"
@@ -135,13 +142,29 @@ jobs:
 
       - name: Nach Cloudflare R2 hochladen
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          RAW_KEY: ${{ secrets.R2_ACCESS_KEY_ID }}
+          RAW_SECRET: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          RAW_ACCOUNT: ${{ secrets.R2_ACCOUNT_ID }}
+          RAW_BUCKET: ${{ secrets.R2_BUCKET }}
           AWS_DEFAULT_REGION: auto
-          ACCOUNT: ${{ secrets.R2_ACCOUNT_ID }}
-          BUCKET: ${{ secrets.R2_BUCKET }}
         run: |
           set -euo pipefail
+
+          # Beim Einfuegen in die GitHub-Oberflaeche rutscht leicht ein Zeilenumbruch
+          # mit ins Secret. Der landet im Authorization-Header, macht die AWS-Signatur
+          # ungueltig (Fehler: "Invalid header value ... Credential=KEY") und R2 lehnt
+          # jede Anfrage ab - ohne dass der Upload das meldet. Zugangsdaten enthalten
+          # nie Leerraum, also hier konsequent entfernen.
+          export AWS_ACCESS_KEY_ID="$(printf '%s' "$RAW_KEY" | tr -d '[:space:]')"
+          export AWS_SECRET_ACCESS_KEY="$(printf '%s' "$RAW_SECRET" | tr -d '[:space:]')"
+          ACCOUNT="$(printf '%s' "$RAW_ACCOUNT" | tr -d '[:space:]')"
+          BUCKET="$(printf '%s' "$RAW_BUCKET" | tr -d '[:space:]')"
+
+          for name in AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY ACCOUNT BUCKET; do
+            eval "val=\${$name}"
+            [ -n "$val" ] || { echo "::error::$name ist leer - Secret fehlt oder besteht nur aus Leerraum."; exit 1; }
+          done
+          echo "Zugangsdaten geprueft. Bucket: $BUCKET"
           aws s3 cp "omlify-prod-$STAMP.tar.gz.gpg" \
             "s3://$BUCKET/prod/omlify-prod-$STAMP.tar.gz.gpg" \
             --endpoint-url "https://$ACCOUNT.r2.cloudflarestorage.com" \
