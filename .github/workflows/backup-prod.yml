@@ -69,27 +69,49 @@ jobs:
 
       - name: Sicherung auf Plausibilitaet pruefen
         run: |
-          set -euo pipefail
+          set -uo pipefail
           fail=0
+
+          echo "== Groessen =="
           for f in roles schema data; do
             size=$(wc -c < "backup/$f.sql")
             echo "  $f.sql: $size Bytes"
-            if [ "$size" -lt 512 ]; then
-              echo "::error::backup/$f.sql ist nur $size Bytes gross - das ist keine brauchbare Sicherung."
-              fail=1
-            fi
           done
-          # Der Datendump muss die Kerntabellen enthalten, sonst war er leer
+
+          # roles.sql ist bei Supabase legitim winzig: die meisten Rollen verwaltet
+          # der Anbieter und dumpt sie nicht mit. Nur auf "existiert" pruefen.
+          [ -s backup/roles.sql ] || { echo "::error::backup/roles.sql ist leer."; fail=1; }
+
+          # Schwellen an den beobachteten Groessen ausgerichtet (Schema ~76 KB, Daten ~1,7 MB)
+          schema_size=$(wc -c < backup/schema.sql)
+          data_size=$(wc -c < backup/data.sql)
+          [ "$schema_size" -ge 10000 ] || { echo "::error::schema.sql nur $schema_size Bytes - kein vollstaendiges Schema."; fail=1; }
+          [ "$data_size"   -ge 10000 ] || { echo "::error::data.sql nur $data_size Bytes - Datendump praktisch leer."; fail=1; }
+
+          echo
+          echo "== Tabellen im Datendump =="
+          # pg_dump schreibt COPY "public"."tenants" (...) - Anfuehrungszeichen sind optional,
+          # deshalb im Muster beides zulassen.
+          grep -oE '^COPY "?[a-z_]+"?\."?[a-zA-Z_]+"?' backup/data.sql             | sed -E 's/^COPY //; s/"//g' | sort | sed 's/^/  /' || true
+
+          echo
+          echo "== Pflichttabellen =="
           for t in tenants users courses registrations; do
-            if ! grep -q "public\.$t" backup/data.sql; then
-              echo "::error::Tabelle '$t' fehlt im Datendump - Sicherung unvollstaendig."
+            if grep -qE "^COPY \"?public\"?\.\"?${t}\"? " backup/data.sql; then
+              echo "  public.$t: vorhanden"
+            else
+              echo "::error::Tabelle 'public.$t' fehlt im Datendump - Sicherung unvollstaendig."
               fail=1
             fi
           done
-          # Auth-Nutzer sind fuer eine Wiederherstellung zwingend
-          if ! grep -q "auth\.users" backup/data.sql; then
-            echo "::warning::auth.users nicht im Datendump gefunden - ohne Auth-Nutzer kann sich nach einer Wiederherstellung niemand anmelden. Bitte docs/BACKUP_RESTORE.md pruefen."
+
+          if grep -qE "^COPY \"?auth\"?\.\"?users\"? " backup/data.sql; then
+            echo "  auth.users: vorhanden"
+          else
+            echo "::error::auth.users fehlt im Datendump. Ohne Auth-Nutzer kann sich nach einer Wiederherstellung niemand anmelden - eine Sicherung ohne sie ist wertlos. Siehe docs/BACKUP_RESTORE.md."
+            fail=1
           fi
+
           exit $fail
 
       - name: Packen und verschluesseln
