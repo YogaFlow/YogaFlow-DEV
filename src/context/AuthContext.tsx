@@ -104,7 +104,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         Object.keys(localStorage)
           .filter((k) => k.startsWith('sb-'))
           .forEach((k) => localStorage.removeItem(k));
-      } catch {}
+      } catch {
+        // localStorage kann blockiert sein (privates Fenster, gesperrte Cookies).
+        // Das Aufraeumen ist dann nicht moeglich und auch nicht noetig.
+      }
       profileLoadGenerationRef.current += 1;
       if (isMounted) {
         setUser(null);

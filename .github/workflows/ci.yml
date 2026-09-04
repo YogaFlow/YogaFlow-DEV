@@ -1,0 +1,74 @@
+# Prueft jede Aenderung, bevor sie nach main kann.
+#
+# Warum es das gibt: Bis September 2026 hat nichts automatisch geprueft, ob ein
+# Stand ueberhaupt baut oder typsauber ist. Das lief gut, solange jemand daran
+# dachte - es soll aber nicht davon abhaengen, dass jemand daran denkt.
+#
+# Der Job deployt nichts und fasst keine Datenbank an. Er liest, baut und urteilt.
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [Julius]
+
+permissions:
+  contents: read
+
+concurrency:
+  # Bei mehreren Pushes kurz hintereinander nur den letzten Lauf zu Ende fuehren.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pruefen:
+    name: Typen, Lint und Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+
+      - name: Node einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Abhaengigkeiten installieren
+        run: npm ci
+
+      - name: Typen pruefen
+        run: npx tsc --noEmit
+
+      - name: Lint
+        # Faellt nur bei Fehlern durch. Die verbleibenden Warnungen (any,
+        # react-refresh, exhaustive-deps) bleiben sichtbar, blockieren aber nicht -
+        # siehe Begruendung in eslint.config.js.
+        run: npm run lint
+
+      - name: Build
+        # Platzhalterwerte: Der Build braucht die Variablen nur, damit die Warnung
+        # aus src/lib/supabase.ts ausbleibt. Das Ergebnis wird verworfen, deployt
+        # wird ausschliesslich ueber Cloudflare mit den echten Build-Variablen.
+        env:
+          VITE_SUPABASE_URL: https://ci-platzhalter.supabase.co
+          VITE_SUPABASE_ANON_KEY: ci-platzhalter
+          VITE_APP_BASE_DOMAIN: example.invalid
+        run: npm run build
+
+      - name: Keine Zugangsdaten im Repo
+        # Letzte Bremse, falls .gitignore je wieder eine Luecke hat: eine echte
+        # Secret-Datei im Commit laesst den Lauf durchfallen.
+        run: |
+          set -uo pipefail
+          gefunden=$(git ls-files | grep -E '(^|/)\.env(\.|$)|(^|/)\.env\.deploy$|github-secrets\.txt' | grep -v '\.example$' || true)
+          if [ -n "$gefunden" ]; then
+            echo "::error::Diese Dateien gehoeren nicht ins Repo:"
+            echo "$gefunden"
+            exit 1
+          fi
+          echo "Keine Secret-Dateien im Repo."

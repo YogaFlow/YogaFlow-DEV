@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTenant } from '../../context/TenantContext';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
 
 const ONBOARDING_SLUG_KEY = 'yogaflow_onboarding_slug';
 const SLUG_BODY = /^[a-z0-9]{3,30}$/;
@@ -70,7 +69,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ emailJustVerified = false }) => {
           setError(`Anmeldung fehlgeschlagen: ${error.message}`);
         }
       }
-    } catch (err) {
+    } catch {
       setError('Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
     } finally {
       setLoading(false);

@@ -1,6 +1,6 @@
 import { supabase } from '../supabase';
 import { Conversation } from './conversations';
-import { Course, User } from '../../types';
+import { Course } from '../../types';
 
 export type SendMessagePayload = {
   tenantId: string | undefined;
