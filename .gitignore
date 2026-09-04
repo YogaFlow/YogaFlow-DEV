@@ -43,3 +43,6 @@ supabase/.temp/
 
 # Kopierblatt fuer die Cloudflare-Einrichtung (nur oeffentliche Werte, aber Arbeitsdatei)
 cloudflare-dev-werte.txt
+
+# Arbeitsblatt fuer die GitHub-Secrets - ENTHAELT GEHEIMNISSE, nie committen
+github-secrets.txt
