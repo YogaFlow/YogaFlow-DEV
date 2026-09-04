@@ -92,7 +92,7 @@ jobs:
           echo "== Tabellen im Datendump =="
           # pg_dump schreibt COPY "public"."tenants" (...) - Anfuehrungszeichen sind optional,
           # deshalb im Muster beides zulassen.
-          grep -oE '^COPY "?[a-z_]+"?\."?[a-zA-Z_]+"?' backup/data.sql             | sed -E 's/^COPY //; s/"//g' | sort | sed 's/^/  /' || true
+          grep -oE '^COPY "?[a-z_0-9]+"?\."?[a-zA-Z_0-9]+"?' backup/data.sql             | sed -E 's/^COPY //; s/"//g' | sort | sed 's/^/  /' || true
 
           echo
           echo "== Pflichttabellen =="
@@ -147,6 +147,24 @@ jobs:
             --endpoint-url "https://$ACCOUNT.r2.cloudflarestorage.com" \
             --checksum-algorithm CRC32
           echo "Hochgeladen: prod/omlify-prod-$STAMP.tar.gz.gpg"
+
+          # Der CLI nicht glauben, sondern zurueckfragen: liegt das Objekt wirklich
+          # im Bucket, und ist es so gross wie die Datei, die wir geschickt haben?
+          KEY="prod/omlify-prod-$STAMP.tar.gz.gpg"
+          LOKAL=$(wc -c < "omlify-prod-$STAMP.tar.gz.gpg")
+          REMOTE=$(aws s3api head-object             --bucket "$BUCKET" --key "$KEY"             --endpoint-url "https://$ACCOUNT.r2.cloudflarestorage.com"             --query ContentLength --output text 2>&1) || {
+              echo "::error::Das hochgeladene Objekt ist im Bucket nicht auffindbar. Antwort: $REMOTE"
+              exit 1
+            }
+          echo "Im Bucket bestaetigt: $KEY ($REMOTE Bytes, lokal $LOKAL Bytes)"
+          if [ "$REMOTE" != "$LOKAL" ]; then
+            echo "::error::Groesse im Bucket ($REMOTE) weicht von der hochgeladenen Datei ($LOKAL) ab."
+            exit 1
+          fi
+
+          echo
+          echo "== Aktuell im Bucket =="
+          aws s3 ls "s3://$BUCKET/prod/"             --endpoint-url "https://$ACCOUNT.r2.cloudflarestorage.com" | tail -10
 
       - name: Unverschluesselte Reste entfernen
         if: always()
