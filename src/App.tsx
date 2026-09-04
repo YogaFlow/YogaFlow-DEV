@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useNavigate, useSearchParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { TenantProvider, useTenant, APP_BASE_DOMAIN, withDevTenant } from './context/TenantContext';
+import { TenantProvider, useTenant, buildApexHref, withDevTenant } from './context/TenantContext';
 import AuthPage from './pages/AuthPage';
 import Dashboard from './pages/Dashboard';
 import Courses from './pages/Courses';
@@ -93,7 +93,7 @@ const TenantGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           >
             Neu laden
           </button>
-          <a href={`https://${APP_BASE_DOMAIN}`} className="mt-4 inline-block text-teal-600 hover:underline text-sm">
+          <a href={buildApexHref()} className="mt-4 inline-block text-teal-600 hover:underline text-sm">
             Zur Startseite
           </a>
         </div>
@@ -107,7 +107,7 @@ const TenantGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-800 mb-2">Studio nicht gefunden</h1>
           <p className="text-gray-500">Das Studio „{tenantSlug}" existiert nicht.</p>
-          <a href={`https://${APP_BASE_DOMAIN}`}
+          <a href={buildApexHref()}
              className="mt-4 inline-block text-teal-600 hover:underline">
             Zur Startseite
           </a>
@@ -179,7 +179,7 @@ const HomeRoute: React.FC = () => {
           >
             Neu laden
           </button>
-          <a href={`https://${APP_BASE_DOMAIN}`} className="text-sm text-teal-600 hover:underline">
+          <a href={buildApexHref()} className="text-sm text-teal-600 hover:underline">
             Zur Startseite
           </a>
         </div>
@@ -191,7 +191,7 @@ const HomeRoute: React.FC = () => {
           <div className="text-center max-w-md">
             <h1 className="text-2xl font-bold text-gray-800 mb-2">Studio nicht gefunden</h1>
             <p className="text-gray-500">Das Studio „{tenantSlug}" existiert nicht.</p>
-            <a href={`https://${APP_BASE_DOMAIN}`} className="mt-4 inline-block text-teal-600 hover:underline">
+            <a href={buildApexHref()} className="mt-4 inline-block text-teal-600 hover:underline">
               Zur Startseite
             </a>
           </div>
@@ -211,7 +211,7 @@ const HomeRoute: React.FC = () => {
           >
             Seite neu laden
           </button>
-          <a href={`https://${APP_BASE_DOMAIN}`} className="text-sm text-teal-600 hover:underline">
+          <a href={buildApexHref()} className="text-sm text-teal-600 hover:underline">
             Zur Startseite
           </a>
         </div>

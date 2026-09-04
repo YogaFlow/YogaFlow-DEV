@@ -14,6 +14,9 @@ export default defineConfig(({ mode }) => {
       exclude: ['lucide-react'],
     },
     server: {
+      // Tenant-Subdomains lokal: http://<slug>.localhost:5173 trifft denselben Dev-Server,
+      // wird von Vite aber ohne diesen Eintrag wegen abweichendem Host-Header abgelehnt.
+      allowedHosts: ['.localhost'],
       proxy: {
         '/api-supabase': {
           target: supabaseUrl,

@@ -8,10 +8,15 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "npm run build && wrangler dev",
-    "db:push": "supabase db push",
-    "supabase:link": "supabase link --project-ref mufxhtctutfpzklwqnze",
-    "functions:deploy:delete-user": "supabase functions deploy delete-user --no-verify-jwt",
-    "functions:deploy:update-user": "supabase functions deploy update-user --no-verify-jwt",
+    "db:status:dev": "node scripts/db.mjs status dev",
+    "db:push:dev": "node scripts/db.mjs push dev",
+    "functions:dev": "node scripts/db.mjs functions dev",
+    "secrets:dev": "node scripts/db.mjs secrets dev",
+    "deploy:dev": "npm run build && wrangler deploy --name omlify-dev",
+    "db:status:prod": "node scripts/db.mjs status prod",
+    "db:push:prod": "node scripts/db.mjs push prod",
+    "functions:prod": "node scripts/db.mjs functions prod",
+    "secrets:prod": "node scripts/db.mjs secrets prod",
     "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
@@ -43,7 +48,7 @@
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.5.3",
-    "typescript-eslint": "^8.3.0",
+    "typescript-eslint": "^8.69.0",
     "vite": "^7.3.0",
     "wrangler": "^4.84.0"
   }

@@ -19,8 +19,9 @@ Vor dem Anwenden von Migrationen auf PROD diese Punkte abhaken:
 
 - [ ] **PR ist gemerged**, und ihr arbeitet mit aktuellem `main`: `git checkout main` und `git pull origin main`.
 - [ ] **Backup geprüft:** Im Supabase-Dashboard des **PROD**-Projekts prüfen, ob Backups aktiv sind (Settings → Backups). Bei kritischen Änderungen: Zeitpunkt notieren.
-- [ ] **Mit PROD verlinkt:** `supabase link --project-ref <PROD-Projekt-Ref>` ausführen (PROD-Ref aus PROD-Dashboard, PROD-Datenbank-Passwort eingeben). **Erst danach** `supabase db push`.
-- [ ] **Nach dem Push:** Live-Seite im Browser prüfen (Login, betroffene Features). Anschließend **wieder mit DEV verlinken:** `supabase link --project-ref <DEV-Projekt-Ref>`, damit der nächste Push nicht versehentlich PROD trifft.
+- [ ] **Vorher lesen, was passieren wird:** `npm run db:status:prod` zeigt die ausstehenden Migrationen, ohne etwas zu ändern.
+- [ ] **Push:** `npm run db:push:prod`. Das Skript bricht ab, wenn der Branch nicht `main` ist, und verlangt die Eingabe `PROD`.
+- [ ] **Nach dem Push:** Live-Seite im Browser prüfen (Login, betroffene Features). Ein Zurückverlinken ist nicht mehr nötig — die Skripte tragen ihr Ziel im Namen.
 - [ ] **Auth (Supabase Dashboard, kein SQL):** Unter **Authentication → Policies** die **Leaked Password Protection** (HaveIBeenPwned) für **DEV- und PROD-Projekt** aktivieren, falls noch aus. Reduziert Security-Advisor-Warnung `auth_leaked_password_protection`; Nutzer merken es bei neuen/geänderten Passwörtern.
 - [ ] **Edge Function nach Onboarding-Migration:** Wenn die Migration `20260502160000_yogaflow_private_rls_helpers_onboarding_hardening.sql` (oder neuer) die Onboarding-RPCs nur noch für `service_role` freigibt, muss **`onboarding-public`** auf demselben Projekt deployed sein (`npx supabase functions deploy onboarding-public`), sonst schlägt der Onboarding-Wizard fehl.
 - [ ] **Security Advisor (optional):** Die Lint-Warnungen **0029** für `public.get_course_participant_counts`, `register_for_course`, `unregister_from_course` (SECURITY DEFINER für `authenticated`) sind nach Schema-Migration bewusst noch möglich; Beseitigung erfordert spätere Architektur (INVOKER + RLS-Erweiterung oder serverseitige Kapselung).
@@ -50,10 +51,10 @@ flowchart LR
   end
   subgraph prod [PROD]
     F[Pre-PROD-Checkliste]
-    G[Mit PROD verlinken]
-    H[db push auf PROD]
+    G[db:status:prod lesen]
+    H[db:push:prod]
     I[Live-Seite prüfen]
-    J[Wieder mit DEV verlinken]
+    J[Ergebnis festhalten]
   end
   A --> B --> C --> D --> E
   E --> F --> G --> H --> I --> J
@@ -61,7 +62,7 @@ flowchart LR
 
 1. **Migration anlegen** (lokal auf Julius) → **auf DEV anwenden** und **App testen**.
 2. **PR** von Julius → main, **Review**, **Merge**. Die PROD-Datenbank ist zu diesem Zeitpunkt noch unverändert.
-3. **Pre-PROD-Checkliste** abhaken, **mit PROD verlinken**, **db push** ausführen, **Live-Seite prüfen**, **wieder mit DEV verlinken**.
+3. **Pre-PROD-Checkliste** abhaken, `npm run db:status:prod` lesen, `npm run db:push:prod` ausführen, **Live-Seite prüfen**.
 
 ---
 

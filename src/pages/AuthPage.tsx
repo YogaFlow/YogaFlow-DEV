@@ -4,7 +4,7 @@ import LoginForm from '../components/Auth/LoginForm';
 import RegisterForm from '../components/Auth/RegisterForm';
 import { Heart } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useTenant, APP_BASE_DOMAIN, withDevTenant } from '../context/TenantContext';
+import { useTenant, buildApexHref, withDevTenant } from '../context/TenantContext';
 
 type AccessNotice = 'wrong_studio' | 'profile_missing' | 'email_not_confirmed' | null;
 
@@ -163,7 +163,7 @@ const AuthPage: React.FC = () => {
         >
           Neu laden
         </button>
-        <a href={`https://${APP_BASE_DOMAIN}`} className="mt-3 text-teal-600 hover:underline text-sm font-medium">
+        <a href={buildApexHref()} className="mt-3 text-teal-600 hover:underline text-sm font-medium">
           Zur Startseite
         </a>
       </div>
@@ -179,7 +179,7 @@ const AuthPage: React.FC = () => {
           Datenbank kein Studio eingetragen.
         </p>
         <a
-          href={`https://${APP_BASE_DOMAIN}`}
+          href={buildApexHref()}
           className="mt-6 text-teal-600 hover:underline font-medium"
         >
           Zur Startseite

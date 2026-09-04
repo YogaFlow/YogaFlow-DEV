@@ -1,0 +1,131 @@
+# Taegliches verschluesseltes Backup der PROD-Datenbank nach Cloudflare R2.
+#
+# Warum es das gibt: Das PROD-Projekt laeuft auf dem Supabase-Free-Plan und hat damit
+# KEINE automatischen Backups und kein Point-in-Time-Recovery. Ohne diesen Job waere
+# ein Datenverlust endgueltig.
+#
+# Wiederherstellung: siehe docs/BACKUP_RESTORE.md
+#
+# Benoetigte Repository-Secrets (Settings -> Secrets and variables -> Actions):
+#   PROD_REF              Projekt-Ref, z. B. otnhxzomnjjthocovasu
+#   PROD_DB_HOST          Pooler-Praefix, z. B. aws-1-eu-west-1
+#   PROD_DB_PASSWORD      Datenbank-Passwort im Klartext (wird hier URL-kodiert)
+#   BACKUP_PASSPHRASE     Passwort zum Ver- und Entschluesseln der Sicherung
+#   R2_ACCOUNT_ID         Cloudflare-Account-ID
+#   R2_ACCESS_KEY_ID      R2-Token, Access Key ID
+#   R2_SECRET_ACCESS_KEY  R2-Token, Secret Access Key
+#   R2_BUCKET             Name des Buckets, z. B. omlify-backups
+
+name: PROD-Backup
+
+on:
+  schedule:
+    - cron: "0 3 * * *"   # taeglich 03:00 UTC
+  workflow_dispatch:       # erlaubt manuelles Ausloesen ueber die Actions-Oberflaeche
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+
+      - name: Supabase-CLI installieren
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Verbindungsdaten zusammensetzen
+        id: conn
+        env:
+          REF: ${{ secrets.PROD_REF }}
+          HOST: ${{ secrets.PROD_DB_HOST }}
+          PW: ${{ secrets.PROD_DB_PASSWORD }}
+        run: |
+          if [ -z "$REF" ] || [ -z "$HOST" ] || [ -z "$PW" ]; then
+            echo "::error::PROD_REF, PROD_DB_HOST oder PROD_DB_PASSWORD fehlt in den Secrets."
+            exit 1
+          fi
+          # Passwort URL-kodieren, sonst zerlegen Sonderzeichen wie # und + die URL
+          ENC=$(node -e 'process.stdout.write(encodeURIComponent(process.env.PW))')
+          URL="postgresql://postgres.${REF}:${ENC}@${HOST}.pooler.supabase.com:5432/postgres"
+          echo "::add-mask::$URL"
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Datenbank sichern
+        env:
+          DB_URL: ${{ steps.conn.outputs.url }}
+        run: |
+          set -euo pipefail
+          mkdir -p backup
+          echo "Rollen..."; supabase db dump --db-url "$DB_URL" -f backup/roles.sql  --role-only
+          echo "Schema..."; supabase db dump --db-url "$DB_URL" -f backup/schema.sql
+          echo "Daten...";  supabase db dump --db-url "$DB_URL" -f backup/data.sql --use-copy --data-only
+
+      - name: Sicherung auf Plausibilitaet pruefen
+        run: |
+          set -euo pipefail
+          fail=0
+          for f in roles schema data; do
+            size=$(wc -c < "backup/$f.sql")
+            echo "  $f.sql: $size Bytes"
+            if [ "$size" -lt 512 ]; then
+              echo "::error::backup/$f.sql ist nur $size Bytes gross - das ist keine brauchbare Sicherung."
+              fail=1
+            fi
+          done
+          # Der Datendump muss die Kerntabellen enthalten, sonst war er leer
+          for t in tenants users courses registrations; do
+            if ! grep -q "public\.$t" backup/data.sql; then
+              echo "::error::Tabelle '$t' fehlt im Datendump - Sicherung unvollstaendig."
+              fail=1
+            fi
+          done
+          # Auth-Nutzer sind fuer eine Wiederherstellung zwingend
+          if ! grep -q "auth\.users" backup/data.sql; then
+            echo "::warning::auth.users nicht im Datendump gefunden - ohne Auth-Nutzer kann sich nach einer Wiederherstellung niemand anmelden. Bitte docs/BACKUP_RESTORE.md pruefen."
+          fi
+          exit $fail
+
+      - name: Packen und verschluesseln
+        env:
+          PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          if [ -z "$PASSPHRASE" ]; then
+            echo "::error::BACKUP_PASSPHRASE fehlt - es wird nichts Unverschluesseltes hochgeladen."
+            exit 1
+          fi
+          STAMP=$(date -u +%Y-%m-%dT%H-%M-%SZ)
+          echo "STAMP=$STAMP" >> "$GITHUB_ENV"
+          tar -czf "omlify-prod-$STAMP.tar.gz" -C backup .
+          gpg --batch --yes --symmetric --cipher-algo AES256 \
+              --passphrase "$PASSPHRASE" \
+              -o "omlify-prod-$STAMP.tar.gz.gpg" \
+              "omlify-prod-$STAMP.tar.gz"
+          rm -f "omlify-prod-$STAMP.tar.gz"
+          ls -lh "omlify-prod-$STAMP.tar.gz.gpg"
+
+      - name: Nach Cloudflare R2 hochladen
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          ACCOUNT: ${{ secrets.R2_ACCOUNT_ID }}
+          BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          set -euo pipefail
+          aws s3 cp "omlify-prod-$STAMP.tar.gz.gpg" \
+            "s3://$BUCKET/prod/omlify-prod-$STAMP.tar.gz.gpg" \
+            --endpoint-url "https://$ACCOUNT.r2.cloudflarestorage.com" \
+            --checksum-algorithm CRC32
+          echo "Hochgeladen: prod/omlify-prod-$STAMP.tar.gz.gpg"
+
+      - name: Unverschluesselte Reste entfernen
+        if: always()
+        run: rm -rf backup *.tar.gz

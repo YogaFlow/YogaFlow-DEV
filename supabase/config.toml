@@ -6,3 +6,15 @@ verify_jwt = false
 # Onboarding vor Sign-up: ruft RPCs nur mit service_role auf (DB erteilt anon kein EXECUTE mehr).
 [functions.onboarding-public]
 verify_jwt = false
+
+# update-user und delete-user pruefen den Aufrufer SELBST: sie lesen den Authorization-Header,
+# aufloesen den Nutzer ueber auth.getUser() und verlangen die Rolle owner/admin/teacher.
+# Bisher stand verify_jwt=false nur als --no-verify-jwt im Deploy-Kommando in package.json.
+# Damit haette ein Sammel-Deploy ("supabase functions deploy" ohne Namen) die JWT-Pruefung
+# wieder eingeschaltet und beide Funktionen lahmgelegt. Hier festgeschrieben, damit DEV und
+# PROD reproduzierbar denselben Stand bekommen.
+[functions.update-user]
+verify_jwt = false
+
+[functions.delete-user]
+verify_jwt = false

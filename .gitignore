@@ -22,9 +22,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+# Secrets: alle .env-Varianten, egal in welchem Ordner.
+# Ausnahmen (Vorlagen ohne echte Werte) stehen weiter unten mit "!".
 .env
-.env.local
-.env.*.local
+.env.*
+**/.env
+**/.env.*
 
 # Supabase CLI (link config, local state)
 .supabase
@@ -35,3 +38,11 @@ supabase/.temp/
 .dev.vars*
 !.dev.vars.example
 !.env.example
+!.env.deploy.example
+!supabase/.env.example
+
+# Kopierblatt fuer die Cloudflare-Einrichtung (nur oeffentliche Werte, aber Arbeitsdatei)
+cloudflare-dev-werte.txt
+
+# Arbeitsblatt fuer die GitHub-Secrets - ENTHAELT GEHEIMNISSE, nie committen
+github-secrets.txt
