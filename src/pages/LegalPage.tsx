@@ -32,16 +32,18 @@ const LegalPage: React.FC<LegalPageProps> = ({ type }) => {
       <main className="flex-1 w-full max-w-3xl mx-auto px-6 py-12">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">{TITLES[type]}</h1>
 
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-amber-800 text-sm">
-          <p className="font-semibold mb-1">Platzhalter</p>
-          <p>
-            Die rechtlichen Texte befinden sich in Vorbereitung. Bitte nehme vor dem
-            Produktivbetrieb Kontakt mit einem Rechtsanwalt auf.
-          </p>
-        </div>
+        {type !== 'impressum' && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-amber-800 text-sm">
+            <p className="font-semibold mb-1">Platzhalter</p>
+            <p>
+              Die rechtlichen Texte befinden sich in Vorbereitung. Bitte nehme vor dem
+              Produktivbetrieb Kontakt mit einem Rechtsanwalt auf.
+            </p>
+          </div>
+        )}
 
         {type === 'impressum' && (
-          <dl className="mt-8 space-y-5 text-gray-700">
+          <dl className="space-y-5 text-gray-700">
             <div>
               <dt className="text-sm font-semibold text-gray-900">Angaben gemäß § 5 TMG</dt>
               <dd className="mt-1 text-sm">[Name / Firma – Platzhalter]</dd>
