@@ -17,8 +17,7 @@
     "db:status:prod": "node scripts/db.mjs status prod",
     "db:push:prod": "node scripts/db.mjs push prod",
     "functions:prod": "node scripts/db.mjs functions prod",
-    "secrets:prod": "node scripts/db.mjs secrets prod",
-    "deploy": "npm run build && wrangler deploy"
+    "secrets:prod": "node scripts/db.mjs secrets prod"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.53.0",
