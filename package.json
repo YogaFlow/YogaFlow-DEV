@@ -12,6 +12,7 @@
     "db:push:dev": "node scripts/db.mjs push dev",
     "functions:dev": "node scripts/db.mjs functions dev",
     "secrets:dev": "node scripts/db.mjs secrets dev",
+    "seed:dev": "node scripts/seed-dev.mjs",
     "deploy:dev": "npm run build && wrangler deploy --name omlify-dev",
     "db:status:prod": "node scripts/db.mjs status prod",
     "db:push:prod": "node scripts/db.mjs push prod",
