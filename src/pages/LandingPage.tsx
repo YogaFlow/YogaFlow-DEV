@@ -191,10 +191,11 @@ const LandingPage: React.FC = () => {
       </section>
 
       <footer className="border-t border-gray-200 py-8 text-center text-sm text-gray-500">
-        <div className="flex items-center justify-center gap-6 mb-3">
+        <nav className="flex items-center justify-center gap-6 mb-3" aria-label="Rechtliche Seiten">
+          <a href="/legal/impressum" className="hover:text-gray-700">Impressum</a>
           <a href="/legal/agb" className="hover:text-gray-700">AGB</a>
           <a href="/legal/datenschutz" className="hover:text-gray-700">Datenschutz</a>
-        </div>
+        </nav>
         <p>© 2026 Omlify – Professionelles Studio-Management</p>
       </footer>
     </div>
