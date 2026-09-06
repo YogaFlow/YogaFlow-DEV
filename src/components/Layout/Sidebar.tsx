@@ -23,7 +23,7 @@ const ROLE_LABELS: Record<string, { label: string; color: string }> = {
 };
 
 const Sidebar: React.FC = () => {
-  const { userProfile, signOut, isOwner, isAdmin, isCourseLeader } = useAuth();
+  const { userProfile, signOut, isAdmin, isCourseLeader } = useAuth();
   const { tenant } = useTenant();
   const { unreadCount } = useUnreadMessages();
 

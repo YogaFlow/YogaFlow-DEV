@@ -114,7 +114,7 @@ Deno.serve(async (req: Request) => {
 
     for (const user of usersToUpdate) {
       const newPassword = generateSecurePassword();
-      const { data, error } = await supabase.auth.admin.updateUserById(
+      const { error } = await supabase.auth.admin.updateUserById(
         user.id,
         { password: newPassword }
       );

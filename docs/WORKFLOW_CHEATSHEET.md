@@ -21,6 +21,8 @@ Kurzüberblick für den Entwicklungs- und Release-Alltag.
 
 | Thema | Datei |
 |--------|--------|
+| **Abnahme vor einem Release (durchklicken auf DEV)** | [RELEASE_ABNAHME.md](RELEASE_ABNAHME.md) |
+| **PROD-Backup und Wiederherstellung** | [BACKUP_RESTORE.md](BACKUP_RESTORE.md) |
 | **Sicherheit DEV→PROD (Checkliste, Ablauf)** | [DEV_PROD_SAFETY_WORKFLOW.md](DEV_PROD_SAFETY_WORKFLOW.md) |
 | DEV vs. PROD, Env-Variablen | [ENVIRONMENTS.md](ENVIRONMENTS.md) |
 | Rollback durchführen (Code) | [ROLLBACK.md](ROLLBACK.md) |
