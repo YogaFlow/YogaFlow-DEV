@@ -1,17 +1,28 @@
 // Deploy-Konfiguration fuer Cloudflare Workers — DIES ist die wirksame Datei
 // (wrangler.toml daneben wird ignoriert, siehe Hinweis dort).
 //
-// Zwei Worker teilen sich diese eine Konfiguration; sie unterscheiden sich nur im Namen:
+// Zwei Worker teilen sich diese eine Konfiguration und unterscheiden sich nur im Namen.
+// BEIDE Cloudflare-Projekte geben ihren Namen ausdruecklich im Deploy-Kommando an:
 //
-//   PROD  npm run deploy       -> Worker "yogaflow-dev"  (Name historisch, bedient omlify.de)
-//   DEV   npm run deploy:dev   -> Worker "omlify-dev"    (bedient omlify-dev.de)
+//   DEV   Worker "omlify-dev"    -> omlify-dev.de    Branch Julius
+//   PROD  Worker "yogaflow-dev"  -> omlify.de        Branch main
 //
-// Die Umgebung entscheidet sich NICHT hier, sondern ueber die VITE_*-Build-Variablen,
-// die im jeweiligen Cloudflare-Projekt hinterlegt sind. Der Worker-Name unten ist der
-// Vorgabewert (PROD); "deploy:dev" ueberschreibt ihn mit --name.
+// Der Vorgabewert unten ist mit Absicht der DEV-Name. Wer beim Deploy den Zusatz
+// --name vergisst, landet dadurch in DEV statt auf der Live-Seite: aergerlich statt
+// gefaehrlich. Vorher stand hier der PROD-Name, und ein vergessener Zusatz haette
+// omlify.de ueberschrieben.
+//
+// Die Umgebung entscheidet sich ohnehin NICHT hier, sondern ueber die
+// VITE_*-Build-Variablen im jeweiligen Cloudflare-Projekt. Der Name legt nur fest,
+// welcher Worker beschrieben wird.
+//
+// Offen: Der PROD-Worker heisst weiterhin "yogaflow-dev". Umbenennen geht bei
+// Cloudflare nicht in einem Zug - es braucht einen neuen Worker, das Umhaengen der
+// Custom Domain und das Loeschen des alten, mit kurzer Nichterreichbarkeit von
+// omlify.de dazwischen. Bewusst auf einen ruhigen Zeitpunkt verschoben.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "yogaflow-dev",
+  "name": "omlify-dev",
   "compatibility_date": "2026-04-21",
   "observability": {
     "enabled": true

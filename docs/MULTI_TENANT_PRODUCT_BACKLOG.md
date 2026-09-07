@@ -180,7 +180,7 @@ Umsetzung erfolgt über Datenbankmigration(en) nach Projektkonvention; RLS ist *
 
 **Akzeptanzkriterien**
 
-- [ ] `npm run db:push` bzw. Projektkommando gegen **verlinktes DEV**; Dokumentation beachtet (z. B. [DATABASE_WORKFLOW_SCHRITT_FÜR_SCHRITT.md](DATABASE_WORKFLOW_SCHRITT_FÜR_SCHRITT.md), [PRE_START_CHECK.md](PRE_START_CHECK.md)).
+- [ ] `npm run db:push:dev` ausgeführt; Dokumentation beachtet (z. B. [DATABASE_WORKFLOW_SCHRITT_FÜR_SCHRITT.md](DATABASE_WORKFLOW_SCHRITT_FÜR_SCHRITT.md), [PRE_START_CHECK.md](PRE_START_CHECK.md)).
 - [ ] **Smoke-Test:** Tabelle `tenants` existiert; Spalten **`id`**, **`name`**, **`slug`**, **`created_at`**, **`updated_at`**; PK auf `id`; Unique auf `slug`; negative/positive INSERT-Checks zu `name`/`slug` wie im MVP-Backlog (Epic E1) beschrieben.
 - [ ] Kein PROD-`db push` ohne Ablauf in [DEV_PROD_SAFETY_WORKFLOW.md](DEV_PROD_SAFETY_WORKFLOW.md).
 - [ ] Hinweis: Ohne RLS können manuelle Checks je nach DB-Rolle nötig sein — erwartbar bis E3.
@@ -908,7 +908,7 @@ Epic E11 gilt für einen **Meilenstein** als erledigt, wenn **US-E11-01 bis US-E
 
 **Akzeptanzkriterien**
 
-- [ ] Wie in den Projektregeln: nach PROD wieder mit **DEV** verlinken (`supabase link` / `npm run supabase:link`); im Runbook erwähnt.
+- [ ] Kein Zurücklinken mehr nötig – die Kommandos tragen ihr Ziel im Namen (`db:push:dev` / `db:push:prod`); im Runbook erwähnt.
 
 ---
 

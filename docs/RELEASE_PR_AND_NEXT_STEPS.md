@@ -38,10 +38,10 @@ Nach Review: PR in `main` mergen.
 
 1. `git checkout main` und `git pull origin main`
 2. Backup im **PROD**-Supabase-Dashboard prüfen
-3. Mit PROD verlinken: `supabase link --project-ref <PROD-Projekt-Ref>` (PROD-Datenbank-Passwort eingeben)
+3. Ausstehende Migrationen lesen: `npm run db:status:prod` (ändert nichts)
 4. Migrationen anwenden: `supabase db push`
 5. Live-Seite testen (Login, E-Mail-Verifizierung, Passwort-Reset)
-6. **Wieder mit DEV verlinken:** `supabase link --project-ref <DEV-Projekt-Ref>`
+6. **Kein Zurücklinken nötig** – jedes Kommando trägt sein Ziel im Namen
 
 ---
 

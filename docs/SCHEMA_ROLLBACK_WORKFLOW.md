@@ -68,9 +68,9 @@ DROP TABLE IF EXISTS workshops;
 ### Schritt 5: Rollback-Migration auf PROD anwenden
 
 1. **Backup prüfen:** Im PROD-Supabase-Dashboard prüfen, ob Backups aktiv sind (optional: Zeitpunkt notieren).
-2. **Mit PROD verlinken:** `supabase link --project-ref <PROD-Projekt-Ref>` (PROD-Ref und Passwort aus dem PROD-Dashboard).
+2. **Ausstehende Migrationen lesen:** `npm run db:status:prod` (ändert nichts). Die Gegen-Migration muss dort auftauchen.
 3. **Migration anwenden:** `supabase db push` (oder im PROD-Dashboard unter SQL Editor den **gleichen** Inhalt der Rollback-Migrations-Datei ausführen).
-4. **Wieder mit DEV verlinken:** `supabase link --project-ref <DEV-Projekt-Ref>`, damit der nächste Push nicht versehentlich PROD trifft.
+4. **Kein Zurücklinken nötig** – `npm run db:push:dev` trifft DEV, unabhängig davon, was vorher lief.
 5. **Live-Seite prüfen:** Login und betroffene Features im Browser testen.
 
 ---

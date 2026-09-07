@@ -195,11 +195,19 @@ const AuthPage: React.FC = () => {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-teal-600 rounded-full mb-4">
             <Heart className="w-8 h-8 text-white" />
           </div>
+          {/*
+            Auf einer Studio-Subdomain steht der Studioname oben: Wer sich bei Yomita
+            anmeldet, kennt Yomita - nicht Omlify. Die Plattform bleibt in der Fusszeile
+            sichtbar. Solange der Tenant noch laedt, bleibt die Zeile leer statt kurz
+            "Omlify" zu zeigen und dann umzuspringen.
+          */}
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Yoga Kursverwaltung
+            {tenant?.name ?? (tenantSlug ? " " : "Omlify")}
           </h1>
           <p className="text-gray-600">
-            Verwalten Sie Ihre Yoga-Kurse professionell und einfach
+            {tenantSlug
+              ? "Kurse buchen und verwalten"
+              : "Verwalten Sie Ihre Yoga-Kurse professionell und einfach"}
           </p>
         </div>
 
@@ -345,7 +353,7 @@ const AuthPage: React.FC = () => {
         </div>
 
         <div className="text-center mt-8 text-sm text-gray-500">
-          <p>© 2025 Yoga Kursverwaltung - Professionelle Lösung für Yoga-Lehrer</p>
+          <p>© {new Date().getFullYear()} Omlify · Kursverwaltung für Yogastudios</p>
         </div>
       </div>
     </div>
