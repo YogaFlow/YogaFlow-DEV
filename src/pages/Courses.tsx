@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Clock, MapPin, Users, Plus } from 'lucide-react';
 import CourseFilterBar from '../components/courses/CourseFilterBar';
@@ -7,6 +7,10 @@ import {
   CourseDateFilterState,
   matchesCourseDateFilter,
 } from '../lib/courseDateFilter';
+import {
+  matchesCourseTeacherFilter,
+  uniqueTeachersFromCourses,
+} from '../lib/courseTeacherFilter';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Course, Registration } from '../types';
@@ -25,11 +29,14 @@ const Courses: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState<CourseDateFilterState>(EMPTY_DATE_FILTER);
+  const [selectedTeacherId, setSelectedTeacherId] = useState<string | null>(null);
   const [feedbackDialog, setFeedbackDialog] = useState<{
     title: string;
     message: string;
     type: 'success' | 'error';
   } | null>(null);
+
+  const availableTeachers = useMemo(() => uniqueTeachersFromCourses(courses), [courses]);
 
   const showFeedbackDialog = (
     message: string,
@@ -128,6 +135,12 @@ const Courses: React.FC = () => {
       isMounted = false;
     };
   }, [userProfile]);
+
+  useEffect(() => {
+    if (selectedTeacherId && !availableTeachers.some((teacher) => teacher.id === selectedTeacherId)) {
+      setSelectedTeacherId(null);
+    }
+  }, [availableTeachers, selectedTeacherId]);
 
   const fetchCourses = async () => {
     try {
@@ -308,7 +321,8 @@ const Courses: React.FC = () => {
     const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           course.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDate = matchesCourseDateFilter(course.date, dateFilter);
-    return matchesSearch && matchesDate && isCourseUpcoming(course);
+    const matchesTeacher = matchesCourseTeacherFilter(course.teacher_id, selectedTeacherId);
+    return matchesSearch && matchesDate && matchesTeacher && isCourseUpcoming(course);
   });
 
   if (loading) {
@@ -371,6 +385,9 @@ const Courses: React.FC = () => {
         onSearchChange={setSearchTerm}
         filterState={dateFilter}
         onFilterChange={setDateFilter}
+        teachers={availableTeachers}
+        selectedTeacherId={selectedTeacherId}
+        onTeacherChange={setSelectedTeacherId}
       />
 
       {/* Courses grid */}
@@ -379,7 +396,7 @@ const Courses: React.FC = () => {
           <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">Keine Kurse gefunden</h3>
           <p className="text-gray-600">
-            {searchTerm || dateFilter.preset
+            {searchTerm || dateFilter.preset || selectedTeacherId
               ? 'Versuchen Sie andere Suchkriterien.' 
               : 'Derzeit sind keine Kurse verfügbar.'}
           </p>

@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Calendar, Search } from 'lucide-react';
+import { Calendar, ChevronDown, Search, User } from 'lucide-react';
 import FilterChip from './FilterChip';
 import CourseFilterDatePicker from './CourseFilterDatePicker';
 import {
@@ -10,12 +10,19 @@ import {
   selectCustomDate,
   selectPreset,
 } from '../../lib/courseDateFilter';
+import {
+  CourseTeacherOption,
+  formatTeacherName,
+} from '../../lib/courseTeacherFilter';
 
 interface CourseFilterBarProps {
   searchTerm: string;
   onSearchChange: (value: string) => void;
   filterState: CourseDateFilterState;
   onFilterChange: (state: CourseDateFilterState) => void;
+  teachers: CourseTeacherOption[];
+  selectedTeacherId: string | null;
+  onTeacherChange: (teacherId: string | null) => void;
 }
 
 const QUICK_PRESETS: { id: Exclude<DateFilterPreset, 'custom'>; label: string }[] = [
@@ -29,6 +36,9 @@ const CourseFilterBar: React.FC<CourseFilterBarProps> = ({
   onSearchChange,
   filterState,
   onFilterChange,
+  teachers,
+  selectedTeacherId,
+  onTeacherChange,
 }) => {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerVariant, setPickerVariant] = useState<'popover' | 'modal'>('popover');
@@ -109,7 +119,7 @@ const CourseFilterBar: React.FC<CourseFilterBarProps> = ({
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm md:p-6">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-start md:gap-3">
+      <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center md:justify-start md:gap-3">
         {/* Search */}
         <div className="relative w-full md:w-52 md:shrink-0 lg:w-60">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -121,6 +131,26 @@ const CourseFilterBar: React.FC<CourseFilterBarProps> = ({
             className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 focus:border-transparent focus:ring-2 focus:ring-teal-500"
           />
         </div>
+
+        {teachers.length > 0 && (
+          <div className="relative w-full md:w-52 md:shrink-0 lg:w-60">
+            <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <select
+              value={selectedTeacherId ?? ''}
+              onChange={(e) => onTeacherChange(e.target.value || null)}
+              aria-label="Nach Lehrer filtern"
+              className="w-full appearance-none rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-8 focus:border-transparent focus:ring-2 focus:ring-teal-500"
+            >
+              <option value="">Alle Lehrer</option>
+              {teachers.map((teacher) => (
+                <option key={teacher.id} value={teacher.id}>
+                  {formatTeacherName(teacher)}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          </div>
+        )}
 
         {/* Desktop: chips */}
         <div className="hidden flex-wrap items-center gap-2 md:flex">
