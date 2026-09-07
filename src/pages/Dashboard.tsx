@@ -481,21 +481,6 @@ const Dashboard: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-6">
-          {(isParticipantOnly || isTeacher) && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-              <div className="p-6 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">Meine kommenden Kurse</h2>
-              </div>
-              <div className="p-6">
-                {renderCourseCards(
-                  registrations,
-                  'Sie sind noch nicht für Kurse angemeldet.',
-                  { showRegisteredBadge: true }
-                )}
-              </div>
-            </div>
-          )}
-
           {(isCourseLeader && !isParticipantOnly) && (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200">
               <div className="p-6 border-b border-gray-200">
@@ -509,6 +494,21 @@ const Dashboard: React.FC = () => {
                   isTeacher
                     ? 'Sie haben noch keine Kurse erstellt.'
                     : 'Keine kommenden Kurse gefunden.'
+                )}
+              </div>
+            </div>
+          )}
+
+          {(isParticipantOnly || isTeacher) && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-lg font-semibold text-gray-900">Meine kommenden Kurse</h2>
+              </div>
+              <div className="p-6">
+                {renderCourseCards(
+                  registrations,
+                  'Sie sind noch nicht für Kurse angemeldet.',
+                  { showRegisteredBadge: true }
                 )}
               </div>
             </div>
