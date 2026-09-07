@@ -69,7 +69,7 @@ Du brauchst auf deinem Rechner:
 
 1. **Git** – um den Code zu klonen und Änderungen zu verwalten.  
    - Installieren: [git-scm.com](https://git-scm.com/) (Windows/macOS/Linux).
-2. **Node.js und npm** – um die App zu starten und Befehle wie `npm run dev` oder `npm run db:push` auszuführen.  
+2. **Node.js und npm** – um die App zu starten und Befehle wie `npm run dev` oder `npm run db:push:dev` auszuführen.  
    - Installieren: [nodejs.org](https://nodejs.org/) (LTS-Version).
 3. **Cursor** (optional, aber empfohlen) – der Editor, in dem wir entwickeln. Du kannst den **Agenten** in Cursor nutzen: Du beschreibst, was du willst, der Agent schlägt Code oder Befehle vor; du prüfst und führst aus.  
    - Installieren: [cursor.com](https://cursor.com/).
@@ -135,12 +135,12 @@ Die Supabase CLI brauchst du, um **Migrationen** (Datenbank-Strukturänderungen)
      - Danach in **demselben** Terminal weiter mit Schritt 3.
 
 3. **Mit DEV verlinken**  
-   - Im Projektordner: `npm run supabase:link` ausführen.  
+   - Im Projektordner `.env.deploy.example` als `.env.deploy` kopieren und die Werte für DEV und PROD eintragen (Projekt-Ref, Pooler-Host, Datenbank-Passwort). Damit kennen alle Kommandos ihre Ziele. Ein Verlinken der CLI ist nicht mehr nötig.  
    - Im Projekt ist bereits der **DEV-Projekt-Ref** hinterlegt; du wirst nach dem **Datenbank-Passwort** des DEV-Projekts gefragt (das Passwort, das bei der Erstellung des Supabase-Projekts „Yogaflow DEV“ vergeben wurde). Bei Bedarf: Supabase Dashboard → **Settings → Database** → Passwort zurücksetzen.  
    - Nach erfolgreichem Link: Die CLI ist mit **DEV** verbunden. Alle weiteren `supabase db push`-Befehle im Alltag treffen dann **DEV**, solange du nicht bewusst auf PROD umlinkst.
 
 4. **Hinweis für PROD**  
-   - Für einen späteren **PROD-Release** (Migration auf die Live-Datenbank) wirst du **nicht** `npm run supabase:link` nutzen, sondern manuell: `supabase link --project-ref <PROD-Projekt-Ref>`. Den PROD-Ref trägst du **nicht** im Repo ein; du holst ihn aus dem PROD-Supabase-Dashboard. Das wird in Teil B, Schritt B6, genau beschrieben.
+   - Für einen späteren **PROD-Release** nutzt du `npm run db:push:prod`. Das Skript verlangt den Branch `main` und eine getippte Bestätigung. Die PROD-Zugangsdaten stehen in `.env.deploy`, die **nicht** im Repo liegt. Das wird in Teil B, Schritt B6, genau beschrieben.
 
 ### A5 – Cloudflare (Live-Deploy, einmalig)
 
@@ -249,7 +249,7 @@ Nur ausführen, wenn das Feature Änderungen an der **Struktur** der Datenbank e
 
 2. **Migration nur auf DEV anwenden**  
    - Prüfen: Bin ich mit **DEV** verlinkt? (Nach der einmaligen Einrichtung ist das der Fall; nach einem PROD-Push solltest du wieder mit DEV verlinkt haben.)  
-   - Im Projektordner: `npm run db:push` (oder `supabase db push`) ausführen.  
+   - Im Projektordner: `npm run db:push:dev` ausführen. Vorher lohnt `npm run db:status:dev` – das zeigt nur an, was anstünde, und ändert nichts.  
    - Der Agent kann den Befehl ausführen; **du** musst sicherstellen, dass das Projekt mit **DEV** verlinkt ist (niemals PROD im Alltag).
 
 3. **App erneut testen**  
@@ -293,7 +293,7 @@ Nur ausführen, wenn das Feature Änderungen an der **Struktur** der Datenbank e
 1. **Pre-PROD-Checkliste abhaken** (siehe [DEV_PROD_SAFETY_WORKFLOW.md](DEV_PROD_SAFETY_WORKFLOW.md#pre-prod-checkliste-vor-jedem-prod-db-push)):  
    - PR ist gemerged; lokal: `git checkout main`, `git pull origin main`.  
    - Im **PROD**-Supabase-Dashboard: **Settings → Backups** prüfen (Backups aktiv?). Bei kritischen Änderungen Zeitpunkt notieren.  
-   - Mit **PROD** verlinken: Im Terminal `supabase link --project-ref <PROD-Projekt-Ref>` ausführen.  
+   - Ausstehende Migrationen lesen: `npm run db:status:prod` (ändert nichts).  
      - **PROD-Projekt-Ref** findest du im **PROD**-Supabase-Dashboard unter **Settings → General → Reference ID**.  
      - Du wirst nach dem **PROD**-Datenbank-Passwort gefragt (nicht das von DEV!).  
      - **PROD-Ref und Passwort niemals** im Repo oder in `.env` speichern.  
@@ -301,7 +301,7 @@ Nur ausführen, wenn das Feature Änderungen an der **Struktur** der Datenbank e
 
 2. **Nach dem Push**  
    - Live-Seite im Browser prüfen (Login, betroffene Features).  
-   - **Wieder mit DEV verlinken:** `supabase link --project-ref <DEV-Projekt-Ref>` (oder `npm run supabase:link`, da im Projekt der DEV-Ref hinterlegt ist). So trifft der nächste `db push` im Alltag wieder DEV, nicht PROD.
+   - **Ein Zurücklinken entfällt.** Jedes Kommando trägt sein Ziel im Namen: Der nächste `npm run db:push:dev` trifft DEV, unabhängig davon, was vorher lief.
 
 Ausführliche Sicherheitsprinzipien und Checkliste: [DEV_PROD_SAFETY_WORKFLOW.md](DEV_PROD_SAFETY_WORKFLOW.md).
 
@@ -365,7 +365,7 @@ Checkliste zum Abhaken (inkl. Asana-Vorlage): [ASANA_CHECKLISTE_FEATURE_LIVE.md]
 | **DEV** | Entwicklungsumgebung: Supabase-Projekt und Datenbank nur für Entwicklung und Tests. |
 | **PROD** | Produktion: Live-Website und echte Nutzerdaten. |
 | **Env-Variablen** | Konfigurationswerte (z. B. `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`). Lokal in `.env` (nur DEV), in Cloudflare als Build-Variablen für Production (PROD). |
-| **Supabase Link** | Verknüpfung der Supabase CLI mit einem konkreten Supabase-Projekt (DEV oder PROD). `supabase link --project-ref <Ref>`. |
+| **Zielgebundene Kommandos** | Alle Datenbank-Befehle tragen ihr Ziel im Namen (`db:push:dev`, `db:push:prod`). Sie lesen die Verbindungsdaten aus `.env.deploy`. Das frühere `supabase link` entfällt – es hing an unsichtbarem lokalem Zustand und war die Ursache dafür, dass ein Push die falsche Datenbank treffen konnte. |
 | **Cloudflare Production Build** | Build, den Cloudflare bei jedem neuen Stand auf **main** ausführt; Ergebnis ist die Live-Website. |
 
 ---

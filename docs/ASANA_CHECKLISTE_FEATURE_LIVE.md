@@ -43,7 +43,7 @@ Diese Checkliste entspricht dem **Teil B: Wiederkehrender Ablauf – Neues Featu
 - [ ] Dateiname im Format `YYYYMMDDHHMMSS_kurzbeschreibung.sql` (z. B. `20260305140000_add_workshop_table.sql`)
 - [ ] Inhalt: nur Struktur (CREATE TABLE, ALTER TABLE, RLS usw.), keine Nutzerdaten ändern, wo möglich idempotent (`IF NOT EXISTS` etc.)
 - [ ] Prüfung: Projekt ist mit **DEV** verlinkt (nicht PROD)
-- [ ] Migration auf DEV angewendet: `npm run db:push` (oder `supabase db push`) ausgeführt
+- [ ] Migration auf DEV angewendet: `npm run db:push:dev` ausgeführt
 - [ ] App nach Migration erneut getestet: `npm run dev`, betroffene Funktionen im Browser geprüft – alles ok
 
 ---
@@ -76,10 +76,10 @@ Diese Checkliste entspricht dem **Teil B: Wiederkehrender Ablauf – Neues Featu
 
 - [ ] PR ist gemerged; lokal auf **main**: `git checkout main` und `git pull origin main`
 - [ ] Im **PROD**-Supabase-Dashboard: **Settings → Backups** geprüft (Backups aktiv? Bei kritischen Änderungen Zeitpunkt notiert)
-- [ ] Mit **PROD** verlinkt: `supabase link --project-ref <PROD-Projekt-Ref>` ausgeführt (PROD-Ref aus PROD-Dashboard, **PROD**-Datenbank-Passwort eingegeben)
+- [ ] Ausstehende PROD-Migrationen gelesen: `npm run db:status:prod` (ändert nichts) und Liste geprüft
 - [ ] **Erst danach:** `supabase db push` ausgeführt (Agent nur nach deiner Bestätigung „PROD ist verlinkt“)
 - [ ] Live-Seite im Browser geprüft (Login, betroffene Features)
-- [ ] Wieder mit **DEV** verlinkt: `supabase link --project-ref <DEV-Projekt-Ref>` oder `npm run supabase:link` – damit der nächste `db push` nicht versehentlich PROD trifft
+- [ ] Abnahme auf DEV durchgeklickt ([RELEASE_ABNAHME.md](RELEASE_ABNAHME.md)) – ein Zurücklinken gibt es nicht mehr, die Kommandos tragen ihr Ziel im Namen
 
 Vollständige Beschreibung und Sicherheitsprinzipien: [DEV_PROD_SAFETY_WORKFLOW.md](DEV_PROD_SAFETY_WORKFLOW.md).
 

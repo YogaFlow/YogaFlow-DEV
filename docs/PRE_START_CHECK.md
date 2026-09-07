@@ -21,11 +21,11 @@ YogaFlow Pre-Start-Check: Führe die folgenden Prüfungen durch und melde das Er
 
 2. .env: Datei .env muss im Projektroot existieren und die Variablen VITE_SUPABASE_URL und VITE_SUPABASE_ANON_KEY enthalten. Werte nicht anzeigen oder ausgeben. Lokal sind nur DEV-Keys erlaubt (keine PROD-Keys). Fehlt .env: Hinweis auf docs/ENVIRONMENTS.md und .env aus .env.example anlegen, DEV-Werte aus dem DEV-Dashboard eintragen.
 
-3. Supabase-Verlinkung: Das Projekt muss mit der DEV-Datenbank verlinkt sein. DEV-Project-Ref aus package.json (Script supabase:link): mufxhtctutfpzklwqnze. Prüfe den verlinkten Ref (z. B. npx supabase status oder Supabase-Konfiguration). Stimmt der Ref nicht: npm run supabase:link ausführen (verlinkt explizit DEV).
+3. Datenbank-Ziele: .env.deploy muss vorhanden und ausgefüllt sein (Vorlage: .env.deploy.example). Prüfen mit npm run db:status:dev – das liest nur und zeigt den Migrationsstand von DEV. Ein Verlinken der CLI gibt es nicht mehr; jedes Kommando trägt sein Ziel im Namen.
 
 4. Git-Status: Bei uncommitteten Änderungen eine Warnung ausgeben (kein Fehler). Optional git status ausgeben.
 
-5. node_modules: Prüfen ob vorhanden, damit npm run dev und npm run db:push laufen. Fehlt: npm install vorschlagen.
+5. node_modules: Prüfen ob vorhanden, damit npm run dev und npm run db:push:dev laufen. Fehlt: npm install vorschlagen.
 
 6. Supabase Auth (Dashboard, kein SQL): Im **DEV-** und **PROD-**Projekt unter Authentication die **Leaked Password Protection** aktivieren, falls noch aus (Security Advisor, HaveIBeenPwned). Siehe [DEV_PROD_SAFETY_WORKFLOW.md](DEV_PROD_SAFETY_WORKFLOW.md) Pre-PROD-Checkliste.
 
