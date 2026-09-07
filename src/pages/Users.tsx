@@ -94,7 +94,7 @@ function isLastOwnerSelfDowngrade(user: User, ownerCount: number, isSelf: boolea
 }
 
 function canShowCourseSection(role: UserRole): boolean {
-  return role === 'user';
+  return role === 'user' || role === 'teacher';
 }
 
 // ---------------------------------------------------------------------------
@@ -319,6 +319,8 @@ export default function Users() {
       if (!result.success) {
         if (result.error === 'already_registered') {
           setFeedbackDialog({ title: 'Hinweis', message: 'Der Nutzer ist bereits in diesem Kurs angemeldet.', type: 'info' });
+        } else if (result.error === 'Course teachers cannot be added as participants to their own course') {
+          setFeedbackDialog({ title: 'Hinweis', message: 'Lehrer können nicht als Teilnehmer in den eigenen Kurs aufgenommen werden.', type: 'info' });
         } else {
           throw new Error(result.error);
         }
@@ -441,7 +443,7 @@ export default function Users() {
           const lastOwnerLocked = isLastOwnerSelfDowngrade(user, ownerCount, isSelf);
           const alreadyRegisteredIds = new Set(userRegistrations.map(r => r.course_id));
           const today = new Date(); today.setHours(0, 0, 0, 0);
-          const availableCoursesToAdd = courses.filter(c => !alreadyRegisteredIds.has(c.id) && (!c.date || new Date(c.date) >= today));
+          const availableCoursesToAdd = courses.filter(c => !alreadyRegisteredIds.has(c.id) && (!c.date || new Date(c.date) >= today) && c.teacher_id !== user.id);
           return (
             <React.Fragment key={user.id}>
               <div className={`bg-white rounded-xl border shadow-sm overflow-hidden transition-colors ${
@@ -698,7 +700,7 @@ export default function Users() {
               // Courses the user is already registered in (for dropdown filtering)
               const alreadyRegisteredIds = new Set(userRegistrations.map(r => r.course_id));
               const today = new Date(); today.setHours(0, 0, 0, 0);
-              const availableCoursesToAdd = courses.filter(c => !alreadyRegisteredIds.has(c.id) && (!c.date || new Date(c.date) >= today));
+              const availableCoursesToAdd = courses.filter(c => !alreadyRegisteredIds.has(c.id) && (!c.date || new Date(c.date) >= today) && c.teacher_id !== user.id);
 
               return (
                 <React.Fragment key={user.id}>

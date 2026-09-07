@@ -11,6 +11,12 @@ export function isParticipantOnlyRole(user: User | null | undefined): boolean {
   return user?.role === 'user';
 }
 
+/** Teilnehmer oder Lehrer – Selbstanmeldung in fremden Kursen. */
+export function canSelfEnrollInCourses(user: User | null | undefined): boolean {
+  const r = user?.role;
+  return r === 'user' || r === 'teacher';
+}
+
 /** Nur Lehrer ohne Owner/Admin – eingeschränkte Kursliste. */
 export function isTeacherOnly(user: User | null | undefined): boolean {
   return user?.role === 'teacher';

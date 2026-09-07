@@ -14,6 +14,7 @@ import { format, parseISO, isToday, isTomorrow } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { isCourseUpcoming } from '../lib/courseDateTime';
 import { runPastRegistrationCleanup } from '../lib/registrationMaintenance';
+import { canSelfEnrollInCourses } from '../lib/userRoles';
 
 const Courses: React.FC = () => {
   const navigate = useNavigate();
@@ -101,7 +102,7 @@ const Courses: React.FC = () => {
           }
         }
 
-        if (userProfile?.role === 'user') {
+        if (canSelfEnrollInCourses(userProfile)) {
           const { data: regData, error: regError } = await supabase
             .from('registrations')
             .select('course_id, status, is_waitlist, waitlist_position')
@@ -456,7 +457,7 @@ const Courses: React.FC = () => {
                         )}
                       </div>
 
-                      {course.status === 'active' && userProfile?.role === 'user' && course.teacher_id !== userProfile?.id && (
+                      {course.status === 'active' && canSelfEnrollInCourses(userProfile) && course.teacher_id !== userProfile?.id && (
                         <div className="mt-4">
                           {isRegistered ? (
                             <div className="space-y-2">

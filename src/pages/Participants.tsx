@@ -52,7 +52,13 @@ const Participants: React.FC = () => {
           .order('date', { ascending: true });
 
         if (coursesError) throw coursesError;
-        const upcomingCourses = (coursesData || []).filter((course) => isCourseUpcoming(course));
+        const upcomingCourses = (coursesData || []).filter((course) => {
+          if (!isCourseUpcoming(course)) return false;
+          if (isTeacherOnly(userProfile)) {
+            return course.teacher_id === userProfile.id;
+          }
+          return true;
+        });
         if (!isMounted) return;
         setCourses(upcomingCourses);
 
@@ -71,7 +77,8 @@ const Participants: React.FC = () => {
             (registration: any) =>
               registration.course &&
               isCourseUpcoming(registration.course) &&
-              registration.cancellation_timestamp == null
+              registration.cancellation_timestamp == null &&
+              (!isTeacherOnly(userProfile) || registration.course.teacher_id === userProfile.id)
           );
           setParticipants(upcomingParticipants);
         }
@@ -288,7 +295,7 @@ const Participants: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900">Teilnehmer</h1>
           <p className="text-gray-600">
             {userProfile && userProfile.role === 'teacher'
-              ? 'Alle Studio-Anmeldungen für kommende Kurse'
+              ? 'Anmeldungen für Ihre kommenden Kurse'
               : 'Verwalten Sie Kursteilnehmer und Anmeldungen'}
           </p>
         </div>

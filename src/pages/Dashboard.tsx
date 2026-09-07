@@ -148,24 +148,32 @@ const Dashboard: React.FC = () => {
         const today = new Date().toISOString().split('T')[0];
         const { data: upcomingCoursesData } = await supabase
           .from('courses')
-          .select('id, date, time')
+          .select('id, date, time, teacher_id')
           .gte('date', today);
 
-        const upcomingCourseIds = (upcomingCoursesData || [])
-          .filter((course) => isCourseUpcoming(course))
-          .map((course) => course.id);
+        const upcomingCourses = (upcomingCoursesData || []).filter((course) =>
+          isCourseUpcoming(course)
+        );
+        const upcomingCourseIds = upcomingCourses.map((course) => course.id);
 
         const totalCoursesCount = upcomingCourseIds.length;
         const upcomingCoursesCount = totalCoursesCount;
 
+        const participantCourseIds =
+          userProfile.role === 'teacher'
+            ? upcomingCourses
+                .filter((course) => course.teacher_id === userProfile.id)
+                .map((course) => course.id)
+            : upcomingCourseIds;
+
         let totalParticipantsCount = 0;
-        if (upcomingCourseIds.length > 0) {
+        if (participantCourseIds.length > 0) {
           const { count } = await supabase
             .from('registrations')
             .select('*', { count: 'exact', head: true })
             .eq('status', 'registered')
             .is('cancellation_timestamp', null)
-            .in('course_id', upcomingCourseIds);
+            .in('course_id', participantCourseIds);
           totalParticipantsCount = count || 0;
         }
 
