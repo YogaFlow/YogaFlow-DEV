@@ -261,7 +261,6 @@ function App() {
             <Route path="/onboarding" element={<OnboardingWizard />} />
 
             {/* Rechtliche Seiten */}
-            <Route path="/legal/impressum"   element={<LegalPage type="impressum" />} />
             <Route path="/legal/agb"         element={<LegalPage type="agb" />} />
             <Route path="/legal/datenschutz" element={<LegalPage type="datenschutz" />} />
 
