@@ -392,7 +392,7 @@ const EditCourse: React.FC = () => {
           onClick={() => navigate('/my-courses')}
           className="mt-4 text-teal-600 hover:text-teal-700"
         >
-          Zurück zu meinen Kursen
+          Zurück zur Kursverwaltung
         </button>
       </div>
     );

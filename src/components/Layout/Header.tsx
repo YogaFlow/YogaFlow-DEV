@@ -52,9 +52,13 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
     };
   }, []);
 
-  const handleGoToMyCourses = (path: string) => {
+  const handleGoToRegistrations = (path?: string) => {
     setIsNotificationsOpen(false);
-    navigate(path);
+    const destination =
+      !path || path === '/my-courses' || path.startsWith('/my-courses#anmeldungen')
+        ? '/my-registrations'
+        : path;
+    navigate(destination);
   };
 
   return (
@@ -136,7 +140,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                         <p className="text-sm text-gray-800">{notification.body}</p>
                         <button
                           type="button"
-                          onClick={() => handleGoToMyCourses(notification.action_path || '/my-courses')}
+                          onClick={() => handleGoToRegistrations(notification.action_path)}
                           className="mt-2 text-sm font-medium text-teal-700 hover:text-teal-800 underline-offset-2 hover:underline"
                         >
                           Zu meinen Anmeldungen

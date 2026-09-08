@@ -1,86 +1,20 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { Calendar, Clock, MapPin, Users, Plus, Edit, Trash2, Eye, AlertCircle, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Course, Registration } from '../types';
+import { Course } from '../types';
 import { format, parseISO, isToday, isTomorrow } from 'date-fns';
 import { de } from 'date-fns/locale';
-import { isCourseManagerRole, isParticipantOnlyRole, isTeacherOnly } from '../lib/userRoles';
+import { isCourseManagerRole } from '../lib/userRoles';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
 import { isCourseUpcoming } from '../lib/courseDateTime';
-import { runPastRegistrationCleanup } from '../lib/registrationMaintenance';
-
-function EnrollmentCards({
-  registrations,
-  formatDate,
-}: {
-  registrations: Registration[];
-  formatDate: (dateString: string) => string;
-}) {
-  if (registrations.length === 0) {
-    return (
-      <p className="text-sm text-gray-500">Sie sind noch nicht für Kurse angemeldet.</p>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      {registrations.map((registration) => {
-        const course = registration.course as Course | undefined;
-        if (!course) return null;
-
-        const isWaitlist = registration.is_waitlist;
-
-        return (
-          <div
-            key={registration.id}
-            className="flex items-center p-4 bg-white rounded-lg shadow-sm border border-gray-200"
-          >
-            <div className="flex-1">
-              <h3 className="font-medium text-gray-900">{course.title}</h3>
-              <div className="flex items-center mt-1 text-sm text-gray-600">
-                <Calendar className="w-4 h-4 mr-1" />
-                {formatDate(course.date)}
-                <Clock className="w-4 h-4 ml-3 mr-1" />
-                {course.time}
-                {course.end_time && ` - ${course.end_time}`}
-              </div>
-              <div className="flex items-center mt-1 text-sm text-gray-600">
-                <MapPin className="w-4 h-4 mr-1" />
-                {course.location}
-              </div>
-              {course.teacher && (
-                <p className="text-xs text-gray-500 mt-1">
-                  Lehrer: {course.teacher.first_name} {course.teacher.last_name}
-                </p>
-              )}
-              <div className={`mt-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${isWaitlist ? 'bg-yellow-50 text-yellow-700' : 'bg-teal-50 text-teal-700'}`}>
-                {isWaitlist
-                  ? (registration.waitlist_position ? `Warteliste (Pos. ${registration.waitlist_position})` : 'Warteliste')
-                  : 'Angemeldet'}
-              </div>
-            </div>
-            <div className="text-right">
-              {course.price != null && (
-                <p className="text-lg font-semibold text-teal-600">
-                  €{course.price}
-                </p>
-              )}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
 const MyCourses: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { userProfile } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
-  const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
   const [successMessage, setSuccessMessage] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -91,8 +25,6 @@ const MyCourses: React.FC = () => {
   const [feedbackDialog, setFeedbackDialog] = useState<FeedbackDialogState | null>(null);
 
   const isCourseManager = isCourseManagerRole(userProfile);
-  const isParticipantOnly = isParticipantOnlyRole(userProfile);
-  const isTeacher = isTeacherOnly(userProfile);
 
   useEffect(() => {
     let isMounted = true;
@@ -117,51 +49,12 @@ const MyCourses: React.FC = () => {
       }
     };
 
-    const fetchParticipantRegistrations = async () => {
-      if (!userProfile || (!isParticipantOnly && !isTeacher)) return;
-
-      const { data, error } = await supabase
-        .from('registrations')
-        .select(
-          `
-          *,
-          course:courses(
-            *,
-            teacher:users!courses_teacher_id_fkey(first_name, last_name)
-          )
-        `
-        )
-        .eq('user_id', userProfile.id)
-        .in('status', ['registered', 'waitlist'])
-        .is('cancellation_timestamp', null);
-
-      if (error) throw error;
-      if (!isMounted) return;
-
-      const futureRegistrations = (data || [])
-        .filter(
-          (registration: any) =>
-            registration.course && isCourseUpcoming(registration.course)
-        )
-        .sort((a: any, b: any) => {
-          const dateA = `${a.course.date}T${a.course.time}`;
-          const dateB = `${b.course.date}T${b.course.time}`;
-          return dateA.localeCompare(dateB);
-        });
-
-      setRegistrations(futureRegistrations);
-    };
-
     const loadPage = async () => {
       if (!userProfile) return;
       try {
         setLoading(true);
-        await runPastRegistrationCleanup();
         if (isCourseManager) {
           await fetchMyCourses();
-        }
-        if (isParticipantOnly || isTeacher) {
-          await fetchParticipantRegistrations();
         }
       } catch (error) {
         console.error('Error loading my courses:', error);
@@ -190,7 +83,7 @@ const MyCourses: React.FC = () => {
         clearTimeout(successTimeoutRef.current);
       }
     };
-  }, [userProfile, location.state, isCourseManager, isParticipantOnly, isTeacher]);
+  }, [userProfile, location.state, isCourseManager]);
 
   const handleDeleteClick = async (courseId: string, courseTitle: string, seriesId: string | null) => {
     if (!seriesId) {
@@ -289,35 +182,8 @@ const MyCourses: React.FC = () => {
     );
   }
 
-  if (isParticipantOnly) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Meine Anmeldungen</h1>
-          <p className="text-gray-600">
-            Hier sehen Sie Ihre kommenden Kurs-Anmeldungen.
-          </p>
-        </div>
-
-        {registrations.length === 0 ? (
-          <div className="text-center py-12">
-            <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Keine Anmeldungen gefunden</h3>
-            <p className="text-gray-600 mb-6">
-              Sie sind noch nicht für Kurse angemeldet.
-            </p>
-            <button
-              onClick={() => navigate('/courses')}
-              className="bg-teal-600 text-white px-6 py-3 rounded-lg hover:bg-teal-700 transition-colors"
-            >
-              Kurse durchsuchen
-            </button>
-          </div>
-        ) : (
-          <EnrollmentCards registrations={registrations} formatDate={formatDate} />
-        )}
-      </div>
-    );
+  if (!isCourseManager) {
+    return <Navigate to="/my-registrations" replace />;
   }
 
   return (
@@ -325,8 +191,8 @@ const MyCourses: React.FC = () => {
       <FeedbackDialog dialog={feedbackDialog} onClose={() => setFeedbackDialog(null)} />
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Meine Kurse</h1>
-          <p className="text-gray-600">Verwalten Sie Ihre Yoga-Kurse</p>
+          <h1 className="text-2xl font-bold text-gray-900">Kurse verwalten</h1>
+          <p className="text-gray-600">Kurse, die Sie selbst unterrichten.</p>
         </div>
         
         <button
@@ -443,30 +309,6 @@ const MyCourses: React.FC = () => {
               </div>
             );
           })}
-        </div>
-      )}
-
-      {isTeacher && (
-        <div id="anmeldungen" className="space-y-4 pt-2">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">Meine Anmeldungen</h2>
-            <p className="text-gray-600 text-sm">
-              Kurse, bei denen Sie als Teilnehmer angemeldet sind.
-            </p>
-          </div>
-          {registrations.length === 0 ? (
-            <div className="text-center py-10 bg-white rounded-lg border border-gray-200">
-              <p className="text-gray-600 mb-4">Sie sind noch nicht für Kurse angemeldet.</p>
-              <button
-                onClick={() => navigate('/courses')}
-                className="bg-teal-600 text-white px-6 py-2 rounded-lg hover:bg-teal-700 transition-colors"
-              >
-                Kurse durchsuchen
-              </button>
-            </div>
-          ) : (
-            <EnrollmentCards registrations={registrations} formatDate={formatDate} />
-          )}
         </div>
       )}
 

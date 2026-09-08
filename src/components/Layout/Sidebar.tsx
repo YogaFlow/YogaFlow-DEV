@@ -10,10 +10,12 @@ import {
   Home,
   MessageSquare,
   UserCog,
+  ClipboardCheck,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTenant } from '../../context/TenantContext';
 import { useUnreadMessages } from '../../lib/useUnreadMessages';
+import { canSelfEnrollInCourses } from '../../lib/userRoles';
 
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
   owner:   { label: 'Owner',     color: 'bg-purple-100 text-purple-800' },
@@ -26,6 +28,7 @@ const Sidebar: React.FC = () => {
   const { userProfile, signOut, isAdmin, isCourseLeader } = useAuth();
   const { tenant } = useTenant();
   const { unreadCount } = useUnreadMessages();
+  const canSelfEnroll = canSelfEnrollInCourses(userProfile);
 
   // Kurzer "Pop"-Effekt jedes Mal, wenn die Anzahl ungelesener Nachrichten steigt.
   const prevUnreadRef = useRef(unreadCount);
@@ -46,10 +49,26 @@ const Sidebar: React.FC = () => {
     ];
 
     if (isCourseLeader) {
-      items.splice(2, 0,
-        { to: '/my-courses',   icon: BookOpen, label: 'Meine Kurse' },
-        { to: '/participants', icon: Users,    label: 'Teilnehmer' },
-      );
+      const courseItems = [
+        { to: '/my-courses', icon: BookOpen, label: 'Kurse verwalten' },
+      ];
+
+      if (canSelfEnroll) {
+        courseItems.push({
+          to: '/my-registrations',
+          icon: ClipboardCheck,
+          label: 'Meine Anmeldungen',
+        });
+      }
+
+      courseItems.push({ to: '/participants', icon: Users, label: 'Teilnehmer' });
+      items.splice(2, 0, ...courseItems);
+    } else if (canSelfEnroll) {
+      items.splice(2, 0, {
+        to: '/my-registrations',
+        icon: ClipboardCheck,
+        label: 'Meine Anmeldungen',
+      });
     }
 
     if (isAdmin) {

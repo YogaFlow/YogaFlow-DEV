@@ -8,6 +8,7 @@ import Courses from './pages/Courses';
 import CreateCourse from './pages/CreateCourse';
 import EditCourse from './pages/EditCourse';
 import MyCourses from './pages/MyCourses';
+import MyRegistrations from './pages/MyRegistrations';
 import Profile from './pages/Profile';
 import Participants from './pages/Participants';
 import Users from './pages/Users';
@@ -272,6 +273,7 @@ function App() {
               <Route path="course/:courseId/edit" element={<EditCourse />} />
               <Route path="course/:courseId/participants" element={<Participants />} />
               <Route path="my-courses" element={<MyCourses />} />
+              <Route path="my-registrations" element={<MyRegistrations />} />
               <Route path="profile" element={<Profile />} />
               <Route path="participants" element={<Participants />} />
               <Route path="users" element={<Users />} />

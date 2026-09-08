@@ -243,7 +243,7 @@ const Dashboard: React.FC = () => {
     if (isTeacher) {
       return [
         {
-          title: 'Meine Kurse',
+          title: 'Kurse verwalten',
           value: stats.myCourses,
           icon: BookOpen,
           color: 'bg-teal-500',
@@ -254,7 +254,7 @@ const Dashboard: React.FC = () => {
           value: stats.myRegistrations,
           icon: Calendar,
           color: 'bg-blue-500',
-          path: '/my-courses#anmeldungen'
+          path: '/my-registrations'
         },
         {
           title: 'Gesamt Teilnehmer',
@@ -285,7 +285,7 @@ const Dashboard: React.FC = () => {
     if (isCourseLeader && !isParticipantOnly) {
       return [
         {
-          title: 'Meine Kurse',
+          title: 'Kurse verwalten',
           value: stats.myCourses,
           icon: BookOpen,
           color: 'bg-teal-500',
@@ -297,10 +297,10 @@ const Dashboard: React.FC = () => {
       return [
         {
           title: 'Meine Anmeldungen',
-          value: stats.myCourses,
+          value: stats.myRegistrations,
           icon: BookOpen,
           color: 'bg-teal-500',
-          path: '/my-courses'
+          path: '/my-registrations'
         },
         {
           title: 'Alle Kurse',
@@ -560,7 +560,7 @@ const Dashboard: React.FC = () => {
                     <span className="font-medium text-teal-700">Kurse durchsuchen</span>
                   </button>
                   <button
-                    onClick={() => navigate('/my-courses')}
+                    onClick={() => navigate('/my-registrations')}
                     className="flex items-center p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-left"
                   >
                     <BookOpen className="w-5 h-5 text-blue-600 mr-3" />
