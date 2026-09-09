@@ -141,7 +141,7 @@ const AuthPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-surfaceSunken flex items-center justify-center">
+      <div className="min-h-screen bg-sand flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand"></div>
       </div>
     );
@@ -149,7 +149,7 @@ const AuthPage: React.FC = () => {
 
   if (tenantSlug && lookupError) {
     return (
-      <div className="min-h-screen bg-surfaceSunken flex flex-col items-center justify-center p-6 text-center">
+      <div className="min-h-screen bg-sand flex flex-col items-center justify-center p-6 text-center">
         <h1 className="text-2xl font-bold text-text mb-2">Studio konnte nicht geladen werden</h1>
         <p className="text-textMuted text-sm max-w-lg leading-relaxed">{lookupError}</p>
         <p className="text-textMuted text-xs max-w-md mt-3">
@@ -159,7 +159,7 @@ const AuthPage: React.FC = () => {
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className="mt-6 rounded-lg bg-brand text-white px-4 py-2 text-sm font-medium hover:bg-brandPressed"
+          className="mt-6 rounded-lg bg-brand text-onBrand px-4 py-2 text-sm font-medium hover:bg-brandPressed"
         >
           Neu laden
         </button>
@@ -172,7 +172,7 @@ const AuthPage: React.FC = () => {
 
   if (tenantSlug && notFound) {
     return (
-      <div className="min-h-screen bg-surfaceSunken flex flex-col items-center justify-center p-6 text-center">
+      <div className="min-h-screen bg-sand flex flex-col items-center justify-center p-6 text-center">
         <h1 className="text-2xl font-bold text-text mb-2">Studio nicht gefunden</h1>
         <p className="text-textMuted max-w-md">
           Unter der Adresse <span className="font-mono">{tenantSlug}</span> ist in der von der App angesprochenen
@@ -189,11 +189,11 @@ const AuthPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-indigo-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-sand flex items-center justify-center p-4">
       <div className="w-full max-w-4xl">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-brand rounded-full mb-4">
-            <Heart className="w-8 h-8 text-white" />
+            <Heart className="w-8 h-8 text-onBrand" />
           </div>
           {/*
             Auf einer Studio-Subdomain steht der Studioname oben: Wer sich bei Yomita
@@ -211,7 +211,7 @@ const AuthPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+        <div className="bg-surface rounded-2xl shadow-xl overflow-hidden">
           {isApexAuth ? (
             <div className="border-b border-border py-4 px-6 text-center">
               <h2 className="text-lg font-semibold text-text">Anmelden</h2>

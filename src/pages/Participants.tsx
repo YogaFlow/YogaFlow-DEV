@@ -303,7 +303,7 @@ const Participants: React.FC = () => {
         {filteredParticipants.length > 0 && (
           <button
             onClick={exportParticipants}
-            className="mt-4 sm:mt-0 bg-brand text-white px-4 py-2 rounded-lg hover:bg-brandPressed transition-colors flex items-center"
+            className="mt-4 sm:mt-0 bg-brand text-onBrand px-4 py-2 rounded-lg hover:bg-brandPressed transition-colors flex items-center"
           >
             <Download className="w-4 h-4 mr-2" />
             CSV Export
@@ -312,7 +312,7 @@ const Participants: React.FC = () => {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow-sm border border-border p-6">
+      <div className="bg-surface rounded-lg shadow-sm border border-border p-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-textSubtle" />
@@ -376,7 +376,7 @@ const Participants: React.FC = () => {
           {/* Mobile: card list */}
           <div className="sm:hidden space-y-3">
             {filteredParticipants.map((participant) => (
-              <div key={participant.id} className="bg-white rounded-lg shadow-sm border border-border p-4">
+              <div key={participant.id} className="bg-surface rounded-lg shadow-sm border border-border p-4">
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <div className="min-w-0">
                     <div className="text-sm font-medium text-text">
@@ -451,7 +451,7 @@ const Participants: React.FC = () => {
           </div>
 
           {/* Desktop: table */}
-          <div className="hidden sm:block bg-white rounded-lg shadow-sm border border-border overflow-hidden">
+          <div className="hidden sm:block bg-surface rounded-lg shadow-sm border border-border overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-border">
                 <thead className="bg-surfaceSunken">
@@ -478,7 +478,7 @@ const Participants: React.FC = () => {
                     )}
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-border">
+                <tbody className="bg-surface divide-y divide-border">
                   {filteredParticipants.map((participant) => (
                     <tr key={participant.id} className="hover:bg-surfaceSunken">
                       <td className="px-6 py-4 whitespace-nowrap">

@@ -325,7 +325,7 @@ const Dashboard: React.FC = () => {
         title: 'Wachstum',
         value: '+12%',
         icon: TrendingUp,
-        color: 'bg-surfaceSunken0'
+        color: 'bg-sage-500'
       }
     ];
   };
@@ -355,7 +355,7 @@ const Dashboard: React.FC = () => {
           return (
             <div
               key={course.id || index}
-              className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm transition-shadow hover:shadow-md"
+              className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm transition-shadow hover:shadow-md"
             >
               <div className="p-5">
                 <div className="flex items-start justify-between gap-3">
@@ -451,7 +451,7 @@ const Dashboard: React.FC = () => {
           const CardContent = () => (
             <div className="flex items-center">
               <div className={`${card.color} p-3 rounded-lg`}>
-                <card.icon className="w-6 h-6 text-white" />
+                <card.icon className="w-6 h-6 text-onBrand" />
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-textMuted">{card.title}</p>
@@ -465,14 +465,14 @@ const Dashboard: React.FC = () => {
               <Link
                 key={index}
                 to={path}
-                className="block bg-white rounded-lg shadow-sm border border-border p-6 w-full text-left hover:border-sage-200 hover:shadow-md transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 no-underline text-inherit"
+                className="block bg-surface rounded-lg shadow-sm border border-border p-6 w-full text-left hover:border-sage-200 hover:shadow-md transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 no-underline text-inherit"
               >
                 <CardContent />
               </Link>
             );
           }
           return (
-            <div key={index} className="bg-white rounded-lg shadow-sm border border-border p-6">
+            <div key={index} className="bg-surface rounded-lg shadow-sm border border-border p-6">
               <CardContent />
             </div>
           );
@@ -482,7 +482,7 @@ const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-6">
           {(isCourseLeader && !isParticipantOnly) && (
-            <div className="bg-white rounded-lg shadow-sm border border-border">
+            <div className="bg-surface rounded-lg shadow-sm border border-border">
               <div className="p-6 border-b border-border">
                 <h2 className="text-lg font-semibold text-text">
                   {isTeacher ? 'Kurse, die ich gebe' : 'Kommende Kurse'}
@@ -500,7 +500,7 @@ const Dashboard: React.FC = () => {
           )}
 
           {(isParticipantOnly || isTeacher) && (
-            <div className="bg-white rounded-lg shadow-sm border border-border">
+            <div className="bg-surface rounded-lg shadow-sm border border-border">
               <div className="p-6 border-b border-border">
                 <h2 className="text-lg font-semibold text-text">Meine kommenden Kurse</h2>
               </div>
@@ -515,7 +515,7 @@ const Dashboard: React.FC = () => {
           )}
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-border">
+        <div className="bg-surface rounded-lg shadow-sm border border-border">
           <div className="p-6 border-b border-border">
             <h2 className="text-lg font-semibold text-text">Schnellzugriff</h2>
           </div>

@@ -26,7 +26,7 @@ const ChatDeleteConfirmDialog: React.FC<ChatDeleteConfirmDialogProps> = ({
       onClick={onCancel}
     >
       <div
-        className="w-full max-w-md rounded-2xl border border-border bg-white p-6 shadow-2xl"
+        className="w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between mb-4">

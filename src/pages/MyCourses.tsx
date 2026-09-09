@@ -197,7 +197,7 @@ const MyCourses: React.FC = () => {
         
         <button
           onClick={() => navigate('/create-course')}
-          className="mt-4 sm:mt-0 bg-brand text-white px-4 py-2 rounded-lg hover:bg-brandPressed transition-colors flex items-center"
+          className="mt-4 sm:mt-0 bg-brand text-onBrand px-4 py-2 rounded-lg hover:bg-brandPressed transition-colors flex items-center"
         >
           <Plus className="w-4 h-4 mr-2" />
           Neuer Kurs
@@ -217,7 +217,7 @@ const MyCourses: React.FC = () => {
           <p className="text-textMuted mb-6">Sie haben noch keine Kurse erstellt.</p>
           <button
             onClick={() => navigate('/create-course')}
-            className="bg-brand text-white px-6 py-3 rounded-lg hover:bg-brandPressed transition-colors flex items-center mx-auto"
+            className="bg-brand text-onBrand px-6 py-3 rounded-lg hover:bg-brandPressed transition-colors flex items-center mx-auto"
           >
             <Plus className="w-4 h-4 mr-2" />
             Ersten Kurs erstellen
@@ -234,7 +234,7 @@ const MyCourses: React.FC = () => {
             ).length ?? 0;
             const isFull = registeredCount >= (course.max_participants || 0);
             return (
-              <div key={course.id} className="bg-white rounded-lg shadow-sm border border-border overflow-hidden hover:shadow-md transition-shadow">
+              <div key={course.id} className="bg-surface rounded-lg shadow-sm border border-border overflow-hidden hover:shadow-md transition-shadow">
                 <div className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <h3 className="text-lg font-semibold text-text line-clamp-2">{course.title}</h3>
@@ -314,7 +314,7 @@ const MyCourses: React.FC = () => {
 
       {deleteDialogOpen && courseToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-text/50">
-          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4">
+          <div className="bg-surface rounded-lg shadow-xl max-w-lg w-full mx-4">
             <div className="p-6">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-start">
@@ -405,7 +405,7 @@ const MyCourses: React.FC = () => {
               <div className="flex items-center justify-end space-x-3 mt-6 pt-6 border-t border-border">
                 <button
                   onClick={() => setDeleteDialogOpen(false)}
-                  className="px-4 py-2 text-textMuted bg-surfaceSunken hover:bg-gray-200 rounded-lg transition-colors"
+                  className="px-4 py-2 text-textMuted bg-surfaceSunken hover:bg-borderStrong rounded-lg transition-colors"
                 >
                   Abbrechen
                 </button>

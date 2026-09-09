@@ -87,7 +87,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   return (
     <form
       onSubmit={handleFormSubmit}
-      className="shrink-0 border-t border-border bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+      className="shrink-0 border-t border-border bg-surface p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
     >
       {isBroadcastThread && isCourseLeader && onBroadcastModeChange && (
         <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
@@ -168,7 +168,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
         <button
           type="submit"
           disabled={disabled || !value.trim()}
-          className="shrink-0 p-2.5 rounded-full bg-brand text-white hover:bg-brandPressed transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="shrink-0 p-2.5 rounded-full bg-brand text-onBrand hover:bg-brandPressed transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="Nachricht senden"
         >
           <Send size={20} />

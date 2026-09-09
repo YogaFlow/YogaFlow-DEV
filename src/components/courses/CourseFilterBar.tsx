@@ -118,7 +118,7 @@ const CourseFilterBar: React.FC<CourseFilterBarProps> = ({
   );
 
   return (
-    <div className="rounded-lg border border-border bg-white p-4 shadow-sm md:p-6">
+    <div className="rounded-lg border border-border bg-surface p-4 shadow-sm md:p-6">
       <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center md:justify-start md:gap-3">
         {/* Search */}
         <div className="relative w-full md:w-52 md:shrink-0 lg:w-60">
@@ -139,7 +139,7 @@ const CourseFilterBar: React.FC<CourseFilterBarProps> = ({
               value={selectedTeacherId ?? ''}
               onChange={(e) => onTeacherChange(e.target.value || null)}
               aria-label="Nach Lehrer filtern"
-              className="w-full appearance-none rounded-lg border border-border bg-white py-2 pl-10 pr-8 focus:border-transparent focus:ring-2 focus:ring-brand"
+              className="w-full appearance-none rounded-lg border border-border bg-surface py-2 pl-10 pr-8 focus:border-transparent focus:ring-2 focus:ring-brand"
             >
               <option value="">Alle Lehrer</option>
               {teachers.map((teacher) => (
@@ -191,7 +191,7 @@ const CourseFilterBar: React.FC<CourseFilterBarProps> = ({
             type="button"
             onClick={handleCalendarClick}
             aria-label="Datum auswählen"
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-white text-textMuted shadow-sm transition-colors hover:bg-surfaceSunken focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-surface text-textMuted shadow-sm transition-colors hover:bg-surfaceSunken focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
           >
             <Calendar className="h-5 w-5" />
           </button>

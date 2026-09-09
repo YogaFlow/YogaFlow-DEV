@@ -58,7 +58,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       onClick={loading ? undefined : onCancel}
     >
       <div
-        className={`w-full max-w-md rounded-2xl border border-border bg-white p-6 shadow-2xl transition-all duration-200 ${
+        className={`w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-2xl transition-all duration-200 ${
           isVisible ? 'scale-100 translate-y-0 opacity-100' : 'scale-95 translate-y-2 opacity-0'
         }`}
         onClick={(e) => e.stopPropagation()}

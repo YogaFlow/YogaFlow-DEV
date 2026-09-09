@@ -337,7 +337,7 @@ const Courses: React.FC = () => {
     <div className="space-y-6">
       {feedbackDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-text/45 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-white p-6 shadow-2xl">
+          <div className="w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-2xl">
             <div className="mb-3 flex items-center gap-2">
               <span
                 className={`inline-flex h-2.5 w-2.5 rounded-full ${
@@ -351,7 +351,7 @@ const Courses: React.FC = () => {
             <div className="mt-6 flex justify-center">
               <button
                 onClick={() => setFeedbackDialog(null)}
-                className={`rounded-full px-6 py-2 text-sm font-semibold text-white transition-colors ${
+                className={`rounded-full px-6 py-2 text-sm font-semibold text-onBrand transition-colors ${
                   feedbackDialog.type === 'success'
                     ? 'bg-brand hover:bg-brandPressed'
                     : 'bg-danger hover:bg-danger'
@@ -372,7 +372,7 @@ const Courses: React.FC = () => {
         {(isAdmin || isCourseLeader) && (
           <button
             onClick={() => navigate('/create-course')}
-            className="mt-4 sm:mt-0 bg-brand text-white px-4 py-2 rounded-lg hover:bg-brandPressed transition-colors flex items-center"
+            className="mt-4 sm:mt-0 bg-brand text-onBrand px-4 py-2 rounded-lg hover:bg-brandPressed transition-colors flex items-center"
           >
             <Plus className="w-4 h-4 mr-2" />
             Neuer Kurs
@@ -413,7 +413,7 @@ const Courses: React.FC = () => {
             return (
               <div
                 key={course.id}
-                className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm transition-shadow hover:shadow-md"
+                className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm transition-shadow hover:shadow-md"
               >
                 <div className="p-5">
                       <div className="flex items-start justify-between gap-3">
@@ -496,7 +496,7 @@ const Courses: React.FC = () => {
                               className={`w-full px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                                 isFull
                                   ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                                  : 'bg-brand text-white hover:bg-brandPressed'
+                                  : 'bg-brand text-onBrand hover:bg-brandPressed'
                               }`}
                             >
                               {isFull ? 'Warteliste' : 'Anmelden'}

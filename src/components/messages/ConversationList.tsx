@@ -23,13 +23,13 @@ const ConversationList: React.FC<ConversationListProps> = ({
   showHeader = true,
 }) => {
   return (
-    <div className="flex flex-col max-lg:h-auto lg:h-full lg:min-h-0 bg-white rounded-lg border border-border shadow-sm overflow-hidden">
+    <div className="flex flex-col max-lg:h-auto lg:h-full lg:min-h-0 bg-surface rounded-lg border border-border shadow-sm overflow-hidden">
       {showHeader && (
         <div className="shrink-0 p-4 border-b border-border space-y-3">
           <button
             type="button"
             onClick={onNewMessage}
-            className="w-full flex items-center justify-center gap-2 bg-brand text-white px-4 py-2.5 rounded-lg hover:bg-brandPressed transition-colors text-sm font-medium"
+            className="w-full flex items-center justify-center gap-2 bg-brand text-onBrand px-4 py-2.5 rounded-lg hover:bg-brandPressed transition-colors text-sm font-medium"
           >
             + Neue Nachricht
           </button>

@@ -12,11 +12,11 @@ const TITLES: Record<LegalPageProps['type'], string> = {
 
 const LegalPage: React.FC<LegalPageProps> = ({ type }) => {
   return (
-    <div className="min-h-screen bg-surfaceSunken">
-      <header className="bg-white border-b border-border px-6 py-4">
+    <div className="min-h-screen bg-sand">
+      <header className="bg-surface border-b border-border px-6 py-4">
         <a href="/" className="flex items-center gap-2 w-fit">
           <div className="w-8 h-8 bg-brand rounded-full flex items-center justify-center">
-            <Heart className="w-4 h-4 text-white" />
+            <Heart className="w-4 h-4 text-onBrand" />
           </div>
           <span className="font-bold text-text">Omlify</span>
         </a>

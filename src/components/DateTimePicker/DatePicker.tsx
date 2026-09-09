@@ -136,7 +136,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
             aria-label="Schließen"
             onClick={() => setMobileOpen(false)}
           />
-          <div className="yogaflow-datepicker-modal relative z-10 w-[min(calc(100vw-2rem),23rem)] overflow-hidden rounded-2xl border border-border bg-white shadow-xl">
+          <div className="yogaflow-datepicker-modal relative z-10 w-[min(calc(100vw-2rem),23rem)] overflow-hidden rounded-2xl border border-border bg-surface shadow-xl">
             <ReactDatePicker inline {...sharedPickerProps} />
           </div>
         </div>

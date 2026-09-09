@@ -13,7 +13,7 @@ const Layout: React.FC = () => {
   }, [location.pathname]);
 
   return (
-    <div className="flex min-h-screen bg-surfaceSunken lg:h-screen lg:overflow-hidden">
+    <div className="flex min-h-screen bg-sand lg:h-screen lg:overflow-hidden">
       {/* Sidebar for desktop */}
       <div className="hidden lg:flex lg:w-64 lg:flex-col">
         <Sidebar />
@@ -25,7 +25,7 @@ const Layout: React.FC = () => {
           className="fixed inset-0 z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         >
-          <div className="absolute inset-0 bg-gray-600 opacity-75"></div>
+          <div className="absolute inset-0 bg-text opacity-75"></div>
         </div>
       )}
 

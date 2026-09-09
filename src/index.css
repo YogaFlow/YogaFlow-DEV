@@ -40,6 +40,12 @@ body,
 #root {
   min-height: 100%;
 }
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+}
+
 @layer components {
   .yogaflow-datepicker .react-datepicker {
     border: none;
@@ -160,8 +166,8 @@ body,
     border: 1px solid var(--color-border);
     background: var(--color-surface);
     box-shadow:
-      0 10px 15px -3px rgb(0 0 0 / 0.1),
-      0 4px 6px -4px rgb(0 0 0 / 0.1);
+      0 10px 15px -3px color-mix(in srgb, var(--color-text) 10%, transparent),
+      0 4px 6px -4px color-mix(in srgb, var(--color-text) 10%, transparent);
   }
 
   .yogaflow-timepicker-popper {
@@ -172,8 +178,8 @@ body,
     border: 1px solid var(--color-border);
     border-radius: 0.75rem;
     box-shadow:
-      0 10px 15px -3px rgb(0 0 0 / 0.1),
-      0 4px 6px -4px rgb(0 0 0 / 0.1);
+      0 10px 15px -3px color-mix(in srgb, var(--color-text) 10%, transparent),
+      0 4px 6px -4px color-mix(in srgb, var(--color-text) 10%, transparent);
     font-family: inherit;
   }
 

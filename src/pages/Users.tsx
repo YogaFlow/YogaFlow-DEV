@@ -431,7 +431,7 @@ export default function Users() {
       {/* ── Mobile card list (< lg) ── */}
       <div className="lg:hidden space-y-2">
         {users.length === 0 && (
-          <div className="bg-white rounded-xl border border-border px-6 py-12 text-center text-textMuted text-sm">
+          <div className="bg-surface rounded-xl border border-border px-6 py-12 text-center text-textMuted text-sm">
             {isTeacher ? 'Noch keine Teilnehmer gefunden.' : 'Noch keine Nutzer gefunden.'}
           </div>
         )}
@@ -446,7 +446,7 @@ export default function Users() {
           const availableCoursesToAdd = courses.filter(c => !alreadyRegisteredIds.has(c.id) && (!c.date || new Date(c.date) >= today) && c.teacher_id !== user.id);
           return (
             <React.Fragment key={user.id}>
-              <div className={`bg-white rounded-xl border shadow-sm overflow-hidden transition-colors ${
+              <div className={`bg-surface rounded-xl border shadow-sm overflow-hidden transition-colors ${
                 isExpanded ? 'border-sage-200' : 'border-border'
               }`}>
                 {/* Card header */}
@@ -472,8 +472,8 @@ export default function Users() {
                         onClick={() => handleToggleExpand(user)}
                         className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                           isExpanded
-                            ? 'bg-surfaceSunken text-textMuted hover:bg-gray-200'
-                            : 'bg-brand text-white hover:bg-brandPressed'
+                            ? 'bg-surfaceSunken text-textMuted hover:bg-borderStrong'
+                            : 'bg-brand text-onBrand hover:bg-brandPressed'
                         }`}
                       >
                         {isExpanded
@@ -598,10 +598,10 @@ export default function Users() {
                     <button
                       onClick={() => handleSaveProfile(user.id)}
                       disabled={savingProfile}
-                      className="flex items-center gap-2 bg-brand text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-brandPressed disabled:opacity-50 transition-colors"
+                      className="flex items-center gap-2 bg-brand text-onBrand px-5 py-2 rounded-lg text-sm font-medium hover:bg-brandPressed disabled:opacity-50 transition-colors"
                     >
                       {savingProfile
-                        ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                        ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-onBrand" />
                         : <Save size={16} />}
                       Speichern
                     </button>
@@ -625,10 +625,10 @@ export default function Users() {
                           <button
                             onClick={() => handleAddToCourse(user.id)}
                             disabled={!selectedCourseId || addingCourse}
-                            className="flex items-center justify-center px-3 bg-brand text-white rounded-lg hover:bg-brandPressed disabled:opacity-50 transition-colors"
+                            className="flex items-center justify-center px-3 bg-brand text-onBrand rounded-lg hover:bg-brandPressed disabled:opacity-50 transition-colors"
                           >
                             {addingCourse
-                              ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                              ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-onBrand" />
                               : <Plus size={18} />}
                           </button>
                         </div>
@@ -668,7 +668,7 @@ export default function Users() {
       </div>
 
       {/* ── Desktop table (lg+) ── */}
-      <div className="hidden lg:block bg-white rounded-lg shadow overflow-x-auto w-full">
+      <div className="hidden lg:block bg-surface rounded-lg shadow overflow-x-auto w-full">
         <table className="min-w-full divide-y divide-border">
           <thead className="bg-surfaceSunken">
             <tr>
@@ -679,7 +679,7 @@ export default function Users() {
               <th className="px-6 py-3 text-left text-xs font-medium text-textMuted uppercase tracking-wider">Aktionen</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-border">
+          <tbody className="bg-surface divide-y divide-border">
             {users.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-6 py-12 text-center text-textMuted">
@@ -911,10 +911,10 @@ export default function Users() {
                               <button
                                 onClick={() => handleSaveProfile(user.id)}
                                 disabled={savingProfile}
-                                className="flex items-center gap-2 bg-brand text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-brandPressed disabled:opacity-50 transition-colors"
+                                className="flex items-center gap-2 bg-brand text-onBrand px-5 py-2 rounded-lg text-sm font-medium hover:bg-brandPressed disabled:opacity-50 transition-colors"
                               >
                                 {savingProfile
-                                  ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                                  ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-onBrand" />
                                   : <Save size={16} />
                                 }
                                 Speichern
@@ -944,10 +944,10 @@ export default function Users() {
                                       onClick={() => handleAddToCourse(user.id)}
                                       disabled={!selectedCourseId || addingCourse}
                                       title="Hinzufügen"
-                                      className="flex items-center justify-center px-3 bg-brand text-white rounded-lg hover:bg-brandPressed disabled:opacity-50 transition-colors"
+                                      className="flex items-center justify-center px-3 bg-brand text-onBrand rounded-lg hover:bg-brandPressed disabled:opacity-50 transition-colors"
                                     >
                                       {addingCourse
-                                        ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                                        ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-onBrand" />
                                         : <Plus size={18} />
                                       }
                                     </button>

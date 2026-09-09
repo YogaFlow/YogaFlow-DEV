@@ -412,7 +412,7 @@ const EditCourse: React.FC = () => {
         <p className="text-textMuted">Bearbeiten Sie die Details Ihres Yoga-Kurses.</p>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-border">
+      <div className="bg-surface rounded-lg shadow-sm border border-border">
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div>
             <label htmlFor="title" className="block text-sm font-medium text-textMuted mb-2">
@@ -459,7 +459,7 @@ const EditCourse: React.FC = () => {
                 id="teacher_id"
                 value={selectedTeacherId}
                 onChange={(e) => setSelectedTeacherId(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent appearance-none bg-white"
+                className="w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent appearance-none bg-surface"
                 required
               >
                 <option value="">Bitte wählen Sie einen Kursleiter</option>
@@ -657,14 +657,14 @@ const EditCourse: React.FC = () => {
             <button
               type="button"
               onClick={() => navigate('/my-courses')}
-              className="px-4 py-2 text-textMuted bg-surfaceSunken hover:bg-gray-200 rounded-lg transition-colors"
+              className="px-4 py-2 text-textMuted bg-surfaceSunken hover:bg-borderStrong rounded-lg transition-colors"
             >
               Abbrechen
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="flex items-center px-6 py-2 bg-brand text-white rounded-lg hover:bg-brandPressed focus:ring-4 focus:ring-sage-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center px-6 py-2 bg-brand text-onBrand rounded-lg hover:bg-brandPressed focus:ring-4 focus:ring-sage-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save className="w-4 h-4 mr-2" />
               {saving ? 'Wird gespeichert...' : 'Änderungen speichern'}

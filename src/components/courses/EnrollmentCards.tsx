@@ -30,7 +30,7 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({ registrations }) => (
       return (
         <div
           key={registration.id}
-          className="flex items-center rounded-lg border border-border bg-white p-4 shadow-sm"
+          className="flex items-center rounded-lg border border-border bg-surface p-4 shadow-sm"
         >
           <div className="flex-1">
             <h3 className="font-medium text-text">{course.title}</h3>

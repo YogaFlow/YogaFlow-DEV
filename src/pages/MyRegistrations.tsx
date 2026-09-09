@@ -114,7 +114,7 @@ const MyRegistrations: React.FC = () => {
           <button
             type="button"
             onClick={() => navigate('/courses')}
-            className="rounded-lg bg-brand px-6 py-3 text-white transition-colors hover:bg-brandPressed"
+            className="rounded-lg bg-brand px-6 py-3 text-onBrand transition-colors hover:bg-brandPressed"
           >
             Kurse durchsuchen
           </button>

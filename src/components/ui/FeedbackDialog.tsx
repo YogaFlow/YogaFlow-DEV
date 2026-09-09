@@ -53,7 +53,7 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ dialog, onClose }) => {
       }`}
     >
       <div
-        className={`w-full max-w-md rounded-2xl border border-border bg-white p-6 shadow-2xl transition-all duration-200 ${
+        className={`w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-2xl transition-all duration-200 ${
           isVisible ? 'scale-100 translate-y-0 opacity-100' : 'scale-95 translate-y-2 opacity-0'
         }`}
       >
@@ -65,7 +65,7 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ dialog, onClose }) => {
         <div className="mt-6 flex justify-center">
           <button
             onClick={onClose}
-            className={`rounded-full px-6 py-2 text-sm font-semibold text-white transition-colors ${colorClasses.button}`}
+            className={`rounded-full px-6 py-2 text-sm font-semibold text-onBrand transition-colors ${colorClasses.button}`}
           >
             OK
           </button>

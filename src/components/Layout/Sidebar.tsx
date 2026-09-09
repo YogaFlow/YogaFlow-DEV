@@ -90,7 +90,7 @@ const Sidebar: React.FC = () => {
   const roleInfo = userProfile?.role ? ROLE_LABELS[userProfile.role] : null;
 
   return (
-    <div className="bg-white shadow-lg h-full flex flex-col">
+    <div className="bg-surface shadow-lg h-full flex flex-col">
       <div className="p-6 border-b border-border">
         <h1 className="text-2xl font-bold text-text">{tenant?.name ?? 'Omlify'}</h1>
         <p className="text-sm text-textMuted mt-1">
@@ -116,7 +116,7 @@ const Sidebar: React.FC = () => {
                   to={item.to}
                   className={({ isActive }) =>
                     `flex items-center px-4 py-3 rounded-lg transition-colors ${
-                      isActive ? 'bg-gray-900 text-white' : 'text-textMuted hover:bg-surfaceSunken'
+                      isActive ? 'bg-brand text-onBrand' : 'text-textMuted hover:bg-surfaceSunken'
                     }`
                   }
                 >
@@ -134,8 +134,8 @@ const Sidebar: React.FC = () => {
                         {hasUnread && (
                           <span
                             aria-label={`${unreadCount} ungelesene Nachrichten`}
-                            className={`absolute -top-1.5 -right-2 min-w-[1rem] h-4 px-1 rounded-full bg-danger text-[10px] leading-4 text-white text-center font-semibold ring-2 ${
-                              isActive ? 'ring-gray-900' : 'ring-white'
+                            className={`absolute -top-1.5 -right-2 min-w-[1rem] h-4 px-1 rounded-full bg-danger text-[10px] leading-4 text-onBrand text-center font-semibold ring-2 ${
+                              isActive ? 'ring-brand' : 'ring-surface'
                             }`}
                           >
                             {unreadCount > 9 ? '9+' : unreadCount}

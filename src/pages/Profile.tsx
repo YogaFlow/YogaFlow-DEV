@@ -191,12 +191,12 @@ const Profile: React.FC = () => {
         <p className="text-textMuted">Verwalten Sie Ihre persönlichen Informationen</p>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-border p-2 flex gap-2">
+      <div className="bg-surface rounded-lg shadow-sm border border-border p-2 flex gap-2">
         <button
           onClick={() => switchToTab('profile')}
           className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
             activeTab === 'profile'
-              ? 'bg-brand text-white'
+              ? 'bg-brand text-onBrand'
               : 'text-textMuted hover:bg-surfaceSunken'
           }`}
         >
@@ -206,7 +206,7 @@ const Profile: React.FC = () => {
           onClick={() => switchToTab('password')}
           className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
             activeTab === 'password'
-              ? 'bg-brand text-white'
+              ? 'bg-brand text-onBrand'
               : 'text-textMuted hover:bg-surfaceSunken'
           }`}
         >
@@ -227,7 +227,7 @@ const Profile: React.FC = () => {
       )}
 
       {activeTab === 'profile' ? (
-        <div className="bg-white rounded-lg shadow-sm border border-border">
+        <div className="bg-surface rounded-lg shadow-sm border border-border">
           <div className="p-6 border-b border-border">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
@@ -266,7 +266,7 @@ const Profile: React.FC = () => {
               {!editing && (
                 <button
                   onClick={() => setEditing(true)}
-                  className="flex items-center px-4 py-2 bg-brand text-white rounded-lg hover:bg-brandPressed transition-colors"
+                  className="flex items-center px-4 py-2 bg-brand text-onBrand rounded-lg hover:bg-brandPressed transition-colors"
                 >
                   <Edit className="w-4 h-4 mr-2" />
                   Bearbeiten
@@ -439,14 +439,14 @@ const Profile: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleCancel}
-                  className="px-4 py-2 text-textMuted bg-surfaceSunken hover:bg-gray-200 rounded-lg transition-colors"
+                  className="px-4 py-2 text-textMuted bg-surfaceSunken hover:bg-borderStrong rounded-lg transition-colors"
                 >
                   Abbrechen
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex items-center px-6 py-2 bg-brand text-white rounded-lg hover:bg-brandPressed focus:ring-4 focus:ring-sage-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center px-6 py-2 bg-brand text-onBrand rounded-lg hover:bg-brandPressed focus:ring-4 focus:ring-sage-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Save className="w-4 h-4 mr-2" />
                   {loading ? 'Wird gespeichert...' : 'Speichern'}
@@ -456,7 +456,7 @@ const Profile: React.FC = () => {
           </form>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow-sm border border-border p-6">
+        <div className="bg-surface rounded-lg shadow-sm border border-border p-6">
           <div className="flex items-center mb-6">
             <div className="w-12 h-12 bg-sage-100 rounded-full flex items-center justify-center">
               <Lock className="w-6 h-6 text-brand" />
@@ -557,7 +557,7 @@ const Profile: React.FC = () => {
               <button
                 type="submit"
                 disabled={passwordLoading}
-                className="flex items-center px-6 py-2 bg-brand text-white rounded-lg hover:bg-brandPressed focus:ring-4 focus:ring-sage-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center px-6 py-2 bg-brand text-onBrand rounded-lg hover:bg-brandPressed focus:ring-4 focus:ring-sage-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save className="w-4 h-4 mr-2" />
                 {passwordLoading ? 'Wird gespeichert...' : 'Passwort speichern'}

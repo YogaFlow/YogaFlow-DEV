@@ -66,7 +66,7 @@ const LandingPage: React.FC = () => {
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 shrink-0">
             <div className="w-9 h-9 bg-brand rounded-full flex items-center justify-center">
-              <Heart className="w-5 h-5 text-white" />
+              <Heart className="w-5 h-5 text-onBrand" />
             </div>
             <span className="font-bold text-text text-lg">Omlify</span>
           </div>
@@ -91,7 +91,7 @@ const LandingPage: React.FC = () => {
             <button
               type="button"
               onClick={goToStudioLogin}
-              className="text-sm font-medium text-white bg-brand hover:bg-brandPressed px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+              className="text-sm font-medium text-onBrand bg-brand hover:bg-brandPressed px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
             >
               Zum Studio-Login
             </button>
@@ -103,7 +103,7 @@ const LandingPage: React.FC = () => {
             Studio-Webadresse
           </label>
           <div className="flex gap-2">
-            <div className="flex flex-1 min-w-0 items-center rounded-lg border border-border bg-white focus-within:ring-2 focus-within:ring-brand focus-within:border-transparent">
+            <div className="flex flex-1 min-w-0 items-center rounded-lg border border-border bg-surface focus-within:ring-2 focus-within:ring-brand focus-within:border-transparent">
               <input
                 id="landing-studio-slug-mobile"
                 type="text"
@@ -121,7 +121,7 @@ const LandingPage: React.FC = () => {
             <button
               type="button"
               onClick={goToStudioLogin}
-              className="shrink-0 text-sm font-medium text-white bg-brand hover:bg-brandPressed px-4 py-2.5 rounded-lg transition-colors"
+              className="shrink-0 text-sm font-medium text-onBrand bg-brand hover:bg-brandPressed px-4 py-2.5 rounded-lg transition-colors"
             >
               Login
             </button>
@@ -151,7 +151,7 @@ const LandingPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => navigate('/onboarding?newStudio=1')}
-                className="bg-brand text-white px-8 py-3.5 rounded-lg text-base font-semibold hover:bg-brandPressed transition-colors shadow-sm"
+                className="bg-brand text-onBrand px-8 py-3.5 rounded-lg text-base font-semibold hover:bg-brandPressed transition-colors shadow-sm"
               >
                 Jetzt kostenlos starten
               </button>
@@ -161,7 +161,7 @@ const LandingPage: React.FC = () => {
             </div>
           </div>
           <div className="relative w-full max-w-3xl mx-auto lg:mx-0 lg:max-w-none xl:min-w-[min(100%,720px)]">
-            <div className="bg-white rounded-2xl p-1 shadow-2xl shadow-gray-300/50 ring-1 ring-gray-100">
+            <div className="bg-surface rounded-2xl p-1 shadow-2xl shadow-gray-300/50 ring-1 ring-border">
               <img
                 src="/hero-dashboard.png"
                 srcSet="/hero-dashboard.png 971w, /hero-dashboard@2x.png 1942w"
@@ -180,7 +180,7 @@ const LandingPage: React.FC = () => {
 
       <section className="max-w-6xl mx-auto px-6 pb-24 grid grid-cols-1 md:grid-cols-3 gap-8">
         {FEATURES.map(({ icon: Icon, title, desc }) => (
-          <div key={title} className="bg-white rounded-2xl p-8 shadow-sm border border-border">
+          <div key={title} className="bg-surface rounded-2xl p-8 shadow-sm border border-border">
             <div className="w-12 h-12 bg-sage-100 rounded-xl flex items-center justify-center mb-4">
               <Icon className="w-6 h-6 text-brand" />
             </div>

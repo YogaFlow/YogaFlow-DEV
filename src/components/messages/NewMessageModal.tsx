@@ -94,12 +94,12 @@ const NewMessageModal: React.FC<NewMessageModalProps> = ({
       onClick={onClose}
     >
       <div
-        className={`w-full sm:max-w-lg max-h-[95vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl border border-border bg-white shadow-2xl transition-all duration-200 ${
+        className={`w-full sm:max-w-lg max-h-[95vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl border border-border bg-surface shadow-2xl transition-all duration-200 ${
           isVisible ? 'scale-100 translate-y-0 opacity-100' : 'scale-95 translate-y-4 opacity-0'
         }`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="sticky top-0 bg-white border-b border-border px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-surface border-b border-border px-6 py-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-text">Neue Nachricht</h2>
           <button
             type="button"
@@ -211,7 +211,7 @@ const NewMessageModal: React.FC<NewMessageModalProps> = ({
           <button
             type="submit"
             disabled={sending}
-            className="w-full flex items-center justify-center gap-2 bg-brand text-white px-4 py-2.5 rounded-lg hover:bg-brandPressed transition-colors disabled:opacity-50 text-sm font-medium"
+            className="w-full flex items-center justify-center gap-2 bg-brand text-onBrand px-4 py-2.5 rounded-lg hover:bg-brandPressed transition-colors disabled:opacity-50 text-sm font-medium"
           >
             <Send size={18} />
             Nachricht senden

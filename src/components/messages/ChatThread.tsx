@@ -47,7 +47,7 @@ const ChatThread: React.FC<ChatThreadProps> = ({
 }) => {
   if (!conversation) {
     return (
-      <div className="flex flex-col h-full min-h-0 bg-white rounded-lg border border-border shadow-sm overflow-hidden">
+      <div className="flex flex-col h-full min-h-0 bg-surface rounded-lg border border-border shadow-sm overflow-hidden">
         <div className="flex-1 flex flex-col items-center justify-center text-textSubtle p-8">
           <MessageSquare size={48} className="mb-3 opacity-40" />
           <p className="text-sm text-center">Wähle eine Unterhaltung aus der Liste</p>
@@ -57,7 +57,7 @@ const ChatThread: React.FC<ChatThreadProps> = ({
   }
 
   return (
-    <div className="flex flex-col h-full min-h-0 bg-white rounded-lg border border-border shadow-sm overflow-hidden">
+    <div className="flex flex-col h-full min-h-0 bg-surface rounded-lg border border-border shadow-sm overflow-hidden">
       <ChatHeader
         displayName={conversation.displayName}
         isBroadcast={conversation.isBroadcast}

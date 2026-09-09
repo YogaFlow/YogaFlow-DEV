@@ -49,7 +49,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   };
 
   return (
-    <div className="flex shrink-0 items-center gap-3 px-4 py-3 border-b border-border bg-white">
+    <div className="flex shrink-0 items-center gap-3 px-4 py-3 border-b border-border bg-surface">
       {showBackButton && (
         <button
           type="button"
@@ -90,7 +90,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           {menuOpen && (
             <div
               role="menu"
-              className="absolute right-0 top-full mt-1 z-50 min-w-[11rem] rounded-lg border border-border bg-white py-1 shadow-lg"
+              className="absolute right-0 top-full mt-1 z-50 min-w-[11rem] rounded-lg border border-border bg-surface py-1 shadow-lg"
             >
               <button
                 type="button"

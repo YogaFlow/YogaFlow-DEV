@@ -40,7 +40,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   if (loading || profileLoading) {
     return (
-      <div className="min-h-screen bg-surfaceSunken flex items-center justify-center">
+      <div className="min-h-screen bg-sand flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand" />
       </div>
     );
@@ -71,7 +71,7 @@ const TenantGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Warte bis Tenant aufgelöst ist (gilt für Subdomain und Apex gleichermaßen)
   if (loading) {
     return (
-      <div className="min-h-screen bg-surfaceSunken flex items-center justify-center">
+      <div className="min-h-screen bg-sand flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand" />
       </div>
     );
@@ -79,7 +79,7 @@ const TenantGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   if (tenantSlug && lookupError) {
     return (
-      <div className="min-h-screen bg-surfaceSunken flex items-center justify-center p-6">
+      <div className="min-h-screen bg-sand flex items-center justify-center p-6">
         <div className="text-center max-w-lg">
           <h1 className="text-2xl font-bold text-text mb-2">Studio konnte nicht geladen werden</h1>
           <p className="text-textMuted text-sm leading-relaxed">{lookupError}</p>
@@ -90,7 +90,7 @@ const TenantGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="mt-4 mr-4 inline-block rounded-lg bg-brand text-white px-4 py-2 text-sm font-medium hover:bg-brandPressed"
+            className="mt-4 mr-4 inline-block rounded-lg bg-brand text-onBrand px-4 py-2 text-sm font-medium hover:bg-brandPressed"
           >
             Neu laden
           </button>
@@ -104,7 +104,7 @@ const TenantGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   if (tenantSlug && notFound) {
     return (
-      <div className="min-h-screen bg-surfaceSunken flex items-center justify-center">
+      <div className="min-h-screen bg-sand flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-text mb-2">Studio nicht gefunden</h1>
           <p className="text-textMuted">Das Studio „{tenantSlug}" existiert nicht.</p>
@@ -151,7 +151,7 @@ const HomeRouteWithTokenRedirect: React.FC = () => {
 };
 
 const Spinner = () => (
-  <div className="min-h-screen bg-surfaceSunken flex items-center justify-center">
+  <div className="min-h-screen bg-sand flex items-center justify-center">
     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand" />
   </div>
 );
@@ -170,13 +170,13 @@ const HomeRoute: React.FC = () => {
   if (tenantSlug) {
     if (lookupError) {
       return (
-        <div className="min-h-screen bg-surfaceSunken flex flex-col items-center justify-center gap-4 p-6 text-center">
+        <div className="min-h-screen bg-sand flex flex-col items-center justify-center gap-4 p-6 text-center">
           <h1 className="text-xl font-bold text-text">Studio konnte nicht geladen werden</h1>
           <p className="text-textMuted text-sm max-w-lg">{lookupError}</p>
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="rounded-lg bg-brand text-white px-4 py-2 text-sm font-medium hover:bg-brandPressed"
+            className="rounded-lg bg-brand text-onBrand px-4 py-2 text-sm font-medium hover:bg-brandPressed"
           >
             Neu laden
           </button>
@@ -188,7 +188,7 @@ const HomeRoute: React.FC = () => {
     }
     if (notFound) {
       return (
-        <div className="min-h-screen bg-surfaceSunken flex items-center justify-center p-6">
+        <div className="min-h-screen bg-sand flex items-center justify-center p-6">
           <div className="text-center max-w-md">
             <h1 className="text-2xl font-bold text-text mb-2">Studio nicht gefunden</h1>
             <p className="text-textMuted">Das Studio „{tenantSlug}" existiert nicht.</p>
@@ -201,14 +201,14 @@ const HomeRoute: React.FC = () => {
     }
     if (!tenant) {
       return (
-        <div className="min-h-screen bg-surfaceSunken flex flex-col items-center justify-center gap-4 p-6 text-center">
+        <div className="min-h-screen bg-sand flex flex-col items-center justify-center gap-4 p-6 text-center">
           <p className="text-textMuted max-w-md">
             Studio-Daten sind noch nicht verfügbar oder die Verbindung zur Datenbank hat zu lange gedauert.
           </p>
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="rounded-lg bg-brand text-white px-4 py-2 text-sm font-medium hover:bg-brandPressed"
+            className="rounded-lg bg-brand text-onBrand px-4 py-2 text-sm font-medium hover:bg-brandPressed"
           >
             Seite neu laden
           </button>

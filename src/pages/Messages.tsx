@@ -385,7 +385,7 @@ export default function Messages() {
         {!isMobileChatOpen ? (
           listPanel
         ) : (
-          <div className="fixed inset-0 z-30 flex flex-col bg-white lg:hidden">
+          <div className="fixed inset-0 z-30 flex flex-col bg-surface lg:hidden">
             {threadPanel}
           </div>
         )}

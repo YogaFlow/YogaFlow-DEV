@@ -88,8 +88,8 @@ const VerifyEmail: React.FC = () => {
   }, [searchParams, navigate]);
 
   return (
-    <div className="min-h-screen bg-surfaceSunken flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
+    <div className="min-h-screen bg-sand flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-surface rounded-lg shadow-lg p-8">
         <div className="text-center">
           {status === 'loading' && (
             <>
@@ -136,7 +136,7 @@ const VerifyEmail: React.FC = () => {
                   const qs = authQuery.toString();
                   navigate(qs ? `/auth?${qs}` : '/auth');
                 }}
-                className="w-full bg-brand text-white py-3 rounded-lg hover:bg-brandPressed transition-colors"
+                className="w-full bg-brand text-onBrand py-3 rounded-lg hover:bg-brandPressed transition-colors"
               >
                 Zur Anmeldung
               </button>

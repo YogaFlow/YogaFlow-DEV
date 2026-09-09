@@ -67,8 +67,8 @@ const ResetPassword: React.FC = () => {
 
   if (!token) {
     return (
-      <div className="min-h-screen bg-surfaceSunken flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
+      <div className="min-h-screen bg-sand flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-surface rounded-lg shadow-lg p-8">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-text mb-2">
               Ungültiger Link
@@ -78,7 +78,7 @@ const ResetPassword: React.FC = () => {
             </p>
             <button
               onClick={() => navigate('/forgot-password')}
-              className="w-full bg-brand text-white py-3 rounded-lg hover:bg-brandPressed transition-colors"
+              className="w-full bg-brand text-onBrand py-3 rounded-lg hover:bg-brandPressed transition-colors"
             >
               Neuen Link anfordern
             </button>
@@ -90,8 +90,8 @@ const ResetPassword: React.FC = () => {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-surfaceSunken flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
+      <div className="min-h-screen bg-sand flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-surface rounded-lg shadow-lg p-8">
           <div className="text-center">
             <CheckCircle className="w-16 h-16 text-brand mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-text mb-2">
@@ -110,8 +110,8 @@ const ResetPassword: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-surfaceSunken flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
+    <div className="min-h-screen bg-sand flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-surface rounded-lg shadow-lg p-8">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-text mb-2">
             Neues Passwort erstellen
@@ -189,7 +189,7 @@ const ResetPassword: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-brand text-white py-3 rounded-lg hover:bg-brandPressed focus:ring-4 focus:ring-sage-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-brand text-onBrand py-3 rounded-lg hover:bg-brandPressed focus:ring-4 focus:ring-sage-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Wird gespeichert...' : 'Passwort zurücksetzen'}
           </button>

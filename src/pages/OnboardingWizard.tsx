@@ -253,8 +253,8 @@ const OnboardingWizard: React.FC = () => {
 
   if (success || successPending) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-indigo-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl p-10 max-w-md w-full text-center">
+      <div className="min-h-screen bg-sand flex items-center justify-center p-4">
+        <div className="bg-surface rounded-2xl shadow-xl p-10 max-w-md w-full text-center">
           <div className="w-16 h-16 bg-sage-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <Check className="w-8 h-8 text-brand" />
           </div>
@@ -287,8 +287,8 @@ const OnboardingWizard: React.FC = () => {
 
   if (autoSigningOut) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-indigo-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl p-10 max-w-md w-full text-center">
+      <div className="min-h-screen bg-sand flex items-center justify-center p-4">
+        <div className="bg-surface rounded-2xl shadow-xl p-10 max-w-md w-full text-center">
           <div className="w-16 h-16 bg-sage-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <Loader2 className="w-8 h-8 text-brand animate-spin" />
           </div>
@@ -303,8 +303,8 @@ const OnboardingWizard: React.FC = () => {
 
   if (user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-indigo-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl p-10 max-w-md w-full text-center">
+      <div className="min-h-screen bg-sand flex items-center justify-center p-4">
+        <div className="bg-surface rounded-2xl shadow-xl p-10 max-w-md w-full text-center">
           <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <LogOut className="w-8 h-8 text-amber-600" />
           </div>
@@ -320,7 +320,7 @@ const OnboardingWizard: React.FC = () => {
                 if (ownStudioHref.startsWith('http')) window.location.href = ownStudioHref;
                 else navigate(ownStudioHref);
               }}
-              className="w-full bg-brand text-white py-3 rounded-xl hover:bg-brandPressed transition-colors"
+              className="w-full bg-brand text-onBrand py-3 rounded-xl hover:bg-brandPressed transition-colors"
             >
               {tenantSlug ? 'Zurück zum Dashboard' : 'Zur Studio-Webadresse'}
             </button>
@@ -337,12 +337,12 @@ const OnboardingWizard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-indigo-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-sand flex items-center justify-center p-4">
       <div className="w-full max-w-lg">
         {/* Logo + Fortschritt */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-12 h-12 bg-brand rounded-full mb-4">
-            <Heart className="w-6 h-6 text-white" />
+            <Heart className="w-6 h-6 text-onBrand" />
           </div>
           <h1 className="text-2xl font-bold text-text">Studio einrichten</h1>
           <p className="text-textMuted text-sm mt-1">
@@ -356,14 +356,14 @@ const OnboardingWizard: React.FC = () => {
             <div
               key={i}
               className={`flex-1 h-1.5 rounded-full transition-colors ${
-                i + 1 <= step ? 'bg-brand' : 'bg-gray-200'
+                i + 1 <= step ? 'bg-brand' : 'bg-border'
               }`}
             />
           ))}
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-8">
+        <div className="bg-surface rounded-2xl shadow-xl p-8">
           {step === 1 && (
             <div>
               <label className="block text-sm font-medium text-textMuted mb-2">
@@ -605,7 +605,7 @@ const OnboardingWizard: React.FC = () => {
             <button
               onClick={() => setStep(step + 1)}
               disabled={!canAdvance()}
-              className="flex items-center gap-1.5 bg-brand text-white px-6 py-2.5 rounded-xl hover:bg-brandPressed transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 bg-brand text-onBrand px-6 py-2.5 rounded-xl hover:bg-brandPressed transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Weiter
               <ChevronRight className="w-4 h-4" />
@@ -614,7 +614,7 @@ const OnboardingWizard: React.FC = () => {
             <button
               onClick={handleSubmit}
               disabled={!canAdvance() || isSubmitting}
-              className="flex items-center gap-1.5 bg-brand text-white px-6 py-2.5 rounded-xl hover:bg-brandPressed transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 bg-brand text-onBrand px-6 py-2.5 rounded-xl hover:bg-brandPressed transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <>

@@ -62,7 +62,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   };
 
   return (
-    <header className="sticky top-0 z-30 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/85 shadow-sm border-b border-border px-4 py-3 sm:px-6 sm:py-4 max-[380px]:px-3 max-[380px]:py-2.5">
+    <header className="sticky top-0 z-30 bg-surface/95 backdrop-blur supports-[backdrop-filter]:bg-surface/85 shadow-sm border-b border-border px-4 py-3 sm:px-6 sm:py-4 max-[380px]:px-3 max-[380px]:py-2.5">
       <div className="flex items-center justify-between">
         <div className="flex items-center min-w-0">
           <button
@@ -102,7 +102,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                 {unreadCount > 0 && (
                   <span
                     aria-hidden
-                    className="absolute -top-0.5 -right-1 flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-danger px-[3px] text-[10px] font-bold leading-none text-white tabular-nums shadow-sm ring-1 ring-white max-[380px]:-top-0 max-[380px]:-right-0.5"
+                    className="absolute -top-0.5 -right-1 flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-danger px-[3px] text-[10px] font-bold leading-none text-onBrand tabular-nums shadow-sm ring-1 ring-surface max-[380px]:-top-0 max-[380px]:-right-0.5"
                   >
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
@@ -116,7 +116,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
               role="dialog"
               aria-label="Benachrichtigungen"
               aria-hidden={!isNotificationsOpen}
-              className={`absolute right-0 top-full mt-2 w-[min(22rem,calc(100vw-1.5rem))] max-[380px]:w-[min(18rem,calc(100vw-1rem))] bg-white border border-border rounded-xl shadow-lg p-4 z-40 origin-top-right transition-all duration-200 ease-out ${
+              className={`absolute right-0 top-full mt-2 w-[min(22rem,calc(100vw-1.5rem))] max-[380px]:w-[min(18rem,calc(100vw-1rem))] bg-surface border border-border rounded-xl shadow-lg p-4 z-40 origin-top-right transition-all duration-200 ease-out ${
                 isNotificationsOpen
                   ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
                   : 'opacity-0 -translate-y-1 scale-95 pointer-events-none'
