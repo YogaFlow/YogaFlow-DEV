@@ -13,7 +13,7 @@ const Layout: React.FC = () => {
   }, [location.pathname]);
 
   return (
-    <div className="flex min-h-screen bg-gray-50 lg:h-screen lg:overflow-hidden">
+    <div className="flex min-h-screen bg-surfaceSunken lg:h-screen lg:overflow-hidden">
       {/* Sidebar for desktop */}
       <div className="hidden lg:flex lg:w-64 lg:flex-col">
         <Sidebar />

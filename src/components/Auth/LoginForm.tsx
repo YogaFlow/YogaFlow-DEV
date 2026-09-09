@@ -118,17 +118,17 @@ const LoginForm: React.FC<LoginFormProps> = ({ emailJustVerified = false }) => {
     <div className="w-full max-w-md">
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="email" className="block text-sm font-medium text-textMuted mb-2">
             E-Mail-Adresse
           </label>
           <div className="relative">
-            <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+            <Mail className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
             <input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
               placeholder="ihre@email.de"
               required
             />
@@ -137,43 +137,43 @@ const LoginForm: React.FC<LoginFormProps> = ({ emailJustVerified = false }) => {
 
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="password" className="block text-sm font-medium text-textMuted">
               Passwort
             </label>
             <button
               type="button"
               onClick={() => navigate('/forgot-password')}
-              className="text-sm text-teal-600 hover:text-teal-700"
+              className="text-sm text-brand hover:text-brandPressed"
             >
               Passwort vergessen?
             </button>
           </div>
           <div className="relative">
-            <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+            <Lock className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
             <input
               id="password"
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              className="w-full pl-10 pr-12 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
               placeholder="••••••••"
               required
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+              className="absolute right-3 top-3 text-textSubtle hover:text-textMuted"
             >
               {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
             </button>
           </div>
-          <p className="text-sm text-gray-500 mt-2">
+          <p className="text-sm text-textMuted mt-2">
             Bestätigungsmail nicht erhalten?{' '}
             <button
               type="button"
               onClick={handleResendVerification}
               disabled={verificationEmailLoading}
-              className="text-teal-600 hover:text-teal-700 underline disabled:opacity-50"
+              className="text-brand hover:text-brandPressed underline disabled:opacity-50"
             >
               {verificationEmailLoading ? 'Wird gesendet...' : 'Erneut senden'}
             </button>
@@ -181,24 +181,24 @@ const LoginForm: React.FC<LoginFormProps> = ({ emailJustVerified = false }) => {
         </div>
 
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-600">{error}</p>
+          <div className="p-3 bg-dangerSoft border border-danger rounded-lg">
+            <p className="text-sm text-danger">{error}</p>
            {error.includes('E-Mail oder Passwort ist falsch') && (
-             <p className="text-xs text-red-500 mt-1">
+             <p className="text-xs text-danger mt-1">
                Hinweis: Stellen Sie sicher, dass Sie ein registriertes Konto haben.
              </p>
            )}
           </div>
         )}
         {verificationEmailMessage && (
-          <div className={`p-3 rounded-lg text-sm ${verificationEmailMessage.includes('gesendet') ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-amber-50 border border-amber-200 text-amber-700'}`}>
+          <div className={`p-3 rounded-lg text-sm ${verificationEmailMessage.includes('gesendet') ? 'bg-sage-100 border border-sage-200 text-sage-800' : 'bg-amber-50 border border-amber-200 text-amber-700'}`}>
             {verificationEmailMessage}
           </div>
         )}
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-teal-600 text-white py-3 px-4 rounded-lg hover:bg-teal-700 focus:ring-4 focus:ring-teal-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-brand text-white py-3 px-4 rounded-lg hover:bg-brandPressed focus:ring-4 focus:ring-sage-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? 'Anmeldung läuft...' : 'Anmelden'}
         </button>

@@ -49,12 +49,12 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   };
 
   return (
-    <div className="flex shrink-0 items-center gap-3 px-4 py-3 border-b border-gray-200 bg-white">
+    <div className="flex shrink-0 items-center gap-3 px-4 py-3 border-b border-border bg-white">
       {showBackButton && (
         <button
           type="button"
           onClick={onBack}
-          className="p-2 -ml-1 rounded-lg hover:bg-gray-100 text-gray-700 transition-colors lg:hidden"
+          className="p-2 -ml-1 rounded-lg hover:bg-surfaceSunken text-textMuted transition-colors lg:hidden"
           aria-label="Zurück zur Konversationsliste"
         >
           <ArrowLeft size={20} />
@@ -62,15 +62,15 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
       )}
       <ChatAvatar size="sm" />
       <div className="min-w-0 flex-1">
-        <h2 className="text-base font-semibold text-gray-900 truncate">{displayName}</h2>
+        <h2 className="text-base font-semibold text-text truncate">{displayName}</h2>
         {isBroadcast && (
-          <span className="inline-flex items-center gap-1 text-xs text-gray-500">
+          <span className="inline-flex items-center gap-1 text-xs text-textMuted">
             <Users size={12} />
             Rundnachricht
           </span>
         )}
         {showOnlineStatus && (
-          <span className="text-xs text-gray-400">Online-Status folgt</span>
+          <span className="text-xs text-textSubtle">Online-Status folgt</span>
         )}
       </div>
 
@@ -79,7 +79,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           <button
             type="button"
             onClick={() => setMenuOpen((o) => !o)}
-            className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+            className="p-2 rounded-lg text-textMuted hover:bg-surfaceSunken hover:text-textMuted transition-colors"
             aria-label="Weitere Optionen"
             aria-expanded={menuOpen}
             aria-haspopup="menu"
@@ -90,13 +90,13 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           {menuOpen && (
             <div
               role="menu"
-              className="absolute right-0 top-full mt-1 z-50 min-w-[11rem] rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
+              className="absolute right-0 top-full mt-1 z-50 min-w-[11rem] rounded-lg border border-border bg-white py-1 shadow-lg"
             >
               <button
                 type="button"
                 role="menuitem"
                 onClick={handleDeleteClick}
-                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors text-left"
+                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-danger hover:bg-dangerSoft transition-colors text-left"
               >
                 <Trash2 size={16} />
                 Unterhaltung löschen

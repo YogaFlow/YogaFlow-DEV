@@ -328,7 +328,7 @@ const Courses: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand"></div>
       </div>
     );
   }
@@ -336,25 +336,25 @@ const Courses: React.FC = () => {
   return (
     <div className="space-y-6">
       {feedbackDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-gray-100 bg-white p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-text/45 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-border bg-white p-6 shadow-2xl">
             <div className="mb-3 flex items-center gap-2">
               <span
                 className={`inline-flex h-2.5 w-2.5 rounded-full ${
-                  feedbackDialog.type === 'success' ? 'bg-teal-500' : 'bg-red-500'
+                  feedbackDialog.type === 'success' ? 'bg-sage-500' : 'bg-danger'
                 }`}
                 aria-hidden
               />
-              <h3 className="text-lg font-semibold text-gray-900">{feedbackDialog.title}</h3>
+              <h3 className="text-lg font-semibold text-text">{feedbackDialog.title}</h3>
             </div>
-            <p className="text-sm leading-6 text-gray-600">{feedbackDialog.message}</p>
+            <p className="text-sm leading-6 text-textMuted">{feedbackDialog.message}</p>
             <div className="mt-6 flex justify-center">
               <button
                 onClick={() => setFeedbackDialog(null)}
                 className={`rounded-full px-6 py-2 text-sm font-semibold text-white transition-colors ${
                   feedbackDialog.type === 'success'
-                    ? 'bg-teal-600 hover:bg-teal-700'
-                    : 'bg-red-600 hover:bg-red-700'
+                    ? 'bg-brand hover:bg-brandPressed'
+                    : 'bg-danger hover:bg-danger'
                 }`}
               >
                 OK
@@ -365,14 +365,14 @@ const Courses: React.FC = () => {
       )}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Kurse</h1>
-          <p className="text-gray-600">Entdecken Sie unsere Yoga-Kurse</p>
+          <h1 className="text-2xl font-bold text-text">Kurse</h1>
+          <p className="text-textMuted">Entdecken Sie unsere Yoga-Kurse</p>
         </div>
         
         {(isAdmin || isCourseLeader) && (
           <button
             onClick={() => navigate('/create-course')}
-            className="mt-4 sm:mt-0 bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition-colors flex items-center"
+            className="mt-4 sm:mt-0 bg-brand text-white px-4 py-2 rounded-lg hover:bg-brandPressed transition-colors flex items-center"
           >
             <Plus className="w-4 h-4 mr-2" />
             Neuer Kurs
@@ -393,9 +393,9 @@ const Courses: React.FC = () => {
       {/* Courses grid */}
       {filteredCourses.length === 0 ? (
         <div className="text-center py-12">
-          <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Keine Kurse gefunden</h3>
-          <p className="text-gray-600">
+          <Calendar className="w-16 h-16 text-textSubtle mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-text mb-2">Keine Kurse gefunden</h3>
+          <p className="text-textMuted">
             {searchTerm || dateFilter.preset || selectedTeacherId
               ? 'Versuchen Sie andere Suchkriterien.' 
               : 'Derzeit sind keine Kurse verfügbar.'}
@@ -413,21 +413,21 @@ const Courses: React.FC = () => {
             return (
               <div
                 key={course.id}
-                className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md"
+                className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm transition-shadow hover:shadow-md"
               >
                 <div className="p-5">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <h3 className="text-xl font-bold leading-tight text-gray-900">{course.title}</h3>
-                          <p className="mt-1 line-clamp-1 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                          <h3 className="text-xl font-bold leading-tight text-text">{course.title}</h3>
+                          <p className="mt-1 line-clamp-1 text-xs font-semibold uppercase tracking-wide text-textSubtle">
                             {course.description}
                           </p>
                         </div>
-                        <span className="shrink-0 text-2xl font-bold text-teal-600">€{course.price}</span>
+                        <span className="shrink-0 text-2xl font-bold text-brand">€{course.price}</span>
                       </div>
 
-                      <div className="mt-4 space-y-2 text-sm text-gray-600">
-                        <div className="flex items-center gap-2 font-medium text-gray-500">
+                      <div className="mt-4 space-y-2 text-sm text-textMuted">
+                        <div className="flex items-center gap-2 font-medium text-textMuted">
                           <Calendar className="h-4 w-4 shrink-0" />
                           {formatDate(course.date)}
                         </div>
@@ -449,26 +449,26 @@ const Courses: React.FC = () => {
                       </div>
 
                       {course.teacher && (
-                        <div className="mt-5 border-t border-gray-100 pt-4">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Kursleitung</p>
-                          <p className="mt-1 text-sm font-semibold text-gray-700">
+                        <div className="mt-5 border-t border-border pt-4">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-textSubtle">Kursleitung</p>
+                          <p className="mt-1 text-sm font-semibold text-textMuted">
                             Lehrer: {course.teacher.first_name} {course.teacher.last_name}
                           </p>
                         </div>
                       )}
 
-                      <div className="mt-5 flex items-center justify-between gap-3 border-t border-gray-100 pt-4">
+                      <div className="mt-5 flex items-center justify-between gap-3 border-t border-border pt-4">
                         <div className="flex items-center gap-2">
                           <div className={`h-2.5 w-2.5 rounded-full ${
-                            isFull ? 'bg-red-500' : (course.max_participants - registeredCount <= 2 ? 'bg-yellow-500' : 'bg-green-500')
+                            isFull ? 'bg-danger' : (course.max_participants - registeredCount <= 2 ? 'bg-yellow-500' : 'bg-sage-500')
                           }`}></div>
-                          <span className="text-sm font-medium text-gray-600">
+                          <span className="text-sm font-medium text-textMuted">
                             {isFull ? 'Leider schon ausgebucht' : (course.max_participants - registeredCount <= 2 ? `noch ${course.max_participants - registeredCount} ${course.max_participants - registeredCount === 1 ? 'Restplatz' : 'Restplätze'}` : 'Verfügbar')}
                           </span>
                         </div>
 
                         {isRegistered && registrationStatus === 'registered' && (
-                          <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-green-700">
+                          <span className="inline-flex items-center rounded-full bg-sage-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-sage-800">
                             Angemeldet
                           </span>
                         )}
@@ -485,7 +485,7 @@ const Courses: React.FC = () => {
                               )}
                               <button
                                 onClick={() => handleUnregister(course.id)}
-                                className="w-full rounded-lg px-4 py-2 text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-colors"
+                                className="w-full rounded-lg px-4 py-2 text-sm font-medium text-danger hover:bg-dangerSoft transition-colors"
                               >
                                 Abmelden
                               </button>
@@ -496,7 +496,7 @@ const Courses: React.FC = () => {
                               className={`w-full px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                                 isFull
                                   ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                                  : 'bg-teal-600 text-white hover:bg-teal-700'
+                                  : 'bg-brand text-white hover:bg-brandPressed'
                               }`}
                             >
                               {isFull ? 'Warteliste' : 'Anmelden'}

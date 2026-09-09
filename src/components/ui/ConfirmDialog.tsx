@@ -42,38 +42,38 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   const colorClasses =
     variant === 'primary'
       ? {
-          dot: 'bg-teal-500',
-          button: 'bg-teal-600 hover:bg-teal-700',
+          dot: 'bg-sage-500',
+          button: 'bg-brand text-onBrand hover:bg-brandPressed',
         }
       : {
-          dot: 'bg-red-500',
-          button: 'bg-red-600 hover:bg-red-700',
+          dot: 'bg-danger',
+          button: 'text-danger hover:bg-dangerSoft',
         };
 
   return (
     <div
       className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-200 ${
-        isVisible ? 'bg-slate-900/45 opacity-100' : 'bg-slate-900/0 opacity-0'
+        isVisible ? 'bg-text/45 opacity-100' : 'bg-text/0 opacity-0'
       }`}
       onClick={loading ? undefined : onCancel}
     >
       <div
-        className={`w-full max-w-md rounded-2xl border border-gray-100 bg-white p-6 shadow-2xl transition-all duration-200 ${
+        className={`w-full max-w-md rounded-2xl border border-border bg-white p-6 shadow-2xl transition-all duration-200 ${
           isVisible ? 'scale-100 translate-y-0 opacity-100' : 'scale-95 translate-y-2 opacity-0'
         }`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-center gap-2">
           <span className={`inline-flex h-2.5 w-2.5 rounded-full ${colorClasses.dot}`} aria-hidden />
-          <h3 className="text-lg font-semibold text-gray-900">{dialog.title}</h3>
+          <h3 className="text-lg font-semibold text-text">{dialog.title}</h3>
         </div>
-        <p className="text-sm leading-6 text-gray-600">{dialog.message}</p>
+        <p className="text-sm leading-6 text-textMuted">{dialog.message}</p>
         <div className="mt-6 flex justify-center gap-3">
           <button
             type="button"
             onClick={onCancel}
             disabled={loading}
-            className="rounded-full px-6 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100 disabled:opacity-50"
+            className="rounded-full px-6 py-2 text-sm font-semibold text-textMuted transition-colors hover:bg-surfaceSunken disabled:opacity-50"
           >
             {dialog.cancelLabel || 'Abbrechen'}
           </button>
@@ -81,7 +81,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             type="button"
             onClick={onConfirm}
             disabled={loading}
-            className={`rounded-full px-6 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-50 ${colorClasses.button}`}
+            className={`rounded-full px-6 py-2 text-sm font-semibold transition-colors disabled:opacity-50 ${colorClasses.button}`}
           >
             {loading ? 'Bitte warten…' : dialog.confirmLabel || 'Bestätigen'}
           </button>

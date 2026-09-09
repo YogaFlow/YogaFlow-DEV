@@ -18,10 +18,10 @@ import { useUnreadMessages } from '../../lib/useUnreadMessages';
 import { canSelfEnrollInCourses } from '../../lib/userRoles';
 
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
-  owner:   { label: 'Owner',     color: 'bg-purple-100 text-purple-800' },
-  admin:   { label: 'Admin',     color: 'bg-red-100 text-red-800' },
-  teacher: { label: 'Lehrer',    color: 'bg-blue-100 text-blue-800' },
-  user:    { label: 'Teilnehmer', color: 'bg-green-100 text-green-800' },
+  owner:   { label: 'Owner',     color: 'bg-surfaceSunken text-textMuted' },
+  admin:   { label: 'Admin',     color: 'bg-dangerSoft text-danger' },
+  teacher: { label: 'Lehrer',    color: 'bg-sage-100 text-sage-800' },
+  user:    { label: 'Teilnehmer', color: 'bg-sage-100 text-sage-800' },
 };
 
 const Sidebar: React.FC = () => {
@@ -91,9 +91,9 @@ const Sidebar: React.FC = () => {
 
   return (
     <div className="bg-white shadow-lg h-full flex flex-col">
-      <div className="p-6 border-b border-gray-200">
-        <h1 className="text-2xl font-bold text-gray-900">{tenant?.name ?? 'Omlify'}</h1>
-        <p className="text-sm text-gray-600 mt-1">
+      <div className="p-6 border-b border-border">
+        <h1 className="text-2xl font-bold text-text">{tenant?.name ?? 'Omlify'}</h1>
+        <p className="text-sm text-textMuted mt-1">
           {userProfile?.first_name} {userProfile?.last_name}
         </p>
         {roleInfo && (
@@ -116,7 +116,7 @@ const Sidebar: React.FC = () => {
                   to={item.to}
                   className={({ isActive }) =>
                     `flex items-center px-4 py-3 rounded-lg transition-colors ${
-                      isActive ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'
+                      isActive ? 'bg-gray-900 text-white' : 'text-textMuted hover:bg-surfaceSunken'
                     }`
                   }
                 >
@@ -127,14 +127,14 @@ const Sidebar: React.FC = () => {
                           key={isMessages ? popKey : undefined}
                           className={`w-5 h-5 ${
                             hasUnread
-                              ? `text-red-500 animate-pulse${popKey ? ' animate-pop' : ''}`
+                              ? `text-danger animate-pulse${popKey ? ' animate-pop' : ''}`
                               : ''
                           }`}
                         />
                         {hasUnread && (
                           <span
                             aria-label={`${unreadCount} ungelesene Nachrichten`}
-                            className={`absolute -top-1.5 -right-2 min-w-[1rem] h-4 px-1 rounded-full bg-red-500 text-[10px] leading-4 text-white text-center font-semibold ring-2 ${
+                            className={`absolute -top-1.5 -right-2 min-w-[1rem] h-4 px-1 rounded-full bg-danger text-[10px] leading-4 text-white text-center font-semibold ring-2 ${
                               isActive ? 'ring-gray-900' : 'ring-white'
                             }`}
                           >
@@ -152,10 +152,10 @@ const Sidebar: React.FC = () => {
         </ul>
       </nav>
 
-      <div className="p-4 border-t border-gray-200">
+      <div className="p-4 border-t border-border">
         <button
           onClick={signOut}
-          className="flex items-center w-full px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+          className="flex items-center w-full px-4 py-3 text-textMuted hover:bg-surfaceSunken rounded-lg transition-colors"
         >
           <LogOut className="w-5 h-5 mr-3" />
           Abmelden

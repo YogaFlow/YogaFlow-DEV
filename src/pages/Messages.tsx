@@ -300,7 +300,7 @@ export default function Messages() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600" />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand" />
       </div>
     );
   }
@@ -370,8 +370,8 @@ export default function Messages() {
       />
 
       <div className="flex items-center gap-3 mb-3 shrink-0 lg:mb-4">
-        <MessageSquare size={26} className="text-gray-900 lg:w-7 lg:h-7" />
-        <h1 className="text-xl lg:text-2xl font-bold text-gray-900">Nachrichten</h1>
+        <MessageSquare size={26} className="text-text lg:w-7 lg:h-7" />
+        <h1 className="text-xl lg:text-2xl font-bold text-text">Nachrichten</h1>
       </div>
 
       {/* Desktop / Tablet: two columns */}

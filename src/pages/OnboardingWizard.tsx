@@ -255,26 +255,26 @@ const OnboardingWizard: React.FC = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-indigo-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-xl p-10 max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Check className="w-8 h-8 text-teal-600" />
+          <div className="w-16 h-16 bg-sage-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Check className="w-8 h-8 text-brand" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-3">Fast geschafft!</h2>
-          <p className="text-gray-600 mb-4">
+          <h2 className="text-2xl font-bold text-text mb-3">Fast geschafft!</h2>
+          <p className="text-textMuted mb-4">
             Wir haben eine Bestätigungs-E-Mail an <strong>{email}</strong> gesendet.
           </p>
-          <p className="text-gray-500 text-sm mb-3">
+          <p className="text-textMuted text-sm mb-3">
             Bitte bestätige deine E-Mail-Adresse, um dein Studio freizuschalten. Falls du keine E-Mail siehst, schau bitte auch im <strong>Spam-Ordner</strong> nach. Danach
             kannst du dich unter{' '}
-            <span className="font-mono text-teal-700">
+            <span className="font-mono text-brand">
               {slug}.{APP_BASE_DOMAIN}
             </span>{' '}
             einloggen.
           </p>
-          <p className="text-gray-500 text-sm mt-3">
+          <p className="text-textMuted text-sm mt-3">
             Tipp: Bestätigung erneut anfordern am zuverlässigsten unter{' '}
             <a
               href={buildStudioAuthHref(slug)}
-              className="text-teal-600 font-mono hover:underline break-all"
+              className="text-brand font-mono hover:underline break-all"
             >
               {slug}.{APP_BASE_DOMAIN}/auth
             </a>{' '}
@@ -289,11 +289,11 @@ const OnboardingWizard: React.FC = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-indigo-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-xl p-10 max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Loader2 className="w-8 h-8 text-teal-600 animate-spin" />
+          <div className="w-16 h-16 bg-sage-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Loader2 className="w-8 h-8 text-brand animate-spin" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-3">Einen Moment…</h2>
-          <p className="text-gray-600">
+          <h2 className="text-2xl font-bold text-text mb-3">Einen Moment…</h2>
+          <p className="text-textMuted">
             Wir bereiten die neue Studio-Registrierung vor.
           </p>
         </div>
@@ -308,8 +308,8 @@ const OnboardingWizard: React.FC = () => {
           <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <LogOut className="w-8 h-8 text-amber-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-3">Du bist bereits angemeldet</h2>
-          <p className="text-gray-600 mb-6">
+          <h2 className="text-2xl font-bold text-text mb-3">Du bist bereits angemeldet</h2>
+          <p className="text-textMuted mb-6">
             Du bist aktuell als <strong>{userProfile?.email ?? user.email}</strong> eingeloggt.
             Um ein neues Studio anzulegen, melde dich zuerst ab.
           </p>
@@ -320,13 +320,13 @@ const OnboardingWizard: React.FC = () => {
                 if (ownStudioHref.startsWith('http')) window.location.href = ownStudioHref;
                 else navigate(ownStudioHref);
               }}
-              className="w-full bg-teal-600 text-white py-3 rounded-xl hover:bg-teal-700 transition-colors"
+              className="w-full bg-brand text-white py-3 rounded-xl hover:bg-brandPressed transition-colors"
             >
               {tenantSlug ? 'Zurück zum Dashboard' : 'Zur Studio-Webadresse'}
             </button>
             <button
               onClick={async () => { await supabase.auth.signOut(); window.location.replace('/onboarding'); }}
-              className="w-full border border-gray-300 text-gray-700 py-3 rounded-xl hover:bg-gray-50 transition-colors"
+              className="w-full border border-border text-textMuted py-3 rounded-xl hover:bg-surfaceSunken transition-colors"
             >
               Abmelden und neues Studio anlegen
             </button>
@@ -341,11 +341,11 @@ const OnboardingWizard: React.FC = () => {
       <div className="w-full max-w-lg">
         {/* Logo + Fortschritt */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 bg-teal-600 rounded-full mb-4">
+          <div className="inline-flex items-center justify-center w-12 h-12 bg-brand rounded-full mb-4">
             <Heart className="w-6 h-6 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Studio einrichten</h1>
-          <p className="text-gray-500 text-sm mt-1">
+          <h1 className="text-2xl font-bold text-text">Studio einrichten</h1>
+          <p className="text-textMuted text-sm mt-1">
             Schritt {step} von {STEPS.length}: {STEPS[step - 1]}
           </p>
         </div>
@@ -356,7 +356,7 @@ const OnboardingWizard: React.FC = () => {
             <div
               key={i}
               className={`flex-1 h-1.5 rounded-full transition-colors ${
-                i + 1 <= step ? 'bg-teal-600' : 'bg-gray-200'
+                i + 1 <= step ? 'bg-brand' : 'bg-gray-200'
               }`}
             />
           ))}
@@ -366,7 +366,7 @@ const OnboardingWizard: React.FC = () => {
         <div className="bg-white rounded-2xl shadow-xl p-8">
           {step === 1 && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-textMuted mb-2">
                 Wie heißt dein Studio?
               </label>
               <input
@@ -374,10 +374,10 @@ const OnboardingWizard: React.FC = () => {
                 value={studioName}
                 onChange={e => setStudioName(e.target.value)}
                 placeholder="z.B. Sonnenstudio München"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-4 py-3 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand"
                 autoFocus
               />
-              <p className="mt-2 text-xs text-gray-500">
+              <p className="mt-2 text-xs text-textMuted">
                 Dieser Name ist für deine Teilnehmer sichtbar.
               </p>
             </div>
@@ -385,10 +385,10 @@ const OnboardingWizard: React.FC = () => {
 
           {step === 2 && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-textMuted mb-2">
                 Deine Studio-URL
               </label>
-              <div className="flex items-stretch border border-gray-300 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-teal-500">
+              <div className="flex items-stretch border border-border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-brand">
                 <input
                   type="text"
                   value={slug}
@@ -400,7 +400,7 @@ const OnboardingWizard: React.FC = () => {
                   className="flex-1 px-4 py-3 focus:outline-none"
                   autoFocus
                 />
-                <span className="px-3 flex items-center text-gray-400 text-sm bg-gray-50 border-l border-gray-300">
+                <span className="px-3 flex items-center text-textSubtle text-sm bg-surfaceSunken border-l border-border">
                   .{APP_BASE_DOMAIN}
                 </span>
               </div>
@@ -408,31 +408,31 @@ const OnboardingWizard: React.FC = () => {
               <div className="mt-2 min-h-[16px] text-xs flex items-center gap-1.5">
                 {slugStatus === 'checking' && (
                   <>
-                    <Loader2 className="w-3 h-3 animate-spin text-gray-400" />
-                    <span className="text-gray-500">Wird geprüft…</span>
+                    <Loader2 className="w-3 h-3 animate-spin text-textSubtle" />
+                    <span className="text-textMuted">Wird geprüft…</span>
                   </>
                 )}
                 {slugStatus === 'available' && (
                   <>
-                    <Check className="w-3 h-3 text-teal-600" />
-                    <span className="text-teal-600">Verfügbar</span>
+                    <Check className="w-3 h-3 text-brand" />
+                    <span className="text-brand">Verfügbar</span>
                   </>
                 )}
                 {slugStatus === 'taken' && (
-                  <span className="text-red-500">
+                  <span className="text-danger">
                     Bereits vergeben – bitte wähle einen anderen Namen.
                   </span>
                 )}
                 {slugStatus === 'invalid' && (
-                  <span className="text-red-500">
+                  <span className="text-danger">
                     Nur Kleinbuchstaben und Ziffern, 3–30 Zeichen.
                   </span>
                 )}
               </div>
 
-              <p className="mt-3 text-xs text-gray-500">
+              <p className="mt-3 text-xs text-textMuted">
                 Dein Studio wird erreichbar sein unter:{' '}
-                <span className="font-mono text-teal-700">
+                <span className="font-mono text-brand">
                   {slug || '…'}.{APP_BASE_DOMAIN}
                 </span>
               </p>
@@ -442,22 +442,22 @@ const OnboardingWizard: React.FC = () => {
           {step === 3 && (
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Vorname</label>
+                <label className="block text-sm font-medium text-textMuted mb-2">Vorname</label>
                 <input
                   type="text"
                   value={firstName}
                   onChange={e => setFirstName(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-4 py-3 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand"
                   autoFocus
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Nachname</label>
+                <label className="block text-sm font-medium text-textMuted mb-2">Nachname</label>
                 <input
                   type="text"
                   value={lastName}
                   onChange={e => setLastName(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-4 py-3 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand"
                 />
               </div>
             </div>
@@ -466,31 +466,31 @@ const OnboardingWizard: React.FC = () => {
           {step === 4 && (
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-textMuted mb-2">
                   E-Mail-Adresse
                 </label>
                 <input
                   type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-4 py-3 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand"
                   autoFocus
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Passwort</label>
+                <label className="block text-sm font-medium text-textMuted mb-2">Passwort</label>
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     placeholder="Mindestens 8 Zeichen"
-                    className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-4 py-3 pr-12 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 hover:text-gray-600"
+                    className="absolute inset-y-0 right-0 flex items-center pr-4 text-textSubtle hover:text-textMuted"
                     aria-label={showPassword ? 'Passwort verbergen' : 'Passwort anzeigen'}
                   >
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -498,7 +498,7 @@ const OnboardingWizard: React.FC = () => {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-textMuted mb-2">
                   Passwort bestätigen
                 </label>
                 <div className="relative">
@@ -506,23 +506,23 @@ const OnboardingWizard: React.FC = () => {
                     type={showPasswordConfirm ? 'text' : 'password'}
                     value={passwordConfirm}
                     onChange={e => setPasswordConfirm(e.target.value)}
-                    className={`w-full px-4 py-3 pr-12 border rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 ${
+                    className={`w-full px-4 py-3 pr-12 border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand ${
                       passwordConfirm && password !== passwordConfirm
-                        ? 'border-red-300'
-                        : 'border-gray-300'
+                        ? 'border-danger'
+                        : 'border-border'
                     }`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPasswordConfirm(!showPasswordConfirm)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 hover:text-gray-600"
+                    className="absolute inset-y-0 right-0 flex items-center pr-4 text-textSubtle hover:text-textMuted"
                     aria-label={showPasswordConfirm ? 'Passwort verbergen' : 'Passwort anzeigen'}
                   >
                     {showPasswordConfirm ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
                 {passwordConfirm && password !== passwordConfirm && (
-                  <p className="mt-1 text-xs text-red-500">
+                  <p className="mt-1 text-xs text-danger">
                     Passwörter stimmen nicht überein.
                   </p>
                 )}
@@ -532,7 +532,7 @@ const OnboardingWizard: React.FC = () => {
 
           {step === 5 && (
             <div>
-              <div className="bg-gray-50 rounded-xl p-4 mb-6 space-y-2 text-sm">
+              <div className="bg-surfaceSunken rounded-xl p-4 mb-6 space-y-2 text-sm">
                 {[
                   { label: 'Studio-Name', value: studioName },
                   { label: 'Studio-URL', value: `${slug}.${APP_BASE_DOMAIN}`, mono: true },
@@ -540,10 +540,10 @@ const OnboardingWizard: React.FC = () => {
                   { label: 'E-Mail', value: email },
                 ].map(({ label, value, mono }) => (
                   <div key={label} className="flex justify-between gap-4">
-                    <span className="text-gray-500 shrink-0">{label}</span>
+                    <span className="text-textMuted shrink-0">{label}</span>
                     <span
                       className={`font-medium truncate ${
-                        mono ? 'font-mono text-teal-700' : 'text-gray-900'
+                        mono ? 'font-mono text-brand' : 'text-text'
                       }`}
                     >
                       {value}
@@ -557,15 +557,15 @@ const OnboardingWizard: React.FC = () => {
                   type="checkbox"
                   checked={agbAccepted}
                   onChange={e => setAgbAccepted(e.target.checked)}
-                  className="mt-0.5 w-4 h-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500"
+                  className="mt-0.5 w-4 h-4 text-brand rounded border-border focus:ring-brand"
                 />
-                <span className="text-sm text-gray-700">
+                <span className="text-sm text-textMuted">
                   Ich akzeptiere die{' '}
                   <a
                     href="/legal/agb"
                     target="_blank"
                     rel="noreferrer"
-                    className="text-teal-600 hover:underline"
+                    className="text-brand hover:underline"
                   >
                     AGB
                   </a>{' '}
@@ -574,7 +574,7 @@ const OnboardingWizard: React.FC = () => {
                     href="/legal/datenschutz"
                     target="_blank"
                     rel="noreferrer"
-                    className="text-teal-600 hover:underline"
+                    className="text-brand hover:underline"
                   >
                     Datenschutzerklärung
                   </a>
@@ -583,7 +583,7 @@ const OnboardingWizard: React.FC = () => {
               </label>
 
               {submitError && (
-                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                <div className="mt-4 p-3 bg-dangerSoft border border-danger rounded-lg text-sm text-danger">
                   {submitError}
                 </div>
               )}
@@ -595,7 +595,7 @@ const OnboardingWizard: React.FC = () => {
         <div className="flex justify-between mt-6">
           <button
             onClick={() => (step > 1 ? setStep(step - 1) : navigate('/'))}
-            className="flex items-center gap-1.5 px-5 py-2.5 text-gray-600 hover:text-gray-900 transition-colors"
+            className="flex items-center gap-1.5 px-5 py-2.5 text-textMuted hover:text-text transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
             {step === 1 ? 'Zurück zur Startseite' : 'Zurück'}
@@ -605,7 +605,7 @@ const OnboardingWizard: React.FC = () => {
             <button
               onClick={() => setStep(step + 1)}
               disabled={!canAdvance()}
-              className="flex items-center gap-1.5 bg-teal-600 text-white px-6 py-2.5 rounded-xl hover:bg-teal-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 bg-brand text-white px-6 py-2.5 rounded-xl hover:bg-brandPressed transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Weiter
               <ChevronRight className="w-4 h-4" />
@@ -614,7 +614,7 @@ const OnboardingWizard: React.FC = () => {
             <button
               onClick={handleSubmit}
               disabled={!canAdvance() || isSubmitting}
-              className="flex items-center gap-1.5 bg-teal-600 text-white px-6 py-2.5 rounded-xl hover:bg-teal-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 bg-brand text-white px-6 py-2.5 rounded-xl hover:bg-brandPressed transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <>

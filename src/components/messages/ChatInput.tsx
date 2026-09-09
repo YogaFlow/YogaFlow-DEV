@@ -87,27 +87,27 @@ const ChatInput: React.FC<ChatInputProps> = ({
   return (
     <form
       onSubmit={handleFormSubmit}
-      className="shrink-0 border-t border-gray-200 bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+      className="shrink-0 border-t border-border bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
     >
       {isBroadcastThread && isCourseLeader && onBroadcastModeChange && (
         <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
-          <label className="flex items-center gap-1.5 text-gray-600">
+          <label className="flex items-center gap-1.5 text-textMuted">
             <input
               type="radio"
               name="broadcastMode"
               checked={isBroadcastMode}
               onChange={() => onBroadcastModeChange(true)}
-              className="text-teal-600 focus:ring-teal-500"
+              className="text-brand focus:ring-brand"
             />
             An alle Teilnehmer
           </label>
-          <label className="flex items-center gap-1.5 text-gray-600">
+          <label className="flex items-center gap-1.5 text-textMuted">
             <input
               type="radio"
               name="broadcastMode"
               checked={!isBroadcastMode}
               onChange={() => onBroadcastModeChange(false)}
-              className="text-teal-600 focus:ring-teal-500"
+              className="text-brand focus:ring-brand"
             />
             Direkt an Person
           </label>
@@ -115,7 +115,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
             <select
               value={directRecipientId}
               onChange={(e) => onDirectRecipientChange(e.target.value)}
-              className="flex-1 min-w-[140px] text-base border border-gray-300 rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-teal-500"
+              className="flex-1 min-w-[140px] text-base border border-border rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-brand"
               required={!isBroadcastMode}
             >
               <option value="">Empfänger wählen</option>
@@ -134,7 +134,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
           <button
             type="button"
             onClick={() => setEmojiOpen((o) => !o)}
-            className="p-2.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-teal-600 transition-colors"
+            className="p-2.5 rounded-lg text-textMuted hover:bg-surfaceSunken hover:text-brandPressed transition-colors"
             aria-label="Emoji auswählen"
             disabled={disabled}
           >
@@ -162,13 +162,13 @@ const ChatInput: React.FC<ChatInputProps> = ({
           rows={1}
           placeholder={placeholder}
           disabled={disabled}
-          className="flex-1 min-h-[44px] max-h-32 resize-none rounded-2xl border border-gray-300 px-4 py-2.5 text-base focus:border-transparent focus:ring-2 focus:ring-teal-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
+          className="flex-1 min-h-[44px] max-h-32 resize-none rounded-2xl border border-border px-4 py-2.5 text-base focus:border-transparent focus:ring-2 focus:ring-brand disabled:bg-surfaceSunken disabled:cursor-not-allowed"
         />
 
         <button
           type="submit"
           disabled={disabled || !value.trim()}
-          className="shrink-0 p-2.5 rounded-full bg-teal-600 text-white hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="shrink-0 p-2.5 rounded-full bg-brand text-white hover:bg-brandPressed transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="Nachricht senden"
         >
           <Send size={20} />

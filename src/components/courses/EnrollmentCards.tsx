@@ -30,23 +30,23 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({ registrations }) => (
       return (
         <div
           key={registration.id}
-          className="flex items-center rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
+          className="flex items-center rounded-lg border border-border bg-white p-4 shadow-sm"
         >
           <div className="flex-1">
-            <h3 className="font-medium text-gray-900">{course.title}</h3>
-            <div className="mt-1 flex items-center text-sm text-gray-600">
+            <h3 className="font-medium text-text">{course.title}</h3>
+            <div className="mt-1 flex items-center text-sm text-textMuted">
               <Calendar className="mr-1 h-4 w-4" />
               {formatDate(course.date)}
               <Clock className="ml-3 mr-1 h-4 w-4" />
               {course.time}
               {course.end_time && ` - ${course.end_time}`}
             </div>
-            <div className="mt-1 flex items-center text-sm text-gray-600">
+            <div className="mt-1 flex items-center text-sm text-textMuted">
               <MapPin className="mr-1 h-4 w-4" />
               {course.location}
             </div>
             {course.teacher && (
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-textMuted">
                 Lehrer: {course.teacher.first_name} {course.teacher.last_name}
               </p>
             )}
@@ -54,7 +54,7 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({ registrations }) => (
               className={`mt-2 inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
                 isWaitlist
                   ? 'bg-yellow-50 text-yellow-700'
-                  : 'bg-teal-50 text-teal-700'
+                  : 'bg-sage-100 text-brand'
               }`}
             >
               {isWaitlist
@@ -66,7 +66,7 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({ registrations }) => (
           </div>
           <div className="text-right">
             {course.price != null && (
-              <p className="text-lg font-semibold text-teal-600">€{course.price}</p>
+              <p className="text-lg font-semibold text-brand">€{course.price}</p>
             )}
           </div>
         </div>

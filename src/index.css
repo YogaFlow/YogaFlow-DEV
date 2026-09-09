@@ -54,8 +54,8 @@ body,
   }
 
   .yogaflow-datepicker .react-datepicker__header {
-    background: #fff;
-    border-bottom: 1px solid #f3f4f6;
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
     border-radius: 0.75rem 0.75rem 0 0;
     padding: 0.625rem 0 0.5rem;
     position: relative;
@@ -100,7 +100,7 @@ body,
     position: absolute;
     top: 50%;
     margin-top: -5px;
-    border-color: #6b7280;
+    border-color: var(--color-text-muted);
     border-width: 2px 2px 0 0;
     height: 8px;
     width: 8px;
@@ -118,7 +118,7 @@ body,
   }
 
   .yogaflow-datepicker .react-datepicker__navigation:hover .react-datepicker__navigation-icon::before {
-    border-color: #374151;
+    border-color: var(--color-text);
   }
 
   .yogaflow-datepicker .react-datepicker__day-name,
@@ -130,24 +130,24 @@ body,
   }
 
   .yogaflow-datepicker .react-datepicker__day:hover {
-    background-color: #f0fdfa;
+    background-color: var(--color-brand-soft);
     border-radius: 9999px;
   }
 
   .yogaflow-datepicker .react-datepicker__day--selected,
   .yogaflow-datepicker .react-datepicker__day--keyboard-selected {
-    background-color: #0d9488 !important;
-    color: #fff !important;
+    background-color: var(--color-brand) !important;
+    color: var(--color-on-brand) !important;
     border-radius: 9999px;
   }
 
   .yogaflow-datepicker .react-datepicker__day--today {
     font-weight: 600;
-    color: #0d9488;
+    color: var(--color-brand);
   }
 
   .yogaflow-datepicker .react-datepicker__day--disabled {
-    color: #d1d5db;
+    color: var(--color-text-subtle);
   }
 
   .yogaflow-datepicker-popper {
@@ -157,8 +157,8 @@ body,
   .yogaflow-datepicker-popper .yogaflow-datepicker {
     overflow: hidden;
     border-radius: 0.75rem;
-    border: 1px solid #e5e7eb;
-    background: #fff;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
     box-shadow:
       0 10px 15px -3px rgb(0 0 0 / 0.1),
       0 4px 6px -4px rgb(0 0 0 / 0.1);
@@ -169,7 +169,7 @@ body,
   }
 
   .yogaflow-timepicker-popper .react-datepicker {
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-border);
     border-radius: 0.75rem;
     box-shadow:
       0 10px 15px -3px rgb(0 0 0 / 0.1),
@@ -192,19 +192,19 @@ body,
   }
 
   .yogaflow-timepicker-popper .react-datepicker__time-list-item--selected {
-    background-color: #0d9488 !important;
-    color: #fff !important;
+    background-color: var(--color-brand) !important;
+    color: var(--color-on-brand) !important;
     font-weight: 600;
   }
 
   .yogaflow-timepicker-popper .react-datepicker__time-list-item:hover {
-    background-color: #f0fdfa !important;
-    color: #0f766e !important;
+    background-color: var(--color-brand-soft) !important;
+    color: var(--color-brand-pressed) !important;
   }
 
   .yogaflow-timepicker-popper .react-datepicker__time-list-item--selected:hover {
-    background-color: #0d9488 !important;
-    color: #fff !important;
+    background-color: var(--color-brand) !important;
+    color: var(--color-on-brand) !important;
   }
 
   /* Mobile modal: larger touch targets, fit grid, visible nav */
@@ -263,7 +263,7 @@ body,
       height: 10px;
       width: 10px;
       margin-top: -5px;
-      border-color: #4b5563;
+      border-color: var(--color-text-muted);
       border-width: 2.5px 2.5px 0 0;
     }
 

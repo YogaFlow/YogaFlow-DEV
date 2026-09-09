@@ -42,7 +42,7 @@ const TimePicker: React.FC<TimePickerProps> = ({
 
   return (
     <div className="relative">
-      <Clock className="absolute left-3 top-3 h-5 w-5 text-gray-400 pointer-events-none z-10" />
+      <Clock className="absolute left-3 top-3 h-5 w-5 text-textSubtle pointer-events-none z-10" />
       <ReactDatePicker
         id={id}
         selected={selected}
@@ -58,8 +58,8 @@ const TimePicker: React.FC<TimePickerProps> = ({
         locale="de"
         placeholderText={placeholder}
         customInput={<PickerInput />}
-        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-        calendarClassName="rounded-lg border border-gray-200 bg-white shadow-xl"
+        className="w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent disabled:bg-surfaceSunken disabled:cursor-not-allowed"
+        calendarClassName="rounded-lg border border-border bg-white shadow-xl"
         wrapperClassName="w-full"
         showPopperArrow={false}
         popperPlacement="bottom-start"

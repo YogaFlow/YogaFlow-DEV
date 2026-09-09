@@ -40,8 +40,8 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   if (loading || profileLoading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600" />
+      <div className="min-h-screen bg-surfaceSunken flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand" />
       </div>
     );
   }
@@ -71,30 +71,30 @@ const TenantGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Warte bis Tenant aufgelöst ist (gilt für Subdomain und Apex gleichermaßen)
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600" />
+      <div className="min-h-screen bg-surfaceSunken flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand" />
       </div>
     );
   }
 
   if (tenantSlug && lookupError) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-surfaceSunken flex items-center justify-center p-6">
         <div className="text-center max-w-lg">
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">Studio konnte nicht geladen werden</h1>
-          <p className="text-gray-600 text-sm leading-relaxed">{lookupError}</p>
-          <p className="text-gray-500 text-xs mt-4">
+          <h1 className="text-2xl font-bold text-text mb-2">Studio konnte nicht geladen werden</h1>
+          <p className="text-textMuted text-sm leading-relaxed">{lookupError}</p>
+          <p className="text-textMuted text-xs mt-4">
             Häufige Ursache: Die Live-App nutzt ein anderes Supabase-Projekt als in der Konsole (VITE_SUPABASE_URL /
             Anon-Key in Cloudflare Pages prüfen).
           </p>
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="mt-4 mr-4 inline-block rounded-lg bg-teal-600 text-white px-4 py-2 text-sm font-medium hover:bg-teal-700"
+            className="mt-4 mr-4 inline-block rounded-lg bg-brand text-white px-4 py-2 text-sm font-medium hover:bg-brandPressed"
           >
             Neu laden
           </button>
-          <a href={buildApexHref()} className="mt-4 inline-block text-teal-600 hover:underline text-sm">
+          <a href={buildApexHref()} className="mt-4 inline-block text-brand hover:underline text-sm">
             Zur Startseite
           </a>
         </div>
@@ -104,12 +104,12 @@ const TenantGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   if (tenantSlug && notFound) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="min-h-screen bg-surfaceSunken flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">Studio nicht gefunden</h1>
-          <p className="text-gray-500">Das Studio „{tenantSlug}" existiert nicht.</p>
+          <h1 className="text-2xl font-bold text-text mb-2">Studio nicht gefunden</h1>
+          <p className="text-textMuted">Das Studio „{tenantSlug}" existiert nicht.</p>
           <a href={buildApexHref()}
-             className="mt-4 inline-block text-teal-600 hover:underline">
+             className="mt-4 inline-block text-brand hover:underline">
             Zur Startseite
           </a>
         </div>
@@ -151,8 +151,8 @@ const HomeRouteWithTokenRedirect: React.FC = () => {
 };
 
 const Spinner = () => (
-  <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600" />
+  <div className="min-h-screen bg-surfaceSunken flex items-center justify-center">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand" />
   </div>
 );
 
@@ -170,17 +170,17 @@ const HomeRoute: React.FC = () => {
   if (tenantSlug) {
     if (lookupError) {
       return (
-        <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center gap-4 p-6 text-center">
-          <h1 className="text-xl font-bold text-gray-800">Studio konnte nicht geladen werden</h1>
-          <p className="text-gray-600 text-sm max-w-lg">{lookupError}</p>
+        <div className="min-h-screen bg-surfaceSunken flex flex-col items-center justify-center gap-4 p-6 text-center">
+          <h1 className="text-xl font-bold text-text">Studio konnte nicht geladen werden</h1>
+          <p className="text-textMuted text-sm max-w-lg">{lookupError}</p>
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="rounded-lg bg-teal-600 text-white px-4 py-2 text-sm font-medium hover:bg-teal-700"
+            className="rounded-lg bg-brand text-white px-4 py-2 text-sm font-medium hover:bg-brandPressed"
           >
             Neu laden
           </button>
-          <a href={buildApexHref()} className="text-sm text-teal-600 hover:underline">
+          <a href={buildApexHref()} className="text-sm text-brand hover:underline">
             Zur Startseite
           </a>
         </div>
@@ -188,11 +188,11 @@ const HomeRoute: React.FC = () => {
     }
     if (notFound) {
       return (
-        <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
+        <div className="min-h-screen bg-surfaceSunken flex items-center justify-center p-6">
           <div className="text-center max-w-md">
-            <h1 className="text-2xl font-bold text-gray-800 mb-2">Studio nicht gefunden</h1>
-            <p className="text-gray-500">Das Studio „{tenantSlug}" existiert nicht.</p>
-            <a href={buildApexHref()} className="mt-4 inline-block text-teal-600 hover:underline">
+            <h1 className="text-2xl font-bold text-text mb-2">Studio nicht gefunden</h1>
+            <p className="text-textMuted">Das Studio „{tenantSlug}" existiert nicht.</p>
+            <a href={buildApexHref()} className="mt-4 inline-block text-brand hover:underline">
               Zur Startseite
             </a>
           </div>
@@ -201,18 +201,18 @@ const HomeRoute: React.FC = () => {
     }
     if (!tenant) {
       return (
-        <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center gap-4 p-6 text-center">
-          <p className="text-gray-700 max-w-md">
+        <div className="min-h-screen bg-surfaceSunken flex flex-col items-center justify-center gap-4 p-6 text-center">
+          <p className="text-textMuted max-w-md">
             Studio-Daten sind noch nicht verfügbar oder die Verbindung zur Datenbank hat zu lange gedauert.
           </p>
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="rounded-lg bg-teal-600 text-white px-4 py-2 text-sm font-medium hover:bg-teal-700"
+            className="rounded-lg bg-brand text-white px-4 py-2 text-sm font-medium hover:bg-brandPressed"
           >
             Seite neu laden
           </button>
-          <a href={buildApexHref()} className="text-sm text-teal-600 hover:underline">
+          <a href={buildApexHref()} className="text-sm text-brand hover:underline">
             Zur Startseite
           </a>
         </div>

@@ -67,18 +67,18 @@ const ResetPassword: React.FC = () => {
 
   if (!token) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-surfaceSunken flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            <h1 className="text-2xl font-bold text-text mb-2">
               Ungültiger Link
             </h1>
-            <p className="text-gray-600 mb-6">
+            <p className="text-textMuted mb-6">
               Dieser Link ist ungültig oder abgelaufen.
             </p>
             <button
               onClick={() => navigate('/forgot-password')}
-              className="w-full bg-teal-600 text-white py-3 rounded-lg hover:bg-teal-700 transition-colors"
+              className="w-full bg-brand text-white py-3 rounded-lg hover:bg-brandPressed transition-colors"
             >
               Neuen Link anfordern
             </button>
@@ -90,17 +90,17 @@ const ResetPassword: React.FC = () => {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-surfaceSunken flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
           <div className="text-center">
-            <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            <CheckCircle className="w-16 h-16 text-brand mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-text mb-2">
               Passwort erfolgreich zurückgesetzt
             </h1>
-            <p className="text-gray-600 mb-6">
+            <p className="text-textMuted mb-6">
               Ihr Passwort wurde erfolgreich geändert. Sie können sich jetzt mit Ihrem neuen Passwort anmelden.
             </p>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-textMuted">
               Sie werden in Kürze zur Anmeldeseite weitergeleitet...
             </p>
           </div>
@@ -110,43 +110,43 @@ const ResetPassword: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-surfaceSunken flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          <h1 className="text-2xl font-bold text-text mb-2">
             Neues Passwort erstellen
           </h1>
-          <p className="text-gray-600">
+          <p className="text-textMuted">
             Bitte geben Sie Ihr neues Passwort ein.
           </p>
         </div>
 
         {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-600">{error}</p>
+          <div className="mb-4 p-4 bg-dangerSoft border border-danger rounded-lg">
+            <p className="text-sm text-danger">{error}</p>
           </div>
         )}
 
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="password" className="block text-sm font-medium text-textMuted mb-2">
               Neues Passwort
             </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+              <Lock className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
               <input
                 id="password"
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                className="w-full pl-10 pr-12 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                 placeholder="Mindestens 8 Zeichen"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-3 text-textSubtle hover:text-textMuted"
               >
                 {showPassword ? (
                   <EyeOff className="h-5 w-5" />
@@ -158,24 +158,24 @@ const ResetPassword: React.FC = () => {
           </div>
 
           <div className="mb-6">
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-textMuted mb-2">
               Passwort bestätigen
             </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+              <Lock className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
               <input
                 id="confirmPassword"
                 type={showConfirmPassword ? 'text' : 'password'}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                className="w-full pl-10 pr-12 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                 placeholder="Passwort wiederholen"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-3 text-textSubtle hover:text-textMuted"
               >
                 {showConfirmPassword ? (
                   <EyeOff className="h-5 w-5" />
@@ -189,7 +189,7 @@ const ResetPassword: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-teal-600 text-white py-3 rounded-lg hover:bg-teal-700 focus:ring-4 focus:ring-teal-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-brand text-white py-3 rounded-lg hover:bg-brandPressed focus:ring-4 focus:ring-sage-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Wird gespeichert...' : 'Passwort zurücksetzen'}
           </button>

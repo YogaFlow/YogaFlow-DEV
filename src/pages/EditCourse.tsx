@@ -369,8 +369,8 @@ const EditCourse: React.FC = () => {
   if (!hasPermission) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Keine Berechtigung</h2>
-        <p className="text-gray-600">Sie haben keine Berechtigung, Kurse zu bearbeiten.</p>
+        <h2 className="text-xl font-semibold text-text mb-2">Keine Berechtigung</h2>
+        <p className="text-textMuted">Sie haben keine Berechtigung, Kurse zu bearbeiten.</p>
       </div>
     );
   }
@@ -378,7 +378,7 @@ const EditCourse: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand"></div>
       </div>
     );
   }
@@ -386,11 +386,11 @@ const EditCourse: React.FC = () => {
   if (error && !course) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Fehler</h2>
-        <p className="text-gray-600">{error}</p>
+        <h2 className="text-xl font-semibold text-text mb-2">Fehler</h2>
+        <p className="text-textMuted">{error}</p>
         <button
           onClick={() => navigate('/my-courses')}
-          className="mt-4 text-teal-600 hover:text-teal-700"
+          className="mt-4 text-brand hover:text-brandPressed"
         >
           Zurück zur Kursverwaltung
         </button>
@@ -403,30 +403,30 @@ const EditCourse: React.FC = () => {
       <div className="mb-6">
         <button
           onClick={() => navigate('/my-courses')}
-          className="flex items-center text-gray-600 hover:text-gray-900 mb-4"
+          className="flex items-center text-textMuted hover:text-text mb-4"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Zurück
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">Kurs bearbeiten</h1>
-        <p className="text-gray-600">Bearbeiten Sie die Details Ihres Yoga-Kurses.</p>
+        <h1 className="text-2xl font-bold text-text">Kurs bearbeiten</h1>
+        <p className="text-textMuted">Bearbeiten Sie die Details Ihres Yoga-Kurses.</p>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+      <div className="bg-white rounded-lg shadow-sm border border-border">
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="title" className="block text-sm font-medium text-textMuted mb-2">
               Kurstitel *
             </label>
             <div className="relative">
-              <FileText className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+              <FileText className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
               <input
                 id="title"
                 name="title"
                 type="text"
                 value={formData.title}
                 onChange={handleChange}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                 placeholder="z.B. Hatha Yoga für Anfänger"
                 required
               />
@@ -434,7 +434,7 @@ const EditCourse: React.FC = () => {
           </div>
 
           <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="description" className="block text-sm font-medium text-textMuted mb-2">
               Beschreibung *
             </label>
             <textarea
@@ -443,23 +443,23 @@ const EditCourse: React.FC = () => {
               value={formData.description}
               onChange={handleChange}
               rows={4}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
               placeholder="Beschreiben Sie den Kurs, Zielgruppe, Schwierigkeitsgrad..."
               required
             />
           </div>
 
           <div>
-            <label htmlFor="teacher_id" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="teacher_id" className="block text-sm font-medium text-textMuted mb-2">
               Kursleiter *
             </label>
             <div className="relative">
-              <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+              <User className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
               <select
                 id="teacher_id"
                 value={selectedTeacherId}
                 onChange={(e) => setSelectedTeacherId(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent appearance-none bg-white"
+                className="w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent appearance-none bg-white"
                 required
               >
                 <option value="">Bitte wählen Sie einen Kursleiter</option>
@@ -498,9 +498,9 @@ const EditCourse: React.FC = () => {
                     value="single"
                     checked={updateScope === 'single'}
                     onChange={(e) => setUpdateScope(e.target.value as 'single' | 'series')}
-                    className="w-4 h-4 text-teal-600 border-gray-300 focus:ring-teal-500"
+                    className="w-4 h-4 text-brand border-border focus:ring-brand"
                   />
-                  <span className="ml-3 text-sm font-medium text-gray-900">
+                  <span className="ml-3 text-sm font-medium text-text">
                     Nur diesen Termin ändern
                   </span>
                 </label>
@@ -511,9 +511,9 @@ const EditCourse: React.FC = () => {
                     value="series"
                     checked={updateScope === 'series'}
                     onChange={(e) => setUpdateScope(e.target.value as 'single' | 'series')}
-                    className="w-4 h-4 text-teal-600 border-gray-300 focus:ring-teal-500"
+                    className="w-4 h-4 text-brand border-border focus:ring-brand"
                   />
-                  <span className="ml-3 text-sm font-medium text-gray-900">
+                  <span className="ml-3 text-sm font-medium text-text">
                     Alle {seriesCount} Termine der Serie ändern
                   </span>
                 </label>
@@ -522,7 +522,7 @@ const EditCourse: React.FC = () => {
           )}
 
           <div>
-            <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="date" className="block text-sm font-medium text-textMuted mb-2">
               Datum *
             </label>
             <DatePicker
@@ -542,7 +542,7 @@ const EditCourse: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <label htmlFor="time" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="time" className="block text-sm font-medium text-textMuted mb-2">
                 Kursbeginn *
               </label>
               <TimePicker
@@ -555,7 +555,7 @@ const EditCourse: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="duration" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="duration" className="block text-sm font-medium text-textMuted mb-2">
                 Dauer (Min.)
               </label>
               <input
@@ -566,13 +566,13 @@ const EditCourse: React.FC = () => {
                 step="15"
                 value={formData.duration}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                 placeholder="z.B. 60"
               />
             </div>
 
             <div>
-              <label htmlFor="end_time" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="end_time" className="block text-sm font-medium text-textMuted mb-2">
                 Kursende
               </label>
               <TimePicker
@@ -585,18 +585,18 @@ const EditCourse: React.FC = () => {
           </div>
 
           <div>
-            <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="location" className="block text-sm font-medium text-textMuted mb-2">
               Ort *
             </label>
             <div className="relative">
-              <MapPin className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+              <MapPin className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
               <input
                 id="location"
                 name="location"
                 type="text"
                 value={formData.location}
                 onChange={handleChange}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                 placeholder="z.B. Yoga-Studio Mitte, Raum 1"
                 required
               />
@@ -605,11 +605,11 @@ const EditCourse: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label htmlFor="max_participants" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="max_participants" className="block text-sm font-medium text-textMuted mb-2">
                 Max. Teilnehmer *
               </label>
               <div className="relative">
-                <Users className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                <Users className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
                 <input
                   id="max_participants"
                   name="max_participants"
@@ -618,7 +618,7 @@ const EditCourse: React.FC = () => {
                   max="50"
                   value={formData.max_participants}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                   placeholder="z.B. 12"
                   required
                 />
@@ -626,11 +626,11 @@ const EditCourse: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="price" className="block text-sm font-medium text-textMuted mb-2">
                 Preis (EUR) *
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-3 text-gray-400 font-semibold">€</span>
+                <span className="absolute left-3 top-3 text-textSubtle font-semibold">€</span>
                 <input
                   id="price"
                   name="price"
@@ -639,7 +639,7 @@ const EditCourse: React.FC = () => {
                   step="0.01"
                   value={formData.price}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                   placeholder="z.B. 25.00"
                   required
                 />
@@ -648,23 +648,23 @@ const EditCourse: React.FC = () => {
           </div>
 
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-600">{error}</p>
+            <div className="p-3 bg-dangerSoft border border-danger rounded-lg">
+              <p className="text-sm text-danger">{error}</p>
             </div>
           )}
 
-          <div className="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200">
+          <div className="flex items-center justify-end space-x-4 pt-6 border-t border-border">
             <button
               type="button"
               onClick={() => navigate('/my-courses')}
-              className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              className="px-4 py-2 text-textMuted bg-surfaceSunken hover:bg-gray-200 rounded-lg transition-colors"
             >
               Abbrechen
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="flex items-center px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 focus:ring-4 focus:ring-teal-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center px-6 py-2 bg-brand text-white rounded-lg hover:bg-brandPressed focus:ring-4 focus:ring-sage-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save className="w-4 h-4 mr-2" />
               {saving ? 'Wird gespeichert...' : 'Änderungen speichern'}

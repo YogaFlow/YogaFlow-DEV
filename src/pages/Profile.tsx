@@ -179,7 +179,7 @@ const Profile: React.FC = () => {
   if (!userProfile) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand"></div>
       </div>
     );
   }
@@ -187,17 +187,17 @@ const Profile: React.FC = () => {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Mein Profil</h1>
-        <p className="text-gray-600">Verwalten Sie Ihre persönlichen Informationen</p>
+        <h1 className="text-2xl font-bold text-text">Mein Profil</h1>
+        <p className="text-textMuted">Verwalten Sie Ihre persönlichen Informationen</p>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2 flex gap-2">
+      <div className="bg-white rounded-lg shadow-sm border border-border p-2 flex gap-2">
         <button
           onClick={() => switchToTab('profile')}
           className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
             activeTab === 'profile'
-              ? 'bg-teal-600 text-white'
-              : 'text-gray-700 hover:bg-gray-100'
+              ? 'bg-brand text-white'
+              : 'text-textMuted hover:bg-surfaceSunken'
           }`}
         >
           Persönliche Daten
@@ -206,8 +206,8 @@ const Profile: React.FC = () => {
           onClick={() => switchToTab('password')}
           className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
             activeTab === 'password'
-              ? 'bg-teal-600 text-white'
-              : 'text-gray-700 hover:bg-gray-100'
+              ? 'bg-brand text-white'
+              : 'text-textMuted hover:bg-surfaceSunken'
           }`}
         >
           Passwort ändern
@@ -215,47 +215,47 @@ const Profile: React.FC = () => {
       </div>
 
       {activeTab === 'profile' && profileSuccess && (
-        <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-          <p className="text-sm text-green-600">{profileSuccess}</p>
+        <div className="p-4 bg-sage-100 border border-sage-200 rounded-lg">
+          <p className="text-sm text-brand">{profileSuccess}</p>
         </div>
       )}
 
       {activeTab === 'profile' && profileError && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-sm text-red-600">{profileError}</p>
+        <div className="p-4 bg-dangerSoft border border-danger rounded-lg">
+          <p className="text-sm text-danger">{profileError}</p>
         </div>
       )}
 
       {activeTab === 'profile' ? (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
+        <div className="bg-white rounded-lg shadow-sm border border-border">
+          <div className="p-6 border-b border-border">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <div className="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center">
-                  <User className="w-8 h-8 text-teal-600" />
+                <div className="w-16 h-16 bg-sage-100 rounded-full flex items-center justify-center">
+                  <User className="w-8 h-8 text-brand" />
                 </div>
                 <div className="ml-4">
-                  <h2 className="text-xl font-semibold text-gray-900">
+                  <h2 className="text-xl font-semibold text-text">
                     {userProfile.first_name} {userProfile.last_name}
                   </h2>
                   <div className="flex flex-wrap gap-2 mt-1">
                     {userProfile.role === 'owner' && (
-                      <span className="inline-block px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800">
+                      <span className="inline-block px-2 py-1 text-xs rounded-full bg-surfaceSunken text-textMuted">
                         Inhaber
                       </span>
                     )}
                     {userProfile.role === 'admin' && (
-                      <span className="inline-block px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">
+                      <span className="inline-block px-2 py-1 text-xs rounded-full bg-surfaceSunken text-textMuted">
                         Administrator
                       </span>
                     )}
                     {userProfile.role === 'teacher' && (
-                      <span className="inline-block px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
+                      <span className="inline-block px-2 py-1 text-xs rounded-full bg-surfaceSunken text-textMuted">
                         Kursleiter
                       </span>
                     )}
                     {userProfile.role === 'user' && (
-                      <span className="inline-block px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
+                      <span className="inline-block px-2 py-1 text-xs rounded-full bg-sage-100 text-sage-800">
                         Teilnehmer
                       </span>
                     )}
@@ -266,7 +266,7 @@ const Profile: React.FC = () => {
               {!editing && (
                 <button
                   onClick={() => setEditing(true)}
-                  className="flex items-center px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+                  className="flex items-center px-4 py-2 bg-brand text-white rounded-lg hover:bg-brandPressed transition-colors"
                 >
                   <Edit className="w-4 h-4 mr-2" />
                   Bearbeiten
@@ -277,11 +277,11 @@ const Profile: React.FC = () => {
           <form onSubmit={handleSubmit} className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="first_name" className="block text-sm font-medium text-textMuted mb-2">
                   Vorname
                 </label>
                 <div className="relative">
-                  <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                  <User className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
                   <input
                     id="first_name"
                     name="first_name"
@@ -289,8 +289,8 @@ const Profile: React.FC = () => {
                     value={formData.first_name}
                     onChange={handleChange}
                     disabled={!editing}
-                    className={`w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent ${
-                      !editing ? 'bg-gray-50 cursor-not-allowed' : ''
+                    className={`w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent ${
+                      !editing ? 'bg-surfaceSunken cursor-not-allowed' : ''
                     }`}
                     required
                   />
@@ -298,11 +298,11 @@ const Profile: React.FC = () => {
               </div>
 
               <div>
-                <label htmlFor="last_name" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="last_name" className="block text-sm font-medium text-textMuted mb-2">
                   Nachname
                 </label>
                 <div className="relative">
-                  <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                  <User className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
                   <input
                     id="last_name"
                     name="last_name"
@@ -310,8 +310,8 @@ const Profile: React.FC = () => {
                     value={formData.last_name}
                     onChange={handleChange}
                     disabled={!editing}
-                    className={`w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent ${
-                      !editing ? 'bg-gray-50 cursor-not-allowed' : ''
+                    className={`w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent ${
+                      !editing ? 'bg-surfaceSunken cursor-not-allowed' : ''
                     }`}
                     required
                   />
@@ -319,11 +319,11 @@ const Profile: React.FC = () => {
               </div>
 
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="email" className="block text-sm font-medium text-textMuted mb-2">
                   E-Mail-Adresse
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                  <Mail className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
                   <input
                     id="email"
                     name="email"
@@ -331,8 +331,8 @@ const Profile: React.FC = () => {
                     value={formData.email}
                     onChange={handleChange}
                     disabled={!editing}
-                    className={`w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent ${
-                      !editing ? 'bg-gray-50 cursor-not-allowed' : ''
+                    className={`w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent ${
+                      !editing ? 'bg-surfaceSunken cursor-not-allowed' : ''
                     }`}
                     required
                   />
@@ -340,11 +340,11 @@ const Profile: React.FC = () => {
               </div>
 
               <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="phone" className="block text-sm font-medium text-textMuted mb-2">
                   Telefonnummer
                 </label>
                 <div className="relative">
-                  <Phone className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                  <Phone className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
                   <input
                     id="phone"
                     name="phone"
@@ -352,19 +352,19 @@ const Profile: React.FC = () => {
                     value={formData.phone}
                     onChange={handleChange}
                     disabled={!editing}
-                    className={`w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent ${
-                      !editing ? 'bg-gray-50 cursor-not-allowed' : ''
+                    className={`w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent ${
+                      !editing ? 'bg-surfaceSunken cursor-not-allowed' : ''
                     }`}
                   />
                 </div>
               </div>
 
               <div>
-                <label htmlFor="street" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="street" className="block text-sm font-medium text-textMuted mb-2">
                   Straße
                 </label>
                 <div className="relative">
-                  <MapPin className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                  <MapPin className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
                   <input
                     id="street"
                     name="street"
@@ -372,19 +372,19 @@ const Profile: React.FC = () => {
                     value={formData.street}
                     onChange={handleChange}
                     disabled={!editing}
-                    className={`w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent ${
-                      !editing ? 'bg-gray-50 cursor-not-allowed' : ''
+                    className={`w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent ${
+                      !editing ? 'bg-surfaceSunken cursor-not-allowed' : ''
                     }`}
                   />
                 </div>
               </div>
 
               <div>
-                <label htmlFor="house_number" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="house_number" className="block text-sm font-medium text-textMuted mb-2">
                   Hausnummer
                 </label>
                 <div className="relative">
-                  <Home className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                  <Home className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
                   <input
                     id="house_number"
                     name="house_number"
@@ -392,15 +392,15 @@ const Profile: React.FC = () => {
                     value={formData.house_number}
                     onChange={handleChange}
                     disabled={!editing}
-                    className={`w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent ${
-                      !editing ? 'bg-gray-50 cursor-not-allowed' : ''
+                    className={`w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent ${
+                      !editing ? 'bg-surfaceSunken cursor-not-allowed' : ''
                     }`}
                   />
                 </div>
               </div>
 
               <div>
-                <label htmlFor="postal_code" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="postal_code" className="block text-sm font-medium text-textMuted mb-2">
                   Postleitzahl
                 </label>
                 <input
@@ -410,14 +410,14 @@ const Profile: React.FC = () => {
                   value={formData.postal_code}
                   onChange={handleChange}
                   disabled={!editing}
-                  className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent ${
-                    !editing ? 'bg-gray-50 cursor-not-allowed' : ''
+                  className={`w-full px-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent ${
+                    !editing ? 'bg-surfaceSunken cursor-not-allowed' : ''
                   }`}
                 />
               </div>
 
               <div>
-                <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="city" className="block text-sm font-medium text-textMuted mb-2">
                   Stadt
                 </label>
                 <input
@@ -427,26 +427,26 @@ const Profile: React.FC = () => {
                   value={formData.city}
                   onChange={handleChange}
                   disabled={!editing}
-                  className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent ${
-                    !editing ? 'bg-gray-50 cursor-not-allowed' : ''
+                  className={`w-full px-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent ${
+                    !editing ? 'bg-surfaceSunken cursor-not-allowed' : ''
                   }`}
                 />
               </div>
             </div>
 
             {editing && (
-              <div className="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200 mt-6">
+              <div className="flex items-center justify-end space-x-4 pt-6 border-t border-border mt-6">
                 <button
                   type="button"
                   onClick={handleCancel}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                  className="px-4 py-2 text-textMuted bg-surfaceSunken hover:bg-gray-200 rounded-lg transition-colors"
                 >
                   Abbrechen
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex items-center px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 focus:ring-4 focus:ring-teal-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center px-6 py-2 bg-brand text-white rounded-lg hover:bg-brandPressed focus:ring-4 focus:ring-sage-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Save className="w-4 h-4 mr-2" />
                   {loading ? 'Wird gespeichert...' : 'Speichern'}
@@ -456,32 +456,32 @@ const Profile: React.FC = () => {
           </form>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="bg-white rounded-lg shadow-sm border border-border p-6">
           <div className="flex items-center mb-6">
-            <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center">
-              <Lock className="w-6 h-6 text-teal-600" />
+            <div className="w-12 h-12 bg-sage-100 rounded-full flex items-center justify-center">
+              <Lock className="w-6 h-6 text-brand" />
             </div>
             <div className="ml-3">
-              <h2 className="text-lg font-semibold text-gray-900">Passwort ändern</h2>
-              <p className="text-sm text-gray-600">Aktualisieren Sie Ihr Passwort sicher.</p>
+              <h2 className="text-lg font-semibold text-text">Passwort ändern</h2>
+              <p className="text-sm text-textMuted">Aktualisieren Sie Ihr Passwort sicher.</p>
             </div>
           </div>
 
           {passwordSuccess && (
-            <div className="p-4 mb-4 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-sm text-green-600">{passwordSuccess}</p>
+            <div className="p-4 mb-4 bg-sage-100 border border-sage-200 rounded-lg">
+              <p className="text-sm text-brand">{passwordSuccess}</p>
             </div>
           )}
 
           {passwordError && (
-            <div className="p-4 mb-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-600">{passwordError}</p>
+            <div className="p-4 mb-4 bg-dangerSoft border border-danger rounded-lg">
+              <p className="text-sm text-danger">{passwordError}</p>
             </div>
           )}
 
           <form onSubmit={handlePasswordSubmit} className="space-y-4">
             <div>
-              <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="currentPassword" className="block text-sm font-medium text-textMuted mb-2">
                 Aktuelles Passwort
               </label>
               <div className="relative">
@@ -491,13 +491,13 @@ const Profile: React.FC = () => {
                   type={showPasswords.currentPassword ? 'text' : 'password'}
                   value={passwordData.currentPassword}
                   onChange={handlePasswordChange}
-                  className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className="w-full px-4 py-3 pr-12 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => togglePasswordVisibility('currentPassword')}
-                  className="absolute inset-y-0 right-0 px-4 text-gray-500 hover:text-gray-700"
+                  className="absolute inset-y-0 right-0 px-4 text-textMuted hover:text-textMuted"
                   aria-label={showPasswords.currentPassword ? 'Passwort verbergen' : 'Passwort anzeigen'}
                 >
                   {showPasswords.currentPassword ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
@@ -505,7 +505,7 @@ const Profile: React.FC = () => {
               </div>
             </div>
             <div>
-              <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="newPassword" className="block text-sm font-medium text-textMuted mb-2">
                 Neues Passwort
               </label>
               <div className="relative">
@@ -515,13 +515,13 @@ const Profile: React.FC = () => {
                   type={showPasswords.newPassword ? 'text' : 'password'}
                   value={passwordData.newPassword}
                   onChange={handlePasswordChange}
-                  className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className="w-full px-4 py-3 pr-12 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => togglePasswordVisibility('newPassword')}
-                  className="absolute inset-y-0 right-0 px-4 text-gray-500 hover:text-gray-700"
+                  className="absolute inset-y-0 right-0 px-4 text-textMuted hover:text-textMuted"
                   aria-label={showPasswords.newPassword ? 'Passwort verbergen' : 'Passwort anzeigen'}
                 >
                   {showPasswords.newPassword ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
@@ -529,7 +529,7 @@ const Profile: React.FC = () => {
               </div>
             </div>
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-textMuted mb-2">
                 Neues Passwort wiederholen
               </label>
               <div className="relative">
@@ -539,13 +539,13 @@ const Profile: React.FC = () => {
                   type={showPasswords.confirmPassword ? 'text' : 'password'}
                   value={passwordData.confirmPassword}
                   onChange={handlePasswordChange}
-                  className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className="w-full px-4 py-3 pr-12 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => togglePasswordVisibility('confirmPassword')}
-                  className="absolute inset-y-0 right-0 px-4 text-gray-500 hover:text-gray-700"
+                  className="absolute inset-y-0 right-0 px-4 text-textMuted hover:text-textMuted"
                   aria-label={showPasswords.confirmPassword ? 'Passwort verbergen' : 'Passwort anzeigen'}
                 >
                   {showPasswords.confirmPassword ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
@@ -557,7 +557,7 @@ const Profile: React.FC = () => {
               <button
                 type="submit"
                 disabled={passwordLoading}
-                className="flex items-center px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 focus:ring-4 focus:ring-teal-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center px-6 py-2 bg-brand text-white rounded-lg hover:bg-brandPressed focus:ring-4 focus:ring-sage-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save className="w-4 h-4 mr-2" />
                 {passwordLoading ? 'Wird gespeichert...' : 'Passwort speichern'}

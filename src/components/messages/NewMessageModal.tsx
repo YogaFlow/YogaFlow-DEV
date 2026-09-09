@@ -89,22 +89,22 @@ const NewMessageModal: React.FC<NewMessageModalProps> = ({
   return (
     <div
       className={`fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity duration-200 ${
-        isVisible ? 'bg-slate-900/45 opacity-100' : 'bg-slate-900/0 opacity-0'
+        isVisible ? 'bg-text/45 opacity-100' : 'bg-text/0 opacity-0'
       }`}
       onClick={onClose}
     >
       <div
-        className={`w-full sm:max-w-lg max-h-[95vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl border border-gray-100 bg-white shadow-2xl transition-all duration-200 ${
+        className={`w-full sm:max-w-lg max-h-[95vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl border border-border bg-white shadow-2xl transition-all duration-200 ${
           isVisible ? 'scale-100 translate-y-0 opacity-100' : 'scale-95 translate-y-4 opacity-0'
         }`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Neue Nachricht</h2>
+        <div className="sticky top-0 bg-white border-b border-border px-6 py-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-text">Neue Nachricht</h2>
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
+            className="p-2 rounded-lg hover:bg-surfaceSunken text-textMuted transition-colors"
             aria-label="Schließen"
           >
             <X size={20} />
@@ -113,11 +113,11 @@ const NewMessageModal: React.FC<NewMessageModalProps> = ({
 
         <form onSubmit={onSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Kurs</label>
+            <label className="block text-sm font-medium text-textMuted mb-1">Kurs</label>
             <select
               value={selectedCourse}
               onChange={(e) => onSelectedCourseChange(e.target.value)}
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-base"
+              className="w-full px-3 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent text-base"
               required
             >
               <option value="">Kurs auswählen</option>
@@ -131,7 +131,7 @@ const NewMessageModal: React.FC<NewMessageModalProps> = ({
 
           {isCourseLeader && selectedCourse && (
             <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+              <label className="flex items-center gap-2 text-sm font-medium text-textMuted">
                 <input
                   type="checkbox"
                   checked={isBroadcast}
@@ -139,7 +139,7 @@ const NewMessageModal: React.FC<NewMessageModalProps> = ({
                     onIsBroadcastChange(e.target.checked);
                     if (e.target.checked) onRecipientIdChange('');
                   }}
-                  className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                  className="rounded border-border text-brand focus:ring-brand"
                 />
                 An alle Teilnehmer senden
               </label>
@@ -148,11 +148,11 @@ const NewMessageModal: React.FC<NewMessageModalProps> = ({
 
           {!isBroadcast && selectedCourse && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Empfänger</label>
+              <label className="block text-sm font-medium text-textMuted mb-1">Empfänger</label>
               <select
                 value={recipientId}
                 onChange={(e) => onRecipientIdChange(e.target.value)}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-base"
+                className="w-full px-3 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent text-base"
                 required={!isBroadcast}
               >
                 <option value="">Empfänger auswählen</option>
@@ -172,14 +172,14 @@ const NewMessageModal: React.FC<NewMessageModalProps> = ({
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nachricht</label>
+            <label className="block text-sm font-medium text-textMuted mb-1">Nachricht</label>
             <div className="relative">
               <textarea
                 ref={textareaRef}
                 value={message}
                 onChange={(e) => onMessageChange(e.target.value)}
                 rows={4}
-                className="w-full px-3 py-2.5 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none text-base"
+                className="w-full px-3 py-2.5 pr-10 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent resize-none text-base"
                 placeholder="Geben Sie hier Ihre Nachricht ein..."
                 required
               />
@@ -187,7 +187,7 @@ const NewMessageModal: React.FC<NewMessageModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setEmojiOpen((o) => !o)}
-                  className="p-1.5 rounded-lg text-gray-400 hover:text-teal-600 hover:bg-gray-50"
+                  className="p-1.5 rounded-lg text-textSubtle hover:text-brandPressed hover:bg-surfaceSunken"
                   aria-label="Emoji auswählen"
                 >
                   <Smile size={18} />
@@ -211,7 +211,7 @@ const NewMessageModal: React.FC<NewMessageModalProps> = ({
           <button
             type="submit"
             disabled={sending}
-            className="w-full flex items-center justify-center gap-2 bg-teal-600 text-white px-4 py-2.5 rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50 text-sm font-medium"
+            className="w-full flex items-center justify-center gap-2 bg-brand text-white px-4 py-2.5 rounded-lg hover:bg-brandPressed transition-colors disabled:opacity-50 text-sm font-medium"
           >
             <Send size={18} />
             Nachricht senden

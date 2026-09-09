@@ -106,7 +106,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
 
   return (
     <div className="relative">
-      <Calendar className="absolute left-3 top-3 h-5 w-5 text-gray-400 pointer-events-none z-10" />
+      <Calendar className="absolute left-3 top-3 h-5 w-5 text-textSubtle pointer-events-none z-10" />
       <ReactDatePicker
         id={id}
         {...sharedPickerProps}
@@ -114,7 +114,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
         dateFormat="dd.MM.yyyy"
         placeholderText={placeholder}
         customInput={<PickerInput />}
-        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+        className="w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent disabled:bg-surfaceSunken disabled:cursor-not-allowed"
         wrapperClassName="w-full"
         showPopperArrow={false}
         popperPlacement="bottom-start"
@@ -132,11 +132,11 @@ const DatePicker: React.FC<DatePickerProps> = ({
         >
           <button
             type="button"
-            className="absolute inset-0 bg-slate-900/45"
+            className="absolute inset-0 bg-text/45"
             aria-label="Schließen"
             onClick={() => setMobileOpen(false)}
           />
-          <div className="yogaflow-datepicker-modal relative z-10 w-[min(calc(100vw-2rem),23rem)] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl">
+          <div className="yogaflow-datepicker-modal relative z-10 w-[min(calc(100vw-2rem),23rem)] overflow-hidden rounded-2xl border border-border bg-white shadow-xl">
             <ReactDatePicker inline {...sharedPickerProps} />
           </div>
         </div>

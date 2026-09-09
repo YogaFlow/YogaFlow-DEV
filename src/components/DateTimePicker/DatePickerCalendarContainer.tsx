@@ -16,12 +16,12 @@ const DatePickerCalendarContainer: React.FC<DatePickerCalendarContainerProps> = 
 }) => (
   <div className="yogaflow-datepicker">
     <CalendarContainer className={className}>{children}</CalendarContainer>
-    <div className="yogaflow-datepicker-footer flex items-center border-t border-gray-100 px-3 py-2">
+    <div className="yogaflow-datepicker-footer flex items-center border-t border-border px-3 py-2">
       <button
         type="button"
         onClick={onToday}
         disabled={todayDisabled}
-        className="text-sm font-medium text-teal-600 hover:text-teal-700 disabled:cursor-not-allowed disabled:opacity-40"
+        className="text-sm font-medium text-brand hover:text-brandPressed disabled:cursor-not-allowed disabled:opacity-40"
       >
         Heute
       </button>

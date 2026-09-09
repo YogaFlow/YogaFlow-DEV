@@ -85,7 +85,7 @@ export default function Settings() {
   if (!isAdmin) {
     return (
       <div className="p-8">
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+        <div className="bg-dangerSoft border border-danger text-danger px-4 py-3 rounded">
           Zugriff verweigert. Administratorrechte erforderlich.
         </div>
       </div>
@@ -104,52 +104,52 @@ export default function Settings() {
     <div className="p-8 max-w-4xl">
       <FeedbackDialog dialog={feedbackDialog} onClose={() => setFeedbackDialog(null)} />
       <div className="flex items-center gap-3 mb-6">
-        <SettingsIcon size={32} className="text-gray-900" />
-        <h1 className="text-3xl font-bold text-gray-900">Systemeinstellungen</h1>
+        <SettingsIcon size={32} className="text-text" />
+        <h1 className="text-3xl font-bold text-text">Systemeinstellungen</h1>
       </div>
 
       <div className="bg-white rounded-lg shadow p-6 space-y-6">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Buchungseinstellungen</h2>
+          <h2 className="text-xl font-semibold text-text mb-4">Buchungseinstellungen</h2>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-textMuted mb-2">
                 Stornierungsfrist (Stunden vor Kursbeginn)
               </label>
               <input
                 type="number"
                 value={cancellationDeadline}
                 onChange={(e) => setCancellationDeadline(e.target.value)}
-                className="w-full max-w-xs px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                className="w-full max-w-xs px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
                 min="0"
                 step="1"
               />
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-textMuted">
                 Teilnehmer können innerhalb dieser Frist vor Kursbeginn nicht mehr stornieren
               </p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-textMuted mb-2">
                 Standardanzahl Teilnehmer pro Kurs
               </label>
               <input
                 type="number"
                 value={defaultMaxParticipants}
                 onChange={(e) => setDefaultMaxParticipants(e.target.value)}
-                className="w-full max-w-xs px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                className="w-full max-w-xs px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
                 min="1"
                 step="1"
               />
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-textMuted">
                 Dieser Wert wird beim Erstellen neuer Kurse verwendet
               </p>
             </div>
           </div>
         </div>
 
-        <div className="pt-4 border-t border-gray-200">
+        <div className="pt-4 border-t border-border">
           <button
             onClick={handleSaveSettings}
             disabled={saving}
@@ -162,15 +162,15 @@ export default function Settings() {
       </div>
 
       <div className="mt-6 bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Systeminformationen</h2>
-        <div className="space-y-2 text-sm text-gray-600">
+        <h2 className="text-xl font-semibold text-text mb-4">Systeminformationen</h2>
+        <div className="space-y-2 text-sm text-textMuted">
           <div className="flex justify-between">
             <span>Anwendungsname:</span>
-            <span className="font-medium text-gray-900">Omlify</span>
+            <span className="font-medium text-text">Omlify</span>
           </div>
           <div className="flex justify-between">
             <span>Datenbankstatus:</span>
-            <span className="font-medium text-green-600">Verbunden</span>
+            <span className="font-medium text-brand">Verbunden</span>
           </div>
         </div>
       </div>

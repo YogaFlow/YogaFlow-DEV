@@ -26,14 +26,14 @@ const FilterChip: React.FC<FilterChipProps> = ({
   if (onClear && active) {
     return (
       <span
-        className={`inline-flex shrink-0 items-center overflow-hidden rounded-full border font-medium ${sizeClasses} border-teal-600 bg-teal-600 text-white ${className}`}
+        className={`inline-flex shrink-0 items-center overflow-hidden rounded-full border font-medium ${sizeClasses} border-brand bg-brand text-white ${className}`}
       >
         <button
           type="button"
           onClick={onClick}
           aria-pressed={active}
           aria-label={ariaLabel ?? label}
-          className="px-3 py-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-inset md:px-3 md:py-1.5"
+          className="px-3 py-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset md:px-3 md:py-1.5"
         >
           {label}
         </button>
@@ -41,7 +41,7 @@ const FilterChip: React.FC<FilterChipProps> = ({
           type="button"
           onClick={onClear}
           aria-label="Datumsfilter entfernen"
-          className="flex h-full items-center px-2 hover:bg-teal-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+          className="flex h-full items-center px-2 hover:bg-brandPressed focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
         >
           ×
         </button>
@@ -55,10 +55,10 @@ const FilterChip: React.FC<FilterChipProps> = ({
       onClick={onClick}
       aria-pressed={active}
       aria-label={ariaLabel ?? label}
-      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 ${sizeClasses} ${
+      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1 ${sizeClasses} ${
         active
-          ? 'border-teal-600 bg-teal-600 text-white'
-          : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+          ? 'border-brand bg-brand text-white'
+          : 'border-border bg-white text-textMuted hover:bg-surfaceSunken'
       } ${className}`}
     >
       {label}

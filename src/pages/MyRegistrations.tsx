@@ -80,7 +80,7 @@ const MyRegistrations: React.FC = () => {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-teal-600" />
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-brand" />
       </div>
     );
   }
@@ -92,29 +92,29 @@ const MyRegistrations: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Meine Anmeldungen</h1>
-        <p className="text-gray-600">
+        <h1 className="text-2xl font-bold text-text">Meine Anmeldungen</h1>
+        <p className="text-textMuted">
           Kurse, für die Sie sich selbst als Teilnehmer angemeldet haben.
         </p>
       </div>
 
       {loadError ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div className="rounded-lg border border-danger bg-dangerSoft p-4 text-sm text-danger">
           Ihre Anmeldungen konnten nicht geladen werden. Bitte laden Sie die Seite erneut.
         </div>
       ) : registrations.length === 0 ? (
         <div className="py-12 text-center">
-          <Calendar className="mx-auto mb-4 h-16 w-16 text-gray-300" />
-          <h2 className="mb-2 text-lg font-medium text-gray-900">
+          <Calendar className="mx-auto mb-4 h-16 w-16 text-textSubtle" />
+          <h2 className="mb-2 text-lg font-medium text-text">
             Keine Anmeldungen gefunden
           </h2>
-          <p className="mb-6 text-gray-600">
+          <p className="mb-6 text-textMuted">
             Sie sind noch nicht für einen kommenden Kurs angemeldet.
           </p>
           <button
             type="button"
             onClick={() => navigate('/courses')}
-            className="rounded-lg bg-teal-600 px-6 py-3 text-white transition-colors hover:bg-teal-700"
+            className="rounded-lg bg-brand px-6 py-3 text-white transition-colors hover:bg-brandPressed"
           >
             Kurse durchsuchen
           </button>

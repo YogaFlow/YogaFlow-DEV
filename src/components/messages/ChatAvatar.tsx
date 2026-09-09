@@ -36,10 +36,10 @@ const ChatAvatar: React.FC<ChatAvatarProps> = ({
 
   return (
     <div
-      className={`${container} rounded-full bg-teal-100 flex items-center justify-center shrink-0 ${className}`}
+      className={`${container} rounded-full bg-sage-100 flex items-center justify-center shrink-0 ${className}`}
       aria-hidden={!alt}
     >
-      <User size={icon} className="text-teal-600" />
+      <User size={icon} className="text-brand" />
     </div>
   );
 };

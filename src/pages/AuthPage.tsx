@@ -141,29 +141,29 @@ const AuthPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+      <div className="min-h-screen bg-surfaceSunken flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand"></div>
       </div>
     );
   }
 
   if (tenantSlug && lookupError) {
     return (
-      <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-6 text-center">
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">Studio konnte nicht geladen werden</h1>
-        <p className="text-gray-600 text-sm max-w-lg leading-relaxed">{lookupError}</p>
-        <p className="text-gray-500 text-xs max-w-md mt-3">
+      <div className="min-h-screen bg-surfaceSunken flex flex-col items-center justify-center p-6 text-center">
+        <h1 className="text-2xl font-bold text-text mb-2">Studio konnte nicht geladen werden</h1>
+        <p className="text-textMuted text-sm max-w-lg leading-relaxed">{lookupError}</p>
+        <p className="text-textMuted text-xs max-w-md mt-3">
           Wenn der Eintrag in Supabase sichtbar ist: Live-Build muss dieselbe Supabase-URL und denselben Anon-Key
           nutzen (Cloudflare Pages → Environment variables).
         </p>
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className="mt-6 rounded-lg bg-teal-600 text-white px-4 py-2 text-sm font-medium hover:bg-teal-700"
+          className="mt-6 rounded-lg bg-brand text-white px-4 py-2 text-sm font-medium hover:bg-brandPressed"
         >
           Neu laden
         </button>
-        <a href={buildApexHref()} className="mt-3 text-teal-600 hover:underline text-sm font-medium">
+        <a href={buildApexHref()} className="mt-3 text-brand hover:underline text-sm font-medium">
           Zur Startseite
         </a>
       </div>
@@ -172,15 +172,15 @@ const AuthPage: React.FC = () => {
 
   if (tenantSlug && notFound) {
     return (
-      <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-6 text-center">
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">Studio nicht gefunden</h1>
-        <p className="text-gray-500 max-w-md">
+      <div className="min-h-screen bg-surfaceSunken flex flex-col items-center justify-center p-6 text-center">
+        <h1 className="text-2xl font-bold text-text mb-2">Studio nicht gefunden</h1>
+        <p className="text-textMuted max-w-md">
           Unter der Adresse <span className="font-mono">{tenantSlug}</span> ist in der von der App angesprochenen
           Datenbank kein Studio eingetragen.
         </p>
         <a
           href={buildApexHref()}
-          className="mt-6 text-teal-600 hover:underline font-medium"
+          className="mt-6 text-brand hover:underline font-medium"
         >
           Zur Startseite
         </a>
@@ -192,7 +192,7 @@ const AuthPage: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-indigo-50 flex items-center justify-center p-4">
       <div className="w-full max-w-4xl">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-teal-600 rounded-full mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-brand rounded-full mb-4">
             <Heart className="w-8 h-8 text-white" />
           </div>
           {/*
@@ -201,10 +201,10 @@ const AuthPage: React.FC = () => {
             sichtbar. Solange der Tenant noch laedt, bleibt die Zeile leer statt kurz
             "Omlify" zu zeigen und dann umzuspringen.
           */}
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-3xl font-bold text-text mb-2">
             {tenant?.name ?? (tenantSlug ? " " : "Omlify")}
           </h1>
-          <p className="text-gray-600">
+          <p className="text-textMuted">
             {tenantSlug
               ? "Kurse buchen und verwalten"
               : "Verwalten Sie Ihre Yoga-Kurse professionell und einfach"}
@@ -213,29 +213,29 @@ const AuthPage: React.FC = () => {
 
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
           {isApexAuth ? (
-            <div className="border-b border-gray-200 py-4 px-6 text-center">
-              <h2 className="text-lg font-semibold text-gray-900">Anmelden</h2>
-              <p className="text-sm text-gray-500 mt-1">
+            <div className="border-b border-border py-4 px-6 text-center">
+              <h2 className="text-lg font-semibold text-text">Anmelden</h2>
+              <p className="text-sm text-textMuted mt-1">
                 Neues Studio?{' '}
-                <a href="/onboarding" className="text-teal-600 hover:text-teal-700 font-medium">
+                <a href="/onboarding" className="text-brand hover:text-brandPressed font-medium">
                   Jetzt kostenlos starten
                 </a>
               </p>
             </div>
           ) : tenantPending ? (
-            <div className="border-b border-gray-200 py-4 px-6 text-center">
-              <h2 className="text-lg font-semibold text-gray-900">Anmelden</h2>
-              <p className="text-sm text-gray-500 mt-1">Studio wird geladen …</p>
+            <div className="border-b border-border py-4 px-6 text-center">
+              <h2 className="text-lg font-semibold text-text">Anmelden</h2>
+              <p className="text-sm text-textMuted mt-1">Studio wird geladen …</p>
             </div>
           ) : (
-            <div className="flex border-b border-gray-200">
+            <div className="flex border-b border-border">
               <button
                 type="button"
                 onClick={() => setIsLogin(true)}
                 className={`flex-1 py-4 px-6 text-center font-medium transition-colors ${
                   isLogin
-                    ? 'text-teal-600 border-b-2 border-teal-600 bg-teal-50'
-                    : 'text-gray-500 hover:text-gray-700'
+                    ? 'text-brand border-b-2 border-brand bg-sage-100'
+                    : 'text-textMuted hover:text-textMuted'
                 }`}
               >
                 Anmelden
@@ -245,8 +245,8 @@ const AuthPage: React.FC = () => {
                 onClick={() => setIsLogin(false)}
                 className={`flex-1 py-4 px-6 text-center font-medium transition-colors ${
                   !isLogin
-                    ? 'text-teal-600 border-b-2 border-teal-600 bg-teal-50'
-                    : 'text-gray-500 hover:text-gray-700'
+                    ? 'text-brand border-b-2 border-brand bg-sage-100'
+                    : 'text-textMuted hover:text-textMuted'
                 }`}
               >
                 Registrieren
@@ -255,12 +255,12 @@ const AuthPage: React.FC = () => {
           )}
 
           {showVerifiedMessage && (
-            <div className="mx-8 mt-6 p-4 bg-green-50 border border-green-200 rounded-lg text-center text-green-800 text-sm">
+            <div className="mx-8 mt-6 p-4 bg-sage-100 border border-sage-200 rounded-lg text-center text-sage-800 text-sm">
               E-Mail bestätigt. Sie können sich jetzt anmelden.
             </div>
           )}
           {isLogin && user && profileLoading && (
-            <div className="mx-8 mt-6 p-4 bg-teal-50 border border-teal-200 rounded-lg text-teal-900 text-sm text-center">
+            <div className="mx-8 mt-6 p-4 bg-sage-100 border border-sage-200 rounded-lg text-brand text-sm text-center">
               Anmeldung erfolgreich — Profil wird geladen …
             </div>
           )}
@@ -303,7 +303,7 @@ const AuthPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setAccessNotice(null)}
-                className="mt-3 text-teal-700 font-medium hover:underline"
+                className="mt-3 text-brand font-medium hover:underline"
               >
                 Hinweis schließen
               </button>
@@ -320,7 +320,7 @@ const AuthPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setAccessNotice(null)}
-                className="mt-3 text-teal-700 font-medium hover:underline"
+                className="mt-3 text-brand font-medium hover:underline"
               >
                 Hinweis schließen
               </button>
@@ -337,7 +337,7 @@ const AuthPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setAccessNotice(null)}
-                className="mt-3 text-teal-700 font-medium hover:underline"
+                className="mt-3 text-brand font-medium hover:underline"
               >
                 Hinweis schließen
               </button>
@@ -352,7 +352,7 @@ const AuthPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="text-center mt-8 text-sm text-gray-500">
+        <div className="text-center mt-8 text-sm text-textMuted">
           <p>© {new Date().getFullYear()} Omlify · Kursverwaltung für Yogastudios</p>
         </div>
       </div>

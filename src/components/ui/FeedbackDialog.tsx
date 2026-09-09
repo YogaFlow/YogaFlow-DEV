@@ -33,35 +33,35 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ dialog, onClose }) => {
   const colorClasses =
     variant === 'success'
       ? {
-          dot: 'bg-teal-500',
-          button: 'bg-teal-600 hover:bg-teal-700',
+          dot: 'bg-sage-500',
+          button: 'bg-brand hover:bg-brandPressed',
         }
       : variant === 'error'
         ? {
-            dot: 'bg-red-500',
-            button: 'bg-red-600 hover:bg-red-700',
+            dot: 'bg-danger',
+            button: 'bg-danger hover:bg-danger',
           }
         : {
-            dot: 'bg-blue-500',
-            button: 'bg-blue-600 hover:bg-blue-700',
+            dot: 'bg-sage-500',
+            button: 'bg-sage-500 hover:bg-brandPressed',
           };
 
   return (
     <div
       className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-200 ${
-        isVisible ? 'bg-slate-900/45 opacity-100' : 'bg-slate-900/0 opacity-0'
+        isVisible ? 'bg-text/45 opacity-100' : 'bg-text/0 opacity-0'
       }`}
     >
       <div
-        className={`w-full max-w-md rounded-2xl border border-gray-100 bg-white p-6 shadow-2xl transition-all duration-200 ${
+        className={`w-full max-w-md rounded-2xl border border-border bg-white p-6 shadow-2xl transition-all duration-200 ${
           isVisible ? 'scale-100 translate-y-0 opacity-100' : 'scale-95 translate-y-2 opacity-0'
         }`}
       >
         <div className="mb-3 flex items-center gap-2">
           <span className={`inline-flex h-2.5 w-2.5 rounded-full ${colorClasses.dot}`} aria-hidden />
-          <h3 className="text-lg font-semibold text-gray-900">{dialog.title}</h3>
+          <h3 className="text-lg font-semibold text-text">{dialog.title}</h3>
         </div>
-        <p className="text-sm leading-6 text-gray-600">{dialog.message}</p>
+        <p className="text-sm leading-6 text-textMuted">{dialog.message}</p>
         <div className="mt-6 flex justify-center">
           <button
             onClick={onClose}

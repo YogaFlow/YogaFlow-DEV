@@ -25,7 +25,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
       >
         {showCourseTitle && courseTitle && (
           <span
-            className={`text-[10px] text-gray-400 px-1 ${isOwnMessage ? 'text-right' : 'text-left'}`}
+            className={`text-[10px] text-textSubtle px-1 ${isOwnMessage ? 'text-right' : 'text-left'}`}
           >
             {courseTitle}
           </span>
@@ -33,14 +33,14 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
         <div
           className={`px-4 py-2.5 whitespace-pre-wrap break-words text-sm leading-relaxed ${
             isOwnMessage
-              ? 'bg-teal-600 text-white rounded-2xl rounded-br-sm'
-              : 'bg-gray-100 text-gray-900 rounded-2xl rounded-bl-sm'
+              ? 'bg-brand text-white rounded-2xl rounded-br-sm'
+              : 'bg-surfaceSunken text-text rounded-2xl rounded-bl-sm'
           }`}
         >
           {message.content}
         </div>
         <span
-          className={`text-[10px] text-gray-400 px-1 ${isOwnMessage ? 'text-right' : 'text-left'}`}
+          className={`text-[10px] text-textSubtle px-1 ${isOwnMessage ? 'text-right' : 'text-left'}`}
         >
           {timeLabel}
         </span>

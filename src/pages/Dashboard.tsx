@@ -246,21 +246,21 @@ const Dashboard: React.FC = () => {
           title: 'Kurse verwalten',
           value: stats.myCourses,
           icon: BookOpen,
-          color: 'bg-teal-500',
+          color: 'bg-sage-500',
           path: '/my-courses'
         },
         {
           title: 'Meine Anmeldungen',
           value: stats.myRegistrations,
           icon: Calendar,
-          color: 'bg-blue-500',
+          color: 'bg-sage-500',
           path: '/my-registrations'
         },
         {
           title: 'Gesamt Teilnehmer',
           value: stats.totalParticipants,
           icon: Users,
-          color: 'bg-green-500',
+          color: 'bg-sage-500',
           path: '/participants'
         }
       ];
@@ -271,13 +271,13 @@ const Dashboard: React.FC = () => {
         title: 'Kommende Kurse',
         value: stats.upcomingCourses,
         icon: Calendar,
-        color: 'bg-blue-500'
+        color: 'bg-sage-500'
       },
       {
         title: 'Gesamt Teilnehmer',
         value: stats.totalParticipants,
         icon: Users,
-        color: 'bg-green-500',
+        color: 'bg-sage-500',
         path: '/participants'
       }
     ];
@@ -288,7 +288,7 @@ const Dashboard: React.FC = () => {
           title: 'Kurse verwalten',
           value: stats.myCourses,
           icon: BookOpen,
-          color: 'bg-teal-500',
+          color: 'bg-sage-500',
           path: '/my-courses'
         },
         ...baseCards
@@ -299,14 +299,14 @@ const Dashboard: React.FC = () => {
           title: 'Meine Anmeldungen',
           value: stats.myRegistrations,
           icon: BookOpen,
-          color: 'bg-teal-500',
+          color: 'bg-sage-500',
           path: '/my-registrations'
         },
         {
           title: 'Alle Kurse',
           value: stats.totalCourses,
           icon: Calendar,
-          color: 'bg-blue-500',
+          color: 'bg-sage-500',
           path: '/courses'
         }
       ];
@@ -317,7 +317,7 @@ const Dashboard: React.FC = () => {
         title: 'Alle Kurse',
         value: stats.totalCourses,
         icon: BookOpen,
-        color: 'bg-teal-500',
+        color: 'bg-sage-500',
         path: '/courses'
       },
       ...baseCards,
@@ -325,7 +325,7 @@ const Dashboard: React.FC = () => {
         title: 'Wachstum',
         value: '+12%',
         icon: TrendingUp,
-        color: 'bg-gray-500'
+        color: 'bg-surfaceSunken0'
       }
     ];
   };
@@ -336,7 +336,7 @@ const Dashboard: React.FC = () => {
     options?: { showRegisteredBadge?: boolean }
   ) => {
     if (items.length === 0) {
-      return <p className="text-gray-500 text-center py-8">{emptyMessage}</p>;
+      return <p className="text-textMuted text-center py-8">{emptyMessage}</p>;
     }
 
     return (
@@ -355,25 +355,25 @@ const Dashboard: React.FC = () => {
           return (
             <div
               key={course.id || index}
-              className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md"
+              className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm transition-shadow hover:shadow-md"
             >
               <div className="p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h3 className="text-xl font-bold leading-tight text-gray-900">{course.title}</h3>
+                    <h3 className="text-xl font-bold leading-tight text-text">{course.title}</h3>
                     {course.description && (
-                      <p className="mt-1 line-clamp-1 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                      <p className="mt-1 line-clamp-1 text-xs font-semibold uppercase tracking-wide text-textSubtle">
                         {course.description}
                       </p>
                     )}
                   </div>
                   {course.price != null && (
-                    <span className="shrink-0 text-2xl font-bold text-teal-600">€{course.price}</span>
+                    <span className="shrink-0 text-2xl font-bold text-brand">€{course.price}</span>
                   )}
                 </div>
 
-                <div className="mt-4 space-y-2 text-sm text-gray-600">
-                  <div className="flex items-center gap-2 font-medium text-gray-500">
+                <div className="mt-4 space-y-2 text-sm text-textMuted">
+                  <div className="flex items-center gap-2 font-medium text-textMuted">
                     <Calendar className="h-4 w-4 shrink-0" />
                     {formatDate(course.date)}
                   </div>
@@ -395,26 +395,26 @@ const Dashboard: React.FC = () => {
                 </div>
 
                 {course.teacher && (
-                  <div className="mt-5 border-t border-gray-100 pt-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Kursleitung</p>
-                    <p className="mt-1 text-sm font-semibold text-gray-700">
+                  <div className="mt-5 border-t border-border pt-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-textSubtle">Kursleitung</p>
+                    <p className="mt-1 text-sm font-semibold text-textMuted">
                       Lehrer: {course.teacher.first_name} {course.teacher.last_name}
                     </p>
                   </div>
                 )}
 
-                <div className="mt-5 flex items-center justify-between gap-3 border-t border-gray-100 pt-4">
+                <div className="mt-5 flex items-center justify-between gap-3 border-t border-border pt-4">
                   <div className="flex items-center gap-2">
                     <div className={`h-2.5 w-2.5 rounded-full ${
-                      isFull ? 'bg-red-500' : (remainingSpots <= 2 ? 'bg-yellow-500' : 'bg-green-500')
+                      isFull ? 'bg-danger' : (remainingSpots <= 2 ? 'bg-yellow-500' : 'bg-sage-500')
                     }`} />
-                    <span className="text-sm font-medium text-gray-600">
+                    <span className="text-sm font-medium text-textMuted">
                       {isFull ? 'Leider schon ausgebucht' : (remainingSpots <= 2 ? `noch ${remainingSpots} ${remainingSpots === 1 ? 'Restplatz' : 'Restplätze'}` : 'Verfügbar')}
                     </span>
                   </div>
 
                   {isRegistered && (
-                    <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-green-700">
+                    <span className="inline-flex items-center rounded-full bg-sage-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-sage-800">
                       Angemeldet
                     </span>
                   )}
@@ -430,7 +430,7 @@ const Dashboard: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand"></div>
       </div>
     );
   }
@@ -440,8 +440,8 @@ const Dashboard: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600">
+        <h1 className="text-2xl font-bold text-text">Dashboard</h1>
+        <p className="text-textMuted">
           Überblick über Ihre Kurse.
         </p>
       </div>
@@ -454,8 +454,8 @@ const Dashboard: React.FC = () => {
                 <card.icon className="w-6 h-6 text-white" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">{card.title}</p>
-                <p className="text-2xl font-bold text-gray-900">{card.value}</p>
+                <p className="text-sm font-medium text-textMuted">{card.title}</p>
+                <p className="text-2xl font-bold text-text">{card.value}</p>
               </div>
             </div>
           );
@@ -465,14 +465,14 @@ const Dashboard: React.FC = () => {
               <Link
                 key={index}
                 to={path}
-                className="block bg-white rounded-lg shadow-sm border border-gray-200 p-6 w-full text-left hover:border-teal-300 hover:shadow-md transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 no-underline text-inherit"
+                className="block bg-white rounded-lg shadow-sm border border-border p-6 w-full text-left hover:border-sage-200 hover:shadow-md transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 no-underline text-inherit"
               >
                 <CardContent />
               </Link>
             );
           }
           return (
-            <div key={index} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div key={index} className="bg-white rounded-lg shadow-sm border border-border p-6">
               <CardContent />
             </div>
           );
@@ -482,9 +482,9 @@ const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-6">
           {(isCourseLeader && !isParticipantOnly) && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-              <div className="p-6 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">
+            <div className="bg-white rounded-lg shadow-sm border border-border">
+              <div className="p-6 border-b border-border">
+                <h2 className="text-lg font-semibold text-text">
                   {isTeacher ? 'Kurse, die ich gebe' : 'Kommende Kurse'}
                 </h2>
               </div>
@@ -500,9 +500,9 @@ const Dashboard: React.FC = () => {
           )}
 
           {(isParticipantOnly || isTeacher) && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-              <div className="p-6 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">Meine kommenden Kurse</h2>
+            <div className="bg-white rounded-lg shadow-sm border border-border">
+              <div className="p-6 border-b border-border">
+                <h2 className="text-lg font-semibold text-text">Meine kommenden Kurse</h2>
               </div>
               <div className="p-6">
                 {renderCourseCards(
@@ -515,19 +515,19 @@ const Dashboard: React.FC = () => {
           )}
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Schnellzugriff</h2>
+        <div className="bg-white rounded-lg shadow-sm border border-border">
+          <div className="p-6 border-b border-border">
+            <h2 className="text-lg font-semibold text-text">Schnellzugriff</h2>
           </div>
           <div className="p-6">
             <div className="grid grid-cols-1 gap-4">
               {isTeacher && (
                 <button
                   onClick={() => navigate('/courses')}
-                  className="flex items-center p-4 bg-teal-50 hover:bg-teal-100 rounded-lg transition-colors text-left"
+                  className="flex items-center p-4 bg-sage-100 hover:bg-sage-100 rounded-lg transition-colors text-left"
                 >
-                  <Calendar className="w-5 h-5 text-teal-600 mr-3" />
-                  <span className="font-medium text-teal-700">Kurse durchsuchen</span>
+                  <Calendar className="w-5 h-5 text-brand mr-3" />
+                  <span className="font-medium text-brand">Kurse durchsuchen</span>
                 </button>
               )}
 
@@ -535,17 +535,17 @@ const Dashboard: React.FC = () => {
                 <>
                   <button
                     onClick={() => navigate('/create-course')}
-                    className="flex items-center p-4 bg-teal-50 hover:bg-teal-100 rounded-lg transition-colors text-left"
+                    className="flex items-center p-4 bg-sage-100 hover:bg-sage-100 rounded-lg transition-colors text-left"
                   >
-                    <BookOpen className="w-5 h-5 text-teal-600 mr-3" />
-                    <span className="font-medium text-teal-700">Neuen Kurs erstellen</span>
+                    <BookOpen className="w-5 h-5 text-brand mr-3" />
+                    <span className="font-medium text-brand">Neuen Kurs erstellen</span>
                   </button>
                   <button
                     onClick={() => navigate('/participants')}
-                    className="flex items-center p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-left"
+                    className="flex items-center p-4 bg-sage-100 hover:bg-sage-100 rounded-lg transition-colors text-left"
                   >
-                    <Users className="w-5 h-5 text-blue-600 mr-3" />
-                    <span className="font-medium text-blue-700">Teilnehmer verwalten</span>
+                    <Users className="w-5 h-5 text-brand mr-3" />
+                    <span className="font-medium text-brand">Teilnehmer verwalten</span>
                   </button>
                 </>
               )}
@@ -554,17 +554,17 @@ const Dashboard: React.FC = () => {
                 <>
                   <button
                     onClick={() => navigate('/courses')}
-                    className="flex items-center p-4 bg-teal-50 hover:bg-teal-100 rounded-lg transition-colors text-left"
+                    className="flex items-center p-4 bg-sage-100 hover:bg-sage-100 rounded-lg transition-colors text-left"
                   >
-                    <Calendar className="w-5 h-5 text-teal-600 mr-3" />
-                    <span className="font-medium text-teal-700">Kurse durchsuchen</span>
+                    <Calendar className="w-5 h-5 text-brand mr-3" />
+                    <span className="font-medium text-brand">Kurse durchsuchen</span>
                   </button>
                   <button
                     onClick={() => navigate('/my-registrations')}
-                    className="flex items-center p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-left"
+                    className="flex items-center p-4 bg-sage-100 hover:bg-sage-100 rounded-lg transition-colors text-left"
                   >
-                    <BookOpen className="w-5 h-5 text-blue-600 mr-3" />
-                    <span className="font-medium text-blue-700">Meine Anmeldungen</span>
+                    <BookOpen className="w-5 h-5 text-brand mr-3" />
+                    <span className="font-medium text-brand">Meine Anmeldungen</span>
                   </button>
                 </>
               )}
@@ -573,17 +573,17 @@ const Dashboard: React.FC = () => {
                 <>
                   <button
                     onClick={() => navigate('/users')}
-                    className="flex items-center p-4 bg-teal-50 hover:bg-teal-100 rounded-lg transition-colors text-left"
+                    className="flex items-center p-4 bg-sage-100 hover:bg-sage-100 rounded-lg transition-colors text-left"
                   >
-                    <Users className="w-5 h-5 text-teal-600 mr-3" />
-                    <span className="font-medium text-teal-700">Benutzer verwalten</span>
+                    <Users className="w-5 h-5 text-brand mr-3" />
+                    <span className="font-medium text-brand">Benutzer verwalten</span>
                   </button>
                   <button
                     onClick={() => navigate('/settings')}
-                    className="flex items-center p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors text-left"
+                    className="flex items-center p-4 bg-surfaceSunken hover:bg-surfaceSunken rounded-lg transition-colors text-left"
                   >
-                    <TrendingUp className="w-5 h-5 text-gray-600 mr-3" />
-                    <span className="font-medium text-gray-700">System-Einstellungen</span>
+                    <TrendingUp className="w-5 h-5 text-textMuted mr-3" />
+                    <span className="font-medium text-textMuted">System-Einstellungen</span>
                   </button>
                 </>
               )}

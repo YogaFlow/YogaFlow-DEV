@@ -267,8 +267,8 @@ const Participants: React.FC = () => {
   if (!hasPermission) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Keine Berechtigung</h2>
-        <p className="text-gray-600">Sie haben keine Berechtigung, diese Seite zu sehen.</p>
+        <h2 className="text-xl font-semibold text-text mb-2">Keine Berechtigung</h2>
+        <p className="text-textMuted">Sie haben keine Berechtigung, diese Seite zu sehen.</p>
       </div>
     );
   }
@@ -276,7 +276,7 @@ const Participants: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand"></div>
       </div>
     );
   }
@@ -292,8 +292,8 @@ const Participants: React.FC = () => {
       />
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Teilnehmer</h1>
-          <p className="text-gray-600">
+          <h1 className="text-2xl font-bold text-text">Teilnehmer</h1>
+          <p className="text-textMuted">
             {userProfile && userProfile.role === 'teacher'
               ? 'Anmeldungen für Ihre kommenden Kurse'
               : 'Verwalten Sie Kursteilnehmer und Anmeldungen'}
@@ -303,7 +303,7 @@ const Participants: React.FC = () => {
         {filteredParticipants.length > 0 && (
           <button
             onClick={exportParticipants}
-            className="mt-4 sm:mt-0 bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition-colors flex items-center"
+            className="mt-4 sm:mt-0 bg-brand text-white px-4 py-2 rounded-lg hover:bg-brandPressed transition-colors flex items-center"
           >
             <Download className="w-4 h-4 mr-2" />
             CSV Export
@@ -312,25 +312,25 @@ const Participants: React.FC = () => {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="bg-white rounded-lg shadow-sm border border-border p-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-3 h-4 w-4 text-textSubtle" />
             <input
               type="text"
               placeholder="Teilnehmer suchen..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
             />
           </div>
           
           <div className="relative">
-            <Filter className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+            <Filter className="absolute left-3 top-3 h-4 w-4 text-textSubtle" />
             <select
               value={selectedCourse}
               onChange={(e) => setSelectedCourse(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent appearance-none"
+              className="w-full pl-10 pr-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent appearance-none"
             >
               <option value="">Alle Kurse</option>
               {courses.map(course => (
@@ -345,7 +345,7 @@ const Participants: React.FC = () => {
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               <option value="">Alle Status</option>
               <option value="registered">Angemeldet</option>
@@ -353,7 +353,7 @@ const Participants: React.FC = () => {
             </select>
           </div>
 
-          <div className="text-sm text-gray-600 flex items-center">
+          <div className="text-sm text-textMuted flex items-center">
             <Users className="w-4 h-4 mr-2" />
             {filteredParticipants.length} Teilnehmer
           </div>
@@ -363,9 +363,9 @@ const Participants: React.FC = () => {
       {/* Participants List */}
       {filteredParticipants.length === 0 ? (
         <div className="text-center py-12">
-          <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Keine Teilnehmer gefunden</h3>
-          <p className="text-gray-600">
+          <Users className="w-16 h-16 text-textSubtle mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-text mb-2">Keine Teilnehmer gefunden</h3>
+          <p className="text-textMuted">
             {searchTerm || selectedCourse || selectedStatus 
               ? 'Versuchen Sie andere Filterkriterien.' 
               : 'Es sind noch keine Teilnehmer angemeldet.'}
@@ -376,21 +376,21 @@ const Participants: React.FC = () => {
           {/* Mobile: card list */}
           <div className="sm:hidden space-y-3">
             {filteredParticipants.map((participant) => (
-              <div key={participant.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <div key={participant.id} className="bg-white rounded-lg shadow-sm border border-border p-4">
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <div className="min-w-0">
-                    <div className="text-sm font-medium text-gray-900">
+                    <div className="text-sm font-medium text-text">
                       {participant.user.first_name} {participant.user.last_name}
                     </div>
                     {formatUserAddress(participant.user) && (
-                      <div className="text-xs text-gray-500 mt-0.5 truncate">
+                      <div className="text-xs text-textMuted mt-0.5 truncate">
                         {formatUserAddress(participant.user)}
                       </div>
                     )}
                   </div>
                   <span className={`flex-shrink-0 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                     participant.status === 'registered'
-                      ? 'bg-green-100 text-green-800'
+                      ? 'bg-sage-100 text-sage-800'
                       : 'bg-yellow-100 text-yellow-800'
                   }`}>
                     {participant.status === 'registered'
@@ -401,8 +401,8 @@ const Participants: React.FC = () => {
                   </span>
                 </div>
 
-                <div className="text-sm font-medium text-gray-800 mb-1">{participant.course.title}</div>
-                <div className="flex items-center gap-3 text-xs text-gray-500 mb-3">
+                <div className="text-sm font-medium text-text mb-1">{participant.course.title}</div>
+                <div className="flex items-center gap-3 text-xs text-textMuted mb-3">
                   <span className="flex items-center gap-1">
                     <Calendar className="w-3 h-3" />
                     {format(parseISO(participant.course.date), 'dd.MM.yyyy', { locale: de })}
@@ -414,20 +414,20 @@ const Participants: React.FC = () => {
                 </div>
 
                 <div className="space-y-1 text-xs mb-3">
-                  <a href={`mailto:${participant.user.email}`} className="flex items-center gap-1.5 text-gray-600 hover:text-teal-600">
+                  <a href={`mailto:${participant.user.email}`} className="flex items-center gap-1.5 text-textMuted hover:text-brandPressed">
                     <Mail className="w-3 h-3 flex-shrink-0" />
                     <span className="truncate">{participant.user.email}</span>
                   </a>
                   {participant.user.phone && (
-                    <a href={`tel:${participant.user.phone}`} className="flex items-center gap-1.5 text-gray-600 hover:text-teal-600">
+                    <a href={`tel:${participant.user.phone}`} className="flex items-center gap-1.5 text-textMuted hover:text-brandPressed">
                       <Phone className="w-3 h-3 flex-shrink-0" />
                       {participant.user.phone}
                     </a>
                   )}
                 </div>
 
-                <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                  <span className="text-xs text-gray-400">
+                <div className="flex items-center justify-between pt-2 border-t border-border">
+                  <span className="text-xs text-textSubtle">
                     {format(parseISO(participant.registered_at), 'dd.MM.yyyy HH:mm', { locale: de })}
                   </span>
                   {canUnregisterParticipant(participant) && (
@@ -435,10 +435,10 @@ const Participants: React.FC = () => {
                       type="button"
                       onClick={() => requestUnregister(participant)}
                       disabled={unregisteringId === participant.id}
-                      className="inline-flex items-center gap-1 text-xs font-medium text-red-600 hover:text-red-700 disabled:opacity-50"
+                      className="inline-flex items-center gap-1 text-xs font-medium text-danger hover:text-danger disabled:opacity-50"
                     >
                       {unregisteringId === participant.id ? (
-                        <span className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-600" />
+                        <span className="animate-spin rounded-full h-3 w-3 border-b-2 border-danger" />
                       ) : (
                         <UserMinus className="w-3 h-3" />
                       )}
@@ -451,43 +451,43 @@ const Participants: React.FC = () => {
           </div>
 
           {/* Desktop: table */}
-          <div className="hidden sm:block bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="hidden sm:block bg-white rounded-lg shadow-sm border border-border overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-border">
+                <thead className="bg-surfaceSunken">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-textMuted uppercase tracking-wider">
                       Teilnehmer
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-textMuted uppercase tracking-wider">
                       Kurs
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-textMuted uppercase tracking-wider">
                       Kontakt
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-textMuted uppercase tracking-wider">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-textMuted uppercase tracking-wider">
                       Angemeldet
                     </th>
                     {showActionsColumn && (
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-textMuted uppercase tracking-wider">
                         Aktionen
                       </th>
                     )}
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white divide-y divide-border">
                   {filteredParticipants.map((participant) => (
-                    <tr key={participant.id} className="hover:bg-gray-50">
+                    <tr key={participant.id} className="hover:bg-surfaceSunken">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
-                          <div className="text-sm font-medium text-gray-900">
+                          <div className="text-sm font-medium text-text">
                             {participant.user.first_name} {participant.user.last_name}
                           </div>
                           {formatUserAddress(participant.user) && (
-                            <div className="text-sm text-gray-500">
+                            <div className="text-sm text-textMuted">
                               {formatUserAddress(participant.user)}
                             </div>
                           )}
@@ -495,10 +495,10 @@ const Participants: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
-                          <div className="text-sm font-medium text-gray-900">
+                          <div className="text-sm font-medium text-text">
                             {participant.course.title}
                           </div>
-                          <div className="text-sm text-gray-500 flex items-center">
+                          <div className="text-sm text-textMuted flex items-center">
                             <Calendar className="w-3 h-3 mr-1" />
                             {format(parseISO(participant.course.date), 'dd.MM.yyyy', { locale: de })}
                             <Clock className="w-3 h-3 ml-2 mr-1" />
@@ -507,15 +507,15 @@ const Participants: React.FC = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900 flex items-center">
+                        <div className="text-sm text-text flex items-center">
                           <Mail className="w-3 h-3 mr-1" />
-                          <a href={`mailto:${participant.user.email}`} className="hover:text-teal-600">
+                          <a href={`mailto:${participant.user.email}`} className="hover:text-brandPressed">
                             {participant.user.email}
                           </a>
                         </div>
-                        <div className="text-sm text-gray-500 flex items-center mt-1">
+                        <div className="text-sm text-textMuted flex items-center mt-1">
                           <Phone className="w-3 h-3 mr-1" />
-                          <a href={`tel:${participant.user.phone}`} className="hover:text-teal-600">
+                          <a href={`tel:${participant.user.phone}`} className="hover:text-brandPressed">
                             {participant.user.phone}
                           </a>
                         </div>
@@ -523,7 +523,7 @@ const Participants: React.FC = () => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                           participant.status === 'registered'
-                            ? 'bg-green-100 text-green-800'
+                            ? 'bg-sage-100 text-sage-800'
                             : 'bg-yellow-100 text-yellow-800'
                         }`}>
                           {participant.status === 'registered'
@@ -533,7 +533,7 @@ const Participants: React.FC = () => {
                               : 'Warteliste'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-textMuted">
                         {format(parseISO(participant.registered_at), 'dd.MM.yyyy HH:mm', { locale: de })}
                       </td>
                       {showActionsColumn && (
@@ -543,17 +543,17 @@ const Participants: React.FC = () => {
                               type="button"
                               onClick={() => requestUnregister(participant)}
                               disabled={unregisteringId === participant.id}
-                              className="inline-flex items-center gap-1.5 text-red-600 hover:text-red-700 disabled:opacity-50"
+                              className="inline-flex items-center gap-1.5 text-danger hover:text-danger disabled:opacity-50"
                             >
                               {unregisteringId === participant.id ? (
-                                <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600" />
+                                <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-danger" />
                               ) : (
                                 <UserMinus className="w-4 h-4" />
                               )}
                               Abmelden
                             </button>
                           ) : (
-                            <span className="text-gray-400">—</span>
+                            <span className="text-textSubtle">—</span>
                           )}
                         </td>
                       )}
