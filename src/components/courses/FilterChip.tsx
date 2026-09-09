@@ -26,7 +26,7 @@ const FilterChip: React.FC<FilterChipProps> = ({
   if (onClear && active) {
     return (
       <span
-        className={`inline-flex shrink-0 items-center overflow-hidden rounded-full border font-medium ${sizeClasses} border-brand bg-brand text-onBrand ${className}`}
+        className={`inline-flex shrink-0 items-center overflow-hidden rounded-[var(--radius-sm)] border font-medium ${sizeClasses} border-brand bg-brand text-onBrand ${className}`}
       >
         <button
           type="button"
@@ -55,7 +55,7 @@ const FilterChip: React.FC<FilterChipProps> = ({
       onClick={onClick}
       aria-pressed={active}
       aria-label={ariaLabel ?? label}
-      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1 ${sizeClasses} ${
+      className={`inline-flex shrink-0 items-center gap-1.5 rounded-[var(--radius-sm)] border font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1 ${sizeClasses} ${
         active
           ? 'border-brand bg-brand text-onBrand'
           : 'border-border bg-surface text-textMuted hover:bg-surfaceSunken'

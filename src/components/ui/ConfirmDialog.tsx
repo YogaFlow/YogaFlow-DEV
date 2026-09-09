@@ -58,13 +58,13 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       onClick={loading ? undefined : onCancel}
     >
       <div
-        className={`w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-2xl transition-all duration-200 ${
+        className={`w-full max-w-md rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-lg transition-all duration-200 ${
           isVisible ? 'scale-100 translate-y-0 opacity-100' : 'scale-95 translate-y-2 opacity-0'
         }`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-center gap-2">
-          <span className={`inline-flex h-2.5 w-2.5 rounded-full ${colorClasses.dot}`} aria-hidden />
+          <span className={`inline-flex h-2.5 w-2.5 rounded-[var(--radius-full)] ${colorClasses.dot}`} aria-hidden />
           <h3 className="text-lg font-semibold text-text">{dialog.title}</h3>
         </div>
         <p className="text-sm leading-6 text-textMuted">{dialog.message}</p>
@@ -73,7 +73,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             type="button"
             onClick={onCancel}
             disabled={loading}
-            className="rounded-full px-6 py-2 text-sm font-semibold text-textMuted transition-colors hover:bg-surfaceSunken disabled:opacity-50"
+            className="rounded-[var(--radius-full)] px-6 py-2 text-sm font-semibold text-textMuted transition-colors hover:bg-surfaceSunken disabled:opacity-50"
           >
             {dialog.cancelLabel || 'Abbrechen'}
           </button>
@@ -81,7 +81,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             type="button"
             onClick={onConfirm}
             disabled={loading}
-            className={`rounded-full px-6 py-2 text-sm font-semibold transition-colors disabled:opacity-50 ${colorClasses.button}`}
+            className={`rounded-[var(--radius-full)] px-6 py-2 text-sm font-semibold transition-colors disabled:opacity-50 ${colorClasses.button}`}
           >
             {loading ? 'Bitte warten…' : dialog.confirmLabel || 'Bestätigen'}
           </button>

@@ -106,7 +106,7 @@ const CourseFilterDatePicker: React.FC<CourseFilterDatePickerProps> = ({
         />
         <div
           ref={containerRef}
-          className="yogaflow-datepicker-modal relative z-10 w-[min(calc(100vw-2rem),23rem)] rounded-2xl border border-border bg-surface shadow-xl"
+          className="yogaflow-datepicker-modal relative z-10 w-[min(calc(100vw-2rem),23rem)] rounded-[var(--radius-lg)] border border-border bg-surface shadow-lg"
         >
           {calendar}
         </div>
@@ -116,7 +116,7 @@ const CourseFilterDatePicker: React.FC<CourseFilterDatePickerProps> = ({
 
   return (
     <div ref={containerRef} className="absolute left-0 top-full z-50 mt-2">
-      <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-lg">
+      <div className="overflow-hidden rounded-[var(--radius-md)] border border-border bg-surface shadow-lg">
         {calendar}
       </div>
     </div>

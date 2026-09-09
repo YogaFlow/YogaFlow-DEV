@@ -128,7 +128,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ emailJustVerified = false }) => {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full pl-10 pr-4 py-3 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent"
               placeholder="ihre@email.de"
               required
             />
@@ -155,7 +155,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ emailJustVerified = false }) => {
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-10 pr-12 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full pl-10 pr-12 py-3 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent"
               placeholder="••••••••"
               required
             />
@@ -181,7 +181,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ emailJustVerified = false }) => {
         </div>
 
         {error && (
-          <div className="p-3 bg-dangerSoft border border-danger rounded-lg">
+          <div className="p-3 bg-dangerSoft border border-danger rounded-[var(--radius-sm)]">
             <p className="text-sm text-danger">{error}</p>
            {error.includes('E-Mail oder Passwort ist falsch') && (
              <p className="text-xs text-danger mt-1">
@@ -191,14 +191,14 @@ const LoginForm: React.FC<LoginFormProps> = ({ emailJustVerified = false }) => {
           </div>
         )}
         {verificationEmailMessage && (
-          <div className={`p-3 rounded-lg text-sm ${verificationEmailMessage.includes('gesendet') ? 'bg-sage-100 border border-sage-200 text-sage-800' : 'bg-amber-50 border border-amber-200 text-amber-700'}`}>
+          <div className={`p-3 rounded-[var(--radius-sm)] text-sm ${verificationEmailMessage.includes('gesendet') ? 'bg-sage-100 border border-sage-200 text-sage-800' : 'bg-amber-50 border border-amber-200 text-amber-700'}`}>
             {verificationEmailMessage}
           </div>
         )}
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-brand text-onBrand py-3 px-4 rounded-lg hover:bg-brandPressed focus:ring-4 focus:ring-sage-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-brand text-onBrand py-3 px-4 rounded-[var(--radius-sm)] hover:bg-brandPressed focus:ring-4 focus:ring-sage-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? 'Anmeldung läuft...' : 'Anmelden'}
         </button>

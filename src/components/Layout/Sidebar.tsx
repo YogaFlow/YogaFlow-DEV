@@ -19,8 +19,8 @@ import { canSelfEnrollInCourses } from '../../lib/userRoles';
 
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
   owner:   { label: 'Owner',     color: 'bg-surfaceSunken text-textMuted' },
-  admin:   { label: 'Admin',     color: 'bg-dangerSoft text-danger' },
-  teacher: { label: 'Lehrer',    color: 'bg-sage-100 text-sage-800' },
+  admin:   { label: 'Admin',     color: 'bg-surfaceSunken text-textMuted' },
+  teacher: { label: 'Lehrer',    color: 'bg-surfaceSunken text-textMuted' },
   user:    { label: 'Teilnehmer', color: 'bg-sage-100 text-sage-800' },
 };
 
@@ -98,7 +98,7 @@ const Sidebar: React.FC = () => {
         </p>
         {roleInfo && (
           <span
-            className={`inline-block mt-2 px-2 py-1 text-xs rounded-full ${roleInfo.color}`}
+            className={`inline-block mt-2 px-2 py-1 text-xs rounded-[var(--radius-full)] ${roleInfo.color}`}
           >
             {roleInfo.label}
           </span>
@@ -115,7 +115,7 @@ const Sidebar: React.FC = () => {
                 <NavLink
                   to={item.to}
                   className={({ isActive }) =>
-                    `flex items-center px-4 py-3 rounded-lg transition-colors ${
+                    `flex items-center px-4 py-3 rounded-[var(--radius-sm)] transition-colors ${
                       isActive ? 'bg-brand text-onBrand' : 'text-textMuted hover:bg-surfaceSunken'
                     }`
                   }
@@ -134,7 +134,7 @@ const Sidebar: React.FC = () => {
                         {hasUnread && (
                           <span
                             aria-label={`${unreadCount} ungelesene Nachrichten`}
-                            className={`absolute -top-1.5 -right-2 min-w-[1rem] h-4 px-1 rounded-full bg-danger text-[10px] leading-4 text-onBrand text-center font-semibold ring-2 ${
+                            className={`absolute -top-1.5 -right-2 min-w-[1rem] h-4 px-1 rounded-[var(--radius-full)] bg-danger text-[10px] leading-4 text-onBrand text-center font-semibold ring-2 ${
                               isActive ? 'ring-brand' : 'ring-surface'
                             }`}
                           >
@@ -155,7 +155,7 @@ const Sidebar: React.FC = () => {
       <div className="p-4 border-t border-border">
         <button
           onClick={signOut}
-          className="flex items-center w-full px-4 py-3 text-textMuted hover:bg-surfaceSunken rounded-lg transition-colors"
+          className="flex items-center w-full px-4 py-3 text-textMuted hover:bg-surfaceSunken rounded-[var(--radius-sm)] transition-colors"
         >
           <LogOut className="w-5 h-5 mr-3" />
           Abmelden

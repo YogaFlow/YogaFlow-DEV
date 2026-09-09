@@ -54,7 +54,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
         <button
           type="button"
           onClick={onBack}
-          className="p-2 -ml-1 rounded-lg hover:bg-surfaceSunken text-textMuted transition-colors lg:hidden"
+          className="p-2 -ml-1 rounded-[var(--radius-sm)] hover:bg-surfaceSunken text-textMuted transition-colors lg:hidden"
           aria-label="Zurück zur Konversationsliste"
         >
           <ArrowLeft size={20} />
@@ -79,7 +79,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           <button
             type="button"
             onClick={() => setMenuOpen((o) => !o)}
-            className="p-2 rounded-lg text-textMuted hover:bg-surfaceSunken hover:text-textMuted transition-colors"
+            className="p-2 rounded-[var(--radius-sm)] text-textMuted hover:bg-surfaceSunken hover:text-textMuted transition-colors"
             aria-label="Weitere Optionen"
             aria-expanded={menuOpen}
             aria-haspopup="menu"
@@ -90,7 +90,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           {menuOpen && (
             <div
               role="menu"
-              className="absolute right-0 top-full mt-1 z-50 min-w-[11rem] rounded-lg border border-border bg-surface py-1 shadow-lg"
+              className="absolute right-0 top-full mt-1 z-50 min-w-[11rem] rounded-[var(--radius-md)] border border-border bg-surface py-1 shadow-lg"
             >
               <button
                 type="button"

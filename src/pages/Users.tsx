@@ -396,7 +396,7 @@ export default function Users() {
   if (!isCourseLeader) {
     return (
       <div className="p-8">
-        <div className="bg-dangerSoft border border-danger text-danger px-4 py-3 rounded-lg">
+        <div className="bg-dangerSoft border border-danger text-danger px-4 py-3 rounded-[var(--radius-sm)]">
           Zugriff verweigert. Diese Seite ist nur für Lehrer, Admins und Studio-Owner zugänglich.
         </div>
       </div>
@@ -406,7 +406,7 @@ export default function Users() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand" />
+        <div className="animate-spin rounded-[var(--radius-full)] h-12 w-12 border-b-2 border-brand" />
       </div>
     );
   }
@@ -431,7 +431,7 @@ export default function Users() {
       {/* ── Mobile card list (< lg) ── */}
       <div className="lg:hidden space-y-2">
         {users.length === 0 && (
-          <div className="bg-surface rounded-xl border border-border px-6 py-12 text-center text-textMuted text-sm">
+          <div className="bg-surface rounded-[var(--radius-md)] border border-border p-3.5 text-center text-textMuted text-sm">
             {isTeacher ? 'Noch keine Teilnehmer gefunden.' : 'Noch keine Nutzer gefunden.'}
           </div>
         )}
@@ -446,18 +446,18 @@ export default function Users() {
           const availableCoursesToAdd = courses.filter(c => !alreadyRegisteredIds.has(c.id) && (!c.date || new Date(c.date) >= today) && c.teacher_id !== user.id);
           return (
             <React.Fragment key={user.id}>
-              <div className={`bg-surface rounded-xl border shadow-sm overflow-hidden transition-colors ${
+              <div className={`bg-surface rounded-[var(--radius-md)] border overflow-hidden transition-colors ${
                 isExpanded ? 'border-sage-200' : 'border-border'
               }`}>
                 {/* Card header */}
-                <div className={`px-4 py-3 flex items-center justify-between gap-3 ${isSelf ? 'bg-sage-100' : ''}`}>
+                <div className={`p-3.5 flex items-center justify-between gap-3 ${isSelf ? 'bg-sage-100' : ''}`}>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-semibold text-text">
                         {user.first_name} {user.last_name}
                       </span>
                       {isSelf && <span className="text-xs text-brand font-medium">(du)</span>}
-                      <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${ROLE_COLORS[user.role]}`}>
+                      <span className={`px-2 py-0.5 text-xs rounded-[var(--radius-full)] font-medium ${ROLE_COLORS[user.role]}`}>
                         {getRoleLabel(user.role)}
                       </span>
                     </div>
@@ -470,7 +470,7 @@ export default function Users() {
                     {(user.role !== 'owner' || isSelf) && (
                       <button
                         onClick={() => handleToggleExpand(user)}
-                        className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                        className={`flex items-center gap-1 px-3 py-1.5 rounded-[var(--radius-sm)] text-xs font-semibold transition-colors ${
                           isExpanded
                             ? 'bg-surfaceSunken text-textMuted hover:bg-borderStrong'
                             : 'bg-brand text-onBrand hover:bg-brandPressed'
@@ -486,7 +486,7 @@ export default function Users() {
 
                 {/* Expanded panel (mobile) */}
                 {isExpanded && editForm && (
-                  <div className="border-t border-border bg-surfaceSunken px-4 py-4 space-y-4">
+                  <div className="border-t border-border bg-surfaceSunken p-3.5 space-y-4">
 
                     {/* Rolle – nur auf Mobile im Panel */}
                     {showRoleDropdown && (
@@ -498,7 +498,7 @@ export default function Users() {
                             onChange={e => handleRoleChange(user.id, e.target.value as UserRole)}
                             disabled={savingRoleId === user.id || lastOwnerLocked}
                             title={lastOwnerLocked ? 'Du bist der einzige Owner. Ernenne zuerst einen weiteren Owner.' : undefined}
-                            className="flex-1 text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand disabled:opacity-50"
+                            className="flex-1 text-sm border border-border rounded-[var(--radius-sm)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand disabled:opacity-50"
                           >
                             {roleOptionsForActor.map(opt => (
                               <option
@@ -510,7 +510,7 @@ export default function Users() {
                               </option>
                             ))}
                           </select>
-                          {savingRoleId === user.id && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-brand" />}
+                          {savingRoleId === user.id && <div className="animate-spin rounded-[var(--radius-full)] h-4 w-4 border-b-2 border-brand" />}
                         </div>
                         {lastOwnerLocked && (
                           <p className="mt-1 text-xs text-amber-600">
@@ -528,49 +528,49 @@ export default function Users() {
                           <label className="block text-xs text-textMuted mb-1">Vorname</label>
                           <input type="text" value={editForm.first_name}
                             onChange={e => setEditForm(f => f ? { ...f, first_name: e.target.value } : f)}
-                            className="w-full text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand" />
+                            className="w-full text-sm border border-border rounded-[var(--radius-sm)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand" />
                         </div>
                         <div>
                           <label className="block text-xs text-textMuted mb-1">Nachname</label>
                           <input type="text" value={editForm.last_name}
                             onChange={e => setEditForm(f => f ? { ...f, last_name: e.target.value } : f)}
-                            className="w-full text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand" />
+                            className="w-full text-sm border border-border rounded-[var(--radius-sm)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand" />
                         </div>
                         <div className="col-span-2">
                           <label className="block text-xs text-textMuted mb-1">E-Mail</label>
                           <input type="email" value={editForm.email}
                             onChange={e => setEditForm(f => f ? { ...f, email: e.target.value } : f)}
-                            className="w-full text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand" />
+                            className="w-full text-sm border border-border rounded-[var(--radius-sm)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand" />
                         </div>
                         <div className="col-span-2">
                           <label className="block text-xs text-textMuted mb-1">Telefon</label>
                           <input type="tel" value={editForm.phone}
                             onChange={e => setEditForm(f => f ? { ...f, phone: e.target.value } : f)}
-                            className="w-full text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand" />
+                            className="w-full text-sm border border-border rounded-[var(--radius-sm)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand" />
                         </div>
                         <div>
                           <label className="block text-xs text-textMuted mb-1">Straße</label>
                           <input type="text" value={editForm.street}
                             onChange={e => setEditForm(f => f ? { ...f, street: e.target.value } : f)}
-                            className="w-full text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand" />
+                            className="w-full text-sm border border-border rounded-[var(--radius-sm)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand" />
                         </div>
                         <div>
                           <label className="block text-xs text-textMuted mb-1">Hausnummer</label>
                           <input type="text" value={editForm.house_number}
                             onChange={e => setEditForm(f => f ? { ...f, house_number: e.target.value } : f)}
-                            className="w-full text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand" />
+                            className="w-full text-sm border border-border rounded-[var(--radius-sm)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand" />
                         </div>
                         <div>
                           <label className="block text-xs text-textMuted mb-1">PLZ</label>
                           <input type="text" value={editForm.postal_code}
                             onChange={e => setEditForm(f => f ? { ...f, postal_code: e.target.value } : f)}
-                            className="w-full text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand" />
+                            className="w-full text-sm border border-border rounded-[var(--radius-sm)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand" />
                         </div>
                         <div>
                           <label className="block text-xs text-textMuted mb-1">Stadt</label>
                           <input type="text" value={editForm.city}
                             onChange={e => setEditForm(f => f ? { ...f, city: e.target.value } : f)}
-                            className="w-full text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand" />
+                            className="w-full text-sm border border-border rounded-[var(--radius-sm)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand" />
                         </div>
                       </div>
                     </div>
@@ -586,10 +586,10 @@ export default function Users() {
                           value={editForm.new_password}
                           onChange={e => setEditForm(f => f ? { ...f, new_password: e.target.value } : f)}
                           placeholder="Leer lassen = nicht ändern"
-                          className="flex-1 text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
+                          className="flex-1 text-sm border border-border rounded-[var(--radius-sm)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
                         />
                         <button type="button" onClick={() => setShowPassword(p => !p)}
-                          className="px-3 text-textSubtle hover:text-textMuted border border-border rounded-lg">
+                          className="px-3 text-textSubtle hover:text-textMuted border border-border rounded-[var(--radius-sm)]">
                           {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                         </button>
                       </div>
@@ -598,10 +598,10 @@ export default function Users() {
                     <button
                       onClick={() => handleSaveProfile(user.id)}
                       disabled={savingProfile}
-                      className="flex items-center gap-2 bg-brand text-onBrand px-5 py-2 rounded-lg text-sm font-medium hover:bg-brandPressed disabled:opacity-50 transition-colors"
+                      className="flex items-center gap-2 bg-brand text-onBrand px-5 py-2 rounded-[var(--radius-sm)] text-sm font-medium hover:bg-brandPressed disabled:opacity-50 transition-colors"
                     >
                       {savingProfile
-                        ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-onBrand" />
+                        ? <div className="animate-spin rounded-[var(--radius-full)] h-4 w-4 border-b-2 border-onBrand" />
                         : <Save size={16} />}
                       Speichern
                     </button>
@@ -613,7 +613,7 @@ export default function Users() {
                           <select
                             value={selectedCourseId}
                             onChange={e => setSelectedCourseId(e.target.value)}
-                            className="flex-1 text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
+                            className="flex-1 text-sm border border-border rounded-[var(--radius-sm)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
                           >
                             <option value="">Kurs auswählen…</option>
                             {availableCoursesToAdd.map(c => (
@@ -625,17 +625,17 @@ export default function Users() {
                           <button
                             onClick={() => handleAddToCourse(user.id)}
                             disabled={!selectedCourseId || addingCourse}
-                            className="flex items-center justify-center px-3 bg-brand text-onBrand rounded-lg hover:bg-brandPressed disabled:opacity-50 transition-colors"
+                            className="flex items-center justify-center px-3 bg-brand text-onBrand rounded-[var(--radius-sm)] hover:bg-brandPressed disabled:opacity-50 transition-colors"
                           >
                             {addingCourse
-                              ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-onBrand" />
+                              ? <div className="animate-spin rounded-[var(--radius-full)] h-4 w-4 border-b-2 border-onBrand" />
                               : <Plus size={18} />}
                           </button>
                         </div>
                         <h4 className="text-xs font-medium text-textMuted mb-2 uppercase tracking-wide">Aktuelle Buchungen</h4>
                         {regsLoading ? (
                           <div className="flex items-center gap-2 text-xs text-textSubtle">
-                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-brand" />Lade…
+                            <div className="animate-spin rounded-[var(--radius-full)] h-3 w-3 border-b-2 border-brand" />Lade…
                           </div>
                         ) : userRegistrations.length === 0 ? (
                           <p className="text-xs text-textSubtle italic">Keine aktiven Buchungen.</p>
@@ -668,7 +668,7 @@ export default function Users() {
       </div>
 
       {/* ── Desktop table (lg+) ── */}
-      <div className="hidden lg:block bg-surface rounded-lg shadow overflow-x-auto w-full">
+      <div className="hidden lg:block bg-surface rounded-[var(--radius-md)] border border-border overflow-x-auto w-full">
         <table className="min-w-full divide-y divide-border">
           <thead className="bg-surfaceSunken">
             <tr>
@@ -739,7 +739,7 @@ export default function Users() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2">
-                          <span className={`px-2 py-1 text-xs rounded-full font-medium ${ROLE_COLORS[user.role]}`}>
+                          <span className={`px-2 py-1 text-xs rounded-[var(--radius-full)] font-medium ${ROLE_COLORS[user.role]}`}>
                             {getRoleLabel(user.role)}
                           </span>
                           {showRoleDropdown && (
@@ -749,7 +749,7 @@ export default function Users() {
                                 onChange={e => handleRoleChange(user.id, e.target.value as UserRole)}
                                 disabled={savingRoleId === user.id || lastOwnerLocked}
                                 title={lastOwnerLocked ? 'Du bist der einzige Owner. Ernenne zuerst einen weiteren Owner.' : undefined}
-                                className="text-xs border border-border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand disabled:opacity-50"
+                                className="text-xs border border-border rounded-[var(--radius-sm)] px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand disabled:opacity-50"
                               >
                                 {roleOptionsForActor.map(opt => (
                                   <option
@@ -762,7 +762,7 @@ export default function Users() {
                                 ))}
                               </select>
                               {savingRoleId === user.id && (
-                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-brand" />
+                                <div className="animate-spin rounded-[var(--radius-full)] h-3 w-3 border-b-2 border-brand" />
                               )}
                             </>
                           )}
@@ -794,7 +794,7 @@ export default function Users() {
                   {isExpanded && editForm && (
                     <tr>
                       <td colSpan={5} className="bg-surfaceSunken border-b border-border px-0 py-0">
-                        <div className="px-8 py-6">
+                        <div className="p-3.5">
                           <div className={`grid grid-cols-1 gap-6 ${canShowCourseSection(user.role) ? 'lg:grid-cols-3' : ''}`}>
 
                             {/* ── Left: Stammdaten + Passwort ── */}
@@ -809,7 +809,7 @@ export default function Users() {
                                     type="text"
                                     value={editForm.first_name}
                                     onChange={e => setEditForm(f => f ? { ...f, first_name: e.target.value } : f)}
-                                    className="w-full text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
+                                    className="w-full text-sm border border-border rounded-[var(--radius-sm)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
                                   />
                                 </div>
                                 {/* Nachname */}
@@ -819,7 +819,7 @@ export default function Users() {
                                     type="text"
                                     value={editForm.last_name}
                                     onChange={e => setEditForm(f => f ? { ...f, last_name: e.target.value } : f)}
-                                    className="w-full text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
+                                    className="w-full text-sm border border-border rounded-[var(--radius-sm)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
                                   />
                                 </div>
                                 {/* E-Mail */}
@@ -829,7 +829,7 @@ export default function Users() {
                                     type="email"
                                     value={editForm.email}
                                     onChange={e => setEditForm(f => f ? { ...f, email: e.target.value } : f)}
-                                    className="w-full text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
+                                    className="w-full text-sm border border-border rounded-[var(--radius-sm)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
                                   />
                                 </div>
                                 {/* Telefon */}
@@ -839,7 +839,7 @@ export default function Users() {
                                     type="tel"
                                     value={editForm.phone}
                                     onChange={e => setEditForm(f => f ? { ...f, phone: e.target.value } : f)}
-                                    className="w-full text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
+                                    className="w-full text-sm border border-border rounded-[var(--radius-sm)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
                                   />
                                 </div>
                                 {/* Straße */}
@@ -849,7 +849,7 @@ export default function Users() {
                                     type="text"
                                     value={editForm.street}
                                     onChange={e => setEditForm(f => f ? { ...f, street: e.target.value } : f)}
-                                    className="w-full text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
+                                    className="w-full text-sm border border-border rounded-[var(--radius-sm)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
                                   />
                                 </div>
                                 {/* Hausnummer */}
@@ -859,7 +859,7 @@ export default function Users() {
                                     type="text"
                                     value={editForm.house_number}
                                     onChange={e => setEditForm(f => f ? { ...f, house_number: e.target.value } : f)}
-                                    className="w-full text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
+                                    className="w-full text-sm border border-border rounded-[var(--radius-sm)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
                                   />
                                 </div>
                                 {/* PLZ */}
@@ -869,7 +869,7 @@ export default function Users() {
                                     type="text"
                                     value={editForm.postal_code}
                                     onChange={e => setEditForm(f => f ? { ...f, postal_code: e.target.value } : f)}
-                                    className="w-full text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
+                                    className="w-full text-sm border border-border rounded-[var(--radius-sm)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
                                   />
                                 </div>
                                 {/* Stadt */}
@@ -879,7 +879,7 @@ export default function Users() {
                                     type="text"
                                     value={editForm.city}
                                     onChange={e => setEditForm(f => f ? { ...f, city: e.target.value } : f)}
-                                    className="w-full text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
+                                    className="w-full text-sm border border-border rounded-[var(--radius-sm)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
                                   />
                                 </div>
                               </div>
@@ -895,12 +895,12 @@ export default function Users() {
                                     value={editForm.new_password}
                                     onChange={e => setEditForm(f => f ? { ...f, new_password: e.target.value } : f)}
                                     placeholder="Neues Passwort eingeben…"
-                                    className="flex-1 text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
+                                    className="flex-1 text-sm border border-border rounded-[var(--radius-sm)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
                                   />
                                   <button
                                     type="button"
                                     onClick={() => setShowPassword(p => !p)}
-                                    className="px-3 text-textSubtle hover:text-textMuted border border-border rounded-lg"
+                                    className="px-3 text-textSubtle hover:text-textMuted border border-border rounded-[var(--radius-sm)]"
                                   >
                                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                                   </button>
@@ -911,10 +911,10 @@ export default function Users() {
                               <button
                                 onClick={() => handleSaveProfile(user.id)}
                                 disabled={savingProfile}
-                                className="flex items-center gap-2 bg-brand text-onBrand px-5 py-2 rounded-lg text-sm font-medium hover:bg-brandPressed disabled:opacity-50 transition-colors"
+                                className="flex items-center gap-2 bg-brand text-onBrand px-5 py-2 rounded-[var(--radius-sm)] text-sm font-medium hover:bg-brandPressed disabled:opacity-50 transition-colors"
                               >
                                 {savingProfile
-                                  ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-onBrand" />
+                                  ? <div className="animate-spin rounded-[var(--radius-full)] h-4 w-4 border-b-2 border-onBrand" />
                                   : <Save size={16} />
                                 }
                                 Speichern
@@ -930,7 +930,7 @@ export default function Users() {
                                     <select
                                       value={selectedCourseId}
                                       onChange={e => setSelectedCourseId(e.target.value)}
-                                      className="flex-1 text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
+                                      className="flex-1 text-sm border border-border rounded-[var(--radius-sm)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
                                     >
                                       <option value="">Kurs auswählen…</option>
                                       {availableCoursesToAdd.map(c => (
@@ -944,10 +944,10 @@ export default function Users() {
                                       onClick={() => handleAddToCourse(user.id)}
                                       disabled={!selectedCourseId || addingCourse}
                                       title="Hinzufügen"
-                                      className="flex items-center justify-center px-3 bg-brand text-onBrand rounded-lg hover:bg-brandPressed disabled:opacity-50 transition-colors"
+                                      className="flex items-center justify-center px-3 bg-brand text-onBrand rounded-[var(--radius-sm)] hover:bg-brandPressed disabled:opacity-50 transition-colors"
                                     >
                                       {addingCourse
-                                        ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-onBrand" />
+                                        ? <div className="animate-spin rounded-[var(--radius-full)] h-4 w-4 border-b-2 border-onBrand" />
                                         : <Plus size={18} />
                                       }
                                     </button>
@@ -959,7 +959,7 @@ export default function Users() {
                                 </h4>
                                 {regsLoading ? (
                                   <div className="flex items-center gap-2 text-xs text-textSubtle">
-                                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-brand" />
+                                    <div className="animate-spin rounded-[var(--radius-full)] h-3 w-3 border-b-2 border-brand" />
                                     Lade…
                                   </div>
                                 ) : userRegistrations.length === 0 ? (

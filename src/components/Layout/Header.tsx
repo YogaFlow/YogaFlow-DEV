@@ -62,12 +62,12 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   };
 
   return (
-    <header className="sticky top-0 z-30 bg-surface/95 backdrop-blur supports-[backdrop-filter]:bg-surface/85 shadow-sm border-b border-border px-4 py-3 sm:px-6 sm:py-4 max-[380px]:px-3 max-[380px]:py-2.5">
+    <header className="sticky top-0 z-30 bg-surface/95 backdrop-blur supports-[backdrop-filter]:bg-surface/85 border-b border-border px-4 py-3 sm:px-6 sm:py-4 max-[380px]:px-3 max-[380px]:py-2.5">
       <div className="flex items-center justify-between">
         <div className="flex items-center min-w-0">
           <button
             onClick={onMenuClick}
-            className="lg:hidden p-3 rounded-md hover:bg-surfaceSunken mr-3 sm:mr-4 shrink-0 max-[380px]:p-2.5 max-[380px]:mr-2"
+            className="lg:hidden p-3 rounded-[var(--radius-sm)] hover:bg-surfaceSunken mr-3 sm:mr-4 shrink-0 max-[380px]:p-2.5 max-[380px]:mr-2"
           >
             <Menu className="w-6 h-6 max-[380px]:w-5 max-[380px]:h-5" />
           </button>
@@ -83,7 +83,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
               ref={notificationButtonRef}
               type="button"
               onClick={() => setIsNotificationsOpen((prev) => !prev)}
-              className="p-3 rounded-full hover:bg-surfaceSunken relative max-[380px]:p-2.5"
+              className="p-3 rounded-[var(--radius-full)] hover:bg-surfaceSunken relative max-[380px]:p-2.5"
               aria-label={
                 unreadCount > 0
                   ? `Benachrichtigungen öffnen, ${unreadCount} ungelesen`
@@ -102,7 +102,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                 {unreadCount > 0 && (
                   <span
                     aria-hidden
-                    className="absolute -top-0.5 -right-1 flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-danger px-[3px] text-[10px] font-bold leading-none text-onBrand tabular-nums shadow-sm ring-1 ring-surface max-[380px]:-top-0 max-[380px]:-right-0.5"
+                    className="absolute -top-0.5 -right-1 flex h-[14px] min-w-[14px] items-center justify-center rounded-[var(--radius-full)] bg-danger px-[3px] text-[10px] font-bold leading-none text-onBrand tabular-nums ring-1 ring-surface max-[380px]:-top-0 max-[380px]:-right-0.5"
                   >
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
@@ -116,7 +116,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
               role="dialog"
               aria-label="Benachrichtigungen"
               aria-hidden={!isNotificationsOpen}
-              className={`absolute right-0 top-full mt-2 w-[min(22rem,calc(100vw-1.5rem))] max-[380px]:w-[min(18rem,calc(100vw-1rem))] bg-surface border border-border rounded-xl shadow-lg p-4 z-40 origin-top-right transition-all duration-200 ease-out ${
+              className={`absolute right-0 top-full mt-2 w-[min(22rem,calc(100vw-1.5rem))] max-[380px]:w-[min(18rem,calc(100vw-1rem))] bg-surface border border-border rounded-[var(--radius-md)] shadow-lg p-4 z-40 origin-top-right transition-all duration-200 ease-out ${
                 isNotificationsOpen
                   ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
                   : 'opacity-0 -translate-y-1 scale-95 pointer-events-none'
@@ -131,7 +131,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                     {notifications.map((notification) => (
                       <li
                         key={notification.id}
-                        className={`rounded-lg border p-3 ${
+                        className={`rounded-[var(--radius-sm)] border p-3 ${
                           notification.read_at
                             ? 'border-border bg-surfaceSunken/50'
                             : 'border-sage-200 bg-sage-100/30'

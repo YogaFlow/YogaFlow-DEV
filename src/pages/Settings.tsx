@@ -85,7 +85,7 @@ export default function Settings() {
   if (!isAdmin) {
     return (
       <div className="p-8">
-        <div className="bg-dangerSoft border border-danger text-danger px-4 py-3 rounded">
+        <div className="bg-dangerSoft border border-danger text-danger px-4 py-3 rounded-[var(--radius-sm)]">
           Zugriff verweigert. Administratorrechte erforderlich.
         </div>
       </div>
@@ -95,7 +95,7 @@ export default function Settings() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand"></div>
+        <div className="animate-spin rounded-[var(--radius-full)] h-12 w-12 border-b-2 border-brand"></div>
       </div>
     );
   }
@@ -108,7 +108,7 @@ export default function Settings() {
         <h1 className="text-3xl font-bold text-text">Systemeinstellungen</h1>
       </div>
 
-      <div className="bg-surface rounded-lg shadow p-6 space-y-6">
+      <div className="bg-surface rounded-[var(--radius-md)] border border-border p-3.5 space-y-6">
         <div>
           <h2 className="text-xl font-semibold text-text mb-4">Buchungseinstellungen</h2>
 
@@ -121,7 +121,7 @@ export default function Settings() {
                 type="number"
                 value={cancellationDeadline}
                 onChange={(e) => setCancellationDeadline(e.target.value)}
-                className="w-full max-w-xs px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full max-w-xs px-4 py-2 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent"
                 min="0"
                 step="1"
               />
@@ -138,7 +138,7 @@ export default function Settings() {
                 type="number"
                 value={defaultMaxParticipants}
                 onChange={(e) => setDefaultMaxParticipants(e.target.value)}
-                className="w-full max-w-xs px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full max-w-xs px-4 py-2 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent"
                 min="1"
                 step="1"
               />
@@ -153,7 +153,7 @@ export default function Settings() {
           <button
             onClick={handleSaveSettings}
             disabled={saving}
-            className="flex items-center gap-2 bg-brand text-onBrand px-6 py-2 rounded-lg hover:bg-brandPressed transition-colors disabled:bg-surfaceSunken"
+            className="flex items-center gap-2 bg-brand text-onBrand px-6 py-2 rounded-[var(--radius-sm)] hover:bg-brandPressed transition-colors disabled:bg-surfaceSunken"
           >
             <Save size={20} />
             {saving ? 'Wird gespeichert...' : 'Einstellungen speichern'}
@@ -161,7 +161,7 @@ export default function Settings() {
         </div>
       </div>
 
-      <div className="mt-6 bg-surface rounded-lg shadow p-6">
+      <div className="mt-6 bg-surface rounded-[var(--radius-md)] border border-border p-3.5">
         <h2 className="text-xl font-semibold text-text mb-4">Systeminformationen</h2>
         <div className="space-y-2 text-sm text-textMuted">
           <div className="flex justify-between">

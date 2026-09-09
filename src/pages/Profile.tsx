@@ -179,7 +179,7 @@ const Profile: React.FC = () => {
   if (!userProfile) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand"></div>
+        <div className="animate-spin rounded-[var(--radius-full)] h-12 w-12 border-b-2 border-brand"></div>
       </div>
     );
   }
@@ -191,10 +191,10 @@ const Profile: React.FC = () => {
         <p className="text-textMuted">Verwalten Sie Ihre persönlichen Informationen</p>
       </div>
 
-      <div className="bg-surface rounded-lg shadow-sm border border-border p-2 flex gap-2">
+      <div className="bg-surface rounded-[var(--radius-md)] border border-border p-2 flex gap-2">
         <button
           onClick={() => switchToTab('profile')}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+          className={`px-4 py-2 rounded-[var(--radius-sm)] text-sm font-medium transition-colors ${
             activeTab === 'profile'
               ? 'bg-brand text-onBrand'
               : 'text-textMuted hover:bg-surfaceSunken'
@@ -204,7 +204,7 @@ const Profile: React.FC = () => {
         </button>
         <button
           onClick={() => switchToTab('password')}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+          className={`px-4 py-2 rounded-[var(--radius-sm)] text-sm font-medium transition-colors ${
             activeTab === 'password'
               ? 'bg-brand text-onBrand'
               : 'text-textMuted hover:bg-surfaceSunken'
@@ -215,23 +215,23 @@ const Profile: React.FC = () => {
       </div>
 
       {activeTab === 'profile' && profileSuccess && (
-        <div className="p-4 bg-sage-100 border border-sage-200 rounded-lg">
+        <div className="p-4 bg-sage-100 border border-sage-200 rounded-[var(--radius-sm)]">
           <p className="text-sm text-brand">{profileSuccess}</p>
         </div>
       )}
 
       {activeTab === 'profile' && profileError && (
-        <div className="p-4 bg-dangerSoft border border-danger rounded-lg">
+        <div className="p-4 bg-dangerSoft border border-danger rounded-[var(--radius-sm)]">
           <p className="text-sm text-danger">{profileError}</p>
         </div>
       )}
 
       {activeTab === 'profile' ? (
-        <div className="bg-surface rounded-lg shadow-sm border border-border">
-          <div className="p-6 border-b border-border">
+        <div className="bg-surface rounded-[var(--radius-md)] border border-border">
+          <div className="p-3.5 border-b border-border">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <div className="w-16 h-16 bg-sage-100 rounded-full flex items-center justify-center">
+                <div className="w-16 h-16 bg-sage-100 rounded-[var(--radius-full)] flex items-center justify-center">
                   <User className="w-8 h-8 text-brand" />
                 </div>
                 <div className="ml-4">
@@ -240,22 +240,22 @@ const Profile: React.FC = () => {
                   </h2>
                   <div className="flex flex-wrap gap-2 mt-1">
                     {userProfile.role === 'owner' && (
-                      <span className="inline-block px-2 py-1 text-xs rounded-full bg-surfaceSunken text-textMuted">
+                      <span className="inline-block px-2 py-1 text-xs rounded-[var(--radius-full)] bg-surfaceSunken text-textMuted">
                         Inhaber
                       </span>
                     )}
                     {userProfile.role === 'admin' && (
-                      <span className="inline-block px-2 py-1 text-xs rounded-full bg-surfaceSunken text-textMuted">
+                      <span className="inline-block px-2 py-1 text-xs rounded-[var(--radius-full)] bg-surfaceSunken text-textMuted">
                         Administrator
                       </span>
                     )}
                     {userProfile.role === 'teacher' && (
-                      <span className="inline-block px-2 py-1 text-xs rounded-full bg-surfaceSunken text-textMuted">
+                      <span className="inline-block px-2 py-1 text-xs rounded-[var(--radius-full)] bg-surfaceSunken text-textMuted">
                         Kursleiter
                       </span>
                     )}
                     {userProfile.role === 'user' && (
-                      <span className="inline-block px-2 py-1 text-xs rounded-full bg-sage-100 text-sage-800">
+                      <span className="inline-block px-2 py-1 text-xs rounded-[var(--radius-full)] bg-sage-100 text-sage-800">
                         Teilnehmer
                       </span>
                     )}
@@ -266,7 +266,7 @@ const Profile: React.FC = () => {
               {!editing && (
                 <button
                   onClick={() => setEditing(true)}
-                  className="flex items-center px-4 py-2 bg-brand text-onBrand rounded-lg hover:bg-brandPressed transition-colors"
+                  className="flex items-center px-4 py-2 bg-brand text-onBrand rounded-[var(--radius-sm)] hover:bg-brandPressed transition-colors"
                 >
                   <Edit className="w-4 h-4 mr-2" />
                   Bearbeiten
@@ -274,7 +274,7 @@ const Profile: React.FC = () => {
               )}
             </div>
           </div>
-          <form onSubmit={handleSubmit} className="p-6">
+          <form onSubmit={handleSubmit} className="p-3.5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label htmlFor="first_name" className="block text-sm font-medium text-textMuted mb-2">
@@ -289,7 +289,7 @@ const Profile: React.FC = () => {
                     value={formData.first_name}
                     onChange={handleChange}
                     disabled={!editing}
-                    className={`w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent ${
+                    className={`w-full pl-10 pr-4 py-3 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent ${
                       !editing ? 'bg-surfaceSunken cursor-not-allowed' : ''
                     }`}
                     required
@@ -310,7 +310,7 @@ const Profile: React.FC = () => {
                     value={formData.last_name}
                     onChange={handleChange}
                     disabled={!editing}
-                    className={`w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent ${
+                    className={`w-full pl-10 pr-4 py-3 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent ${
                       !editing ? 'bg-surfaceSunken cursor-not-allowed' : ''
                     }`}
                     required
@@ -331,7 +331,7 @@ const Profile: React.FC = () => {
                     value={formData.email}
                     onChange={handleChange}
                     disabled={!editing}
-                    className={`w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent ${
+                    className={`w-full pl-10 pr-4 py-3 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent ${
                       !editing ? 'bg-surfaceSunken cursor-not-allowed' : ''
                     }`}
                     required
@@ -352,7 +352,7 @@ const Profile: React.FC = () => {
                     value={formData.phone}
                     onChange={handleChange}
                     disabled={!editing}
-                    className={`w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent ${
+                    className={`w-full pl-10 pr-4 py-3 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent ${
                       !editing ? 'bg-surfaceSunken cursor-not-allowed' : ''
                     }`}
                   />
@@ -372,7 +372,7 @@ const Profile: React.FC = () => {
                     value={formData.street}
                     onChange={handleChange}
                     disabled={!editing}
-                    className={`w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent ${
+                    className={`w-full pl-10 pr-4 py-3 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent ${
                       !editing ? 'bg-surfaceSunken cursor-not-allowed' : ''
                     }`}
                   />
@@ -392,7 +392,7 @@ const Profile: React.FC = () => {
                     value={formData.house_number}
                     onChange={handleChange}
                     disabled={!editing}
-                    className={`w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent ${
+                    className={`w-full pl-10 pr-4 py-3 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent ${
                       !editing ? 'bg-surfaceSunken cursor-not-allowed' : ''
                     }`}
                   />
@@ -410,7 +410,7 @@ const Profile: React.FC = () => {
                   value={formData.postal_code}
                   onChange={handleChange}
                   disabled={!editing}
-                  className={`w-full px-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent ${
+                  className={`w-full px-4 py-3 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent ${
                     !editing ? 'bg-surfaceSunken cursor-not-allowed' : ''
                   }`}
                 />
@@ -427,7 +427,7 @@ const Profile: React.FC = () => {
                   value={formData.city}
                   onChange={handleChange}
                   disabled={!editing}
-                  className={`w-full px-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent ${
+                  className={`w-full px-4 py-3 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent ${
                     !editing ? 'bg-surfaceSunken cursor-not-allowed' : ''
                   }`}
                 />
@@ -439,14 +439,14 @@ const Profile: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleCancel}
-                  className="px-4 py-2 text-textMuted bg-surfaceSunken hover:bg-borderStrong rounded-lg transition-colors"
+                  className="px-4 py-2 text-textMuted bg-surfaceSunken hover:bg-borderStrong rounded-[var(--radius-sm)] transition-colors"
                 >
                   Abbrechen
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex items-center px-6 py-2 bg-brand text-onBrand rounded-lg hover:bg-brandPressed focus:ring-4 focus:ring-sage-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center px-6 py-2 bg-brand text-onBrand rounded-[var(--radius-sm)] hover:bg-brandPressed focus:ring-4 focus:ring-sage-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Save className="w-4 h-4 mr-2" />
                   {loading ? 'Wird gespeichert...' : 'Speichern'}
@@ -456,9 +456,9 @@ const Profile: React.FC = () => {
           </form>
         </div>
       ) : (
-        <div className="bg-surface rounded-lg shadow-sm border border-border p-6">
+        <div className="bg-surface rounded-[var(--radius-md)] border border-border p-3.5">
           <div className="flex items-center mb-6">
-            <div className="w-12 h-12 bg-sage-100 rounded-full flex items-center justify-center">
+            <div className="w-12 h-12 bg-sage-100 rounded-[var(--radius-full)] flex items-center justify-center">
               <Lock className="w-6 h-6 text-brand" />
             </div>
             <div className="ml-3">
@@ -468,13 +468,13 @@ const Profile: React.FC = () => {
           </div>
 
           {passwordSuccess && (
-            <div className="p-4 mb-4 bg-sage-100 border border-sage-200 rounded-lg">
+            <div className="p-4 mb-4 bg-sage-100 border border-sage-200 rounded-[var(--radius-sm)]">
               <p className="text-sm text-brand">{passwordSuccess}</p>
             </div>
           )}
 
           {passwordError && (
-            <div className="p-4 mb-4 bg-dangerSoft border border-danger rounded-lg">
+            <div className="p-4 mb-4 bg-dangerSoft border border-danger rounded-[var(--radius-sm)]">
               <p className="text-sm text-danger">{passwordError}</p>
             </div>
           )}
@@ -491,7 +491,7 @@ const Profile: React.FC = () => {
                   type={showPasswords.currentPassword ? 'text' : 'password'}
                   value={passwordData.currentPassword}
                   onChange={handlePasswordChange}
-                  className="w-full px-4 py-3 pr-12 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                  className="w-full px-4 py-3 pr-12 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent"
                   required
                 />
                 <button
@@ -515,7 +515,7 @@ const Profile: React.FC = () => {
                   type={showPasswords.newPassword ? 'text' : 'password'}
                   value={passwordData.newPassword}
                   onChange={handlePasswordChange}
-                  className="w-full px-4 py-3 pr-12 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                  className="w-full px-4 py-3 pr-12 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent"
                   required
                 />
                 <button
@@ -539,7 +539,7 @@ const Profile: React.FC = () => {
                   type={showPasswords.confirmPassword ? 'text' : 'password'}
                   value={passwordData.confirmPassword}
                   onChange={handlePasswordChange}
-                  className="w-full px-4 py-3 pr-12 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                  className="w-full px-4 py-3 pr-12 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent"
                   required
                 />
                 <button
@@ -557,7 +557,7 @@ const Profile: React.FC = () => {
               <button
                 type="submit"
                 disabled={passwordLoading}
-                className="flex items-center px-6 py-2 bg-brand text-onBrand rounded-lg hover:bg-brandPressed focus:ring-4 focus:ring-sage-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center px-6 py-2 bg-brand text-onBrand rounded-[var(--radius-sm)] hover:bg-brandPressed focus:ring-4 focus:ring-sage-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save className="w-4 h-4 mr-2" />
                 {passwordLoading ? 'Wird gespeichert...' : 'Passwort speichern'}

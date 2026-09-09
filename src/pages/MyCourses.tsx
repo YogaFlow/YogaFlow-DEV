@@ -177,7 +177,7 @@ const MyCourses: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand"></div>
+        <div className="animate-spin rounded-[var(--radius-full)] h-12 w-12 border-b-2 border-brand"></div>
       </div>
     );
   }
@@ -197,7 +197,7 @@ const MyCourses: React.FC = () => {
         
         <button
           onClick={() => navigate('/create-course')}
-          className="mt-4 sm:mt-0 bg-brand text-onBrand px-4 py-2 rounded-lg hover:bg-brandPressed transition-colors flex items-center"
+          className="mt-4 sm:mt-0 bg-brand text-onBrand px-4 py-2 rounded-[var(--radius-sm)] hover:bg-brandPressed transition-colors flex items-center"
         >
           <Plus className="w-4 h-4 mr-2" />
           Neuer Kurs
@@ -205,7 +205,7 @@ const MyCourses: React.FC = () => {
       </div>
 
       {successMessage && (
-        <div className="p-4 bg-sage-100 border border-sage-200 rounded-lg">
+        <div className="p-4 bg-sage-100 border border-sage-200 rounded-[var(--radius-sm)]">
           <p className="text-sm text-brand">{successMessage}</p>
         </div>
       )}
@@ -217,7 +217,7 @@ const MyCourses: React.FC = () => {
           <p className="text-textMuted mb-6">Sie haben noch keine Kurse erstellt.</p>
           <button
             onClick={() => navigate('/create-course')}
-            className="bg-brand text-onBrand px-6 py-3 rounded-lg hover:bg-brandPressed transition-colors flex items-center mx-auto"
+            className="bg-brand text-onBrand px-6 py-3 rounded-[var(--radius-sm)] hover:bg-brandPressed transition-colors flex items-center mx-auto"
           >
             <Plus className="w-4 h-4 mr-2" />
             Ersten Kurs erstellen
@@ -234,8 +234,8 @@ const MyCourses: React.FC = () => {
             ).length ?? 0;
             const isFull = registeredCount >= (course.max_participants || 0);
             return (
-              <div key={course.id} className="bg-surface rounded-lg shadow-sm border border-border overflow-hidden hover:shadow-md transition-shadow">
-                <div className="p-6">
+              <div key={course.id} className="bg-surface rounded-[var(--radius-md)] border border-border overflow-hidden">
+                <div className="p-3.5">
                   <div className="flex items-start justify-between mb-4">
                     <h3 className="text-lg font-semibold text-text line-clamp-2">{course.title}</h3>
                     <span className="text-xl font-bold text-brand">€{course.price}</span>
@@ -261,7 +261,7 @@ const MyCourses: React.FC = () => {
                       <Users className="w-4 h-4 mr-2" />
                       {registeredCount}/{course.max_participants} Teilnehmer
                       {waitlistCount > 0 && (
-                        <span className="ml-2 px-2 py-0.5 text-xs bg-yellow-100 text-yellow-800 rounded-full">
+                        <span className="ml-2 px-2 py-0.5 text-xs bg-yellow-100 text-yellow-800 rounded-[var(--radius-full)]">
                           +{waitlistCount} Wartend
                         </span>
                       )}
@@ -270,7 +270,7 @@ const MyCourses: React.FC = () => {
 
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center">
-                      <div className={`w-3 h-3 rounded-full mr-2 ${
+                      <div className={`w-3 h-3 rounded-[var(--radius-full)] mr-2 ${
                         isFull ? 'bg-danger' : (course.max_participants - registeredCount <= 2 ? 'bg-yellow-500' : 'bg-sage-500')
                       }`}></div>
                       <span className="text-xs text-textMuted">
@@ -314,7 +314,7 @@ const MyCourses: React.FC = () => {
 
       {deleteDialogOpen && courseToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-text/50">
-          <div className="bg-surface rounded-lg shadow-xl max-w-lg w-full mx-4">
+          <div className="bg-surface rounded-[var(--radius-lg)] border border-border shadow-lg max-w-lg w-full mx-4">
             <div className="p-6">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-start">
@@ -338,7 +338,7 @@ const MyCourses: React.FC = () => {
 
               {seriesCount > 1 ? (
                 <div className="space-y-4">
-                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-[var(--radius-sm)]">
                     <p className="text-sm text-amber-900">
                       Dieser Kurs ist Teil einer Serie mit {seriesCount} Terminen.
                       Möchten Sie nur diesen Termin oder alle Termine der Serie löschen?
@@ -346,7 +346,7 @@ const MyCourses: React.FC = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="flex items-start p-4 border-2 border-border rounded-lg cursor-pointer hover:bg-surfaceSunken transition-colors">
+                    <label className="flex items-start p-3.5 border border-border rounded-[var(--radius-md)] cursor-pointer hover:bg-surfaceSunken transition-colors">
                       <input
                         type="radio"
                         value="single"
@@ -364,7 +364,7 @@ const MyCourses: React.FC = () => {
                       </div>
                     </label>
 
-                    <label className="flex items-start p-4 border-2 border-border rounded-lg cursor-pointer hover:bg-surfaceSunken transition-colors">
+                    <label className="flex items-start p-3.5 border border-border rounded-[var(--radius-md)] cursor-pointer hover:bg-surfaceSunken transition-colors">
                       <input
                         type="radio"
                         value="series"
@@ -383,7 +383,7 @@ const MyCourses: React.FC = () => {
                     </label>
                   </div>
 
-                  <div className="p-4 bg-dangerSoft border border-danger rounded-lg">
+                  <div className="p-4 bg-dangerSoft border border-danger rounded-[var(--radius-sm)]">
                     <p className="text-sm text-danger font-medium">
                       Diese Aktion kann nicht rückgängig gemacht werden!
                     </p>
@@ -394,7 +394,7 @@ const MyCourses: React.FC = () => {
                   <p className="text-sm text-textMuted">
                     Möchten Sie diesen Kurs wirklich löschen?
                   </p>
-                  <div className="p-4 bg-dangerSoft border border-danger rounded-lg">
+                  <div className="p-4 bg-dangerSoft border border-danger rounded-[var(--radius-sm)]">
                     <p className="text-sm text-danger font-medium">
                       Diese Aktion kann nicht rückgängig gemacht werden!
                     </p>
@@ -405,13 +405,13 @@ const MyCourses: React.FC = () => {
               <div className="flex items-center justify-end space-x-3 mt-6 pt-6 border-t border-border">
                 <button
                   onClick={() => setDeleteDialogOpen(false)}
-                  className="px-4 py-2 text-textMuted bg-surfaceSunken hover:bg-borderStrong rounded-lg transition-colors"
+                  className="px-4 py-2 text-textMuted bg-surfaceSunken hover:bg-borderStrong rounded-[var(--radius-sm)] transition-colors"
                 >
                   Abbrechen
                 </button>
                 <button
                   onClick={handleConfirmDelete}
-                  className="px-4 py-2 text-danger rounded-lg hover:bg-dangerSoft transition-colors"
+                  className="px-4 py-2 text-danger rounded-[var(--radius-sm)] hover:bg-dangerSoft transition-colors"
                 >
                   {deleteScope === 'series' && seriesCount > 1
                     ? `Alle ${seriesCount} Termine löschen`

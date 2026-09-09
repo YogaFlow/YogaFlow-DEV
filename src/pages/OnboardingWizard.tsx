@@ -254,8 +254,8 @@ const OnboardingWizard: React.FC = () => {
   if (success || successPending) {
     return (
       <div className="min-h-screen bg-sand flex items-center justify-center p-4">
-        <div className="bg-surface rounded-2xl shadow-xl p-10 max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-sage-100 rounded-full flex items-center justify-center mx-auto mb-6">
+        <div className="bg-surface rounded-[var(--radius-md)] border border-border p-3.5 max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-sage-100 rounded-[var(--radius-full)] flex items-center justify-center mx-auto mb-6">
             <Check className="w-8 h-8 text-brand" />
           </div>
           <h2 className="text-2xl font-bold text-text mb-3">Fast geschafft!</h2>
@@ -288,8 +288,8 @@ const OnboardingWizard: React.FC = () => {
   if (autoSigningOut) {
     return (
       <div className="min-h-screen bg-sand flex items-center justify-center p-4">
-        <div className="bg-surface rounded-2xl shadow-xl p-10 max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-sage-100 rounded-full flex items-center justify-center mx-auto mb-6">
+        <div className="bg-surface rounded-[var(--radius-md)] border border-border p-3.5 max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-sage-100 rounded-[var(--radius-full)] flex items-center justify-center mx-auto mb-6">
             <Loader2 className="w-8 h-8 text-brand animate-spin" />
           </div>
           <h2 className="text-2xl font-bold text-text mb-3">Einen Moment…</h2>
@@ -304,8 +304,8 @@ const OnboardingWizard: React.FC = () => {
   if (user) {
     return (
       <div className="min-h-screen bg-sand flex items-center justify-center p-4">
-        <div className="bg-surface rounded-2xl shadow-xl p-10 max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
+        <div className="bg-surface rounded-[var(--radius-md)] border border-border p-3.5 max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-amber-100 rounded-[var(--radius-full)] flex items-center justify-center mx-auto mb-6">
             <LogOut className="w-8 h-8 text-amber-600" />
           </div>
           <h2 className="text-2xl font-bold text-text mb-3">Du bist bereits angemeldet</h2>
@@ -320,13 +320,13 @@ const OnboardingWizard: React.FC = () => {
                 if (ownStudioHref.startsWith('http')) window.location.href = ownStudioHref;
                 else navigate(ownStudioHref);
               }}
-              className="w-full bg-brand text-onBrand py-3 rounded-xl hover:bg-brandPressed transition-colors"
+              className="w-full bg-brand text-onBrand py-3 rounded-[var(--radius-sm)] hover:bg-brandPressed transition-colors"
             >
               {tenantSlug ? 'Zurück zum Dashboard' : 'Zur Studio-Webadresse'}
             </button>
             <button
               onClick={async () => { await supabase.auth.signOut(); window.location.replace('/onboarding'); }}
-              className="w-full border border-border text-textMuted py-3 rounded-xl hover:bg-surfaceSunken transition-colors"
+              className="w-full border border-border text-textMuted py-3 rounded-[var(--radius-sm)] hover:bg-surfaceSunken transition-colors"
             >
               Abmelden und neues Studio anlegen
             </button>
@@ -341,7 +341,7 @@ const OnboardingWizard: React.FC = () => {
       <div className="w-full max-w-lg">
         {/* Logo + Fortschritt */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 bg-brand rounded-full mb-4">
+          <div className="inline-flex items-center justify-center w-12 h-12 bg-brand rounded-[var(--radius-full)] mb-4">
             <Heart className="w-6 h-6 text-onBrand" />
           </div>
           <h1 className="text-2xl font-bold text-text">Studio einrichten</h1>
@@ -355,7 +355,7 @@ const OnboardingWizard: React.FC = () => {
           {STEPS.map((_, i) => (
             <div
               key={i}
-              className={`flex-1 h-1.5 rounded-full transition-colors ${
+              className={`flex-1 h-1.5 rounded-[var(--radius-full)] transition-colors ${
                 i + 1 <= step ? 'bg-brand' : 'bg-border'
               }`}
             />
@@ -363,7 +363,7 @@ const OnboardingWizard: React.FC = () => {
         </div>
 
         {/* Card */}
-        <div className="bg-surface rounded-2xl shadow-xl p-8">
+        <div className="bg-surface rounded-[var(--radius-md)] border border-border p-3.5">
           {step === 1 && (
             <div>
               <label className="block text-sm font-medium text-textMuted mb-2">
@@ -374,7 +374,7 @@ const OnboardingWizard: React.FC = () => {
                 value={studioName}
                 onChange={e => setStudioName(e.target.value)}
                 placeholder="z.B. Sonnenstudio München"
-                className="w-full px-4 py-3 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand"
+                className="w-full px-4 py-3 border border-border rounded-[var(--radius-sm)] focus:outline-none focus:ring-2 focus:ring-brand"
                 autoFocus
               />
               <p className="mt-2 text-xs text-textMuted">
@@ -388,7 +388,7 @@ const OnboardingWizard: React.FC = () => {
               <label className="block text-sm font-medium text-textMuted mb-2">
                 Deine Studio-URL
               </label>
-              <div className="flex items-stretch border border-border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-brand">
+              <div className="flex items-stretch border border-border rounded-[var(--radius-sm)] overflow-hidden focus-within:ring-2 focus-within:ring-brand">
                 <input
                   type="text"
                   value={slug}
@@ -447,7 +447,7 @@ const OnboardingWizard: React.FC = () => {
                   type="text"
                   value={firstName}
                   onChange={e => setFirstName(e.target.value)}
-                  className="w-full px-4 py-3 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand"
+                  className="w-full px-4 py-3 border border-border rounded-[var(--radius-sm)] focus:outline-none focus:ring-2 focus:ring-brand"
                   autoFocus
                 />
               </div>
@@ -457,7 +457,7 @@ const OnboardingWizard: React.FC = () => {
                   type="text"
                   value={lastName}
                   onChange={e => setLastName(e.target.value)}
-                  className="w-full px-4 py-3 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand"
+                  className="w-full px-4 py-3 border border-border rounded-[var(--radius-sm)] focus:outline-none focus:ring-2 focus:ring-brand"
                 />
               </div>
             </div>
@@ -473,7 +473,7 @@ const OnboardingWizard: React.FC = () => {
                   type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  className="w-full px-4 py-3 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand"
+                  className="w-full px-4 py-3 border border-border rounded-[var(--radius-sm)] focus:outline-none focus:ring-2 focus:ring-brand"
                   autoFocus
                 />
               </div>
@@ -485,7 +485,7 @@ const OnboardingWizard: React.FC = () => {
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     placeholder="Mindestens 8 Zeichen"
-                    className="w-full px-4 py-3 pr-12 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand"
+                    className="w-full px-4 py-3 pr-12 border border-border rounded-[var(--radius-sm)] focus:outline-none focus:ring-2 focus:ring-brand"
                   />
                   <button
                     type="button"
@@ -506,7 +506,7 @@ const OnboardingWizard: React.FC = () => {
                     type={showPasswordConfirm ? 'text' : 'password'}
                     value={passwordConfirm}
                     onChange={e => setPasswordConfirm(e.target.value)}
-                    className={`w-full px-4 py-3 pr-12 border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand ${
+                    className={`w-full px-4 py-3 pr-12 border rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-brand ${
                       passwordConfirm && password !== passwordConfirm
                         ? 'border-danger'
                         : 'border-border'
@@ -532,7 +532,7 @@ const OnboardingWizard: React.FC = () => {
 
           {step === 5 && (
             <div>
-              <div className="bg-surfaceSunken rounded-xl p-4 mb-6 space-y-2 text-sm">
+              <div className="bg-surfaceSunken rounded-[var(--radius-md)] border border-border p-3.5 mb-6 space-y-2 text-sm">
                 {[
                   { label: 'Studio-Name', value: studioName },
                   { label: 'Studio-URL', value: `${slug}.${APP_BASE_DOMAIN}`, mono: true },
@@ -557,7 +557,7 @@ const OnboardingWizard: React.FC = () => {
                   type="checkbox"
                   checked={agbAccepted}
                   onChange={e => setAgbAccepted(e.target.checked)}
-                  className="mt-0.5 w-4 h-4 text-brand rounded border-border focus:ring-brand"
+                  className="mt-0.5 w-4 h-4 text-brand rounded-[var(--radius-sm)] border-border focus:ring-brand"
                 />
                 <span className="text-sm text-textMuted">
                   Ich akzeptiere die{' '}
@@ -583,7 +583,7 @@ const OnboardingWizard: React.FC = () => {
               </label>
 
               {submitError && (
-                <div className="mt-4 p-3 bg-dangerSoft border border-danger rounded-lg text-sm text-danger">
+                <div className="mt-4 p-3 bg-dangerSoft border border-danger rounded-[var(--radius-sm)] text-sm text-danger">
                   {submitError}
                 </div>
               )}
@@ -605,7 +605,7 @@ const OnboardingWizard: React.FC = () => {
             <button
               onClick={() => setStep(step + 1)}
               disabled={!canAdvance()}
-              className="flex items-center gap-1.5 bg-brand text-onBrand px-6 py-2.5 rounded-xl hover:bg-brandPressed transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 bg-brand text-onBrand px-6 py-2.5 rounded-[var(--radius-sm)] hover:bg-brandPressed transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Weiter
               <ChevronRight className="w-4 h-4" />
@@ -614,7 +614,7 @@ const OnboardingWizard: React.FC = () => {
             <button
               onClick={handleSubmit}
               disabled={!canAdvance() || isSubmitting}
-              className="flex items-center gap-1.5 bg-brand text-onBrand px-6 py-2.5 rounded-xl hover:bg-brandPressed transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 bg-brand text-onBrand px-6 py-2.5 rounded-[var(--radius-sm)] hover:bg-brandPressed transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <>

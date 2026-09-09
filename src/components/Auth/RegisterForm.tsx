@@ -114,7 +114,7 @@ const RegisterForm: React.FC = () => {
   if (success) {
     return (
       <div className="w-full max-w-md text-center">
-        <div className="p-6 bg-sage-100 border border-sage-200 rounded-lg">
+        <div className="p-3.5 bg-sage-100 border border-sage-200 rounded-[var(--radius-md)]">
           <h3 className="text-lg font-semibold text-sage-800 mb-2">Registrierung erfolgreich!</h3>
           {emailSentOnSignup ? (
             <p className="text-sm text-brand">
@@ -149,7 +149,7 @@ const RegisterForm: React.FC = () => {
                 type="text"
                 value={formData.first_name}
                 onChange={handleChange}
-                className="w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent"
                 required
               />
             </div>
@@ -166,7 +166,7 @@ const RegisterForm: React.FC = () => {
                 type="text"
                 value={formData.last_name}
                 onChange={handleChange}
-                className="w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent"
                 required
               />
             </div>
@@ -185,7 +185,7 @@ const RegisterForm: React.FC = () => {
               type="email"
               value={formData.email}
               onChange={handleChange}
-              className="w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full pl-10 pr-4 py-3 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent"
               required
             />
           </div>
@@ -204,7 +204,7 @@ const RegisterForm: React.FC = () => {
               value={formData.password}
               onChange={handleChange}
               placeholder="Mindestens 6 Zeichen"
-              className="w-full pl-10 pr-12 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full pl-10 pr-12 py-3 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent"
               required
             />
             <button
@@ -229,7 +229,7 @@ const RegisterForm: React.FC = () => {
               type={showConfirmPassword ? 'text' : 'password'}
               value={formData.confirmPassword}
               onChange={handleChange}
-              className="w-full pl-10 pr-12 py-3 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full pl-10 pr-12 py-3 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent"
               required
             />
             <button
@@ -243,7 +243,7 @@ const RegisterForm: React.FC = () => {
         </div>
 
         {error && (
-          <div className="p-3 bg-dangerSoft border border-danger rounded-lg">
+          <div className="p-3 bg-dangerSoft border border-danger rounded-[var(--radius-sm)]">
             <p className="text-sm text-danger">{error}</p>
           </div>
         )}
@@ -251,7 +251,7 @@ const RegisterForm: React.FC = () => {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-brand text-onBrand py-3 px-4 rounded-lg hover:bg-brandPressed focus:ring-4 focus:ring-sage-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-brand text-onBrand py-3 px-4 rounded-[var(--radius-sm)] hover:bg-brandPressed focus:ring-4 focus:ring-sage-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? 'Registrierung läuft…' : 'Registrieren'}
         </button>

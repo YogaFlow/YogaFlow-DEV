@@ -94,7 +94,7 @@ const NewMessageModal: React.FC<NewMessageModalProps> = ({
       onClick={onClose}
     >
       <div
-        className={`w-full sm:max-w-lg max-h-[95vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl border border-border bg-surface shadow-2xl transition-all duration-200 ${
+        className={`w-full sm:max-w-lg max-h-[95vh] overflow-y-auto rounded-t-[var(--radius-lg)] sm:rounded-[var(--radius-lg)] border border-border bg-surface shadow-lg transition-all duration-200 ${
           isVisible ? 'scale-100 translate-y-0 opacity-100' : 'scale-95 translate-y-4 opacity-0'
         }`}
         onClick={(e) => e.stopPropagation()}
@@ -104,7 +104,7 @@ const NewMessageModal: React.FC<NewMessageModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-surfaceSunken text-textMuted transition-colors"
+            className="p-2 rounded-[var(--radius-sm)] hover:bg-surfaceSunken text-textMuted transition-colors"
             aria-label="Schließen"
           >
             <X size={20} />
@@ -117,7 +117,7 @@ const NewMessageModal: React.FC<NewMessageModalProps> = ({
             <select
               value={selectedCourse}
               onChange={(e) => onSelectedCourseChange(e.target.value)}
-              className="w-full px-3 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent text-base"
+              className="w-full px-3 py-2.5 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent text-base"
               required
             >
               <option value="">Kurs auswählen</option>
@@ -139,7 +139,7 @@ const NewMessageModal: React.FC<NewMessageModalProps> = ({
                     onIsBroadcastChange(e.target.checked);
                     if (e.target.checked) onRecipientIdChange('');
                   }}
-                  className="rounded border-border text-brand focus:ring-brand"
+                  className="rounded-[var(--radius-sm)] border-border text-brand focus:ring-brand"
                 />
                 An alle Teilnehmer senden
               </label>
@@ -152,7 +152,7 @@ const NewMessageModal: React.FC<NewMessageModalProps> = ({
               <select
                 value={recipientId}
                 onChange={(e) => onRecipientIdChange(e.target.value)}
-                className="w-full px-3 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent text-base"
+                className="w-full px-3 py-2.5 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent text-base"
                 required={!isBroadcast}
               >
                 <option value="">Empfänger auswählen</option>
@@ -179,7 +179,7 @@ const NewMessageModal: React.FC<NewMessageModalProps> = ({
                 value={message}
                 onChange={(e) => onMessageChange(e.target.value)}
                 rows={4}
-                className="w-full px-3 py-2.5 pr-10 border border-border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent resize-none text-base"
+                className="w-full px-3 py-2.5 pr-10 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent resize-none text-base"
                 placeholder="Geben Sie hier Ihre Nachricht ein..."
                 required
               />
@@ -187,13 +187,13 @@ const NewMessageModal: React.FC<NewMessageModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setEmojiOpen((o) => !o)}
-                  className="p-1.5 rounded-lg text-textSubtle hover:text-brandPressed hover:bg-surfaceSunken"
+                  className="p-1.5 rounded-[var(--radius-sm)] text-textSubtle hover:text-brandPressed hover:bg-surfaceSunken"
                   aria-label="Emoji auswählen"
                 >
                   <Smile size={18} />
                 </button>
                 {emojiOpen && (
-                  <div className="absolute bottom-full right-0 mb-2 z-50 shadow-2xl rounded-xl overflow-hidden">
+                  <div className="absolute bottom-full right-0 mb-2 z-50 shadow-lg rounded-[var(--radius-md)] overflow-hidden">
                     <EmojiPicker
                       onEmojiClick={handleEmojiClick}
                       theme={Theme.LIGHT}
@@ -211,7 +211,7 @@ const NewMessageModal: React.FC<NewMessageModalProps> = ({
           <button
             type="submit"
             disabled={sending}
-            className="w-full flex items-center justify-center gap-2 bg-brand text-onBrand px-4 py-2.5 rounded-lg hover:bg-brandPressed transition-colors disabled:opacity-50 text-sm font-medium"
+            className="w-full flex items-center justify-center gap-2 bg-brand text-onBrand px-4 py-2.5 rounded-[var(--radius-sm)] hover:bg-brandPressed transition-colors disabled:opacity-50 text-sm font-medium"
           >
             <Send size={18} />
             Nachricht senden

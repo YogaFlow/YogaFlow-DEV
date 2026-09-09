@@ -41,7 +41,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   if (loading || profileLoading) {
     return (
       <div className="min-h-screen bg-sand flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand" />
+        <div className="animate-spin rounded-[var(--radius-full)] h-12 w-12 border-b-2 border-brand" />
       </div>
     );
   }
@@ -72,7 +72,7 @@ const TenantGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   if (loading) {
     return (
       <div className="min-h-screen bg-sand flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand" />
+        <div className="animate-spin rounded-[var(--radius-full)] h-12 w-12 border-b-2 border-brand" />
       </div>
     );
   }
@@ -90,7 +90,7 @@ const TenantGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="mt-4 mr-4 inline-block rounded-lg bg-brand text-onBrand px-4 py-2 text-sm font-medium hover:bg-brandPressed"
+            className="mt-4 mr-4 inline-block rounded-[var(--radius-sm)] bg-brand text-onBrand px-4 py-2 text-sm font-medium hover:bg-brandPressed"
           >
             Neu laden
           </button>
@@ -152,7 +152,7 @@ const HomeRouteWithTokenRedirect: React.FC = () => {
 
 const Spinner = () => (
   <div className="min-h-screen bg-sand flex items-center justify-center">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand" />
+    <div className="animate-spin rounded-[var(--radius-full)] h-12 w-12 border-b-2 border-brand" />
   </div>
 );
 
@@ -176,7 +176,7 @@ const HomeRoute: React.FC = () => {
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="rounded-lg bg-brand text-onBrand px-4 py-2 text-sm font-medium hover:bg-brandPressed"
+            className="rounded-[var(--radius-sm)] bg-brand text-onBrand px-4 py-2 text-sm font-medium hover:bg-brandPressed"
           >
             Neu laden
           </button>
@@ -208,7 +208,7 @@ const HomeRoute: React.FC = () => {
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="rounded-lg bg-brand text-onBrand px-4 py-2 text-sm font-medium hover:bg-brandPressed"
+            className="rounded-[var(--radius-sm)] bg-brand text-onBrand px-4 py-2 text-sm font-medium hover:bg-brandPressed"
           >
             Seite neu laden
           </button>

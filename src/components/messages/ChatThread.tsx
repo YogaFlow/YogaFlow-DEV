@@ -47,8 +47,8 @@ const ChatThread: React.FC<ChatThreadProps> = ({
 }) => {
   if (!conversation) {
     return (
-      <div className="flex flex-col h-full min-h-0 bg-surface rounded-lg border border-border shadow-sm overflow-hidden">
-        <div className="flex-1 flex flex-col items-center justify-center text-textSubtle p-8">
+      <div className="flex flex-col h-full min-h-0 bg-surface rounded-[var(--radius-md)] border border-border overflow-hidden">
+        <div className="flex-1 flex flex-col items-center justify-center text-textSubtle p-3.5">
           <MessageSquare size={48} className="mb-3 opacity-40" />
           <p className="text-sm text-center">Wähle eine Unterhaltung aus der Liste</p>
         </div>
@@ -57,7 +57,7 @@ const ChatThread: React.FC<ChatThreadProps> = ({
   }
 
   return (
-    <div className="flex flex-col h-full min-h-0 bg-surface rounded-lg border border-border shadow-sm overflow-hidden">
+    <div className="flex flex-col h-full min-h-0 bg-surface rounded-[var(--radius-md)] border border-border overflow-hidden">
       <ChatHeader
         displayName={conversation.displayName}
         isBroadcast={conversation.isBroadcast}
@@ -68,7 +68,7 @@ const ChatThread: React.FC<ChatThreadProps> = ({
 
       <div
         ref={chatScrollRef}
-        className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-4 py-4 space-y-3"
+        className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain p-3.5 space-y-3"
         role="log"
         aria-label="Chatverlauf"
       >
