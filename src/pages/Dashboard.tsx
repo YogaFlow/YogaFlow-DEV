@@ -1,16 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Calendar, Users, BookOpen, Clock, MapPin, Settings } from 'lucide-react';
+import { Calendar, Check, Users, BookOpen, Settings } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Course, Registration } from '../types';
 import { isCourseUpcoming } from '../lib/courseDateTime';
-import {
-  formatDayLabel,
-  formatDuration,
-  formatPrice,
-  formatTimeRange,
-} from '../lib/format';
+import { formatDayLabel, formatPrice, formatTime } from '../lib/format';
 import { runPastRegistrationCleanup } from '../lib/registrationMaintenance';
 import { fetchCourseParticipantCounts } from '../lib/courseParticipantCounts';
 import { isParticipantOnlyRole, isTeacherOnly } from '../lib/userRoles';
@@ -318,11 +313,11 @@ const Dashboard: React.FC = () => {
     options?: { showRegisteredBadge?: boolean }
   ) => {
     if (items.length === 0) {
-      return <p className="text-textMuted text-center py-8">{emptyMessage}</p>;
+      return <p className="px-3.5 py-8 text-center text-textMuted">{emptyMessage}</p>;
     }
 
     return (
-      <div className="space-y-4">
+      <div className="divide-y divide-border">
         {items.map((item, index) => {
           const isRegistration = 'course' in item;
           const course = (isRegistration ? item.course : item) as CourseWithCount | undefined;
@@ -333,81 +328,62 @@ const Dashboard: React.FC = () => {
           const remainingSpots = Math.max(0, maxParticipants - registrationCount);
           const isFull = remainingSpots === 0;
           const isRegistered = Boolean(options?.showRegisteredBadge && isRegistration && item.status === 'registered');
+          const description = course.description?.trim() ?? '';
+          const teacherName =
+            course.teacher && course.teacher_id !== userProfile?.id
+              ? `${course.teacher.first_name} ${course.teacher.last_name}`.trim()
+              : '';
+          const occupancy =
+            (isAdmin || isCourseLeader) && !isRegistration
+              ? `${registrationCount}/${maxParticipants}\u00A0Plätze`
+              : '';
+          const meta = [
+            formatDayLabel(course.date),
+            formatTime(course.time),
+            teacherName,
+            course.location,
+            occupancy,
+          ]
+            .filter(Boolean)
+            .join(' · ');
+
+          let status: React.ReactNode = null;
+          if (isRegistered) {
+            status = (
+              <span className="inline-flex items-center gap-1 text-[13px] font-medium text-success">
+                <Check className="h-4 w-4" aria-hidden />
+                Angemeldet
+              </span>
+            );
+          } else if (isFull) {
+            status = (
+              <span className="text-[13px] font-medium text-textMuted">Ausgebucht</span>
+            );
+          } else if (remainingSpots <= 2) {
+            status = (
+              <span className="text-[13px] font-medium text-accent">
+                {remainingSpots === 1 ? 'noch 1\u00A0Platz' : `noch ${remainingSpots}\u00A0Plätze`}
+              </span>
+            );
+          }
 
           return (
-            <div
-              key={course.id || index}
-              className="overflow-hidden rounded-md border border-border bg-surface"
-            >
-              <div className="p-3.5">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h3 className="text-xl font-bold leading-tight text-text">{course.title}</h3>
-                    {course.description && (
-                      <p className="mt-1 line-clamp-1 text-xs font-semibold text-textSubtle">
-                        {course.description}
-                      </p>
-                    )}
-                  </div>
+            <div key={course.id || index} className="px-3.5 py-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-[17px] font-medium text-text">{course.title}</h3>
+                  {meta ? (
+                    <p className="text-[13px] text-textMuted tabular-nums">{meta}</p>
+                  ) : null}
+                  {description ? (
+                    <p className="line-clamp-1 text-[13px] text-textSubtle">{description}</p>
+                  ) : null}
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  {status}
                   {course.price != null && (
-                    <span className="shrink-0 text-2xl font-bold text-brand tabular-nums">{formatPrice(course.price)}</span>
-                  )}
-                </div>
-
-                <div className="mt-4 space-y-2 text-sm text-textMuted">
-                  <div className="flex items-center gap-2 font-medium text-textMuted">
-                    <Calendar className="h-4 w-4 shrink-0" />
-                    <span className="tabular-nums">{formatDayLabel(course.date)}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 shrink-0" />
-                    <span className="tabular-nums">
-                      {formatTimeRange(course.time, course.end_time)}
-                      {course.duration != null ? ` (${formatDuration(course.duration)})` : ''}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 shrink-0" />
-                    {course.location}
-                  </div>
-                  {(isAdmin || isCourseLeader) && !isRegistration && (
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 shrink-0" />
-                      <span className="tabular-nums">{registrationCount}/{maxParticipants}</span> Teilnehmer
-                    </div>
-                  )}
-                </div>
-
-                {course.teacher && (
-                  <div className="mt-5 border-t border-border pt-4">
-                    <p className="text-xs font-semibold text-textSubtle">Kursleitung</p>
-                    <p className="mt-1 text-sm font-semibold text-textMuted">
-                      Lehrer: {course.teacher.first_name} {course.teacher.last_name}
-                    </p>
-                  </div>
-                )}
-
-                <div className="mt-5 flex items-center justify-between gap-3 border-t border-border pt-4">
-                  <div className={`flex items-center gap-2 ${
-                    isFull
-                      ? 'rounded-sm bg-surfaceSunken px-3 py-1 text-textMuted'
-                      : remainingSpots <= 2
-                        ? 'rounded-sm bg-accentSoft px-3 py-1 text-accent'
-                        : ''
-                  }`}>
-                    <div className={`h-2.5 w-2.5 rounded-full ${
-                      isFull ? 'bg-textMuted' : (remainingSpots <= 2 ? 'bg-accent' : 'bg-sage-500')
-                    }`} />
-                    <span className={`text-sm font-medium ${
-                      isFull ? 'text-textMuted' : (remainingSpots <= 2 ? 'text-accent' : 'text-textMuted')
-                    }`}>
-                      {isFull ? 'Leider schon ausgebucht' : (remainingSpots <= 2 ? `noch ${remainingSpots} ${remainingSpots === 1 ? 'Restplatz' : 'Restplätze'}` : 'Verfügbar')}
-                    </span>
-                  </div>
-
-                  {isRegistered && (
-                    <span className="inline-flex items-center rounded-full bg-sage-100 px-3 py-1 text-xs font-semibold text-sage-800">
-                      Angemeldet
+                    <span className="text-[17px] font-medium text-text tabular-nums">
+                      {formatPrice(course.price)}
                     </span>
                   )}
                 </div>
@@ -432,7 +408,7 @@ const Dashboard: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-text">Dashboard</h1>
+        <h1 className="text-2xl font-medium text-text">Dashboard</h1>
         <p className="text-textMuted">
           Überblick über Ihre Kurse.
         </p>
@@ -447,7 +423,7 @@ const Dashboard: React.FC = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-textMuted">{card.title}</p>
-                <p className="text-2xl font-bold text-text">{card.value}</p>
+                <p className="text-2xl font-medium text-text">{card.value}</p>
               </div>
             </div>
           );
@@ -476,11 +452,11 @@ const Dashboard: React.FC = () => {
           {(isCourseLeader && !isParticipantOnly) && (
             <div className="bg-surface rounded-md border border-border">
               <div className="p-3.5 border-b border-border">
-                <h2 className="text-lg font-semibold text-text">
+                <h2 className="text-lg font-medium text-text">
                   {isTeacher ? 'Kurse, die ich gebe' : 'Kommende Kurse'}
                 </h2>
               </div>
-              <div className="p-3.5">
+              <div>
                 {renderCourseCards(
                   courses,
                   isTeacher
@@ -494,9 +470,9 @@ const Dashboard: React.FC = () => {
           {(isParticipantOnly || isTeacher) && (
             <div className="bg-surface rounded-md border border-border">
               <div className="p-3.5 border-b border-border">
-                <h2 className="text-lg font-semibold text-text">Meine kommenden Kurse</h2>
+                <h2 className="text-lg font-medium text-text">Meine kommenden Kurse</h2>
               </div>
-              <div className="p-3.5">
+              <div>
                 {renderCourseCards(
                   registrations,
                   'Sie sind noch nicht für Kurse angemeldet.',
@@ -509,7 +485,7 @@ const Dashboard: React.FC = () => {
 
         <div className="bg-surface rounded-md border border-border">
           <div className="p-3.5 border-b border-border">
-            <h2 className="text-lg font-semibold text-text">Schnellzugriff</h2>
+            <h2 className="text-lg font-medium text-text">Schnellzugriff</h2>
           </div>
           <div className="p-3.5">
             <div className="grid grid-cols-1 gap-4">
