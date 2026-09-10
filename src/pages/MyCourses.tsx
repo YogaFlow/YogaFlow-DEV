@@ -1,16 +1,12 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { Calendar, Clock, MapPin, Users, Plus, Edit, Trash2, Eye, AlertCircle, X } from 'lucide-react';
+import { Calendar, Plus, Edit, Trash2, Eye, AlertCircle, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Course } from '../types';
 import { isCourseManagerRole } from '../lib/userRoles';
-import {
-  formatDayLabel,
-  formatDuration,
-  formatPrice,
-  formatTimeRange,
-} from '../lib/format';
+import { formatDayLabel, formatPrice, formatTime } from '../lib/format';
+import { groupCoursesByDay } from '../lib/courseGrouping';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
 import { isCourseUpcoming } from '../lib/courseDateTime';
 
@@ -177,12 +173,14 @@ const MyCourses: React.FC = () => {
     return <Navigate to="/my-registrations" replace />;
   }
 
+  const dayGroups = groupCoursesByDay(courses);
+
   return (
     <div className="space-y-6">
       <FeedbackDialog dialog={feedbackDialog} onClose={() => setFeedbackDialog(null)} />
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-text">Kurse verwalten</h1>
+          <h1 className="text-2xl font-medium text-text">Kurse verwalten</h1>
           <p className="text-textMuted">Kurse, die Sie selbst unterrichten.</p>
         </div>
         
@@ -197,7 +195,7 @@ const MyCourses: React.FC = () => {
 
       {successMessage && (
         <div className="p-4 bg-sage-100 border border-sage-200 rounded-sm">
-          <p className="text-sm text-brand">{successMessage}</p>
+          <p className="text-sm text-sage-800">{successMessage}</p>
         </div>
       )}
 
@@ -215,105 +213,145 @@ const MyCourses: React.FC = () => {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {courses.map((course) => {
-            const registeredCount = course.registrations?.filter(
-              (r) => r.status === 'registered' && !r.is_waitlist && !r.cancellation_timestamp
-            ).length ?? 0;
-            const waitlistCount = course.registrations?.filter(
-              (r) => r.is_waitlist && !r.cancellation_timestamp
-            ).length ?? 0;
-            const isFull = registeredCount >= (course.max_participants || 0);
-            return (
-              <div key={course.id} className="bg-surface rounded-md border border-border overflow-hidden">
-                <div className="p-3.5">
-                  <div className="flex items-start justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-text line-clamp-2">{course.title}</h3>
-                    <span className="text-xl font-bold text-brand tabular-nums">{formatPrice(course.price)}</span>
-                  </div>
-                  
-                  <p className="text-textMuted text-sm mb-4 line-clamp-3">{course.description}</p>
-                  
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center text-sm text-textMuted">
-                      <Calendar className="w-4 h-4 mr-2" />
-                      <span className="tabular-nums">{formatDayLabel(course.date)}</span>
-                    </div>
-                    <div className="flex items-center text-sm text-textMuted">
-                      <Clock className="w-4 h-4 mr-2" />
-                      <span className="tabular-nums">
-                        {formatTimeRange(course.time, course.end_time)}
-                        {course.duration != null ? ` (${formatDuration(course.duration)})` : ''}
-                      </span>
-                    </div>
-                    <div className="flex items-center text-sm text-textMuted">
-                      <MapPin className="w-4 h-4 mr-2" />
-                      {course.location}
-                    </div>
-                    <div className="flex items-center text-sm text-textMuted">
-                      <Users className="w-4 h-4 mr-2" />
-                      <span className="tabular-nums">{registeredCount}/{course.max_participants}</span> Teilnehmer
-                      {waitlistCount > 0 && (
-                        <span className="ml-2 px-2 py-0.5 text-xs bg-accentSoft text-accent rounded-full">
-                          +{waitlistCount} Wartend
-                        </span>
-                      )}
-                    </div>
-                  </div>
+        <div className="space-y-8">
+          {dayGroups.map((group) => (
+            <section key={group.date}>
+              <h2 className="mb-2 text-[15px] font-medium text-textMuted">
+                {formatDayLabel(group.date)}
+              </h2>
+              <div className="divide-y divide-border overflow-hidden rounded-md border border-border bg-surface">
+                {group.courses.map((course) => {
+                  const registeredCount = course.registrations?.filter(
+                    (r) => r.status === 'registered' && !r.is_waitlist && !r.cancellation_timestamp
+                  ).length ?? 0;
+                  const waitlistCount = course.registrations?.filter(
+                    (r) => r.is_waitlist && !r.cancellation_timestamp
+                  ).length ?? 0;
+                  const isFull = registeredCount >= (course.max_participants || 0);
+                  const remaining = (course.max_participants || 0) - registeredCount;
+                  const occupancy = `${registeredCount}/${course.max_participants} Plätze`;
+                  const meta = [course.location, occupancy].filter(Boolean).join(' · ');
+                  const description = course.description?.trim() ?? '';
 
-                  <div className="flex items-center justify-between mb-4">
-                    <div className={`flex items-center ${
-                      isFull
-                        ? 'rounded-sm bg-surfaceSunken px-3 py-1'
-                        : course.max_participants - registeredCount <= 2
-                          ? 'rounded-sm bg-accentSoft px-3 py-1'
-                          : ''
-                    }`}>
-                      <div className={`w-3 h-3 rounded-full mr-2 ${
-                        isFull ? 'bg-textMuted' : (course.max_participants - registeredCount <= 2 ? 'bg-accent' : 'bg-sage-500')
-                      }`}></div>
-                      <span className={`text-xs ${
-                        isFull
-                          ? 'text-textMuted'
-                          : course.max_participants - registeredCount <= 2
-                            ? 'text-accent'
-                            : 'text-textMuted'
-                      }`}>
-                        {isFull ? 'Leider schon ausgebucht' : (course.max_participants - registeredCount <= 2 ? `noch ${course.max_participants - registeredCount} ${course.max_participants - registeredCount === 1 ? 'Restplatz' : 'Restplätze'}` : 'Verfügbar')}
+                  let occupancyStatus: React.ReactNode = null;
+                  if (isFull) {
+                    occupancyStatus = (
+                      <span className="text-[13px] font-medium text-textMuted">Ausgebucht</span>
+                    );
+                  } else if (remaining <= 2) {
+                    occupancyStatus = (
+                      <span className="text-[13px] font-medium text-accent">
+                        {remaining === 1 ? 'noch 1 Platz' : `noch ${remaining} Plätze`}
                       </span>
-                    </div>
-                  </div>
+                    );
+                  }
 
-                  <div className="flex items-center justify-between pt-4 border-t border-border">
-                    <button
-                      onClick={() => navigate(`/course/${course.id}/participants`)}
-                      className="flex items-center text-brand hover:text-brandPressed text-sm"
-                    >
-                      <Eye className="w-4 h-4 mr-1" />
-                      Teilnehmer
-                    </button>
-                    
-                    <div className="flex items-center space-x-2">
+                  const waitlistStatus =
+                    waitlistCount > 0 ? (
+                      <span className="text-[13px] font-medium text-accent">
+                        {waitlistCount} auf Warteliste
+                      </span>
+                    ) : null;
+
+                  const status =
+                    occupancyStatus || waitlistStatus ? (
+                      <div className="flex items-center gap-2">
+                        {occupancyStatus}
+                        {waitlistStatus}
+                      </div>
+                    ) : null;
+
+                  const actions = (
+                    <div className="flex items-center gap-1">
                       <button
+                        type="button"
+                        onClick={() => navigate(`/course/${course.id}/participants`)}
+                        className="inline-flex min-h-11 items-center rounded-sm px-2 text-[13px] font-medium text-brand transition-colors hover:text-brandPressed"
+                      >
+                        <Eye className="mr-1 h-4 w-4" />
+                        Teilnehmer
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => navigate(`/course/${course.id}/edit`)}
-                        className="p-2 text-textSubtle hover:text-brandPressed transition-colors"
+                        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-sm text-textSubtle transition-colors hover:text-brandPressed"
                         title="Bearbeiten"
                       >
-                        <Edit className="w-4 h-4" />
+                        <Edit className="h-4 w-4" />
                       </button>
                       <button
+                        type="button"
                         onClick={() => handleDeleteClick(course.id, course.title, course.series_id ?? null)}
-                        className="p-2 text-textSubtle hover:text-danger transition-colors"
+                        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-sm text-textSubtle transition-colors hover:text-danger"
                         title="Löschen"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
-                  </div>
-                </div>
+                  );
+
+                  return (
+                    <article key={course.id}>
+                      <div className="hidden items-center gap-4 px-3.5 py-3 md:flex">
+                        <div className="w-[88px] shrink-0 tabular-nums">
+                          <div className="text-[17px] font-medium text-text">
+                            {formatTime(course.time)}
+                          </div>
+                          {course.end_time ? (
+                            <div className="text-[13px] text-textMuted">
+                              {formatTime(course.end_time)}
+                            </div>
+                          ) : null}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-[17px] font-medium text-text">{course.title}</h3>
+                          {meta ? (
+                            <p className="text-[13px] text-textMuted tabular-nums">{meta}</p>
+                          ) : null}
+                          {description ? (
+                            <p className="line-clamp-1 text-[13px] text-textSubtle">{description}</p>
+                          ) : null}
+                        </div>
+                        <div className="shrink-0">{status}</div>
+                        <div className="w-20 shrink-0 text-right text-[17px] font-medium text-text tabular-nums">
+                          {formatPrice(course.price)}
+                        </div>
+                        <div className="shrink-0">{actions}</div>
+                      </div>
+
+                      <div className="flex gap-3 px-3.5 py-3 md:hidden">
+                        <div className="w-14 shrink-0 text-[17px] font-medium text-text tabular-nums">
+                          {formatTime(course.time)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-baseline justify-between gap-2">
+                            <h3 className="min-w-0 truncate text-[17px] font-medium text-text">
+                              {course.title}
+                            </h3>
+                            <span className="shrink-0 text-[17px] font-medium text-text tabular-nums">
+                              {formatPrice(course.price)}
+                            </span>
+                          </div>
+                          {meta ? (
+                            <p className="text-[13px] text-textMuted tabular-nums">{meta}</p>
+                          ) : null}
+                          {description ? (
+                            <p className="line-clamp-1 text-[13px] text-textSubtle">{description}</p>
+                          ) : null}
+                          {(status || actions) && (
+                            <div className="mt-2 flex items-center justify-end gap-2">
+                              {status}
+                              {actions}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
-            );
-          })}
+            </section>
+          ))}
         </div>
       )}
 
@@ -325,7 +363,7 @@ const MyCourses: React.FC = () => {
                 <div className="flex items-start">
                   <AlertCircle className="w-6 h-6 text-danger mr-3 flex-shrink-0 mt-0.5" />
                   <div>
-                    <h3 className="text-lg font-semibold text-text mb-1">
+                    <h3 className="text-lg font-medium text-text mb-1">
                       Kurs löschen
                     </h3>
                     <p className="text-sm text-textMuted">
