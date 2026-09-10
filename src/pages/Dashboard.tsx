@@ -13,8 +13,6 @@ import { isParticipantOnlyRole, isTeacherOnly } from '../lib/userRoles';
 type StatCard = {
   title: string;
   value: string | number;
-  icon: React.ComponentType<{ className?: string }>;
-  color: string;
   path?: string;
 };
 
@@ -26,7 +24,6 @@ const Dashboard: React.FC = () => {
   const [courses, setCourses] = useState<CourseWithCount[]>([]);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [stats, setStats] = useState({
-    totalCourses: 0,
     upcomingCourses: 0,
     totalParticipants: 0,
     myCourses: 0,
@@ -153,8 +150,7 @@ const Dashboard: React.FC = () => {
         );
         const upcomingCourseIds = upcomingCourses.map((course) => course.id);
 
-        const totalCoursesCount = upcomingCourseIds.length;
-        const upcomingCoursesCount = totalCoursesCount;
+        const upcomingCoursesCount = upcomingCourseIds.length;
 
         const participantCourseIds =
           userProfile.role === 'teacher'
@@ -200,7 +196,6 @@ const Dashboard: React.FC = () => {
 
         if (!isMounted) return;
         setStats({
-          totalCourses: totalCoursesCount,
           upcomingCourses: upcomingCoursesCount,
           totalParticipants: totalParticipantsCount,
           myCourses: myCoursesCount,
@@ -226,24 +221,18 @@ const Dashboard: React.FC = () => {
     if (isTeacher) {
       return [
         {
-          title: 'Kurse verwalten',
+          title: 'Meine Kurse',
           value: stats.myCourses,
-          icon: BookOpen,
-          color: 'bg-sage-500',
           path: '/my-courses'
         },
         {
           title: 'Meine Anmeldungen',
           value: stats.myRegistrations,
-          icon: Calendar,
-          color: 'bg-sage-500',
           path: '/my-registrations'
         },
         {
-          title: 'Gesamt Teilnehmer',
+          title: 'Teilnehmer',
           value: stats.totalParticipants,
-          icon: Users,
-          color: 'bg-sage-500',
           path: '/participants'
         }
       ];
@@ -253,14 +242,10 @@ const Dashboard: React.FC = () => {
       {
         title: 'Kommende Kurse',
         value: stats.upcomingCourses,
-        icon: Calendar,
-        color: 'bg-sage-500'
       },
       {
-        title: 'Gesamt Teilnehmer',
+        title: 'Teilnehmer',
         value: stats.totalParticipants,
-        icon: Users,
-        color: 'bg-sage-500',
         path: '/participants'
       }
     ];
@@ -268,43 +253,30 @@ const Dashboard: React.FC = () => {
     if (isCourseLeader && !isParticipantOnly) {
       return [
         {
-          title: 'Kurse verwalten',
+          title: 'Meine Kurse',
           value: stats.myCourses,
-          icon: BookOpen,
-          color: 'bg-sage-500',
           path: '/my-courses'
         },
         ...baseCards
       ];
-    } else if (isParticipantOnly) {
+    }
+
+    if (isParticipantOnly) {
       return [
         {
           title: 'Meine Anmeldungen',
           value: stats.myRegistrations,
-          icon: BookOpen,
-          color: 'bg-sage-500',
           path: '/my-registrations'
         },
         {
-          title: 'Alle Kurse',
-          value: stats.totalCourses,
-          icon: Calendar,
-          color: 'bg-sage-500',
+          title: 'Kommende Kurse',
+          value: stats.upcomingCourses,
           path: '/courses'
         }
       ];
     }
 
-    return [
-      {
-        title: 'Alle Kurse',
-        value: stats.totalCourses,
-        icon: BookOpen,
-        color: 'bg-sage-500',
-        path: '/courses'
-      },
-      ...baseCards
-    ];
+    return [];
   };
 
   const renderCourseCards = (
@@ -414,37 +386,34 @@ const Dashboard: React.FC = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statCards.map((card, index) => {
-          const CardContent = () => (
-            <div className="flex items-center">
-              <div className={`${card.color} p-3 rounded-sm`}>
-                <card.icon className="w-6 h-6 text-onBrand" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-textMuted">{card.title}</p>
-                <p className="text-2xl font-medium text-text">{card.value}</p>
-              </div>
-            </div>
-          );
-          const path = card.path;
-          if (path) {
-            return (
-              <Link
-                key={index}
-                to={path}
-                className="block bg-surface rounded-md border border-border p-3.5 w-full text-left hover:border-sage-200 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 no-underline text-inherit"
-              >
-                <CardContent />
-              </Link>
+      <div className="overflow-hidden rounded-md border border-border bg-surface">
+        <div className="flex divide-x divide-border">
+          {statCards.map((card, index) => {
+            const content = (
+              <>
+                <p className="text-[22px] font-medium text-text tabular-nums">{card.value}</p>
+                <p className="mt-0.5 text-[13px] text-textMuted">{card.title}</p>
+              </>
             );
-          }
-          return (
-            <div key={index} className="bg-surface rounded-md border border-border p-3.5">
-              <CardContent />
-            </div>
-          );
-        })}
+            const path = card.path;
+            if (path) {
+              return (
+                <Link
+                  key={index}
+                  to={path}
+                  className="min-w-0 flex-1 px-3.5 py-3 hover:bg-surfaceSunken transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 no-underline text-inherit"
+                >
+                  {content}
+                </Link>
+              );
+            }
+            return (
+              <div key={index} className="min-w-0 flex-1 px-3.5 py-3">
+                {content}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
