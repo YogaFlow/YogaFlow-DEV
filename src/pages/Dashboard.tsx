@@ -201,9 +201,6 @@ const Dashboard: React.FC = () => {
             .in('status', ['registered', 'waitlist'])
             .is('cancellation_timestamp', null);
           myRegistrationsCount = (data || []).filter((item: any) => item.course && isCourseUpcoming(item.course)).length;
-          if (userProfile.role === 'user') {
-            myCoursesCount = myRegistrationsCount;
-          }
         }
 
         if (!isMounted) return;

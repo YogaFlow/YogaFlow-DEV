@@ -23,6 +23,7 @@ import {
 } from '../lib/format';
 import { runPastRegistrationCleanup } from '../lib/registrationMaintenance';
 import { canSelfEnrollInCourses } from '../lib/userRoles';
+import ConfirmDialog, { ConfirmDialogState } from '../components/ui/ConfirmDialog';
 
 const Courses: React.FC = () => {
   const navigate = useNavigate();
@@ -39,6 +40,9 @@ const Courses: React.FC = () => {
     message: string;
     type: 'success' | 'error';
   } | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
+  const [pendingUnregisterCourseId, setPendingUnregisterCourseId] = useState<string | null>(null);
+  const [unregistering, setUnregistering] = useState(false);
 
   const availableTeachers = useMemo(() => uniqueTeachersFromCourses(courses), [courses]);
 
@@ -254,8 +258,28 @@ const Courses: React.FC = () => {
     }
   };
 
-  const handleUnregister = async (courseId: string) => {
-    if (!userProfile) return;
+  const requestUnregister = (course: Course) => {
+    setPendingUnregisterCourseId(course.id);
+    setConfirmDialog({
+      title: 'Vom Kurs abmelden?',
+      message: `Möchten Sie sich vom Kurs „${course.title}“ abmelden? Der Platz wird wieder frei.`,
+      confirmLabel: 'Abmelden',
+      cancelLabel: 'Abbrechen',
+      variant: 'danger',
+    });
+  };
+
+  const cancelUnregister = () => {
+    if (unregistering) return;
+    setConfirmDialog(null);
+    setPendingUnregisterCourseId(null);
+  };
+
+  const handleUnregister = async () => {
+    if (!userProfile || !pendingUnregisterCourseId) return;
+
+    const courseId = pendingUnregisterCourseId;
+    setUnregistering(true);
 
     try {
       const { data, error } = await supabase.rpc('unregister_from_course', {
@@ -290,6 +314,10 @@ const Courses: React.FC = () => {
         'error',
         'Abmeldung fehlgeschlagen'
       );
+    } finally {
+      setUnregistering(false);
+      setConfirmDialog(null);
+      setPendingUnregisterCourseId(null);
     }
   };
 
@@ -326,6 +354,12 @@ const Courses: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <ConfirmDialog
+        dialog={confirmDialog}
+        loading={unregistering}
+        onConfirm={handleUnregister}
+        onCancel={cancelUnregister}
+      />
       {feedbackDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-text/45 p-4">
           <div className="w-full max-w-md rounded-lg border border-border bg-surface p-6 shadow-lg">
@@ -489,7 +523,7 @@ const Courses: React.FC = () => {
                                 </div>
                               )}
                               <button
-                                onClick={() => handleUnregister(course.id)}
+                                onClick={() => requestUnregister(course)}
                                 className="w-full rounded-sm px-4 py-2 text-sm font-medium text-danger hover:bg-dangerSoft transition-colors"
                               >
                                 Abmelden

@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 /**
- * Setzt die DEV-Datenbank auf einen bekannten Testzustand zurueck.
+ * Setzt die DEV-Datenbank auf einen bekannten Testzustand zurück.
  *
  * Warum es das gibt: Ohne Daten wird eine Testumgebung nicht benutzt, und von Hand
- * angelegte Testfaelle sind nach dem ersten kaputten Versuch weg. Dieses Skript
- * stellt in Sekunden denselben Ausgangspunkt her - fuer Abnahmen vor einem Release
- * und um nach einer riskanten Migration schnell wieder testen zu koennen.
+ * angelegte Testfälle sind nach dem ersten kaputten Versuch weg. Dieses Skript
+ * stellt in Sekunden denselben Ausgangspunkt her - für Abnahmen vor einem Release
+ * und um nach einer riskanten Migration schnell wieder testen zu können.
  *
  * Verwendung:  npm run seed:dev
  *
- * Es fasst AUSSCHLIESSLICH die unten aufgefuehrten Demo-Studios an. Von Hand
- * angelegte Studios wie "teststudio" oder "yomita" bleiben unberuehrt.
+ * Es fasst AUSSCHLIESSLICH die unten aufgeführten Demo-Studios an. Von Hand
+ * angelegte Studios wie "teststudio" oder "yomita" bleiben unberührt.
  */
 import { readFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
@@ -51,19 +51,19 @@ const key = env.SUPABASE_SERVICE_ROLE_KEY;
 if (!url) abbruch('VITE_SUPABASE_URL fehlt in .env');
 if (!key) abbruch('SUPABASE_SERVICE_ROLE_KEY fehlt in .env (Supabase -> Settings -> API -> service_role)');
 
-// Zwei unabhaengige Sperren: die URL und die im Schluessel eingebackene Projektkennung.
-// Beide muessen auf DEV zeigen. Ein versehentlich eingetragener PROD-Wert faellt hier auf.
+// Zwei unabhängige Sperren: die URL und die im Schlüssel eingebackene Projektkennung.
+// Beide müssen auf DEV zeigen. Ein versehentlich eingetragener PROD-Wert fällt hier auf.
 if (!url.includes(ERLAUBTE_REF)) {
   abbruch(
     'VITE_SUPABASE_URL zeigt nicht auf das DEV-Projekt.\n' +
     '  Erwartet: ' + ERLAUBTE_REF + '\n' +
     '  Gefunden: ' + url + '\n' +
-    '  Dieses Skript loescht Daten und laeuft ausschliesslich gegen DEV.'
+    '  Dieses Skript löscht Daten und läuft ausschließlich gegen DEV.'
   );
 }
 const keyRef = refAusKey(key);
 if (keyRef !== ERLAUBTE_REF) {
-  abbruch('Der Service-Role-Key gehoert zum Projekt "' + keyRef + '", erwartet wird "' + ERLAUBTE_REF + '".');
+  abbruch('Der Service-Role-Key gehört zum Projekt "' + keyRef + '", erwartet wird "' + ERLAUBTE_REF + '".');
 }
 
 const db = createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
@@ -75,7 +75,7 @@ function tag(versatzTage) {
   return d.toISOString().slice(0, 10);
 }
 
-/** Alle Auth-Nutzer mit Demo-Adressen, ueber alle Seiten der Admin-API. */
+/** Alle Auth-Nutzer mit Demo-Adressen, über alle Seiten der Admin-API. */
 async function demoAuthNutzer() {
   const treffer = [];
   for (let seite = 1; ; seite++) {
@@ -91,8 +91,8 @@ async function demoAuthNutzer() {
 async function aufraeumen() {
   console.log('Alte Demo-Daten entfernen');
 
-  // Ueber die Auth-Nutzer gehen, nicht ueber public.users: Ein abgebrochener Lauf
-  // hinterlaesst Auth-Nutzer ohne Profil (die Tenant-Loeschung raeumt public.users
+  // Über die Auth-Nutzer gehen, nicht über public.users: Ein abgebrochener Lauf
+  // hinterlässt Auth-Nutzer ohne Profil (die Tenant-Löschung räumt public.users
   // per Cascade weg, auth.users bleibt stehen). Deren E-Mail bleibt belegt, und das
   // Neuanlegen scheitert dann mit "already been registered" - genau so ist der
   // zweite Lauf am 2026-09-06 gescheitert.
@@ -101,7 +101,7 @@ async function aufraeumen() {
     const { error } = await db.auth.admin.deleteUser(u.id);
     if (error) {
       abbruch(
-        'Auth-Nutzer ' + u.email + ' konnte nicht geloescht werden: ' + error.message + '\n' +
+        'Auth-Nutzer ' + u.email + ' konnte nicht gelöscht werden: ' + error.message + '\n' +
         '  Abbruch mit Absicht: Auf einer halb geleerten Datenbank weiterzumachen\n' +
         '  erzeugt einen Zustand, den niemand mehr durchschaut. Skript erneut starten.'
       );
@@ -112,7 +112,7 @@ async function aufraeumen() {
   if (error) abbruch('Studios konnten nicht gelesen werden: ' + error.message);
   for (const t of tenants) {
     const { error: e } = await db.from('tenants').delete().eq('id', t.id);
-    if (e) abbruch('Studio ' + t.slug + ' konnte nicht geloescht werden: ' + e.message);
+    if (e) abbruch('Studio ' + t.slug + ' konnte nicht gelöscht werden: ' + e.message);
   }
 
   if (!nutzer.length && !tenants.length) console.log('  nichts vorhanden');
@@ -123,19 +123,19 @@ async function nutzerAnlegen({ email, vorname, nachname, rolle, tenantId }) {
   const { data, error } = await db.auth.admin.createUser({
     email,
     password: DEMO_PASSWORT,
-    email_confirm: true, // Supabase-seitig bestaetigt; verschickt keine Mail
+    email_confirm: true, // Supabase-seitig bestätigt; verschickt keine Mail
     user_metadata: { tenant_id: tenantId, role: rolle, first_name: vorname, last_name: nachname },
   });
   if (error) abbruch('Nutzer ' + email + ' konnte nicht angelegt werden: ' + error.message);
 
   // Der Trigger handle_new_user legt public.users an, setzt aber email_verified nicht.
-  // Genau daran haengt der Zugang (siehe AuthContext.isEmailConfirmed) - ohne diesen
-  // Schritt koennte sich kein einziger Demo-Nutzer anmelden.
+  // Genau daran hängt der Zugang (siehe AuthContext.isEmailConfirmed) - ohne diesen
+  // Schritt könnte sich kein einziger Demo-Nutzer anmelden.
   const { error: e2 } = await db
     .from('users')
     .update({ email_verified: true, email_verified_at: new Date().toISOString() })
     .eq('id', data.user.id);
-  if (e2) abbruch('email_verified fuer ' + email + ' nicht setzbar: ' + e2.message);
+  if (e2) abbruch('email_verified für ' + email + ' nicht setzbar: ' + e2.message);
 
   return data.user.id;
 }
@@ -144,20 +144,20 @@ const NAMEN = [
   ['Anna', 'Andersen'],
   ['Ben', 'Berger'],
   ['Clara', 'Conrad'],
-  ['David', 'Duerr'],
+  ['David', 'Dürr'],
   ['Eva', 'Engel'],
   ['Felix', 'Frank'],
 ];
 
-// Alle Kurse werden zunaechst in der Zukunft angelegt: der Trigger
+// Alle Kurse werden zunächst in der Zukunft angelegt: der Trigger
 // prevent_past_course_registration verbietet Anmeldungen zu vergangenen Kursen.
-// Die Vergangenheitskurse werden erst nach den Anmeldungen zurueckdatiert.
+// Die Vergangenheitskurse werden erst nach den Anmeldungen zurückdatiert.
 const KURS_VORLAGEN = [
   { titel: 'Hatha Yoga am Morgen', beschreibung: 'Ruhiger Start in den Tag.', zeit: '08:00', plaetze: 12, preis: 15.0, versatz: 3, rueckdatieren: null },
-  { titel: 'Vinyasa Flow', beschreibung: 'Dynamische Abfolge fuer Geuebte.', zeit: '18:30', plaetze: 3, preis: 18.0, versatz: 5, rueckdatieren: null },
+  { titel: 'Vinyasa Flow', beschreibung: 'Dynamische Abfolge für Geübte.', zeit: '18:30', plaetze: 3, preis: 18.0, versatz: 5, rueckdatieren: null },
   { titel: 'Yin Yoga', beschreibung: 'Lange gehaltene Positionen.', zeit: '20:00', plaetze: 10, preis: 16.0, versatz: 12, rueckdatieren: null },
-  { titel: 'Rueckenkurs', beschreibung: 'Kraeftigung fuer den unteren Ruecken.', zeit: '17:00', plaetze: 8, preis: 20.0, versatz: 4, rueckdatieren: -14 },
-  { titel: 'Schwangerschaftsyoga', beschreibung: 'Sanfte Uebungen im zweiten Trimester.', zeit: '10:00', plaetze: 6, preis: 22.0, versatz: 6, rueckdatieren: -7 },
+  { titel: 'Rückenkurs', beschreibung: 'Kräftigung für den unteren Rücken.', zeit: '17:00', plaetze: 8, preis: 20.0, versatz: 4, rueckdatieren: -14 },
+  { titel: 'Schwangerschaftsyoga', beschreibung: 'Sanfte Übungen im zweiten Trimester.', zeit: '10:00', plaetze: 6, preis: 22.0, versatz: 6, rueckdatieren: -7 },
 ];
 
 async function studioAnlegen({ name, slug, teilnehmerAnzahl }) {
@@ -211,8 +211,8 @@ async function studioAnlegen({ name, slug, teilnehmerAnzahl }) {
   }
   console.log('  ' + kurse.length + ' Kurse angelegt');
 
-  // Vinyasa Flow hat nur 3 Plaetze und bekommt bewusst mehr Anmeldungen,
-  // damit der Wartelisten-Fall in der Abnahme ueberhaupt pruefbar ist.
+  // Vinyasa Flow hat nur 3 Plätze und bekommt bewusst mehr Anmeldungen,
+  // damit der Wartelisten-Fall in der Abnahme überhaupt prüfbar ist.
   let angemeldet = 0;
   let warteliste = 0;
   for (const kurs of kurse) {
@@ -228,7 +228,7 @@ async function studioAnlegen({ name, slug, teilnehmerAnzahl }) {
         waitlist_position: aufWarteliste ? i - kurs.max_participants + 1 : null,
       });
       if (e) {
-        console.warn('  Anmeldung uebersprungen (' + kurs.title + '): ' + e.message);
+        console.warn('  Anmeldung übersprungen (' + kurs.title + '): ' + e.message);
         continue;
       }
       if (aufWarteliste) warteliste++;
@@ -237,13 +237,13 @@ async function studioAnlegen({ name, slug, teilnehmerAnzahl }) {
   }
   console.log('  ' + angemeldet + ' Anmeldungen, ' + warteliste + ' auf Warteliste');
 
-  // Jetzt erst zurueckdatieren - der Trigger greift beim Anmelden, nicht beim Aendern.
+  // Jetzt erst zurückdatieren - der Trigger greift beim Anmelden, nicht beim Ändern.
   let vergangen = 0;
   for (const kurs of kurse) {
     if (kurs.rueckdatieren === null) continue;
     const { error: e } = await db.from('courses').update({ date: tag(kurs.rueckdatieren) }).eq('id', kurs.id);
     if (e) {
-      console.warn('  Rueckdatierung fehlgeschlagen (' + kurs.title + '): ' + e.message);
+      console.warn('  Rückdatierung fehlgeschlagen (' + kurs.title + '): ' + e.message);
       continue;
     }
     vergangen++;
