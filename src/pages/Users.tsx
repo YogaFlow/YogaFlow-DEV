@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import { formatDate } from '../lib/format';
 import { User, UserRole, Course } from '../types';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -496,7 +497,7 @@ export default function Users() {
                     {/* Rolle – nur auf Mobile im Panel */}
                     {showRoleDropdown && (
                       <div>
-                        <label className="block text-xs font-semibold text-textMuted uppercase tracking-wide mb-1.5">Rolle</label>
+                        <label className="block text-xs font-semibold text-textMuted mb-1.5">Rolle</label>
                         <div className="flex items-center gap-2">
                           <select
                             value={user.role}
@@ -527,7 +528,7 @@ export default function Users() {
 
                     {/* Stammdaten */}
                     <div>
-                      <h3 className="text-xs font-semibold text-textMuted uppercase tracking-wide mb-2">Stammdaten</h3>
+                      <h3 className="text-xs font-semibold text-textMuted mb-2">Stammdaten</h3>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <label className="block text-xs text-textMuted mb-1">Vorname</label>
@@ -613,7 +614,7 @@ export default function Users() {
 
                     {canShowCourseSection(user.role) && (
                       <div className="border-t border-border pt-4">
-                        <h3 className="text-xs font-semibold text-textMuted uppercase tracking-wide mb-3">Kurs zuweisen</h3>
+                        <h3 className="text-xs font-semibold text-textMuted mb-3">Kurs zuweisen</h3>
                         <div className="flex gap-2 mb-4">
                           <select
                             value={selectedCourseId}
@@ -623,7 +624,7 @@ export default function Users() {
                             <option value="">Kurs auswählen…</option>
                             {availableCoursesToAdd.map(c => (
                               <option key={c.id} value={c.id}>
-                                {c.title}{c.date ? ` (${new Date(c.date).toLocaleDateString('de-DE')})` : ''}
+                                {c.title}{c.date ? ` (${formatDate(c.date)})` : ''}
                               </option>
                             ))}
                           </select>
@@ -637,7 +638,7 @@ export default function Users() {
                               : <Plus size={18} />}
                           </button>
                         </div>
-                        <h4 className="text-xs font-medium text-textMuted mb-2 uppercase tracking-wide">Aktuelle Buchungen</h4>
+                        <h4 className="text-xs font-medium text-textMuted mb-2">Aktuelle Buchungen</h4>
                         {regsLoading ? (
                           <div className="flex items-center gap-2 text-xs text-textSubtle">
                             <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-brand" />Lade…
@@ -652,7 +653,7 @@ export default function Users() {
                                 <span>
                                   {reg.courses?.title ?? '—'}
                                   {reg.courses?.date && (
-                                    <span className="text-textSubtle"> ({new Date(reg.courses.date).toLocaleDateString('de-DE')})</span>
+                                    <span className="text-textSubtle tabular-nums"> ({formatDate(reg.courses.date)})</span>
                                   )}
                                   {reg.is_waitlist && (
                                     <span className="ml-1 text-orange-500 font-medium">Warteliste #{reg.waitlist_position}</span>
@@ -678,10 +679,10 @@ export default function Users() {
           <thead className="bg-surfaceSunken">
             <tr>
               <th className="px-3 py-3 w-8" />
-              <th className="px-6 py-3 text-left text-xs font-medium text-textMuted uppercase tracking-wider">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-textMuted uppercase tracking-wider">E-Mail</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-textMuted uppercase tracking-wider">Rolle</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-textMuted uppercase tracking-wider">Aktionen</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-textMuted">Name</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-textMuted">E-Mail</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-textMuted">Rolle</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-textMuted">Aktionen</th>
             </tr>
           </thead>
           <tbody className="bg-surface divide-y divide-border">
@@ -943,7 +944,7 @@ export default function Users() {
                                       {availableCoursesToAdd.map(c => (
                                         <option key={c.id} value={c.id}>
                                           {c.title}
-                                          {c.date ? ` (${new Date(c.date).toLocaleDateString('de-DE')})` : ''}
+                                          {c.date ? ` (${formatDate(c.date)})` : ''}
                                         </option>
                                       ))}
                                     </select>
@@ -961,7 +962,7 @@ export default function Users() {
                                   </div>
                                 </div>
 
-                                <h4 className="text-xs font-medium text-textMuted mb-2 uppercase tracking-wide">
+                                <h4 className="text-xs font-medium text-textMuted mb-2">
                                   Aktuelle Buchungen
                                 </h4>
                                 {regsLoading ? (
@@ -980,7 +981,7 @@ export default function Users() {
                                           {reg.courses?.title ?? '—'}
                                           {reg.courses?.date && (
                                             <span className="text-textSubtle">
-                                              {' '}({new Date(reg.courses.date).toLocaleDateString('de-DE')})
+                                              {' '}<span className="tabular-nums">({formatDate(reg.courses.date)})</span>
                                             </span>
                                           )}
                                           {reg.is_waitlist && (

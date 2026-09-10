@@ -4,9 +4,13 @@ import { Calendar, Clock, MapPin, Users, Plus, Edit, Trash2, Eye, AlertCircle, X
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Course } from '../types';
-import { format, parseISO, isToday, isTomorrow } from 'date-fns';
-import { de } from 'date-fns/locale';
 import { isCourseManagerRole } from '../lib/userRoles';
+import {
+  formatDayLabel,
+  formatDuration,
+  formatPrice,
+  formatTimeRange,
+} from '../lib/format';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
 import { isCourseUpcoming } from '../lib/courseDateTime';
 
@@ -160,19 +164,6 @@ const MyCourses: React.FC = () => {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    try {
-      const date = parseISO(dateString);
-      if (isToday(date)) {
-        return 'Heute';
-      } else if (isTomorrow(date)) {
-        return 'Morgen';
-      }
-      return format(date, 'dd.MM.yyyy', { locale: de });
-    } catch {
-      return dateString;
-    }
-  };
 
   if (loading) {
     return (
@@ -238,7 +229,7 @@ const MyCourses: React.FC = () => {
                 <div className="p-3.5">
                   <div className="flex items-start justify-between mb-4">
                     <h3 className="text-lg font-semibold text-text line-clamp-2">{course.title}</h3>
-                    <span className="text-xl font-bold text-brand">€{course.price}</span>
+                    <span className="text-xl font-bold text-brand tabular-nums">{formatPrice(course.price)}</span>
                   </div>
                   
                   <p className="text-textMuted text-sm mb-4 line-clamp-3">{course.description}</p>
@@ -246,12 +237,14 @@ const MyCourses: React.FC = () => {
                   <div className="space-y-2 mb-4">
                     <div className="flex items-center text-sm text-textMuted">
                       <Calendar className="w-4 h-4 mr-2" />
-                      {formatDate(course.date)}
+                      <span className="tabular-nums">{formatDayLabel(course.date)}</span>
                     </div>
                     <div className="flex items-center text-sm text-textMuted">
                       <Clock className="w-4 h-4 mr-2" />
-                      {course.time}{course.end_time && ` - ${course.end_time}`}
-                      {course.duration && ` (${course.duration} Min.)`}
+                      <span className="tabular-nums">
+                        {formatTimeRange(course.time, course.end_time)}
+                        {course.duration != null ? ` (${formatDuration(course.duration)})` : ''}
+                      </span>
                     </div>
                     <div className="flex items-center text-sm text-textMuted">
                       <MapPin className="w-4 h-4 mr-2" />
@@ -259,7 +252,7 @@ const MyCourses: React.FC = () => {
                     </div>
                     <div className="flex items-center text-sm text-textMuted">
                       <Users className="w-4 h-4 mr-2" />
-                      {registeredCount}/{course.max_participants} Teilnehmer
+                      <span className="tabular-nums">{registeredCount}/{course.max_participants}</span> Teilnehmer
                       {waitlistCount > 0 && (
                         <span className="ml-2 px-2 py-0.5 text-xs bg-accentSoft text-accent rounded-full">
                           +{waitlistCount} Wartend

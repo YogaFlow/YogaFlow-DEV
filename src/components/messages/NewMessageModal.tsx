@@ -1,8 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { format } from 'date-fns';
 import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react';
 import { Send, Smile, X } from 'lucide-react';
 import { Course, User } from '../../types';
+import { formatDate } from '../../lib/format';
 
 interface NewMessageModalProps {
   isOpen: boolean;
@@ -123,7 +123,7 @@ const NewMessageModal: React.FC<NewMessageModalProps> = ({
               <option value="">Kurs auswählen</option>
               {courses.map((course) => (
                 <option key={course.id} value={course.id}>
-                  {course.title} - {format(new Date(course.date), 'dd.MM.yyyy')}
+                  {course.title} - {formatDate(course.date)}
                 </option>
               ))}
             </select>

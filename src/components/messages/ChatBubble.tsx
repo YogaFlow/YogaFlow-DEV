@@ -1,6 +1,6 @@
 import React from 'react';
-import { format } from 'date-fns';
 import { Message } from '../../types';
+import { formatDateTime } from '../../lib/format';
 
 interface ChatBubbleProps {
   message: Message;
@@ -14,7 +14,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
   showCourseTitle = true,
 }) => {
   const courseTitle = (message.course as { title?: string } | undefined)?.title;
-  const timeLabel = format(new Date(message.created_at), 'dd.MM.yyyy HH:mm');
+  const timeLabel = formatDateTime(message.created_at);
 
   return (
     <div className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
@@ -40,7 +40,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
           {message.content}
         </div>
         <span
-          className={`text-[10px] text-textSubtle px-1 ${isOwnMessage ? 'text-right' : 'text-left'}`}
+          className={`text-[10px] text-textSubtle px-1 tabular-nums ${isOwnMessage ? 'text-right' : 'text-left'}`}
         >
           {timeLabel}
         </span>

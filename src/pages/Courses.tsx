@@ -14,9 +14,13 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Course, Registration } from '../types';
-import { format, parseISO, isToday, isTomorrow } from 'date-fns';
-import { de } from 'date-fns/locale';
 import { isCourseUpcoming } from '../lib/courseDateTime';
+import {
+  formatDayLabel,
+  formatDuration,
+  formatPrice,
+  formatTimeRange,
+} from '../lib/format';
 import { runPastRegistrationCleanup } from '../lib/registrationMaintenance';
 import { canSelfEnrollInCourses } from '../lib/userRoles';
 
@@ -303,19 +307,6 @@ const Courses: React.FC = () => {
     return reg?.waitlist_position || null;
   };
 
-  const formatDate = (dateString: string) => {
-    try {
-      const date = parseISO(dateString);
-      if (isToday(date)) {
-        return 'Heute';
-      } else if (isTomorrow(date)) {
-        return 'Morgen';
-      }
-      return format(date, 'dd.MM.yyyy', { locale: de });
-    } catch {
-      return dateString;
-    }
-  };
 
   const filteredCourses = courses.filter(course => {
     const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -419,22 +410,24 @@ const Courses: React.FC = () => {
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <h3 className="text-xl font-bold leading-tight text-text">{course.title}</h3>
-                          <p className="mt-1 line-clamp-1 text-xs font-semibold uppercase tracking-wide text-textSubtle">
+                          <p className="mt-1 line-clamp-1 text-xs font-semibold text-textSubtle">
                             {course.description}
                           </p>
                         </div>
-                        <span className="shrink-0 text-2xl font-bold text-brand">€{course.price}</span>
+                        <span className="shrink-0 text-2xl font-bold text-brand tabular-nums">{formatPrice(course.price)}</span>
                       </div>
 
                       <div className="mt-4 space-y-2 text-sm text-textMuted">
                         <div className="flex items-center gap-2 font-medium text-textMuted">
                           <Calendar className="h-4 w-4 shrink-0" />
-                          {formatDate(course.date)}
+                          <span className="tabular-nums">{formatDayLabel(course.date)}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Clock className="h-4 w-4 shrink-0" />
-                          {course.time}{course.end_time && ` - ${course.end_time}`}
-                          {course.duration && ` (${course.duration} Min.)`}
+                          <span className="tabular-nums">
+                            {formatTimeRange(course.time, course.end_time)}
+                            {course.duration != null ? ` (${formatDuration(course.duration)})` : ''}
+                          </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <MapPin className="h-4 w-4 shrink-0" />
@@ -443,14 +436,14 @@ const Courses: React.FC = () => {
                         {(isAdmin || isCourseLeader) && (
                           <div className="flex items-center gap-2">
                             <Users className="h-4 w-4 shrink-0" />
-                            {registeredCount}/{course.max_participants} Teilnehmer
+                            <span className="tabular-nums">{registeredCount}/{course.max_participants}</span> Teilnehmer
                           </div>
                         )}
                       </div>
 
                       {course.teacher && (
                         <div className="mt-5 border-t border-border pt-4">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-textSubtle">Kursleitung</p>
+                          <p className="text-xs font-semibold text-textSubtle">Kursleitung</p>
                           <p className="mt-1 text-sm font-semibold text-textMuted">
                             Lehrer: {course.teacher.first_name} {course.teacher.last_name}
                           </p>
@@ -480,7 +473,7 @@ const Courses: React.FC = () => {
                         </div>
 
                         {isRegistered && registrationStatus === 'registered' && (
-                          <span className="inline-flex items-center rounded-full bg-sage-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-sage-800">
+                          <span className="inline-flex items-center rounded-full bg-sage-100 px-3 py-1 text-xs font-semibold text-sage-800">
                             Angemeldet
                           </span>
                         )}

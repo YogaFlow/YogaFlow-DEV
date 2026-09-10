@@ -5,9 +5,12 @@ import { supabase } from '../lib/supabase';
 import { Course, Registration, User } from '../types';
 import { isCourseManagerRole, isStudioAdmin, isTeacherOnly } from '../lib/userRoles';
 import { Calendar, Clock, Users, Mail, Phone, Search, Filter, Download, UserMinus } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
-import { de } from 'date-fns/locale';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
+import {
+  formatDate,
+  formatDateTime,
+  formatTimeRange,
+} from '../lib/format';
 import ConfirmDialog, { ConfirmDialogState } from '../components/ui/ConfirmDialog';
 import { isCourseUpcoming } from '../lib/courseDateTime';
 import { runPastRegistrationCleanup } from '../lib/registrationMaintenance';
@@ -191,31 +194,14 @@ const Participants: React.FC = () => {
     }
   };
 
-  const formatRegistrationDate = (dateString: string) => {
-    try {
-      return format(parseISO(dateString), 'dd.MM.yyyy HH:mm', { locale: de });
-    } catch {
-      return dateString;
-    }
-  };
-
   const exportParticipants = () => {
-    const formatCourseDate = (dateString: string | undefined) => {
-      if (!dateString) return '';
-      try {
-        return format(parseISO(dateString), 'dd.MM.yyyy', { locale: de });
-      } catch {
-        return dateString;
-      }
-    };
-
     const escapeCell = (value: string) => `"${value.replace(/"/g, '""')}"`;
 
     const rows = [
       ['Kurs', 'Datum', 'Teilnehmer', 'E-Mail', 'Telefon', 'Status', 'Anmeldedatum'],
       ...filteredParticipants.map(p => [
         p.course?.title || '',
-        formatCourseDate(p.course?.date),
+        p.course?.date ? formatDate(p.course.date) : '',
         `${p.user?.first_name || ''} ${p.user?.last_name || ''}`.trim(),
         p.user?.email || '',
         p.user?.phone || '',
@@ -224,7 +210,7 @@ const Participants: React.FC = () => {
           : p.waitlist_position
             ? `Warteliste (Pos. ${p.waitlist_position})`
             : 'Warteliste',
-        formatRegistrationDate(p.registered_at)
+        formatDateTime(p.registered_at)
       ])
     ];
 
@@ -335,7 +321,7 @@ const Participants: React.FC = () => {
               <option value="">Alle Kurse</option>
               {courses.map(course => (
                 <option key={course.id} value={course.id}>
-                  {course.title} – {format(parseISO(course.date), 'dd.MM.yyyy', { locale: de })}
+                  {course.title} – {formatDate(course.date)}
                 </option>
               ))}
             </select>
@@ -403,13 +389,13 @@ const Participants: React.FC = () => {
 
                 <div className="text-sm font-medium text-text mb-1">{participant.course.title}</div>
                 <div className="flex items-center gap-3 text-xs text-textMuted mb-3">
-                  <span className="flex items-center gap-1">
+                  <span className="flex items-center gap-1 tabular-nums">
                     <Calendar className="w-3 h-3" />
-                    {format(parseISO(participant.course.date), 'dd.MM.yyyy', { locale: de })}
+                    {formatDate(participant.course.date)}
                   </span>
-                  <span className="flex items-center gap-1">
+                  <span className="flex items-center gap-1 tabular-nums">
                     <Clock className="w-3 h-3" />
-                    {participant.course.time}{participant.course.end_time && ` – ${participant.course.end_time}`}
+                    {formatTimeRange(participant.course.time, participant.course.end_time)}
                   </span>
                 </div>
 
@@ -427,8 +413,8 @@ const Participants: React.FC = () => {
                 </div>
 
                 <div className="flex items-center justify-between pt-2 border-t border-border">
-                  <span className="text-xs text-textSubtle">
-                    {format(parseISO(participant.registered_at), 'dd.MM.yyyy HH:mm', { locale: de })}
+                  <span className="text-xs text-textSubtle tabular-nums">
+                    {formatDateTime(participant.registered_at)}
                   </span>
                   {canUnregisterParticipant(participant) && (
                     <button
@@ -456,23 +442,23 @@ const Participants: React.FC = () => {
               <table className="min-w-full divide-y divide-border">
                 <thead className="bg-surfaceSunken">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-textMuted uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-textMuted">
                       Teilnehmer
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-textMuted uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-textMuted">
                       Kurs
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-textMuted uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-textMuted">
                       Kontakt
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-textMuted uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-textMuted">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-textMuted uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-textMuted">
                       Angemeldet
                     </th>
                     {showActionsColumn && (
-                      <th className="px-6 py-3 text-left text-xs font-medium text-textMuted uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-textMuted">
                         Aktionen
                       </th>
                     )}
@@ -498,11 +484,11 @@ const Participants: React.FC = () => {
                           <div className="text-sm font-medium text-text">
                             {participant.course.title}
                           </div>
-                          <div className="text-sm text-textMuted flex items-center">
+                          <div className="text-sm text-textMuted flex items-center tabular-nums">
                             <Calendar className="w-3 h-3 mr-1" />
-                            {format(parseISO(participant.course.date), 'dd.MM.yyyy', { locale: de })}
+                            {formatDate(participant.course.date)}
                             <Clock className="w-3 h-3 ml-2 mr-1" />
-                            {participant.course.time}{participant.course.end_time && ` - ${participant.course.end_time}`}
+                            {formatTimeRange(participant.course.time, participant.course.end_time)}
                           </div>
                         </div>
                       </td>
@@ -533,8 +519,8 @@ const Participants: React.FC = () => {
                               : 'Warteliste'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-textMuted">
-                        {format(parseISO(participant.registered_at), 'dd.MM.yyyy HH:mm', { locale: de })}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-textMuted tabular-nums">
+                        {formatDateTime(participant.registered_at)}
                       </td>
                       {showActionsColumn && (
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">

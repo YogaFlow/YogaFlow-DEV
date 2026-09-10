@@ -1,7 +1,7 @@
 import React from 'react';
-import { format } from 'date-fns';
 import { Users } from 'lucide-react';
 import { Conversation } from '../../lib/messages/conversations';
+import { formatDateTime } from '../../lib/format';
 import ChatAvatar from './ChatAvatar';
 
 interface ConversationListItemProps {
@@ -35,7 +35,7 @@ const ConversationListItem: React.FC<ConversationListItemProps> = ({
                   : 'text-textMuted'
               }`}
             >
-              {format(conversation.lastMessageAt, 'dd.MM.yyyy HH:mm')}
+              <span className="tabular-nums">{formatDateTime(conversation.lastMessageAt)}</span>
             </p>
             {conversation.unreadCount > 0 && (
               <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 mt-1 text-xs font-semibold text-sage-800 tabular-nums rounded-full border border-sage-200 bg-sage-100">

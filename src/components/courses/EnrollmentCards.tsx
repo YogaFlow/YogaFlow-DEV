@@ -1,19 +1,7 @@
 import React from 'react';
 import { Calendar, Clock, MapPin } from 'lucide-react';
-import { format, isToday, isTomorrow, parseISO } from 'date-fns';
-import { de } from 'date-fns/locale';
 import type { Course, Registration } from '../../types';
-
-const formatDate = (dateString: string) => {
-  try {
-    const date = parseISO(dateString);
-    if (isToday(date)) return 'Heute';
-    if (isTomorrow(date)) return 'Morgen';
-    return format(date, 'dd.MM.yyyy', { locale: de });
-  } catch {
-    return dateString;
-  }
-};
+import { formatDayLabel, formatPrice, formatTimeRange } from '../../lib/format';
 
 interface EnrollmentCardsProps {
   registrations: Registration[];
@@ -36,10 +24,9 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({ registrations }) => (
             <h3 className="font-medium text-text">{course.title}</h3>
             <div className="mt-1 flex items-center text-sm text-textMuted">
               <Calendar className="mr-1 h-4 w-4" />
-              {formatDate(course.date)}
+              <span className="tabular-nums">{formatDayLabel(course.date)}</span>
               <Clock className="ml-3 mr-1 h-4 w-4" />
-              {course.time}
-              {course.end_time && ` - ${course.end_time}`}
+              <span className="tabular-nums">{formatTimeRange(course.time, course.end_time)}</span>
             </div>
             <div className="mt-1 flex items-center text-sm text-textMuted">
               <MapPin className="mr-1 h-4 w-4" />
@@ -66,7 +53,7 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({ registrations }) => (
           </div>
           <div className="text-right">
             {course.price != null && (
-              <p className="text-lg font-semibold text-brand">€{course.price}</p>
+              <p className="text-lg font-semibold text-brand tabular-nums">{formatPrice(course.price)}</p>
             )}
           </div>
         </div>

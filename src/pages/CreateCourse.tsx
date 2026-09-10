@@ -694,7 +694,6 @@ const CreateCourse: React.FC = () => {
                 Preis (EUR) *
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-3 text-textSubtle font-semibold">€</span>
                 <input
                   id="price"
                   name="price"
@@ -703,10 +702,11 @@ const CreateCourse: React.FC = () => {
                   step="0.01"
                   value={formData.price}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
+                  className="w-full pl-4 pr-10 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
                   placeholder="z.B. 25.00"
                   required
                 />
+                <span className="absolute right-3 top-3 text-textSubtle font-semibold">€</span>
               </div>
             </div>
           </div>

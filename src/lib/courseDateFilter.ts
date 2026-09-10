@@ -1,5 +1,4 @@
 import {
-  format,
   isToday,
   isTomorrow,
   isWithinInterval,
@@ -8,6 +7,7 @@ import {
   endOfWeek,
 } from 'date-fns';
 import { de } from 'date-fns/locale';
+import { formatDate } from './format';
 
 export type DateFilterPreset = 'today' | 'tomorrow' | 'thisWeek' | 'custom';
 
@@ -24,11 +24,7 @@ export const EMPTY_DATE_FILTER: CourseDateFilterState = {
 const WEEK_OPTS = { weekStartsOn: 1 as const, locale: de };
 
 export function formatFilterDateLabel(isoDate: string): string {
-  try {
-    return format(parseISO(isoDate), 'dd.MM.yyyy', { locale: de });
-  } catch {
-    return isoDate;
-  }
+  return formatDate(isoDate) || isoDate;
 }
 
 export function matchesCourseDateFilter(
