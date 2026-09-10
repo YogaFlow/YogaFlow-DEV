@@ -276,7 +276,7 @@ const Participants: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-[var(--radius-full)] h-12 w-12 border-b-2 border-brand"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand"></div>
       </div>
     );
   }
@@ -303,7 +303,7 @@ const Participants: React.FC = () => {
         {filteredParticipants.length > 0 && (
           <button
             onClick={exportParticipants}
-            className="mt-4 sm:mt-0 bg-brand text-onBrand px-4 py-2 rounded-[var(--radius-sm)] hover:bg-brandPressed transition-colors flex items-center"
+            className="mt-4 sm:mt-0 bg-brand text-onBrand px-4 py-2 rounded-sm hover:bg-brandPressed transition-colors flex items-center"
           >
             <Download className="w-4 h-4 mr-2" />
             CSV Export
@@ -312,7 +312,7 @@ const Participants: React.FC = () => {
       </div>
 
       {/* Filters */}
-      <div className="bg-surface rounded-[var(--radius-md)] border border-border p-3.5">
+      <div className="bg-surface rounded-md border border-border p-3.5">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-textSubtle" />
@@ -321,7 +321,7 @@ const Participants: React.FC = () => {
               placeholder="Teilnehmer suchen..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
             />
           </div>
           
@@ -330,7 +330,7 @@ const Participants: React.FC = () => {
             <select
               value={selectedCourse}
               onChange={(e) => setSelectedCourse(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent appearance-none"
+              className="w-full pl-10 pr-4 py-2 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent appearance-none"
             >
               <option value="">Alle Kurse</option>
               {courses.map(course => (
@@ -345,7 +345,7 @@ const Participants: React.FC = () => {
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full px-4 py-2 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full px-4 py-2 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               <option value="">Alle Status</option>
               <option value="registered">Angemeldet</option>
@@ -376,7 +376,7 @@ const Participants: React.FC = () => {
           {/* Mobile: card list */}
           <div className="sm:hidden space-y-3">
             {filteredParticipants.map((participant) => (
-              <div key={participant.id} className="bg-surface rounded-[var(--radius-md)] border border-border p-3.5">
+              <div key={participant.id} className="bg-surface rounded-md border border-border p-3.5">
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <div className="min-w-0">
                     <div className="text-sm font-medium text-text">
@@ -388,10 +388,10 @@ const Participants: React.FC = () => {
                       </div>
                     )}
                   </div>
-                  <span className={`flex-shrink-0 inline-flex px-2 py-1 text-xs font-semibold rounded-[var(--radius-full)] ${
+                  <span className={`flex-shrink-0 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                     participant.status === 'registered'
                       ? 'bg-sage-100 text-sage-800'
-                      : 'bg-yellow-100 text-yellow-800'
+                      : 'bg-accentSoft text-accent'
                   }`}>
                     {participant.status === 'registered'
                       ? 'Angemeldet'
@@ -438,7 +438,7 @@ const Participants: React.FC = () => {
                       className="inline-flex items-center gap-1 text-xs font-medium text-danger hover:text-danger disabled:opacity-50"
                     >
                       {unregisteringId === participant.id ? (
-                        <span className="animate-spin rounded-[var(--radius-full)] h-3 w-3 border-b-2 border-danger" />
+                        <span className="animate-spin rounded-full h-3 w-3 border-b-2 border-danger" />
                       ) : (
                         <UserMinus className="w-3 h-3" />
                       )}
@@ -451,7 +451,7 @@ const Participants: React.FC = () => {
           </div>
 
           {/* Desktop: table */}
-          <div className="hidden sm:block bg-surface rounded-[var(--radius-md)] border border-border overflow-hidden">
+          <div className="hidden sm:block bg-surface rounded-md border border-border overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-border">
                 <thead className="bg-surfaceSunken">
@@ -521,10 +521,10 @@ const Participants: React.FC = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-[var(--radius-full)] ${
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                           participant.status === 'registered'
                             ? 'bg-sage-100 text-sage-800'
-                            : 'bg-yellow-100 text-yellow-800'
+                            : 'bg-accentSoft text-accent'
                         }`}>
                           {participant.status === 'registered'
                             ? 'Angemeldet'
@@ -546,7 +546,7 @@ const Participants: React.FC = () => {
                               className="inline-flex items-center gap-1.5 text-danger hover:text-danger disabled:opacity-50"
                             >
                               {unregisteringId === participant.id ? (
-                                <span className="animate-spin rounded-[var(--radius-full)] h-4 w-4 border-b-2 border-danger" />
+                                <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-danger" />
                               ) : (
                                 <UserMinus className="w-4 h-4" />
                               )}

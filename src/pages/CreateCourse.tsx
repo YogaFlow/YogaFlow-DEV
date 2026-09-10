@@ -446,7 +446,7 @@ const CreateCourse: React.FC = () => {
         <p className="text-textMuted">Erstellen Sie einen neuen Yoga-Kurs für Ihre Teilnehmer.</p>
       </div>
 
-      <div className="bg-surface rounded-[var(--radius-md)] border border-border">
+      <div className="bg-surface rounded-md border border-border">
         <form onSubmit={handleSubmit} className="p-3.5 space-y-6">
           {/* Title */}
           <div>
@@ -461,7 +461,7 @@ const CreateCourse: React.FC = () => {
                 type="text"
                 value={formData.title}
                 onChange={handleChange}
-                className="w-full pl-10 pr-4 py-3 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
                 placeholder="z.B. Hatha Yoga für Anfänger"
                 required
               />
@@ -479,7 +479,7 @@ const CreateCourse: React.FC = () => {
               value={formData.description}
               onChange={handleChange}
               rows={4}
-              className="w-full px-4 py-3 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full px-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
               placeholder="Beschreiben Sie den Kurs, Zielgruppe, Schwierigkeitsgrad..."
               required
             />
@@ -496,7 +496,7 @@ const CreateCourse: React.FC = () => {
                 id="teacher_id"
                 value={selectedTeacherId}
                 onChange={(e) => setSelectedTeacherId(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent appearance-none bg-surface"
+                className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent appearance-none bg-surface"
                 required
               >
                 <option value="">Bitte wählen Sie einen Kursleiter</option>
@@ -508,7 +508,7 @@ const CreateCourse: React.FC = () => {
               </select>
             </div>
             {courseLeaders.length === 0 && (
-              <p className="mt-2 text-sm text-amber-700">
+              <p className="mt-2 text-sm text-text">
                 Keine Kursleiter gefunden. Bitte in der Nutzerverwaltung mindestens einen Nutzer als Kursleiter anlegen.
               </p>
             )}
@@ -530,14 +530,14 @@ const CreateCourse: React.FC = () => {
           </div>
 
           {/* Recurring Options */}
-          <div className="border border-border rounded-[var(--radius-md)] p-3.5 bg-surfaceSunken">
+          <div className="border border-border rounded-md p-3.5 bg-surfaceSunken">
             <div className="flex items-center mb-4">
               <input
                 id="isRecurring"
                 type="checkbox"
                 checked={isRecurring}
                 onChange={(e) => setIsRecurring(e.target.checked)}
-                className="w-4 h-4 text-brand border-border rounded-[var(--radius-sm)] focus:ring-brand"
+                className="w-4 h-4 text-brand border-border rounded-sm focus:ring-brand"
               />
               <label htmlFor="isRecurring" className="ml-2 flex items-center text-sm font-medium text-textMuted">
                 <Repeat className="w-4 h-4 mr-1" />
@@ -626,7 +626,7 @@ const CreateCourse: React.FC = () => {
                 step="15"
                 value={formData.duration}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full px-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
                 placeholder="z.B. 60"
               />
             </div>
@@ -658,7 +658,7 @@ const CreateCourse: React.FC = () => {
                 type="text"
                 value={formData.location}
                 onChange={handleChange}
-                className="w-full pl-10 pr-4 py-3 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
                 placeholder="z.B. Yoga-Studio Mitte, Raum 1"
                 required
               />
@@ -681,7 +681,7 @@ const CreateCourse: React.FC = () => {
                   max="50"
                   value={formData.max_participants}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-3 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
                   placeholder="z.B. 12"
                   required
                 />
@@ -703,7 +703,7 @@ const CreateCourse: React.FC = () => {
                   step="0.01"
                   value={formData.price}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-3 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
                   placeholder="z.B. 25.00"
                   required
                 />
@@ -712,7 +712,7 @@ const CreateCourse: React.FC = () => {
           </div>
 
           {error && (
-            <div className="p-3 bg-dangerSoft border border-danger rounded-[var(--radius-sm)]">
+            <div className="p-3 bg-dangerSoft border border-danger rounded-sm">
               <p className="text-sm text-danger">{error}</p>
             </div>
           )}
@@ -721,14 +721,14 @@ const CreateCourse: React.FC = () => {
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="px-4 py-2 text-textMuted bg-surfaceSunken hover:bg-borderStrong rounded-[var(--radius-sm)] transition-colors"
+              className="px-4 py-2 text-textMuted bg-surfaceSunken hover:bg-borderStrong rounded-sm transition-colors"
             >
               Abbrechen
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex items-center px-6 py-2 bg-brand text-onBrand rounded-[var(--radius-sm)] hover:bg-brandPressed focus:ring-4 focus:ring-sage-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center px-6 py-2 bg-brand text-onBrand rounded-sm hover:bg-brandPressed focus:ring-4 focus:ring-sage-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save className="w-4 h-4 mr-2" />
               {loading ? 'Wird erstellt...' : 'Kurs erstellen'}

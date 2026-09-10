@@ -68,7 +68,7 @@ const ResetPassword: React.FC = () => {
   if (!token) {
     return (
       <div className="min-h-screen bg-sand flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-surface rounded-[var(--radius-md)] border border-border p-3.5">
+        <div className="max-w-md w-full bg-surface rounded-md border border-border p-3.5">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-text mb-2">
               Ungültiger Link
@@ -78,7 +78,7 @@ const ResetPassword: React.FC = () => {
             </p>
             <button
               onClick={() => navigate('/forgot-password')}
-              className="w-full bg-brand text-onBrand py-3 rounded-[var(--radius-sm)] hover:bg-brandPressed transition-colors"
+              className="w-full bg-brand text-onBrand py-3 rounded-sm hover:bg-brandPressed transition-colors"
             >
               Neuen Link anfordern
             </button>
@@ -91,7 +91,7 @@ const ResetPassword: React.FC = () => {
   if (success) {
     return (
       <div className="min-h-screen bg-sand flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-surface rounded-[var(--radius-md)] border border-border p-3.5">
+        <div className="max-w-md w-full bg-surface rounded-md border border-border p-3.5">
           <div className="text-center">
             <CheckCircle className="w-16 h-16 text-brand mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-text mb-2">
@@ -111,7 +111,7 @@ const ResetPassword: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-sand flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-surface rounded-[var(--radius-md)] border border-border p-3.5">
+      <div className="max-w-md w-full bg-surface rounded-md border border-border p-3.5">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-text mb-2">
             Neues Passwort erstellen
@@ -122,7 +122,7 @@ const ResetPassword: React.FC = () => {
         </div>
 
         {error && (
-          <div className="mb-4 p-4 bg-dangerSoft border border-danger rounded-[var(--radius-sm)]">
+          <div className="mb-4 p-4 bg-dangerSoft border border-danger rounded-sm">
             <p className="text-sm text-danger">{error}</p>
           </div>
         )}
@@ -139,7 +139,7 @@ const ResetPassword: React.FC = () => {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-12 py-3 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full pl-10 pr-12 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
                 placeholder="Mindestens 8 Zeichen"
                 required
               />
@@ -168,7 +168,7 @@ const ResetPassword: React.FC = () => {
                 type={showConfirmPassword ? 'text' : 'password'}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full pl-10 pr-12 py-3 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full pl-10 pr-12 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
                 placeholder="Passwort wiederholen"
                 required
               />
@@ -189,7 +189,7 @@ const ResetPassword: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-brand text-onBrand py-3 rounded-[var(--radius-sm)] hover:bg-brandPressed focus:ring-4 focus:ring-sage-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-brand text-onBrand py-3 rounded-sm hover:bg-brandPressed focus:ring-4 focus:ring-sage-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Wird gespeichert...' : 'Passwort zurücksetzen'}
           </button>

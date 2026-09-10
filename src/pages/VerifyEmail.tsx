@@ -89,7 +89,7 @@ const VerifyEmail: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-sand flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-surface rounded-[var(--radius-md)] border border-border p-3.5">
+      <div className="max-w-md w-full bg-surface rounded-md border border-border p-3.5">
         <div className="text-center">
           {status === 'loading' && (
             <>
@@ -136,7 +136,7 @@ const VerifyEmail: React.FC = () => {
                   const qs = authQuery.toString();
                   navigate(qs ? `/auth?${qs}` : '/auth');
                 }}
-                className="w-full bg-brand text-onBrand py-3 rounded-[var(--radius-sm)] hover:bg-brandPressed transition-colors"
+                className="w-full bg-brand text-onBrand py-3 rounded-sm hover:bg-brandPressed transition-colors"
               >
                 Zur Anmeldung
               </button>

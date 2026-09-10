@@ -114,7 +114,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
         dateFormat="dd.MM.yyyy"
         placeholderText={placeholder}
         customInput={<PickerInput />}
-        className="w-full pl-10 pr-4 py-3 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent disabled:bg-surfaceSunken disabled:cursor-not-allowed"
+        className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent disabled:bg-surfaceSunken disabled:cursor-not-allowed"
         wrapperClassName="w-full"
         showPopperArrow={false}
         popperPlacement="bottom-start"
@@ -136,7 +136,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
             aria-label="Schließen"
             onClick={() => setMobileOpen(false)}
           />
-          <div className="yogaflow-datepicker-modal relative z-10 w-[min(calc(100vw-2rem),23rem)] overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-lg">
+          <div className="yogaflow-datepicker-modal relative z-10 w-[min(calc(100vw-2rem),23rem)] overflow-hidden rounded-lg border border-border bg-surface shadow-lg">
             <ReactDatePicker inline {...sharedPickerProps} />
           </div>
         </div>

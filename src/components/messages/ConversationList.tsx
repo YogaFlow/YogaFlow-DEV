@@ -23,13 +23,13 @@ const ConversationList: React.FC<ConversationListProps> = ({
   showHeader = true,
 }) => {
   return (
-    <div className="flex flex-col max-lg:h-auto lg:h-full lg:min-h-0 bg-surface rounded-[var(--radius-md)] border border-border overflow-hidden">
+    <div className="flex flex-col max-lg:h-auto lg:h-full lg:min-h-0 bg-surface rounded-md border border-border overflow-hidden">
       {showHeader && (
         <div className="shrink-0 p-3.5 border-b border-border space-y-3">
           <button
             type="button"
             onClick={onNewMessage}
-            className="w-full flex items-center justify-center gap-2 bg-brand text-onBrand px-4 py-2.5 rounded-[var(--radius-sm)] hover:bg-brandPressed transition-colors text-sm font-medium"
+            className="w-full flex items-center justify-center gap-2 bg-brand text-onBrand px-4 py-2.5 rounded-sm hover:bg-brandPressed transition-colors text-sm font-medium"
           >
             + Neue Nachricht
           </button>
@@ -40,7 +40,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
               placeholder="Unterhaltungen suchen..."
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="w-full rounded-[var(--radius-sm)] border border-border py-2.5 pl-10 pr-4 text-base focus:border-transparent focus:ring-2 focus:ring-brand"
+              className="w-full rounded-sm border border-border py-2.5 pl-10 pr-4 text-base focus:border-transparent focus:ring-2 focus:ring-brand"
             />
           </div>
         </div>

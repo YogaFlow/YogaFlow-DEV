@@ -33,8 +33,8 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
         <div
           className={`px-4 py-2.5 whitespace-pre-wrap break-words text-sm leading-relaxed ${
             isOwnMessage
-              ? 'bg-brand text-onBrand rounded-[var(--radius-md)] rounded-br-[var(--radius-sm)]'
-              : 'bg-surfaceSunken text-text rounded-[var(--radius-md)] rounded-bl-[var(--radius-sm)]'
+              ? 'bg-brand text-onBrand rounded-md rounded-br-sm'
+              : 'bg-surfaceSunken text-text rounded-md rounded-bl-sm'
           }`}
         >
           {message.content}

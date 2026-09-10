@@ -30,7 +30,7 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({ registrations }) => (
       return (
         <div
           key={registration.id}
-          className="flex items-center rounded-[var(--radius-md)] border border-border bg-surface p-3.5"
+          className="flex items-center rounded-md border border-border bg-surface p-3.5"
         >
           <div className="flex-1">
             <h3 className="font-medium text-text">{course.title}</h3>
@@ -51,9 +51,9 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({ registrations }) => (
               </p>
             )}
             <div
-              className={`mt-2 inline-flex rounded-[var(--radius-full)] px-2.5 py-0.5 text-xs font-medium ${
+              className={`mt-2 inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
                 isWaitlist
-                  ? 'bg-yellow-50 text-yellow-700'
+                  ? 'bg-accentSoft text-accent'
                   : 'bg-sage-100 text-brand'
               }`}
             >

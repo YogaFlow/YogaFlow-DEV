@@ -33,6 +33,12 @@ export default {
         danger: 'var(--color-danger)',
         dangerSoft: 'var(--color-danger-soft)',
       },
+      borderRadius: {
+        sm: 'var(--radius-sm)',
+        md: 'var(--radius-md)',
+        lg: 'var(--radius-lg)',
+        full: 'var(--radius-full)',
+      },
     },
   },
   plugins: [],

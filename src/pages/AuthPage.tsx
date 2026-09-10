@@ -142,7 +142,7 @@ const AuthPage: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-sand flex items-center justify-center">
-        <div className="animate-spin rounded-[var(--radius-full)] h-12 w-12 border-b-2 border-brand"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand"></div>
       </div>
     );
   }
@@ -159,7 +159,7 @@ const AuthPage: React.FC = () => {
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className="mt-6 rounded-[var(--radius-sm)] bg-brand text-onBrand px-4 py-2 text-sm font-medium hover:bg-brandPressed"
+          className="mt-6 rounded-sm bg-brand text-onBrand px-4 py-2 text-sm font-medium hover:bg-brandPressed"
         >
           Neu laden
         </button>
@@ -192,7 +192,7 @@ const AuthPage: React.FC = () => {
     <div className="min-h-screen bg-sand flex items-center justify-center p-4">
       <div className="w-full max-w-4xl">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-brand rounded-[var(--radius-full)] mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-brand rounded-full mb-4">
             <Heart className="w-8 h-8 text-onBrand" />
           </div>
           {/*
@@ -211,7 +211,7 @@ const AuthPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="bg-surface rounded-[var(--radius-md)] border border-border overflow-hidden">
+        <div className="bg-surface rounded-md border border-border overflow-hidden">
           {isApexAuth ? (
             <div className="border-b border-border py-4 px-6 text-center">
               <h2 className="text-lg font-semibold text-text">Anmelden</h2>
@@ -255,17 +255,17 @@ const AuthPage: React.FC = () => {
           )}
 
           {showVerifiedMessage && (
-            <div className="mx-8 mt-6 p-4 bg-sage-100 border border-sage-200 rounded-[var(--radius-sm)] text-center text-sage-800 text-sm">
+            <div className="mx-8 mt-6 p-4 bg-sage-100 border border-sage-200 rounded-sm text-center text-sage-800 text-sm">
               E-Mail bestätigt. Sie können sich jetzt anmelden.
             </div>
           )}
           {isLogin && user && profileLoading && (
-            <div className="mx-8 mt-6 p-4 bg-sage-100 border border-sage-200 rounded-[var(--radius-sm)] text-brand text-sm text-center">
+            <div className="mx-8 mt-6 p-4 bg-sage-100 border border-sage-200 rounded-sm text-brand text-sm text-center">
               Anmeldung erfolgreich — Profil wird geladen …
             </div>
           )}
           {loginBlockReason === 'profile_missing' && (
-            <div className="mx-8 mt-6 p-4 bg-amber-50 border border-amber-200 rounded-[var(--radius-sm)] text-amber-900 text-sm">
+            <div className="mx-8 mt-6 p-4 bg-accentSoft border border-accent rounded-sm text-text text-sm">
               <p className="font-medium mb-1">Anmeldung erkannt, Profil fehlt</p>
               <p>
                 Die Anmeldung war erfolgreich, aber es gibt keinen Eintrag in der Studio-Datenbank. Bitte registriere
@@ -274,7 +274,7 @@ const AuthPage: React.FC = () => {
             </div>
           )}
           {loginBlockReason === 'email_not_confirmed' && (
-            <div className="mx-8 mt-6 p-4 bg-amber-50 border border-amber-200 rounded-[var(--radius-sm)] text-amber-900 text-sm">
+            <div className="mx-8 mt-6 p-4 bg-accentSoft border border-accent rounded-sm text-text text-sm">
               <p className="font-medium mb-1">E-Mail noch nicht bestätigt (Omlify)</p>
               <p>
                 Bitte den Link aus der <strong>Omlify</strong>-Bestätigungsmail öffnen (Button „E-Mail-Adresse
@@ -284,7 +284,7 @@ const AuthPage: React.FC = () => {
             </div>
           )}
           {loginBlockReason === 'wrong_studio' && (
-            <div className="mx-8 mt-6 p-4 bg-amber-50 border border-amber-200 rounded-[var(--radius-sm)] text-amber-900 text-sm">
+            <div className="mx-8 mt-6 p-4 bg-accentSoft border border-accent rounded-sm text-text text-sm">
               <p className="font-medium mb-1">Falsches Studio</p>
               <p>
                 Dieses Konto gehört nicht zu <span className="font-mono">{tenantSlug}</span>. Bitte nutze die
@@ -293,7 +293,7 @@ const AuthPage: React.FC = () => {
             </div>
           )}
           {accessNotice === 'wrong_studio' && (
-            <div className="mx-8 mt-6 p-4 bg-amber-50 border border-amber-200 rounded-[var(--radius-sm)] text-amber-900 text-sm">
+            <div className="mx-8 mt-6 p-4 bg-accentSoft border border-accent rounded-sm text-text text-sm">
               <p className="font-medium mb-1">Falsche Studio-Adresse</p>
               <p>
                 Dieses Konto ist nicht für die Studio-URL{' '}
@@ -310,7 +310,7 @@ const AuthPage: React.FC = () => {
             </div>
           )}
           {accessNotice === 'profile_missing' && (
-            <div className="mx-8 mt-6 p-4 bg-amber-50 border border-amber-200 rounded-[var(--radius-sm)] text-amber-900 text-sm">
+            <div className="mx-8 mt-6 p-4 bg-accentSoft border border-accent rounded-sm text-text text-sm">
               <p className="font-medium mb-1">Profil unvollständig</p>
               <p>
                 Für dein Konto existiert kein Eintrag in der Studio-Datenbank (z.&nbsp;B. abgebrochene Registrierung).
@@ -327,7 +327,7 @@ const AuthPage: React.FC = () => {
             </div>
           )}
           {accessNotice === 'email_not_confirmed' && (
-            <div className="mx-8 mt-6 p-4 bg-amber-50 border border-amber-200 rounded-[var(--radius-sm)] text-amber-900 text-sm">
+            <div className="mx-8 mt-6 p-4 bg-accentSoft border border-accent rounded-sm text-text text-sm">
               <p className="font-medium mb-1">E-Mail-Adresse noch nicht bestätigt</p>
               <p>
                 Bitte den Link aus der Bestätigungsmail öffnen (grüner Button „E-Mail-Adresse

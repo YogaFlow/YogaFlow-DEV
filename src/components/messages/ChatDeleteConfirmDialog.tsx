@@ -26,7 +26,7 @@ const ChatDeleteConfirmDialog: React.FC<ChatDeleteConfirmDialogProps> = ({
       onClick={onCancel}
     >
       <div
-        className="w-full max-w-md rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-lg"
+        className="w-full max-w-md rounded-lg border border-border bg-surface p-6 shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between mb-4">
@@ -40,7 +40,7 @@ const ChatDeleteConfirmDialog: React.FC<ChatDeleteConfirmDialogProps> = ({
           <button
             type="button"
             onClick={onCancel}
-            className="p-1 rounded-[var(--radius-sm)] text-textSubtle hover:text-textMuted hover:bg-surfaceSunken"
+            className="p-1 rounded-sm text-textSubtle hover:text-textMuted hover:bg-surfaceSunken"
             aria-label="Schließen"
           >
             <X size={20} />
@@ -58,7 +58,7 @@ const ChatDeleteConfirmDialog: React.FC<ChatDeleteConfirmDialogProps> = ({
             type="button"
             onClick={onCancel}
             disabled={deleting}
-            className="px-4 py-2 text-sm font-medium text-textMuted rounded-[var(--radius-sm)] hover:bg-surfaceSunken transition-colors disabled:opacity-50"
+            className="px-4 py-2 text-sm font-medium text-textMuted rounded-sm hover:bg-surfaceSunken transition-colors disabled:opacity-50"
           >
             Abbrechen
           </button>
@@ -66,7 +66,7 @@ const ChatDeleteConfirmDialog: React.FC<ChatDeleteConfirmDialogProps> = ({
             type="button"
             onClick={onConfirm}
             disabled={deleting}
-            className="px-4 py-2 text-sm font-medium text-danger rounded-[var(--radius-sm)] hover:bg-dangerSoft transition-colors disabled:opacity-50"
+            className="px-4 py-2 text-sm font-medium text-danger rounded-sm hover:bg-dangerSoft transition-colors disabled:opacity-50"
           >
             {deleting ? 'Wird gelöscht…' : 'Löschen'}
           </button>

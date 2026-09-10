@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Calendar, Users, BookOpen, TrendingUp, Clock, MapPin } from 'lucide-react';
+import { Calendar, Users, BookOpen, Clock, MapPin, Settings } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Course, Registration } from '../types';
@@ -320,13 +320,7 @@ const Dashboard: React.FC = () => {
         color: 'bg-sage-500',
         path: '/courses'
       },
-      ...baseCards,
-      {
-        title: 'Wachstum',
-        value: '+12%',
-        icon: TrendingUp,
-        color: 'bg-sage-500'
-      }
+      ...baseCards
     ];
   };
 
@@ -355,7 +349,7 @@ const Dashboard: React.FC = () => {
           return (
             <div
               key={course.id || index}
-              className="overflow-hidden rounded-[var(--radius-md)] border border-border bg-surface"
+              className="overflow-hidden rounded-md border border-border bg-surface"
             >
               <div className="p-3.5">
                 <div className="flex items-start justify-between gap-3">
@@ -404,17 +398,25 @@ const Dashboard: React.FC = () => {
                 )}
 
                 <div className="mt-5 flex items-center justify-between gap-3 border-t border-border pt-4">
-                  <div className="flex items-center gap-2">
-                    <div className={`h-2.5 w-2.5 rounded-[var(--radius-full)] ${
-                      isFull ? 'bg-danger' : (remainingSpots <= 2 ? 'bg-yellow-500' : 'bg-sage-500')
+                  <div className={`flex items-center gap-2 ${
+                    isFull
+                      ? 'rounded-sm bg-surfaceSunken px-3 py-1 text-textMuted'
+                      : remainingSpots <= 2
+                        ? 'rounded-sm bg-accentSoft px-3 py-1 text-accent'
+                        : ''
+                  }`}>
+                    <div className={`h-2.5 w-2.5 rounded-full ${
+                      isFull ? 'bg-textMuted' : (remainingSpots <= 2 ? 'bg-accent' : 'bg-sage-500')
                     }`} />
-                    <span className="text-sm font-medium text-textMuted">
+                    <span className={`text-sm font-medium ${
+                      isFull ? 'text-textMuted' : (remainingSpots <= 2 ? 'text-accent' : 'text-textMuted')
+                    }`}>
                       {isFull ? 'Leider schon ausgebucht' : (remainingSpots <= 2 ? `noch ${remainingSpots} ${remainingSpots === 1 ? 'Restplatz' : 'Restplätze'}` : 'Verfügbar')}
                     </span>
                   </div>
 
                   {isRegistered && (
-                    <span className="inline-flex items-center rounded-[var(--radius-full)] bg-sage-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-sage-800">
+                    <span className="inline-flex items-center rounded-full bg-sage-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-sage-800">
                       Angemeldet
                     </span>
                   )}
@@ -430,7 +432,7 @@ const Dashboard: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-[var(--radius-full)] h-12 w-12 border-b-2 border-brand"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand"></div>
       </div>
     );
   }
@@ -450,7 +452,7 @@ const Dashboard: React.FC = () => {
         {statCards.map((card, index) => {
           const CardContent = () => (
             <div className="flex items-center">
-              <div className={`${card.color} p-3 rounded-[var(--radius-sm)]`}>
+              <div className={`${card.color} p-3 rounded-sm`}>
                 <card.icon className="w-6 h-6 text-onBrand" />
               </div>
               <div className="ml-4">
@@ -465,14 +467,14 @@ const Dashboard: React.FC = () => {
               <Link
                 key={index}
                 to={path}
-                className="block bg-surface rounded-[var(--radius-md)] border border-border p-3.5 w-full text-left hover:border-sage-200 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 no-underline text-inherit"
+                className="block bg-surface rounded-md border border-border p-3.5 w-full text-left hover:border-sage-200 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 no-underline text-inherit"
               >
                 <CardContent />
               </Link>
             );
           }
           return (
-            <div key={index} className="bg-surface rounded-[var(--radius-md)] border border-border p-3.5">
+            <div key={index} className="bg-surface rounded-md border border-border p-3.5">
               <CardContent />
             </div>
           );
@@ -482,7 +484,7 @@ const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-6">
           {(isCourseLeader && !isParticipantOnly) && (
-            <div className="bg-surface rounded-[var(--radius-md)] border border-border">
+            <div className="bg-surface rounded-md border border-border">
               <div className="p-3.5 border-b border-border">
                 <h2 className="text-lg font-semibold text-text">
                   {isTeacher ? 'Kurse, die ich gebe' : 'Kommende Kurse'}
@@ -500,7 +502,7 @@ const Dashboard: React.FC = () => {
           )}
 
           {(isParticipantOnly || isTeacher) && (
-            <div className="bg-surface rounded-[var(--radius-md)] border border-border">
+            <div className="bg-surface rounded-md border border-border">
               <div className="p-3.5 border-b border-border">
                 <h2 className="text-lg font-semibold text-text">Meine kommenden Kurse</h2>
               </div>
@@ -515,7 +517,7 @@ const Dashboard: React.FC = () => {
           )}
         </div>
 
-        <div className="bg-surface rounded-[var(--radius-md)] border border-border">
+        <div className="bg-surface rounded-md border border-border">
           <div className="p-3.5 border-b border-border">
             <h2 className="text-lg font-semibold text-text">Schnellzugriff</h2>
           </div>
@@ -524,7 +526,7 @@ const Dashboard: React.FC = () => {
               {isTeacher && (
                 <button
                   onClick={() => navigate('/courses')}
-                  className="flex items-center p-3.5 bg-sage-100 hover:bg-sage-100 rounded-[var(--radius-md)] transition-colors text-left"
+                  className="flex items-center p-3.5 bg-sage-100 hover:bg-sage-100 rounded-md transition-colors text-left"
                 >
                   <Calendar className="w-5 h-5 text-brand mr-3" />
                   <span className="font-medium text-brand">Kurse durchsuchen</span>
@@ -535,14 +537,14 @@ const Dashboard: React.FC = () => {
                 <>
                   <button
                     onClick={() => navigate('/create-course')}
-                    className="flex items-center p-3.5 bg-sage-100 hover:bg-sage-100 rounded-[var(--radius-md)] transition-colors text-left"
+                    className="flex items-center p-3.5 bg-sage-100 hover:bg-sage-100 rounded-md transition-colors text-left"
                   >
                     <BookOpen className="w-5 h-5 text-brand mr-3" />
                     <span className="font-medium text-brand">Neuen Kurs erstellen</span>
                   </button>
                   <button
                     onClick={() => navigate('/participants')}
-                    className="flex items-center p-3.5 bg-sage-100 hover:bg-sage-100 rounded-[var(--radius-md)] transition-colors text-left"
+                    className="flex items-center p-3.5 bg-sage-100 hover:bg-sage-100 rounded-md transition-colors text-left"
                   >
                     <Users className="w-5 h-5 text-brand mr-3" />
                     <span className="font-medium text-brand">Teilnehmer verwalten</span>
@@ -554,14 +556,14 @@ const Dashboard: React.FC = () => {
                 <>
                   <button
                     onClick={() => navigate('/courses')}
-                    className="flex items-center p-3.5 bg-sage-100 hover:bg-sage-100 rounded-[var(--radius-md)] transition-colors text-left"
+                    className="flex items-center p-3.5 bg-sage-100 hover:bg-sage-100 rounded-md transition-colors text-left"
                   >
                     <Calendar className="w-5 h-5 text-brand mr-3" />
                     <span className="font-medium text-brand">Kurse durchsuchen</span>
                   </button>
                   <button
                     onClick={() => navigate('/my-registrations')}
-                    className="flex items-center p-3.5 bg-sage-100 hover:bg-sage-100 rounded-[var(--radius-md)] transition-colors text-left"
+                    className="flex items-center p-3.5 bg-sage-100 hover:bg-sage-100 rounded-md transition-colors text-left"
                   >
                     <BookOpen className="w-5 h-5 text-brand mr-3" />
                     <span className="font-medium text-brand">Meine Anmeldungen</span>
@@ -573,16 +575,16 @@ const Dashboard: React.FC = () => {
                 <>
                   <button
                     onClick={() => navigate('/users')}
-                    className="flex items-center p-3.5 bg-sage-100 hover:bg-sage-100 rounded-[var(--radius-md)] transition-colors text-left"
+                    className="flex items-center p-3.5 bg-sage-100 hover:bg-sage-100 rounded-md transition-colors text-left"
                   >
                     <Users className="w-5 h-5 text-brand mr-3" />
                     <span className="font-medium text-brand">Benutzer verwalten</span>
                   </button>
                   <button
                     onClick={() => navigate('/settings')}
-                    className="flex items-center p-3.5 bg-surfaceSunken hover:bg-surfaceSunken rounded-[var(--radius-md)] transition-colors text-left"
+                    className="flex items-center p-3.5 bg-surfaceSunken hover:bg-surfaceSunken rounded-md transition-colors text-left"
                   >
-                    <TrendingUp className="w-5 h-5 text-textMuted mr-3" />
+                    <Settings className="w-5 h-5 text-textMuted mr-3" />
                     <span className="font-medium text-textMuted">System-Einstellungen</span>
                   </button>
                 </>

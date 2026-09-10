@@ -80,7 +80,7 @@ const MyRegistrations: React.FC = () => {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <div className="h-12 w-12 animate-spin rounded-[var(--radius-full)] border-b-2 border-brand" />
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-brand" />
       </div>
     );
   }
@@ -99,7 +99,7 @@ const MyRegistrations: React.FC = () => {
       </div>
 
       {loadError ? (
-        <div className="rounded-[var(--radius-sm)] border border-danger bg-dangerSoft p-4 text-sm text-danger">
+        <div className="rounded-sm border border-danger bg-dangerSoft p-4 text-sm text-danger">
           Ihre Anmeldungen konnten nicht geladen werden. Bitte laden Sie die Seite erneut.
         </div>
       ) : registrations.length === 0 ? (
@@ -114,7 +114,7 @@ const MyRegistrations: React.FC = () => {
           <button
             type="button"
             onClick={() => navigate('/courses')}
-            className="rounded-[var(--radius-sm)] bg-brand px-6 py-3 text-onBrand transition-colors hover:bg-brandPressed"
+            className="rounded-sm bg-brand px-6 py-3 text-onBrand transition-colors hover:bg-brandPressed"
           >
             Kurse durchsuchen
           </button>

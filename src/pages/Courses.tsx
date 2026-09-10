@@ -328,7 +328,7 @@ const Courses: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-[var(--radius-full)] h-12 w-12 border-b-2 border-brand"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand"></div>
       </div>
     );
   }
@@ -337,10 +337,10 @@ const Courses: React.FC = () => {
     <div className="space-y-6">
       {feedbackDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-text/45 p-4">
-          <div className="w-full max-w-md rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-lg">
+          <div className="w-full max-w-md rounded-lg border border-border bg-surface p-6 shadow-lg">
             <div className="mb-3 flex items-center gap-2">
               <span
-                className={`inline-flex h-2.5 w-2.5 rounded-[var(--radius-full)] ${
+                className={`inline-flex h-2.5 w-2.5 rounded-full ${
                   feedbackDialog.type === 'success' ? 'bg-sage-500' : 'bg-danger'
                 }`}
                 aria-hidden
@@ -351,7 +351,7 @@ const Courses: React.FC = () => {
             <div className="mt-6 flex justify-center">
               <button
                 onClick={() => setFeedbackDialog(null)}
-                className={`rounded-[var(--radius-full)] px-6 py-2 text-sm font-semibold text-onBrand transition-colors ${
+                className={`rounded-full px-6 py-2 text-sm font-semibold text-onBrand transition-colors ${
                   feedbackDialog.type === 'success'
                     ? 'bg-brand hover:bg-brandPressed'
                     : 'bg-danger hover:bg-danger'
@@ -372,7 +372,7 @@ const Courses: React.FC = () => {
         {(isAdmin || isCourseLeader) && (
           <button
             onClick={() => navigate('/create-course')}
-            className="mt-4 sm:mt-0 bg-brand text-onBrand px-4 py-2 rounded-[var(--radius-sm)] hover:bg-brandPressed transition-colors flex items-center"
+            className="mt-4 sm:mt-0 bg-brand text-onBrand px-4 py-2 rounded-sm hover:bg-brandPressed transition-colors flex items-center"
           >
             <Plus className="w-4 h-4 mr-2" />
             Neuer Kurs
@@ -413,7 +413,7 @@ const Courses: React.FC = () => {
             return (
               <div
                 key={course.id}
-                className="overflow-hidden rounded-[var(--radius-md)] border border-border bg-surface"
+                className="overflow-hidden rounded-md border border-border bg-surface"
               >
                 <div className="p-3.5">
                       <div className="flex items-start justify-between gap-3">
@@ -458,17 +458,29 @@ const Courses: React.FC = () => {
                       )}
 
                       <div className="mt-5 flex items-center justify-between gap-3 border-t border-border pt-4">
-                        <div className="flex items-center gap-2">
-                          <div className={`h-2.5 w-2.5 rounded-[var(--radius-full)] ${
-                            isFull ? 'bg-danger' : (course.max_participants - registeredCount <= 2 ? 'bg-yellow-500' : 'bg-sage-500')
+                        <div className={`flex items-center gap-2 ${
+                          isFull
+                            ? 'rounded-sm bg-surfaceSunken px-3 py-1 text-textMuted'
+                            : course.max_participants - registeredCount <= 2
+                              ? 'rounded-sm bg-accentSoft px-3 py-1 text-accent'
+                              : ''
+                        }`}>
+                          <div className={`h-2.5 w-2.5 rounded-full ${
+                            isFull ? 'bg-textMuted' : (course.max_participants - registeredCount <= 2 ? 'bg-accent' : 'bg-sage-500')
                           }`}></div>
-                          <span className="text-sm font-medium text-textMuted">
+                          <span className={`text-sm font-medium ${
+                            isFull
+                              ? 'text-textMuted'
+                              : course.max_participants - registeredCount <= 2
+                                ? 'text-accent'
+                                : 'text-textMuted'
+                          }`}>
                             {isFull ? 'Leider schon ausgebucht' : (course.max_participants - registeredCount <= 2 ? `noch ${course.max_participants - registeredCount} ${course.max_participants - registeredCount === 1 ? 'Restplatz' : 'Restplätze'}` : 'Verfügbar')}
                           </span>
                         </div>
 
                         {isRegistered && registrationStatus === 'registered' && (
-                          <span className="inline-flex items-center rounded-[var(--radius-full)] bg-sage-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-sage-800">
+                          <span className="inline-flex items-center rounded-full bg-sage-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-sage-800">
                             Angemeldet
                           </span>
                         )}
@@ -479,13 +491,13 @@ const Courses: React.FC = () => {
                           {isRegistered ? (
                             <div className="space-y-2">
                               {registrationStatus !== 'registered' && (
-                                <div className="inline-flex items-center justify-center rounded-[var(--radius-sm)] px-4 py-2 text-sm font-medium bg-yellow-100 text-yellow-700">
+                                <div className="inline-flex items-center justify-center rounded-sm px-4 py-2 text-sm font-medium bg-accentSoft text-accent">
                                   {waitlistPosition ? `Warteliste (Pos. ${waitlistPosition})` : 'Warteliste'}
                                 </div>
                               )}
                               <button
                                 onClick={() => handleUnregister(course.id)}
-                                className="w-full rounded-[var(--radius-sm)] px-4 py-2 text-sm font-medium text-danger hover:bg-dangerSoft transition-colors"
+                                className="w-full rounded-sm px-4 py-2 text-sm font-medium text-danger hover:bg-dangerSoft transition-colors"
                               >
                                 Abmelden
                               </button>
@@ -493,9 +505,9 @@ const Courses: React.FC = () => {
                           ) : (
                             <button
                               onClick={() => handleRegister(course.id)}
-                              className={`w-full px-4 py-2 rounded-[var(--radius-sm)] text-sm font-medium transition-colors ${
+                              className={`w-full px-4 py-2 rounded-sm text-sm font-medium transition-colors ${
                                 isFull
-                                  ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                                  ? 'bg-accentSoft text-accent hover:bg-accentSoft'
                                   : 'bg-brand text-onBrand hover:bg-brandPressed'
                               }`}
                             >

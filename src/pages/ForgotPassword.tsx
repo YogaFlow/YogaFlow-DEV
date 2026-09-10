@@ -78,9 +78,9 @@ const ForgotPassword: React.FC = () => {
   if (success) {
     return (
       <div className="min-h-screen bg-sand flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-surface rounded-[var(--radius-md)] border border-border p-3.5">
+        <div className="max-w-md w-full bg-surface rounded-md border border-border p-3.5">
           <div className="text-center">
-            <div className="w-16 h-16 bg-sage-100 rounded-[var(--radius-full)] flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-sage-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Mail className="w-8 h-8 text-brand" />
             </div>
             <h1 className="text-2xl font-bold text-text mb-2">
@@ -94,7 +94,7 @@ const ForgotPassword: React.FC = () => {
             </p>
             <button
               onClick={() => navigate('/auth')}
-              className="w-full bg-brand text-onBrand py-3 rounded-[var(--radius-sm)] hover:bg-brandPressed transition-colors"
+              className="w-full bg-brand text-onBrand py-3 rounded-sm hover:bg-brandPressed transition-colors"
             >
               Zur Anmeldung
             </button>
@@ -106,7 +106,7 @@ const ForgotPassword: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-sand flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-surface rounded-[var(--radius-md)] border border-border p-3.5">
+      <div className="max-w-md w-full bg-surface rounded-md border border-border p-3.5">
         <button
           onClick={() => navigate('/auth')}
           className="flex items-center text-textMuted hover:text-text mb-6"
@@ -125,7 +125,7 @@ const ForgotPassword: React.FC = () => {
         </div>
 
         {error && (
-          <div className="mb-4 p-4 bg-dangerSoft border border-danger rounded-[var(--radius-sm)]">
+          <div className="mb-4 p-4 bg-dangerSoft border border-danger rounded-sm">
             <p className="text-sm text-danger">{error}</p>
           </div>
         )}
@@ -142,7 +142,7 @@ const ForgotPassword: React.FC = () => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-border rounded-[var(--radius-sm)] focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
                 placeholder="ihre.email@beispiel.de"
                 required
               />
@@ -152,7 +152,7 @@ const ForgotPassword: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-brand text-onBrand py-3 rounded-[var(--radius-sm)] hover:bg-brandPressed focus:ring-4 focus:ring-sage-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-brand text-onBrand py-3 rounded-sm hover:bg-brandPressed focus:ring-4 focus:ring-sage-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Wird gesendet...' : 'Zurücksetzungs-Link senden'}
           </button>

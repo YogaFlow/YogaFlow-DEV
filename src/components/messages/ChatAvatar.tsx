@@ -29,14 +29,14 @@ const ChatAvatar: React.FC<ChatAvatarProps> = ({
       <img
         src={imageUrl}
         alt={alt}
-        className={`${container} rounded-[var(--radius-full)] object-cover shrink-0 ${className}`}
+        className={`${container} rounded-full object-cover shrink-0 ${className}`}
       />
     );
   }
 
   return (
     <div
-      className={`${container} rounded-[var(--radius-full)] bg-sage-100 flex items-center justify-center shrink-0 ${className}`}
+      className={`${container} rounded-full bg-sage-100 flex items-center justify-center shrink-0 ${className}`}
       aria-hidden={!alt}
     >
       <User size={icon} className="text-brand" />

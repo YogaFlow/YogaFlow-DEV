@@ -115,7 +115,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
             <select
               value={directRecipientId}
               onChange={(e) => onDirectRecipientChange(e.target.value)}
-              className="flex-1 min-w-[140px] text-base border border-border rounded-[var(--radius-sm)] px-2 py-1.5 focus:ring-2 focus:ring-brand"
+              className="flex-1 min-w-[140px] text-base border border-border rounded-sm px-2 py-1.5 focus:ring-2 focus:ring-brand"
               required={!isBroadcastMode}
             >
               <option value="">Empfänger wählen</option>
@@ -134,14 +134,14 @@ const ChatInput: React.FC<ChatInputProps> = ({
           <button
             type="button"
             onClick={() => setEmojiOpen((o) => !o)}
-            className="p-2.5 rounded-[var(--radius-sm)] text-textMuted hover:bg-surfaceSunken hover:text-brandPressed transition-colors"
+            className="p-2.5 rounded-sm text-textMuted hover:bg-surfaceSunken hover:text-brandPressed transition-colors"
             aria-label="Emoji auswählen"
             disabled={disabled}
           >
             <Smile size={20} />
           </button>
           {emojiOpen && (
-            <div className="absolute bottom-full left-0 mb-2 z-50 shadow-lg rounded-[var(--radius-md)] overflow-hidden">
+            <div className="absolute bottom-full left-0 mb-2 z-50 shadow-lg rounded-md overflow-hidden">
               <EmojiPicker
                 onEmojiClick={handleEmojiClick}
                 theme={Theme.LIGHT}
@@ -162,13 +162,13 @@ const ChatInput: React.FC<ChatInputProps> = ({
           rows={1}
           placeholder={placeholder}
           disabled={disabled}
-          className="flex-1 min-h-[44px] max-h-32 resize-none rounded-[var(--radius-sm)] border border-border px-4 py-2.5 text-base focus:border-transparent focus:ring-2 focus:ring-brand disabled:bg-surfaceSunken disabled:cursor-not-allowed"
+          className="flex-1 min-h-[44px] max-h-32 resize-none rounded-sm border border-border px-4 py-2.5 text-base focus:border-transparent focus:ring-2 focus:ring-brand disabled:bg-surfaceSunken disabled:cursor-not-allowed"
         />
 
         <button
           type="submit"
           disabled={disabled || !value.trim()}
-          className="shrink-0 p-2.5 rounded-[var(--radius-full)] bg-brand text-onBrand hover:bg-brandPressed transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="shrink-0 p-2.5 rounded-full bg-brand text-onBrand hover:bg-brandPressed transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="Nachricht senden"
         >
           <Send size={20} />
