@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Course, Registration, User } from '../types';
 import { isCourseManagerRole, isStudioAdmin, isTeacherOnly } from '../lib/userRoles';
-import { Calendar, Clock, Users, Mail, Phone, Search, Filter, Download, UserMinus } from 'lucide-react';
+import { Users, Mail, Phone, Search, Filter, Download, UserMinus } from 'lucide-react';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
 import {
   formatDate,
@@ -15,11 +15,24 @@ import ConfirmDialog, { ConfirmDialogState } from '../components/ui/ConfirmDialo
 import { isCourseUpcoming } from '../lib/courseDateTime';
 import { runPastRegistrationCleanup } from '../lib/registrationMaintenance';
 import { formatUserAddress } from '../lib/userAddress';
+import { groupParticipantsByCourse } from '../lib/participantGrouping';
 
 interface ParticipantWithDetails extends Registration {
   user: User;
   course: Course;
 }
+
+const courseGroupHeading = (course: Course, count: number) => {
+  const countLabel = count === 1 ? '1 Anmeldung' : `${count} Anmeldungen`;
+  return (
+    <>
+      <div className="text-[15px] font-medium text-text">{course.title}</div>
+      <div className="text-[13px] text-textMuted tabular-nums">
+        {formatDate(course.date)} · {formatTimeRange(course.time, course.end_time)} · {countLabel}
+      </div>
+    </>
+  );
+};
 
 const Participants: React.FC = () => {
   const { courseId } = useParams<{ courseId?: string }>();
@@ -246,6 +259,8 @@ const Participants: React.FC = () => {
     return matchesSearch && matchesCourse && matchesStatus;
   });
 
+  const groupedParticipants = groupParticipantsByCourse(filteredParticipants);
+
   const showActionsColumn = filteredParticipants.some(canUnregisterParticipant);
 
   const hasPermission = isCourseManagerRole(userProfile);
@@ -253,7 +268,7 @@ const Participants: React.FC = () => {
   if (!hasPermission) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-xl font-semibold text-text mb-2">Keine Berechtigung</h2>
+        <h2 className="text-xl font-medium text-text mb-2">Keine Berechtigung</h2>
         <p className="text-textMuted">Sie haben keine Berechtigung, diese Seite zu sehen.</p>
       </div>
     );
@@ -267,6 +282,8 @@ const Participants: React.FC = () => {
     );
   }
 
+  const headingColSpan = showActionsColumn ? 5 : 4;
+
   return (
     <div className="space-y-6">
       <FeedbackDialog dialog={feedbackDialog} onClose={() => setFeedbackDialog(null)} />
@@ -278,7 +295,7 @@ const Participants: React.FC = () => {
       />
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-text">Teilnehmer</h1>
+          <h1 className="text-2xl font-medium text-text">Teilnehmer</h1>
           <p className="text-textMuted">
             {userProfile && userProfile.role === 'teacher'
               ? 'Anmeldungen für Ihre kommenden Kurse'
@@ -289,7 +306,7 @@ const Participants: React.FC = () => {
         {filteredParticipants.length > 0 && (
           <button
             onClick={exportParticipants}
-            className="mt-4 sm:mt-0 bg-brand text-onBrand px-4 py-2 rounded-sm hover:bg-brandPressed transition-colors flex items-center"
+            className="mt-4 sm:mt-0 self-start inline-flex items-center border border-border text-brand px-4 py-2 rounded-sm hover:bg-surfaceSunken transition-colors"
           >
             <Download className="w-4 h-4 mr-2" />
             CSV Export
@@ -299,7 +316,7 @@ const Participants: React.FC = () => {
 
       {/* Filters */}
       <div className="bg-surface rounded-md border border-border p-3.5">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-textSubtle" />
             <input
@@ -338,12 +355,10 @@ const Participants: React.FC = () => {
               <option value="waitlist">Warteliste</option>
             </select>
           </div>
-
-          <div className="text-sm text-textMuted flex items-center">
-            <Users className="w-4 h-4 mr-2" />
-            {filteredParticipants.length} Teilnehmer
-          </div>
         </div>
+        <p className="mt-3 text-[13px] text-textMuted tabular-nums">
+          {filteredParticipants.length} Teilnehmer
+        </p>
       </div>
 
       {/* Participants List */}
@@ -359,84 +374,81 @@ const Participants: React.FC = () => {
         </div>
       ) : (
         <>
-          {/* Mobile: card list */}
-          <div className="sm:hidden space-y-3">
-            {filteredParticipants.map((participant) => (
-              <div key={participant.id} className="bg-surface rounded-md border border-border p-3.5">
-                <div className="flex items-start justify-between gap-2 mb-3">
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium text-text">
-                      {participant.user.first_name} {participant.user.last_name}
-                    </div>
-                    {formatUserAddress(participant.user) && (
-                      <div className="text-xs text-textMuted mt-0.5 truncate">
-                        {formatUserAddress(participant.user)}
+          {/* Mobile: one block per course */}
+          <div className="sm:hidden space-y-8">
+            {groupedParticipants.map((group) => (
+              <section key={group.courseId}>
+                <div className="mb-2">
+                  {courseGroupHeading(group.course, group.participants.length)}
+                </div>
+                <div className="divide-y divide-border overflow-hidden rounded-md border border-border bg-surface">
+                  {group.participants.map((participant) => (
+                    <div key={participant.id} className="px-3.5 py-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="text-[15px] font-medium text-text">
+                            {participant.user.first_name} {participant.user.last_name}
+                          </div>
+                          {formatUserAddress(participant.user) && (
+                            <div className="text-[13px] text-textMuted mt-0.5 truncate">
+                              {formatUserAddress(participant.user)}
+                            </div>
+                          )}
+                        </div>
+                        <span className={`flex-shrink-0 inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                          participant.status === 'registered'
+                            ? 'bg-sage-100 text-sage-800'
+                            : 'bg-accentSoft text-accent'
+                        }`}>
+                          {participant.status === 'registered'
+                            ? 'Angemeldet'
+                            : participant.waitlist_position
+                              ? `Warteliste ${participant.waitlist_position}`
+                              : 'Warteliste'}
+                        </span>
                       </div>
-                    )}
-                  </div>
-                  <span className={`flex-shrink-0 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                    participant.status === 'registered'
-                      ? 'bg-sage-100 text-sage-800'
-                      : 'bg-accentSoft text-accent'
-                  }`}>
-                    {participant.status === 'registered'
-                      ? 'Angemeldet'
-                      : participant.waitlist_position
-                        ? `WL ${participant.waitlist_position}`
-                        : 'Warteliste'}
-                  </span>
-                </div>
 
-                <div className="text-sm font-medium text-text mb-1">{participant.course.title}</div>
-                <div className="flex items-center gap-3 text-xs text-textMuted mb-3">
-                  <span className="flex items-center gap-1 tabular-nums">
-                    <Calendar className="w-3 h-3" />
-                    {formatDate(participant.course.date)}
-                  </span>
-                  <span className="flex items-center gap-1 tabular-nums">
-                    <Clock className="w-3 h-3" />
-                    {formatTimeRange(participant.course.time, participant.course.end_time)}
-                  </span>
-                </div>
+                      <div className="mt-2 space-y-1 text-[13px]">
+                        <a href={`mailto:${participant.user.email}`} className="flex items-center gap-1.5 text-textMuted hover:text-brandPressed">
+                          <Mail className="w-3 h-3 flex-shrink-0" />
+                          <span className="truncate">{participant.user.email}</span>
+                        </a>
+                        {participant.user.phone && (
+                          <a href={`tel:${participant.user.phone}`} className="flex items-center gap-1.5 text-textMuted hover:text-brandPressed">
+                            <Phone className="w-3 h-3 flex-shrink-0" />
+                            {participant.user.phone}
+                          </a>
+                        )}
+                      </div>
 
-                <div className="space-y-1 text-xs mb-3">
-                  <a href={`mailto:${participant.user.email}`} className="flex items-center gap-1.5 text-textMuted hover:text-brandPressed">
-                    <Mail className="w-3 h-3 flex-shrink-0" />
-                    <span className="truncate">{participant.user.email}</span>
-                  </a>
-                  {participant.user.phone && (
-                    <a href={`tel:${participant.user.phone}`} className="flex items-center gap-1.5 text-textMuted hover:text-brandPressed">
-                      <Phone className="w-3 h-3 flex-shrink-0" />
-                      {participant.user.phone}
-                    </a>
-                  )}
+                      <div className="mt-2 flex items-center justify-between">
+                        <span className="text-[13px] text-textSubtle tabular-nums">
+                          {formatDateTime(participant.registered_at)}
+                        </span>
+                        {canUnregisterParticipant(participant) && (
+                          <button
+                            type="button"
+                            onClick={() => requestUnregister(participant)}
+                            disabled={unregisteringId === participant.id}
+                            className="inline-flex min-h-11 items-center gap-1 text-[13px] font-medium text-danger hover:text-danger disabled:opacity-50"
+                          >
+                            {unregisteringId === participant.id ? (
+                              <span className="animate-spin rounded-full h-3 w-3 border-b-2 border-danger" />
+                            ) : (
+                              <UserMinus className="w-3 h-3" />
+                            )}
+                            Abmelden
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-
-                <div className="flex items-center justify-between pt-2 border-t border-border">
-                  <span className="text-xs text-textSubtle tabular-nums">
-                    {formatDateTime(participant.registered_at)}
-                  </span>
-                  {canUnregisterParticipant(participant) && (
-                    <button
-                      type="button"
-                      onClick={() => requestUnregister(participant)}
-                      disabled={unregisteringId === participant.id}
-                      className="inline-flex items-center gap-1 text-xs font-medium text-danger hover:text-danger disabled:opacity-50"
-                    >
-                      {unregisteringId === participant.id ? (
-                        <span className="animate-spin rounded-full h-3 w-3 border-b-2 border-danger" />
-                      ) : (
-                        <UserMinus className="w-3 h-3" />
-                      )}
-                      Abmelden
-                    </button>
-                  )}
-                </div>
-              </div>
+              </section>
             ))}
           </div>
 
-          {/* Desktop: table */}
+          {/* Desktop: one table, one tbody per course */}
           <div className="hidden sm:block bg-surface rounded-md border border-border overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-border">
@@ -444,9 +456,6 @@ const Participants: React.FC = () => {
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-textMuted">
                       Teilnehmer
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-textMuted">
-                      Kurs
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-textMuted">
                       Kontakt
@@ -464,88 +473,86 @@ const Participants: React.FC = () => {
                     )}
                   </tr>
                 </thead>
-                <tbody className="bg-surface divide-y divide-border">
-                  {filteredParticipants.map((participant) => (
-                    <tr key={participant.id} className="hover:bg-surfaceSunken">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-text">
-                            {participant.user.first_name} {participant.user.last_name}
-                          </div>
-                          {formatUserAddress(participant.user) && (
-                            <div className="text-sm text-textMuted">
-                              {formatUserAddress(participant.user)}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-text">
-                            {participant.course.title}
-                          </div>
-                          <div className="text-sm text-textMuted flex items-center tabular-nums">
-                            <Calendar className="w-3 h-3 mr-1" />
-                            {formatDate(participant.course.date)}
-                            <Clock className="w-3 h-3 ml-2 mr-1" />
-                            {formatTimeRange(participant.course.time, participant.course.end_time)}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-text flex items-center">
-                          <Mail className="w-3 h-3 mr-1" />
-                          <a href={`mailto:${participant.user.email}`} className="hover:text-brandPressed">
-                            {participant.user.email}
-                          </a>
-                        </div>
-                        <div className="text-sm text-textMuted flex items-center mt-1">
-                          <Phone className="w-3 h-3 mr-1" />
-                          <a href={`tel:${participant.user.phone}`} className="hover:text-brandPressed">
-                            {participant.user.phone}
-                          </a>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          participant.status === 'registered'
-                            ? 'bg-sage-100 text-sage-800'
-                            : 'bg-accentSoft text-accent'
-                        }`}>
-                          {participant.status === 'registered'
-                            ? 'Angemeldet'
-                            : participant.waitlist_position
-                              ? `Warteliste (Pos. ${participant.waitlist_position})`
-                              : 'Warteliste'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-textMuted tabular-nums">
-                        {formatDateTime(participant.registered_at)}
-                      </td>
-                      {showActionsColumn && (
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          {canUnregisterParticipant(participant) ? (
-                            <button
-                              type="button"
-                              onClick={() => requestUnregister(participant)}
-                              disabled={unregisteringId === participant.id}
-                              className="inline-flex items-center gap-1.5 text-danger hover:text-danger disabled:opacity-50"
-                            >
-                              {unregisteringId === participant.id ? (
-                                <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-danger" />
-                              ) : (
-                                <UserMinus className="w-4 h-4" />
-                              )}
-                              Abmelden
-                            </button>
-                          ) : (
-                            <span className="text-textSubtle">—</span>
-                          )}
-                        </td>
-                      )}
+                {groupedParticipants.map((group) => (
+                  <tbody key={group.courseId} className="bg-surface divide-y divide-border">
+                    <tr>
+                      <th
+                        colSpan={headingColSpan}
+                        scope="colgroup"
+                        className="bg-surfaceSunken px-6 py-3 text-left font-normal"
+                      >
+                        {courseGroupHeading(group.course, group.participants.length)}
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
+                    {group.participants.map((participant) => (
+                      <tr key={participant.id} className="hover:bg-surfaceSunken">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div>
+                            <div className="text-sm font-medium text-text">
+                              {participant.user.first_name} {participant.user.last_name}
+                            </div>
+                            {formatUserAddress(participant.user) && (
+                              <div className="text-sm text-textMuted">
+                                {formatUserAddress(participant.user)}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-text flex items-center">
+                            <Mail className="w-3 h-3 mr-1" />
+                            <a href={`mailto:${participant.user.email}`} className="hover:text-brandPressed">
+                              {participant.user.email}
+                            </a>
+                          </div>
+                          <div className="text-sm text-textMuted flex items-center mt-1">
+                            <Phone className="w-3 h-3 mr-1" />
+                            <a href={`tel:${participant.user.phone}`} className="hover:text-brandPressed">
+                              {participant.user.phone}
+                            </a>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                            participant.status === 'registered'
+                              ? 'bg-sage-100 text-sage-800'
+                              : 'bg-accentSoft text-accent'
+                          }`}>
+                            {participant.status === 'registered'
+                              ? 'Angemeldet'
+                              : participant.waitlist_position
+                                ? `Warteliste (Pos. ${participant.waitlist_position})`
+                                : 'Warteliste'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-textMuted tabular-nums">
+                          {formatDateTime(participant.registered_at)}
+                        </td>
+                        {showActionsColumn && (
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            {canUnregisterParticipant(participant) ? (
+                              <button
+                                type="button"
+                                onClick={() => requestUnregister(participant)}
+                                disabled={unregisteringId === participant.id}
+                                className="inline-flex items-center gap-1.5 text-danger hover:text-danger disabled:opacity-50"
+                              >
+                                {unregisteringId === participant.id ? (
+                                  <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-danger" />
+                                ) : (
+                                  <UserMinus className="w-4 h-4" />
+                                )}
+                                Abmelden
+                              </button>
+                            ) : (
+                              <span className="text-textSubtle">—</span>
+                            )}
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                ))}
               </table>
             </div>
           </div>
