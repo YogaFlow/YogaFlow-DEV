@@ -132,7 +132,7 @@ const CourseFilterBar: React.FC<CourseFilterBarProps> = ({
           />
         </div>
 
-        {teachers.length > 0 && (
+        {teachers.length > 1 && (
           <div className="relative w-full md:w-52 md:shrink-0 lg:w-60">
             <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-textSubtle" />
             <select
@@ -167,25 +167,11 @@ const CourseFilterBar: React.FC<CourseFilterBarProps> = ({
           {dateChooseChip}
         </div>
 
-        {/* Mobile: scrollable chips with fade hint */}
+        {/* Mobile: wrapping chips */}
         <div className="flex items-center gap-2 md:hidden">
-          <div className="relative min-w-0 flex-1">
-            {!isCustom && (
-              <div
-                className="pointer-events-none absolute inset-y-0 left-0 z-10 w-5 bg-gradient-to-r from-surface to-transparent"
-                aria-hidden
-              />
-            )}
-            <div
-              className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-l from-surface to-transparent"
-              aria-hidden
-            />
-            <div className="overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <div className="flex w-max items-center gap-2 py-0.5 pl-1 pr-4">
-                {customChip}
-                {renderPresetChips(false)}
-              </div>
-            </div>
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+            {customChip}
+            {renderPresetChips(false)}
           </div>
           <button
             type="button"

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Clock, MapPin, Users, Plus } from 'lucide-react';
+import { Calendar, Check, Plus } from 'lucide-react';
 import CourseFilterBar from '../components/courses/CourseFilterBar';
 import {
   EMPTY_DATE_FILTER,
@@ -15,12 +15,8 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Course, Registration } from '../types';
 import { isCourseUpcoming } from '../lib/courseDateTime';
-import {
-  formatDayLabel,
-  formatDuration,
-  formatPrice,
-  formatTimeRange,
-} from '../lib/format';
+import { formatDayLabel, formatPrice, formatTime } from '../lib/format';
+import { groupCoursesByDay } from '../lib/courseGrouping';
 import { runPastRegistrationCleanup } from '../lib/registrationMaintenance';
 import { canSelfEnrollInCourses } from '../lib/userRoles';
 import ConfirmDialog, { ConfirmDialogState } from '../components/ui/ConfirmDialog';
@@ -344,6 +340,8 @@ const Courses: React.FC = () => {
     return matchesSearch && matchesDate && matchesTeacher && isCourseUpcoming(course);
   });
 
+  const dayGroups = groupCoursesByDay(filteredCourses);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -370,13 +368,13 @@ const Courses: React.FC = () => {
                 }`}
                 aria-hidden
               />
-              <h3 className="text-lg font-semibold text-text">{feedbackDialog.title}</h3>
+              <h3 className="text-lg font-medium text-text">{feedbackDialog.title}</h3>
             </div>
             <p className="text-sm leading-6 text-textMuted">{feedbackDialog.message}</p>
             <div className="mt-6 flex justify-center">
               <button
                 onClick={() => setFeedbackDialog(null)}
-                className={`rounded-full px-6 py-2 text-sm font-semibold text-onBrand transition-colors ${
+                className={`rounded-full px-6 py-2 text-sm font-medium text-onBrand transition-colors ${
                   feedbackDialog.type === 'success'
                     ? 'bg-brand hover:bg-brandPressed'
                     : 'bg-danger hover:bg-danger'
@@ -390,16 +388,16 @@ const Courses: React.FC = () => {
       )}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-text">Kurse</h1>
+          <h1 className="text-2xl font-medium text-text">Kurse</h1>
           <p className="text-textMuted">Entdecken Sie unsere Yoga-Kurse</p>
         </div>
         
         {(isAdmin || isCourseLeader) && (
           <button
             onClick={() => navigate('/create-course')}
-            className="mt-4 sm:mt-0 bg-brand text-onBrand px-4 py-2 rounded-sm hover:bg-brandPressed transition-colors flex items-center"
+            className="mt-4 inline-flex items-center self-start rounded-sm border border-border px-3 py-2 text-[13px] font-medium text-brand transition-colors hover:bg-surfaceSunken sm:mt-0"
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="mr-2 h-4 w-4" />
             Neuer Kurs
           </button>
         )}
@@ -415,138 +413,163 @@ const Courses: React.FC = () => {
         onTeacherChange={setSelectedTeacherId}
       />
 
-      {/* Courses grid */}
       {filteredCourses.length === 0 ? (
-        <div className="text-center py-12">
-          <Calendar className="w-16 h-16 text-textSubtle mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-text mb-2">Keine Kurse gefunden</h3>
+        <div className="py-12 text-center">
+          <Calendar className="mx-auto mb-4 h-16 w-16 text-textSubtle" />
+          <h3 className="mb-2 text-lg font-medium text-text">Keine Kurse gefunden</h3>
           <p className="text-textMuted">
             {searchTerm || dateFilter.preset || selectedTeacherId
-              ? 'Versuchen Sie andere Suchkriterien.' 
+              ? 'Versuchen Sie andere Suchkriterien.'
               : 'Derzeit sind keine Kurse verfügbar.'}
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredCourses.map((course) => {
-            const registeredCount = participantCounts[course.id]?.registered || 0;
-            const isRegistered = isUserRegistered(course.id);
-            const registrationStatus = getUserRegistrationStatus(course.id);
-            const waitlistPosition = getUserWaitlistPosition(course.id);
-            const isFull = registeredCount >= course.max_participants;
+        <div className="space-y-8">
+          {dayGroups.map((group) => (
+            <section key={group.date}>
+              <h2 className="mb-2 text-[15px] font-medium text-textMuted">
+                {formatDayLabel(group.date)}
+              </h2>
+              <div className="divide-y divide-border overflow-hidden rounded-md border border-border bg-surface">
+                {group.courses.map((course) => {
+                  const registeredCount = participantCounts[course.id]?.registered || 0;
+                  const isRegistered = isUserRegistered(course.id);
+                  const registrationStatus = getUserRegistrationStatus(course.id);
+                  const waitlistPosition = getUserWaitlistPosition(course.id);
+                  const isFull = registeredCount >= course.max_participants;
+                  const remaining = course.max_participants - registeredCount;
+                  const teacherName = course.teacher
+                    ? `${course.teacher.first_name} ${course.teacher.last_name}`.trim()
+                    : '';
+                  const occupancy =
+                    isAdmin || isCourseLeader
+                      ? `${registeredCount}/${course.max_participants} Plätze`
+                      : '';
+                  const meta = [teacherName, course.location, occupancy]
+                    .filter(Boolean)
+                    .join(' · ');
+                  const description = course.description?.trim() ?? '';
+                  const canAct =
+                    course.status === 'active' &&
+                    canSelfEnrollInCourses(userProfile) &&
+                    course.teacher_id !== userProfile?.id;
 
-            return (
-              <div
-                key={course.id}
-                className="overflow-hidden rounded-md border border-border bg-surface"
-              >
-                <div className="p-3.5">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <h3 className="text-xl font-bold leading-tight text-text">{course.title}</h3>
-                          <p className="mt-1 line-clamp-1 text-xs font-semibold text-textSubtle">
-                            {course.description}
-                          </p>
-                        </div>
-                        <span className="shrink-0 text-2xl font-bold text-brand tabular-nums">{formatPrice(course.price)}</span>
-                      </div>
+                  let status: React.ReactNode = null;
+                  if (isRegistered && registrationStatus === 'registered') {
+                    status = (
+                      <span className="inline-flex items-center gap-1 text-[13px] font-medium text-success">
+                        <Check className="h-4 w-4" aria-hidden />
+                        Angemeldet
+                      </span>
+                    );
+                  } else if (isRegistered) {
+                    status = (
+                      <span className="text-[13px] font-medium text-accent">
+                        {waitlistPosition ? `Warteliste Pos. ${waitlistPosition}` : 'Warteliste'}
+                      </span>
+                    );
+                  } else if (isFull) {
+                    status = (
+                      <span className="text-[13px] font-medium text-textMuted">Ausgebucht</span>
+                    );
+                  } else if (remaining <= 2) {
+                    status = (
+                      <span className="text-[13px] font-medium text-accent">
+                        {remaining === 1 ? 'noch 1 Platz' : `noch ${remaining} Plätze`}
+                      </span>
+                    );
+                  } else if (course.teacher_id === userProfile?.id) {
+                    status = (
+                      <span className="text-[13px] font-medium text-textMuted">Dein Kurs</span>
+                    );
+                  }
 
-                      <div className="mt-4 space-y-2 text-sm text-textMuted">
-                        <div className="flex items-center gap-2 font-medium text-textMuted">
-                          <Calendar className="h-4 w-4 shrink-0" />
-                          <span className="tabular-nums">{formatDayLabel(course.date)}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 shrink-0" />
-                          <span className="tabular-nums">
-                            {formatTimeRange(course.time, course.end_time)}
-                            {course.duration != null ? ` (${formatDuration(course.duration)})` : ''}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 shrink-0" />
-                          {course.location}
-                        </div>
-                        {(isAdmin || isCourseLeader) && (
-                          <div className="flex items-center gap-2">
-                            <Users className="h-4 w-4 shrink-0" />
-                            <span className="tabular-nums">{registeredCount}/{course.max_participants}</span> Teilnehmer
-                          </div>
-                        )}
-                      </div>
-
-                      {course.teacher && (
-                        <div className="mt-5 border-t border-border pt-4">
-                          <p className="text-xs font-semibold text-textSubtle">Kursleitung</p>
-                          <p className="mt-1 text-sm font-semibold text-textMuted">
-                            Lehrer: {course.teacher.first_name} {course.teacher.last_name}
-                          </p>
-                        </div>
-                      )}
-
-                      <div className="mt-5 flex items-center justify-between gap-3 border-t border-border pt-4">
-                        <div className={`flex items-center gap-2 ${
+                  const action = canAct ? (
+                    isRegistered ? (
+                      <button
+                        type="button"
+                        onClick={() => requestUnregister(course)}
+                        className="inline-flex min-h-11 items-center rounded-sm px-3 text-[13px] font-medium text-danger transition-colors hover:bg-dangerSoft"
+                      >
+                        Abmelden
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleRegister(course.id)}
+                        className={`inline-flex min-h-11 items-center rounded-sm px-3 text-[13px] font-medium transition-colors ${
                           isFull
-                            ? 'rounded-sm bg-surfaceSunken px-3 py-1 text-textMuted'
-                            : course.max_participants - registeredCount <= 2
-                              ? 'rounded-sm bg-accentSoft px-3 py-1 text-accent'
-                              : ''
-                        }`}>
-                          <div className={`h-2.5 w-2.5 rounded-full ${
-                            isFull ? 'bg-textMuted' : (course.max_participants - registeredCount <= 2 ? 'bg-accent' : 'bg-sage-500')
-                          }`}></div>
-                          <span className={`text-sm font-medium ${
-                            isFull
-                              ? 'text-textMuted'
-                              : course.max_participants - registeredCount <= 2
-                                ? 'text-accent'
-                                : 'text-textMuted'
-                          }`}>
-                            {isFull ? 'Leider schon ausgebucht' : (course.max_participants - registeredCount <= 2 ? `noch ${course.max_participants - registeredCount} ${course.max_participants - registeredCount === 1 ? 'Restplatz' : 'Restplätze'}` : 'Verfügbar')}
-                          </span>
-                        </div>
+                            ? 'border border-accent bg-accentSoft text-accent hover:bg-accentSoft'
+                            : 'bg-brand text-onBrand hover:bg-brandPressed'
+                        }`}
+                      >
+                        {isFull ? 'Warteliste' : 'Anmelden'}
+                      </button>
+                    )
+                  ) : null;
 
-                        {isRegistered && registrationStatus === 'registered' && (
-                          <span className="inline-flex items-center rounded-full bg-sage-100 px-3 py-1 text-xs font-semibold text-sage-800">
-                            Angemeldet
-                          </span>
-                        )}
+                  return (
+                    <article key={course.id}>
+                      <div className="hidden items-center gap-4 px-3.5 py-3 md:flex">
+                        <div className="w-[88px] shrink-0 tabular-nums">
+                          <div className="text-[17px] font-medium text-text">
+                            {formatTime(course.time)}
+                          </div>
+                          {course.end_time ? (
+                            <div className="text-[13px] text-textMuted">
+                              {formatTime(course.end_time)}
+                            </div>
+                          ) : null}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-[17px] font-medium text-text">{course.title}</h3>
+                          {meta ? (
+                            <p className="text-[13px] text-textMuted tabular-nums">{meta}</p>
+                          ) : null}
+                          {description ? (
+                            <p className="line-clamp-1 text-[13px] text-textSubtle">{description}</p>
+                          ) : null}
+                        </div>
+                        <div className="shrink-0">{status}</div>
+                        <div className="w-20 shrink-0 text-right text-[17px] font-medium text-text tabular-nums">
+                          {formatPrice(course.price)}
+                        </div>
+                        <div className="shrink-0">{action}</div>
                       </div>
 
-                      {course.status === 'active' && canSelfEnrollInCourses(userProfile) && course.teacher_id !== userProfile?.id && (
-                        <div className="mt-4">
-                          {isRegistered ? (
-                            <div className="space-y-2">
-                              {registrationStatus !== 'registered' && (
-                                <div className="inline-flex items-center justify-center rounded-sm px-4 py-2 text-sm font-medium bg-accentSoft text-accent">
-                                  {waitlistPosition ? `Warteliste (Pos. ${waitlistPosition})` : 'Warteliste'}
-                                </div>
-                              )}
-                              <button
-                                onClick={() => requestUnregister(course)}
-                                className="w-full rounded-sm px-4 py-2 text-sm font-medium text-danger hover:bg-dangerSoft transition-colors"
-                              >
-                                Abmelden
-                              </button>
+                      <div className="flex gap-3 px-3.5 py-3 md:hidden">
+                        <div className="w-14 shrink-0 text-[17px] font-medium text-text tabular-nums">
+                          {formatTime(course.time)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-baseline justify-between gap-2">
+                            <h3 className="min-w-0 truncate text-[17px] font-medium text-text">
+                              {course.title}
+                            </h3>
+                            <span className="shrink-0 text-[17px] font-medium text-text tabular-nums">
+                              {formatPrice(course.price)}
+                            </span>
+                          </div>
+                          {meta ? (
+                            <p className="text-[13px] text-textMuted tabular-nums">{meta}</p>
+                          ) : null}
+                          {description ? (
+                            <p className="line-clamp-1 text-[13px] text-textSubtle">{description}</p>
+                          ) : null}
+                          {(status || action) && (
+                            <div className="mt-2 flex items-center justify-end gap-2">
+                              {status}
+                              {action}
                             </div>
-                          ) : (
-                            <button
-                              onClick={() => handleRegister(course.id)}
-                              className={`w-full px-4 py-2 rounded-sm text-sm font-medium transition-colors ${
-                                isFull
-                                  ? 'bg-accentSoft text-accent hover:bg-accentSoft'
-                                  : 'bg-brand text-onBrand hover:bg-brandPressed'
-                              }`}
-                            >
-                              {isFull ? 'Warteliste' : 'Anmelden'}
-                            </button>
                           )}
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
-            );
-          })}
+            </section>
+          ))}
         </div>
       )}
     </div>
