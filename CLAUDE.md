@@ -93,6 +93,22 @@ Datenbank. Helferfunktionen sind `SECURITY DEFINER` mit `SET search_path TO 'pub
 `get_my_tenant_id()` liefert bei fehlendem Profil `NULL`, die Policy schlägt dann fehl.
 Das ist fail-closed und soll so bleiben.
 
+**Selbst-Update auf `users` (Befund und Fix 11.09.2026)**
+
+Die Policies verglichen `tenant_id`, aber `tenant_id` selbst war vom Client änderbar:
+`users_update_own_profile` prüft nur `id = auth.uid()`, und `anon`/`authenticated` hatten
+Tabellen-UPDATE auf alle Spalten. Eine Teilnehmerin konnte sich so in ein fremdes Studio
+umschreiben und `email_verified` selbst setzen (auf DEV bewiesen, in PROD keine Spur einer
+Ausnutzung). Seit Migration `20260911134500` (DEV und PROD) darf `authenticated` auf `users`
+nur `first_name, last_name, email, phone, street, house_number, postal_code, city, role`
+ändern, `anon` nichts.
+
+- Neue Spalten auf `users` sind automatisch gesperrt. Eine Freigabe braucht einen Beleg aus
+  dem Client-Code.
+- `REVOKE … FROM PUBLIC` entzieht auf Supabase `anon` und `authenticated` nichts. Dort immer
+  explizit entziehen.
+- `email` ist nur vorläufig freigegeben und wird mit der Mehrfachmitgliedschaft Login-Sache.
+
 ---
 
 ## Designsystem
@@ -145,6 +161,14 @@ Einladung, Gedrückt-Zustand statt Hover.
 - Prüfen, ob `users.email` global oder pro Tenant eindeutig ist. Bei global eindeutig kann
   eine Teilnehmerin nicht bei zwei Studios buchen.
 - Der Lehrerfilter auf der Kursseite ist sichtbar — ungeklärt, ob er tatsächlich filtert.
+- `close_past_course_registrations()` ist ohne jede Prüfung für `anon` aufrufbar, wirkt über
+  alle Tenants und rechnet `date + time` als UTC statt `Europe/Berlin`.
+- `ensure_public_user` schreibt noch in die entfernte Spalte `roles`. Der Rückfallpfad
+  scheitert immer; der Normalfall kehrt vorher zurück.
+- `Profile.tsx` ändert nur die Kopie `users.email`, nicht die Login-E-Mail. In PROD ist das
+  bei einem Konto auseinandergelaufen.
+- PROD: 2 Logins ohne Profil, 1 Studio ohne Profil.
+- Supabase CLI lokal v2.77.0, aktuell v2.117.0.
 
 ---
 
