@@ -137,7 +137,7 @@ const LandingPage: React.FC = () => {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-16 lg:py-24">
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.15fr)] gap-10 lg:gap-12 xl:gap-14 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)] gap-10 lg:gap-12 xl:gap-14 items-center">
           <div className="text-left">
             <h1 className="text-4xl sm:text-5xl lg:text-[3.25rem] font-bold text-text leading-tight tracking-tight">
               Finden Sie Ihre Balance mit{' '}
@@ -160,16 +160,17 @@ const LandingPage: React.FC = () => {
               </p>
             </div>
           </div>
-          <div className="relative w-full max-w-3xl mx-auto lg:mx-0 lg:max-w-none xl:min-w-[min(100%,720px)]">
-            <div className="bg-surface rounded-md border border-border p-1">
+          <div className="mx-auto w-full max-w-[320px]">
+            <div className="bg-surface rounded-lg border border-border p-1">
               <img
-                src="/hero-dashboard.png"
-                srcSet="/hero-dashboard.png 971w, /hero-dashboard@2x.png 1942w"
-                sizes="(min-width: 1280px) 720px, (min-width: 1024px) 55vw, 100vw"
-                width={971}
-                height={578}
-                alt="Omlify Dashboard – Kursübersicht und Studio-Verwaltung"
-                className="w-full h-auto rounded-md [image-rendering:-webkit-optimize-contrast]"
+                src="/hero-app-mobile.jpg"
+                width={828}
+                height={1589}
+                alt="Omlify auf dem Smartphone: Übersicht einer Yogalehrerin mit ihren Kursen und Anmeldungen"
+                className="w-full h-auto rounded-md"
+                // Klein geschrieben mit Absicht: React 18 verwirft fetchPriority und
+                // setzt das Attribut nicht. Die TS-Typen sind der Laufzeit voraus, der
+                // gemeldete Fehler in dieser Zeile ist bekannt und gewollt.
                 fetchpriority="high"
                 decoding="async"
               />
