@@ -178,15 +178,10 @@ const MyCourses: React.FC = () => {
   return (
     <div className="space-y-6">
       <FeedbackDialog dialog={feedbackDialog} onClose={() => setFeedbackDialog(null)} />
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-medium text-text">Kurse verwalten</h1>
-          <p className="text-textMuted">Kurse, die Sie selbst unterrichten.</p>
-        </div>
-        
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end">
         <button
           onClick={() => navigate('/create-course')}
-          className="mt-4 sm:mt-0 bg-brand text-onBrand px-4 py-2 rounded-sm hover:bg-brandPressed transition-colors flex items-center"
+          className="bg-brand text-onBrand px-4 py-2 rounded-sm hover:bg-brandPressed transition-colors flex items-center"
         >
           <Plus className="w-4 h-4 mr-2" />
           Neuer Kurs

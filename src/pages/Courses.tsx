@@ -386,22 +386,17 @@ const Courses: React.FC = () => {
           </div>
         </div>
       )}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-medium text-text">Kurse</h1>
-          <p className="text-textMuted">Entdecken Sie unsere Yoga-Kurse</p>
-        </div>
-        
-        {(isAdmin || isCourseLeader) && (
+      {(isAdmin || isCourseLeader) && (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end">
           <button
             onClick={() => navigate('/create-course')}
-            className="mt-4 inline-flex items-center self-start rounded-sm border border-border px-3 py-2 text-[13px] font-medium text-brand transition-colors hover:bg-surfaceSunken sm:mt-0"
+            className="inline-flex items-center self-start rounded-sm border border-border px-3 py-2 text-[13px] font-medium text-brand transition-colors hover:bg-surfaceSunken"
           >
             <Plus className="mr-2 h-4 w-4" />
             Neuer Kurs
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       <CourseFilterBar
         searchTerm={searchTerm}

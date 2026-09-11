@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { MessageSquare } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
 import ConversationList from '../components/messages/ConversationList';
@@ -368,11 +367,6 @@ export default function Messages() {
         onSubmit={(e) => void handleModalSubmit(e)}
         sending={sending}
       />
-
-      <div className="flex items-center gap-3 mb-3 shrink-0 lg:mb-4">
-        <MessageSquare size={26} className="text-text lg:w-7 lg:h-7" />
-        <h1 className="text-xl lg:text-2xl font-bold text-text">Nachrichten</h1>
-      </div>
 
       {/* Desktop / Tablet: two columns */}
       <div className="hidden lg:grid lg:grid-cols-[minmax(280px,360px)_1fr] gap-4 flex-1 min-h-0">

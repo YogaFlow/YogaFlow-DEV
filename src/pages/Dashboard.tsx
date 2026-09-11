@@ -380,9 +380,10 @@ const Dashboard: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-medium text-text">Dashboard</h1>
-        <p className="text-textMuted">
-          Überblick über Ihre Kurse.
+        <p className="text-[17px] font-normal text-text">
+          {userProfile?.first_name
+            ? `Willkommen zurück, ${userProfile.first_name}!`
+            : 'Willkommen zurück!'}
         </p>
       </div>
 

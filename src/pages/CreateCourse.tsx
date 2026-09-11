@@ -442,8 +442,6 @@ const CreateCourse: React.FC = () => {
           <ArrowLeft className="w-4 h-4 mr-2" />
           Zurück
         </button>
-        <h1 className="text-2xl font-bold text-text">Neuen Kurs erstellen</h1>
-        <p className="text-textMuted">Erstellen Sie einen neuen Yoga-Kurs für Ihre Teilnehmer.</p>
       </div>
 
       <div className="bg-surface rounded-md border border-border">

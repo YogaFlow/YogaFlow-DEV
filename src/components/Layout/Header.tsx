@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Bell, Menu } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useNotifications } from '../../lib/useNotifications';
+import { titleForPath } from '../../lib/routeTitles';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -10,7 +10,8 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const navigate = useNavigate();
-  const { userProfile } = useAuth();
+  const location = useLocation();
+  const pageTitle = titleForPath(location.pathname);
   const { notifications, unreadCount, markAllAsRead } = useNotifications();
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const notificationButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -71,10 +72,11 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
           >
             <Menu className="w-6 h-6 max-[380px]:w-5 max-[380px]:h-5" />
           </button>
-          <h2 className="text-lg sm:text-xl font-semibold text-text truncate max-[380px]:text-[17px]">
-            <span className="max-[380px]:hidden">Willkommen zurück, {userProfile?.first_name}!</span>
-            <span className="hidden max-[380px]:inline">Willkommen</span>
-          </h2>
+          {pageTitle ? (
+            <h1 className="text-lg sm:text-xl font-medium text-text truncate max-[380px]:text-[17px]">
+              {pageTitle}
+            </h1>
+          ) : null}
         </div>
 
         <div className="flex items-center space-x-3 sm:space-x-4 shrink-0 max-[380px]:space-x-2">

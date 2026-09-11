@@ -293,26 +293,27 @@ const Participants: React.FC = () => {
         onConfirm={executeUnregister}
         onCancel={cancelUnregister}
       />
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-medium text-text">Teilnehmer</h1>
+      {((userProfile && userProfile.role === 'teacher') || filteredParticipants.length > 0) && (
+      <div className={`flex flex-col gap-4 sm:flex-row sm:items-center ${
+        userProfile && userProfile.role === 'teacher' ? 'sm:justify-between' : 'sm:justify-end'
+      }`}>
+        {userProfile && userProfile.role === 'teacher' && (
           <p className="text-textMuted">
-            {userProfile && userProfile.role === 'teacher'
-              ? 'Anmeldungen für Ihre kommenden Kurse'
-              : 'Verwalten Sie Kursteilnehmer und Anmeldungen'}
+            Anmeldungen für Ihre kommenden Kurse
           </p>
-        </div>
-        
+        )}
+
         {filteredParticipants.length > 0 && (
           <button
             onClick={exportParticipants}
-            className="mt-4 sm:mt-0 self-start inline-flex items-center border border-border text-brand px-4 py-2 rounded-sm hover:bg-surfaceSunken transition-colors"
+            className="self-start inline-flex items-center border border-border text-brand px-4 py-2 rounded-sm hover:bg-surfaceSunken transition-colors"
           >
             <Download className="w-4 h-4 mr-2" />
             CSV Export
           </button>
         )}
       </div>
+      )}
 
       {/* Filters */}
       <div className="bg-surface rounded-md border border-border p-3.5">

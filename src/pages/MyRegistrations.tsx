@@ -91,13 +91,6 @@ const MyRegistrations: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-text">Meine Anmeldungen</h1>
-        <p className="text-textMuted">
-          Kurse, für die Sie sich selbst als Teilnehmer angemeldet haben.
-        </p>
-      </div>
-
       {loadError ? (
         <div className="rounded-sm border border-danger bg-dangerSoft p-4 text-sm text-danger">
           Ihre Anmeldungen konnten nicht geladen werden. Bitte laden Sie die Seite erneut.

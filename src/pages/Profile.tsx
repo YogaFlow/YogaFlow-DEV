@@ -186,11 +186,6 @@ const Profile: React.FC = () => {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-text">Mein Profil</h1>
-        <p className="text-textMuted">Verwalten Sie Ihre persönlichen Informationen</p>
-      </div>
-
       <div className="bg-surface rounded-md border border-border p-2 flex gap-2">
         <button
           onClick={() => switchToTab('profile')}

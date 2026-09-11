@@ -424,7 +424,6 @@ export default function Users() {
       <FeedbackDialog dialog={feedbackDialog} onClose={() => setFeedbackDialog(null)} />
 
       <div className="mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-text">Nutzerverwaltung</h1>
         <p className="text-sm text-textMuted mt-1">
           {isTeacher
             ? 'Alle Teilnehmer deines Studios – Stammdaten und Passwörter bearbeiten, Kurse zuweisen.'

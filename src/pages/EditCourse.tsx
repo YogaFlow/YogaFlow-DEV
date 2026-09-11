@@ -408,8 +408,6 @@ const EditCourse: React.FC = () => {
           <ArrowLeft className="w-4 h-4 mr-2" />
           Zurück
         </button>
-        <h1 className="text-2xl font-bold text-text">Kurs bearbeiten</h1>
-        <p className="text-textMuted">Bearbeiten Sie die Details Ihres Yoga-Kurses.</p>
       </div>
 
       <div className="bg-surface rounded-md border border-border">

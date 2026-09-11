@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { Settings as SettingsIcon, Save } from 'lucide-react';
+import { Save } from 'lucide-react';
 import { GlobalSettings } from '../types';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
 
@@ -103,10 +103,6 @@ export default function Settings() {
   return (
     <div className="p-8 max-w-4xl">
       <FeedbackDialog dialog={feedbackDialog} onClose={() => setFeedbackDialog(null)} />
-      <div className="flex items-center gap-3 mb-6">
-        <SettingsIcon size={32} className="text-text" />
-        <h1 className="text-3xl font-bold text-text">Systemeinstellungen</h1>
-      </div>
 
       <div className="bg-surface rounded-md border border-border p-3.5 space-y-6">
         <div>
