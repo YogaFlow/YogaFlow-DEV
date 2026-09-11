@@ -82,12 +82,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserProfile = useCallback(async (userId: string, signal: AbortSignal) => {
     const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', userId)
+      .rpc('get_current_member')
       .abortSignal(signal)
       .maybeSingle();
-    if (error) throw error;
+    if (error) {
+      console.error('Auth: get_current_member fehlgeschlagen', userId, error);
+      throw error;
+    }
     return data ?? null;
   }, []);
 
