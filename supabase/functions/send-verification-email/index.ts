@@ -34,25 +34,37 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Ensure user exists in public.users (trigger may not have run yet)
-    const { error: ensureError } = await supabase.rpc("ensure_public_user", { p_user_id: userId });
-    if (ensureError) {
-      console.error("ensure_public_user:", ensureError);
-      return new Response(
-        JSON.stringify({
-          error: "User setup failed",
-          details: ensureError.message,
-          code: "ensure_public_user_failed",
-        }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // Profil über den Login; Trigger legt es an. ensure nur wenn noch keine Zeile.
+    const { data: existing, error: existingError } = await supabase
+      .from("users")
+      .select("id")
+      .eq("auth_user_id", userId)
+      .limit(1)
+      .maybeSingle();
+    if (existingError) {
+      console.error("User lookup by auth_user_id:", existingError);
     }
 
-    // Verify user exists in public.users (auth_tokens has FK to users); avoid race after signUp
+    if (!existing) {
+      const { error: ensureError } = await supabase.rpc("ensure_public_user", { p_user_id: userId });
+      if (ensureError) {
+        console.error("ensure_public_user:", ensureError);
+        return new Response(
+          JSON.stringify({
+            error: "User setup failed",
+            details: ensureError.message,
+            code: "ensure_public_user_failed",
+          }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     const { data: userRow, error: userCheckError } = await supabase
       .from("users")
       .select("id")
-      .eq("id", userId)
+      .eq("auth_user_id", userId)
+      .limit(1)
       .maybeSingle();
     if (userCheckError || !userRow) {
       console.error("User not in public.users yet:", userCheckError ?? "no row");

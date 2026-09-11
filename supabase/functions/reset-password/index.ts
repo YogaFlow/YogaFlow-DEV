@@ -82,7 +82,8 @@ Deno.serve(async (req: Request) => {
     const { data: userData } = await supabase
       .from("users")
       .select("email")
-      .eq("id", userId)
+      .eq("auth_user_id", userId)
+      .limit(1)
       .maybeSingle();
 
     if (userData?.email) {

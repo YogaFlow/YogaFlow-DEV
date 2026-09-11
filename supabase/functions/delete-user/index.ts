@@ -44,26 +44,6 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { data: requesterProfile, error: requesterProfileError } = await adminClient
-      .from("users")
-      .select("role, tenant_id")
-      .eq("id", requestingUser.id)
-      .maybeSingle();
-
-    if (requesterProfileError) {
-      return new Response(
-        JSON.stringify({ error: "Failed to check requester role", details: requesterProfileError.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    if (!requesterProfile || !["owner", "admin"].includes(requesterProfile.role)) {
-      return new Response(
-        JSON.stringify({ error: "Owner or admin privileges required" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
     let body: DeleteUserRequest;
     try {
       body = await req.json();
@@ -82,16 +62,9 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    if (userId === requestingUser.id) {
-      return new Response(
-        JSON.stringify({ error: "Cannot delete yourself" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
     const { data: targetProfile, error: targetProfileError } = await adminClient
       .from("users")
-      .select("tenant_id")
+      .select("id, tenant_id, auth_user_id")
       .eq("id", userId)
       .maybeSingle();
 
@@ -109,10 +82,31 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    if (requesterProfile.tenant_id !== targetProfile.tenant_id) {
+    const { data: requesterProfile, error: requesterProfileError } = await adminClient
+      .from("users")
+      .select("id, role, tenant_id")
+      .eq("auth_user_id", requestingUser.id)
+      .eq("tenant_id", targetProfile.tenant_id)
+      .maybeSingle();
+
+    if (requesterProfileError) {
       return new Response(
-        JSON.stringify({ error: "Cross-tenant deletion is not allowed" }),
+        JSON.stringify({ error: "Failed to check requester role", details: requesterProfileError.message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!requesterProfile || !["owner", "admin"].includes(requesterProfile.role)) {
+      return new Response(
+        JSON.stringify({ error: "Owner or admin privileges required" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (requesterProfile.id === targetProfile.id) {
+      return new Response(
+        JSON.stringify({ error: "Cannot delete yourself" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -129,13 +123,33 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { error: deleteAuthError } = await adminClient.auth.admin.deleteUser(userId);
-    if (deleteAuthError) {
-      console.error("Error deleting auth user:", deleteAuthError);
+    const { count: remaining, error: countError } = await adminClient
+      .from("users")
+      .select("id", { count: "exact", head: true })
+      .eq("auth_user_id", targetProfile.auth_user_id);
+
+    if (countError) {
+      console.error("Error counting remaining profiles:", countError);
+    }
+
+    let loginDeleted = false;
+    if ((remaining ?? 0) === 0) {
+      const { error: deleteAuthError } = await adminClient.auth.admin.deleteUser(
+        targetProfile.auth_user_id,
+      );
+      if (deleteAuthError) {
+        console.error("Error deleting auth user:", deleteAuthError);
+      } else {
+        loginDeleted = true;
+      }
     }
 
     return new Response(
-      JSON.stringify({ success: true, message: "User deleted successfully" }),
+      JSON.stringify({
+        success: true,
+        message: "User deleted successfully",
+        login_deleted: loginDeleted,
+      }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

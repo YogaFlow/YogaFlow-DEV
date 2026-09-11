@@ -1,7 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { apexHostFromRequestOrigin, buildEmailActionLink, resolveEmailLinkBaseUrl } from "../_shared/email_link_base_url.ts";
-import { fetchStudioSlugForUser, verifyClientStudioSlugHint } from "../_shared/studio_slug_for_user.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -35,17 +34,16 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { data: userData, error: userError } = await supabase
-      .from("users")
-      .select("id, email")
-      .eq("email", email.trim())
-      .maybeSingle();
+    const { data: loginId, error: userError } = await supabase.rpc(
+      "lookup_login_by_email",
+      { p_email: email.trim() },
+    );
 
     if (userError) {
       console.error("Database error:", userError);
     }
 
-    if (!userData) {
+    if (!loginId) {
       console.log("Verification email: no user found for email:", email, "- no email sent (by design)");
       return new Response(
         JSON.stringify({
@@ -58,7 +56,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: tokenData, error: tokenError } = await supabase.rpc(
       "create_verification_token",
-      { p_user_id: userData.id, p_email: userData.email ?? email }
+      { p_user_id: loginId, p_email: email.trim() }
     );
 
     if (tokenError || tokenData == null) {
@@ -77,9 +75,10 @@ Deno.serve(async (req: Request) => {
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    const slugFromDb = await fetchStudioSlugForUser(supabase, userData.id);
-    const slugFromHint = await verifyClientStudioSlugHint(supabase, userData.id, clientStudioSlug);
-    const studioSlug = slugFromDb ?? slugFromHint;
+    const { data: studioSlug } = await supabase.rpc(
+      "lookup_studio_slug_for_login",
+      { p_auth_user_id: loginId, p_hint: clientStudioSlug },
+    );
 
     const baseUrl = resolveEmailLinkBaseUrl(req, studioSlug);
     const verificationLink = buildEmailActionLink(req, studioSlug, "verify-email", token);
@@ -94,7 +93,7 @@ Deno.serve(async (req: Request) => {
       "[request-verification-email]",
       JSON.stringify({
         hasSlug: !!studioSlug,
-        slugSource: slugFromDb ? "db" : slugFromHint ? "client_hint" : "none",
+        slugSource: studioSlug ? (clientStudioSlug ? "hint_or_db" : "db") : "none",
         baseHost,
         originApex: !!apexHostFromRequestOrigin(req),
       }),
@@ -135,7 +134,7 @@ Deno.serve(async (req: Request) => {
         "X-Internal-Secret": internalSecret ?? "",
       },
       body: JSON.stringify({
-        to: userData.email ?? email,
+        to: email.trim(),
         subject: "E-Mail-Adresse bestätigen - Omlify",
         html: emailHtml,
       }),
