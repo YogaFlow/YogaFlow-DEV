@@ -6,7 +6,7 @@ import { fetchStudioSlugForUser, verifyClientStudioSlugHint } from "../_shared/s
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, x-omlify-tenant",
 };
 
 interface VerificationRequest {
