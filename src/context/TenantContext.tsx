@@ -1,69 +1,15 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Tenant } from '../types';
+import {
+  APP_BASE_DOMAIN,
+  DEV_SLUG_KEY,
+  normalizeAppBaseDomain,
+  resolveSlug,
+  slugFromHostname,
+} from '../lib/tenantSlug';
 
-const DEV_SLUG_KEY = '__dev_tenant_slug__';
-
-/**
- * Env-Wert wie `https://omlify.de/` oder `www.omlify.de` → Hostname für Subdomain-Vergleiche (`omlify.de`).
- */
-export function normalizeAppBaseDomain(raw: string | undefined): string {
-  const fallback = 'omlify.de';
-  if (raw == null || !String(raw).trim()) return fallback;
-  let s = String(raw).trim().toLowerCase();
-  s = s.replace(/^https?:\/\//, '');
-  s = s.split('/')[0].split('?')[0];
-  s = s.split(':')[0];
-  s = s.replace(/\.$/, '');
-  if (s.startsWith('www.')) s = s.slice(4);
-  return s || fallback;
-}
-
-export const APP_BASE_DOMAIN = normalizeAppBaseDomain(
-  import.meta.env.VITE_APP_BASE_DOMAIN as string | undefined,
-);
-
-/** Slug aus Host <slug>.<baseDomain>, Apex / www → null. */
-export function slugFromHostname(hostname: string, baseDomain: string): string | null {
-  const h = hostname.toLowerCase();
-  const b = baseDomain.toLowerCase();
-  if (!b) return null;
-  if (h === b || h === `www.${b}`) return null;
-  if (!h.endsWith(`.${b}`)) return null;
-  const slug = h.slice(0, h.length - b.length - 1);
-  if (!slug || slug.includes('.')) return null;
-  return slug;
-}
-
-/**
- * Liest den Tenant-Slug:
- *
- * Zuerst immer aus dem Hostnamen (`<slug>.<APP_BASE_DOMAIN>`), damit echte Subdomains auch in DEV
- * (Tunnel/ngrok) und bei falsch formatierter VITE_APP_BASE_DOMAIN funktionieren.
- * DEV zusätzlich: ?tenant= und sessionStorage.
- * Apex ohne Slug → null (Landing / Onboarding).
- */
-function resolveSlug(): string | null {
-  const params = new URLSearchParams(window.location.search);
-  const override = params.get('tenant');
-  const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
-
-  const fromHost = slugFromHostname(hostname, APP_BASE_DOMAIN);
-  if (fromHost) {
-    if (import.meta.env.DEV) sessionStorage.setItem(DEV_SLUG_KEY, fromHost);
-    return fromHost;
-  }
-
-  if (import.meta.env.DEV) {
-    if (override) {
-      sessionStorage.setItem(DEV_SLUG_KEY, override);
-      return override;
-    }
-    return sessionStorage.getItem(DEV_SLUG_KEY) ?? null;
-  }
-
-  return null;
-}
+export { APP_BASE_DOMAIN, normalizeAppBaseDomain, slugFromHostname };
 
 /** Löscht den DEV-Slug aus sessionStorage (beim Abmelden aufrufen). */
 export function clearDevTenantSlug() {
