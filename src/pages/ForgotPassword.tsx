@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, ArrowLeft } from 'lucide-react';
+import { currentTenantSlug } from '../lib/tenantSlug';
 
 const ForgotPassword: React.FC = () => {
   const navigate = useNavigate();
@@ -25,6 +26,7 @@ const ForgotPassword: React.FC = () => {
     const apiBase = import.meta.env.DEV ? '/api-supabase' : supabaseUrl;
 
     try {
+      const studioSlug = currentTenantSlug();
       const response = await fetch(
         `${apiBase}/functions/v1/request-password-reset`,
         {
@@ -33,7 +35,10 @@ const ForgotPassword: React.FC = () => {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           },
-          body: JSON.stringify({ email }),
+          body: JSON.stringify({
+            email,
+            ...(studioSlug ? { studio_slug: studioSlug } : {}),
+          }),
         }
       );
 

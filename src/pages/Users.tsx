@@ -5,7 +5,7 @@ import { User, UserRole, Course } from '../types';
 import { useAuth } from '../context/AuthContext';
 import {
   Mail, ChevronDown, ChevronUp, Save, Plus,
-  Eye, EyeOff, UserCheck,
+  UserCheck,
 } from 'lucide-react';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
 
@@ -22,7 +22,6 @@ interface EditFormData {
   house_number: string;
   postal_code: string;
   city: string;
-  new_password: string;
 }
 
 interface RegWithCourse {
@@ -122,7 +121,6 @@ export default function Users() {
   const [loading, setLoading]                   = useState(true);
   const [expandedId, setExpandedId]             = useState<string | null>(null);
   const [editForm, setEditForm]                 = useState<EditFormData | null>(null);
-  const [showPassword, setShowPassword]         = useState(false);
   const [userRegistrations, setUserRegistrations] = useState<RegWithCourse[]>([]);
   const [regsLoading, setRegsLoading]           = useState(false);
   const [selectedCourseId, setSelectedCourseId] = useState('');
@@ -217,7 +215,6 @@ export default function Users() {
       setEditForm(null);
       setUserRegistrations([]);
       setSelectedCourseId('');
-      setShowPassword(false);
       return;
     }
     setExpandedId(user.id);
@@ -230,10 +227,8 @@ export default function Users() {
       house_number: user.house_number || '',
       postal_code:  user.postal_code  || '',
       city:         user.city         || '',
-      new_password: '',
     });
     setSelectedCourseId('');
-    setShowPassword(false);
     if (canShowCourseSection(user.role)) {
       setRegsLoading(true);
       const regs = await fetchUserRegistrations(user.id);
@@ -246,7 +241,7 @@ export default function Users() {
   };
 
   // ---------------------------------------------------------------------------
-  // Save profile + password
+  // Save studio profile (no login email/password)
   // ---------------------------------------------------------------------------
 
   const handleSaveProfile = async (userId: string) => {
@@ -257,14 +252,12 @@ export default function Users() {
         userId,
         first_name:   editForm.first_name,
         last_name:    editForm.last_name,
-        email:        editForm.email,
         phone:        editForm.phone,
         street:       editForm.street,
         house_number: editForm.house_number,
         postal_code:  editForm.postal_code,
         city:         editForm.city,
       };
-      if (editForm.new_password) payload.new_password = editForm.new_password;
 
       const { error: fnError } = await supabase.functions.invoke('update-user', {
         body: payload,
@@ -283,14 +276,12 @@ export default function Users() {
         ...u,
         first_name:   editForm.first_name,
         last_name:    editForm.last_name,
-        email:        editForm.email,
         phone:        editForm.phone,
         street:       editForm.street,
         house_number: editForm.house_number,
         postal_code:  editForm.postal_code,
         city:         editForm.city,
       } : u));
-      setEditForm(prev => prev ? { ...prev, new_password: '' } : prev);
       setFeedbackDialog({ title: 'Gespeichert', message: 'Nutzerdaten wurden erfolgreich aktualisiert.', type: 'success' });
     } catch (err: unknown) {
       setFeedbackDialog({
@@ -426,8 +417,8 @@ export default function Users() {
       <div className="mb-6">
         <p className="text-sm text-textMuted mt-1">
           {isTeacher
-            ? 'Alle Teilnehmer deines Studios – Stammdaten und Passwörter bearbeiten, Kurse zuweisen.'
-            : 'Alle Studio-Nutzer verwalten – Stammdaten, Passwörter, Rollen und Kursbelegung.'}
+            ? 'Alle Teilnehmer deines Studios – Stammdaten bearbeiten, Kurse zuweisen.'
+            : 'Alle Studio-Nutzer verwalten – Stammdaten, Rollen und Kursbelegung.'}
         </p>
       </div>
 
@@ -543,9 +534,9 @@ export default function Users() {
                         </div>
                         <div className="col-span-2">
                           <label className="block text-xs text-textMuted mb-1">E-Mail</label>
-                          <input type="email" value={editForm.email}
-                            onChange={e => setEditForm(f => f ? { ...f, email: e.target.value } : f)}
-                            className="w-full text-sm border border-border rounded-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand" />
+                          <input type="email" value={editForm.email} readOnly
+                            className="w-full text-sm border border-border rounded-sm px-3 py-2 bg-surfaceSunken cursor-not-allowed text-textMuted" />
+                          <p className="mt-1 text-xs text-textSubtle">Login-E-Mail, nicht änderbar</p>
                         </div>
                         <div className="col-span-2">
                           <label className="block text-xs text-textMuted mb-1">Telefon</label>
@@ -577,26 +568,6 @@ export default function Users() {
                             onChange={e => setEditForm(f => f ? { ...f, city: e.target.value } : f)}
                             className="w-full text-sm border border-border rounded-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand" />
                         </div>
-                      </div>
-                    </div>
-
-                    {/* Passwort */}
-                    <div>
-                      <label className="block text-xs text-textMuted mb-1">
-                        Neues Passwort <span className="text-textSubtle">(optional)</span>
-                      </label>
-                      <div className="flex gap-2">
-                        <input
-                          type={showPassword ? 'text' : 'password'}
-                          value={editForm.new_password}
-                          onChange={e => setEditForm(f => f ? { ...f, new_password: e.target.value } : f)}
-                          placeholder="Leer lassen = nicht ändern"
-                          className="flex-1 text-sm border border-border rounded-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
-                        />
-                        <button type="button" onClick={() => setShowPassword(p => !p)}
-                          className="px-3 text-textSubtle hover:text-textMuted border border-border rounded-sm">
-                          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                        </button>
                       </div>
                     </div>
 
@@ -835,9 +806,10 @@ export default function Users() {
                                   <input
                                     type="email"
                                     value={editForm.email}
-                                    onChange={e => setEditForm(f => f ? { ...f, email: e.target.value } : f)}
-                                    className="w-full text-sm border border-border rounded-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
+                                    readOnly
+                                    className="w-full text-sm border border-border rounded-sm px-3 py-2 bg-surfaceSunken cursor-not-allowed text-textMuted"
                                   />
+                                  <p className="mt-1 text-xs text-textSubtle">Login-E-Mail, nicht änderbar</p>
                                 </div>
                                 {/* Telefon */}
                                 <div>
@@ -888,29 +860,6 @@ export default function Users() {
                                     onChange={e => setEditForm(f => f ? { ...f, city: e.target.value } : f)}
                                     className="w-full text-sm border border-border rounded-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
                                   />
-                                </div>
-                              </div>
-
-                              {/* Passwort */}
-                              <div>
-                                <label className="block text-xs text-textMuted mb-1">
-                                  Neues Passwort <span className="text-textSubtle">(optional – leer lassen = nicht ändern)</span>
-                                </label>
-                                <div className="flex gap-2">
-                                  <input
-                                    type={showPassword ? 'text' : 'password'}
-                                    value={editForm.new_password}
-                                    onChange={e => setEditForm(f => f ? { ...f, new_password: e.target.value } : f)}
-                                    placeholder="Neues Passwort eingeben…"
-                                    className="flex-1 text-sm border border-border rounded-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={() => setShowPassword(p => !p)}
-                                    className="px-3 text-textSubtle hover:text-textMuted border border-border rounded-sm"
-                                  >
-                                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                                  </button>
                                 </div>
                               </div>
 

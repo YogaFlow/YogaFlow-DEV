@@ -75,9 +75,11 @@ const Profile: React.FC = () => {
     setProfileSuccess('');
 
     try {
+      const { email: _email, ...profileUpdate } = formData;
+      void _email;
       const { error: updateError } = await supabase
         .from('users')
-        .update(formData)
+        .update(profileUpdate)
         .eq('id', userProfile.id);
 
       if (updateError) throw updateError;
@@ -324,14 +326,13 @@ const Profile: React.FC = () => {
                     name="email"
                     type="email"
                     value={formData.email}
-                    onChange={handleChange}
-                    disabled={!editing}
-                    className={`w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent ${
-                      !editing ? 'bg-surfaceSunken cursor-not-allowed' : ''
-                    }`}
-                    required
+                    readOnly
+                    className="w-full pl-10 pr-4 py-3 border border-border rounded-sm bg-surfaceSunken cursor-not-allowed text-textMuted"
                   />
                 </div>
+                <p className="mt-1 text-xs text-textSubtle">
+                  Login-E-Mail, hier nicht änderbar
+                </p>
               </div>
 
               <div>
