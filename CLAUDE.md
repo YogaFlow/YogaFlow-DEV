@@ -69,6 +69,9 @@ sich in einen Design- oder Refactoring-Durchlauf einschleicht: sagen, nicht ausf
 - `src/design/tokens.ts` — einzige Farbquelle, wandert später in ein gemeinsames Paket
 - `src/lib/format.ts` — Datum, Uhrzeit, Preis, Dauer. Formatierung passiert nirgendwo sonst.
 - `src/lib/courseDateFilter.ts` — Filterlogik der Kursliste
+- `src/lib/tenantSlug.ts` — einzige Quelle für den Studio-Slug (Host, in DEV `?tenant=`
+  und `sessionStorage`). `src/lib/supabase.ts` hängt ihn als `x-omlify-tenant` an jeden
+  Supabase-Request; die RLS-Policies hängen daran.
 - `docs/DESIGNSYSTEM.md` — verbindliche Farben, Formregeln, Formatierungsregeln
 
 **Datenmodell — Fallen**
@@ -80,11 +83,22 @@ sich in einen Design- oder Refactoring-Durchlauf einschleicht: sagen, nicht ausf
   **Diese Werte dürfen niemals durch `new Date()` laufen** — das verschiebt Uhrzeiten je
   nach Umgebung. `messages.created_at` und `registrations.registered_at` sind dagegen
   `timestamptz`, dort ist `Intl.DateTimeFormat` mit `Europe/Berlin` korrekt.
-- `users.tenant_id` ist `NOT NULL`, es gibt keine Membership-Tabelle: Ein Konto gehört zu
-  genau einem Tenant.
-- Rollen: `owner`, `admin`, `teacher`, `user`.
+- **Login und Profil sind seit dem 11.09.2026 nicht mehr dasselbe.** `public.users.id` ist
+  eine eigenständige Profil-ID mit `DEFAULT gen_random_uuid()`; der Login steht in
+  `users.auth_user_id` (FK auf `auth.users`, `ON DELETE CASCADE`). Ein Login kann mehrere
+  Profile besitzen, eines je Studio — erzwungen durch `UNIQUE (auth_user_id, tenant_id)`.
+  Eine Membership-Tabelle gibt es weiterhin nicht; die Zeile in `users` **ist** die
+  Mitgliedschaft. `users.tenant_id` bleibt `NOT NULL`.
+- **`users.id` ist nicht `auth.uid()`.** Im Client darf ein Profil nie über
+  `.eq('id', session.user.id)` geladen werden. Dafür gibt es `get_current_member()`.
+- `users.email` ist **pro Tenant** eindeutig, nicht global: `users_tenant_email_unique
+  UNIQUE (tenant_id, email)`, gesetzt in `20260426110000`, wo `users_email_key` fiel.
+  Dieselbe Adresse kann also bei mehreren Studios liegen — die Mehrfachmitgliedschaft
+  scheitert nicht daran.
+- Rollen: `owner`, `admin`, `teacher`, `user`. Die Rolle hängt am Profil, nicht am Login —
+  dieselbe Person kann in Studio A `owner` und in Studio B `user` sein.
 
-**Tenant-Isolation (geprüft am 09.09.2026)**
+**Tenant-Isolation (geprüft am 09.09.2026, umgebaut am 11.09.2026)**
 
 RLS ist auf allen 12 Tabellen in `public` aktiv. Die Policies vergleichen durchgängig
 `tenant_id = yogaflow_private.get_my_tenant_id()`, in `USING` und `WITH CHECK`. Anwendungs-
@@ -92,6 +106,20 @@ Queries filtern deshalb bewusst nicht selbst nach `tenant_id` — die Durchsetzu
 Datenbank. Helferfunktionen sind `SECURITY DEFINER` mit `SET search_path TO 'public'`.
 `get_my_tenant_id()` liefert bei fehlendem Profil `NULL`, die Policy schlägt dann fehl.
 Das ist fail-closed und soll so bleiben.
+
+Seit Migration `20260911173000` beantworten Policies und Helfer die Frage „wer bin ich"
+nicht mehr mit `auth.uid()`, sondern mit `yogaflow_private.get_my_member_id()`. Diese
+Funktion löst Login **und** Studio auf:
+
+- Studio kommt aus dem Request-Header `x-omlify-tenant`, gelesen von
+  `yogaflow_private.request_tenant_slug()`. Der Slug muss `^[a-z0-9]{3,30}$` erfüllen,
+  sonst liefert die Funktion `'#invalid'` und damit kein Treffer.
+- Der Header wird clientseitig in `src/lib/supabase.ts` auf **jeden** Supabase-Request
+  gesetzt, sobald `currentTenantSlug()` einen Slug kennt.
+- **Übergangsregel:** Fehlt der Header, gilt das Profil des Logins, wenn es genau **eines**
+  gibt — sonst `NULL`. Diese Regel ist bewusst befristet und wird entfernt, sobald PROD
+  stabil mit Header läuft. Wer sie anfasst, muss vorher prüfen, ob alle Aufrufpfade den
+  Header senden (Edge Functions inklusive).
 
 **Selbst-Update auf `users` (Befund und Fix 11.09.2026)**
 
@@ -108,6 +136,34 @@ nur `first_name, last_name, email, phone, street, house_number, postal_code, cit
 - `REVOKE … FROM PUBLIC` entzieht auf Supabase `anon` und `authenticated` nichts. Dort immer
   explizit entziehen.
 - `email` ist nur vorläufig freigegeben und wird mit der Mehrfachmitgliedschaft Login-Sache.
+
+**Mehrfachmitgliedschaft (Umbau vom 11.09.2026, nicht abgeschlossen)**
+
+Ziel: ein Login, mehrere Studios. Der Umbau läuft in Stufen, jede als eigene Migration mit
+Zweck, Rückweg und einem `DO $$`-Block, der sich selbst prüft und bei Abweichung abbricht.
+
+| Migration | Stufe | Inhalt |
+|---|---|---|
+| `20260911151200` | 1 — Vorbereiten | Spalte `auth_user_id`, Backfill, `UNIQUE (auth_user_id, tenant_id)` |
+| `20260911151300` | Diagnose | `debug_request_tenant_header()` — **in Stufe 4 zu entfernen** |
+| `20260911173000` | 2 — Umschalten | `get_my_member_id()`, sieben `yogaflow_private`-Helfer, 14 Policies, drei Kurs-RPCs |
+| `20260911182000` | 3a — Öffnen | `users.id` von `auth.users` entkoppelt, `join_tenant()`, `join_tenant_as_owner()` |
+| `20260911185000` | 3b — Identität | `auth_tokens.user_id` zeigt auf den Login, Token-RPCs auf `auth_user_id` |
+| `20260911192600` | 3c-A — Client | `get_current_member()` als einziger Weg zum eigenen Profil |
+
+Was das für die Arbeit heißt:
+
+- **Punkt ohne Rückweg:** Sobald ein Login ein zweites Profil besitzt, ist ein Rollback ohne
+  Datenverlust nicht mehr möglich — eine UUID kann nicht gleichzeitig zwei Profilzeilen und
+  `auth.users.id` sein. Solange `auth_user_id IS DISTINCT FROM id` null Zeilen zählt, sind
+  die Rückwege in den Migrationsköpfen gültig.
+- **Die DB kann mehr als die UI.** `join_tenant()` und `join_tenant_as_owner()` existieren,
+  werden aber **nirgends im Client aufgerufen** (geprüft am 13.09.2026 über `src/`). Es gibt
+  also noch keinen Weg, über den eine Teilnehmerin einem zweiten Studio beitritt.
+- Rückfallpunkt für das ganze Vorhaben: `supabase/snapshots/2026-09-11_pre_membership_dev.sql`.
+- `update-user` wurde in Stufe 3b bewusst nicht angefasst.
+- **Offen:** Ob die Stufen 1 bis 3c auf PROD angewendet sind, geht aus dem Repo nicht hervor —
+  die Migrationsköpfe belegen nur DEV. Vor dem nächsten Schritt am Datenmodell prüfen.
 
 ---
 
@@ -126,13 +182,25 @@ Maßgeblich ist `docs/DESIGNSYSTEM.md`. Das Wichtigste in Kürze:
 
 ---
 
-## Stand (09.09.2026)
+## Stand (13.09.2026)
 
-**Fertig:** Paket 1 (Tokens, Farbmigration, Grundflächen, Form) und Paket 2 (Datum, Uhrzeit,
-Preis, `tabular-nums`, Versalien).
+Auf `Julius` liegen zwei Arbeitsstränge nebeneinander. Der Design-Strang pausiert seit dem
+09.09., der Datenmodell-Strang ist am 11.09. dazwischengekommen und nicht abgeschlossen.
+
+**Design — fertig:** Paket 1 (Tokens, Farbmigration, Grundflächen, Form) und Paket 2 (Datum,
+Uhrzeit, Preis, `tabular-nums`, Versalien).
 
 Commits auf `Julius`: `5cb3122`, `be31c44`, `9270058`, `da7d715`.
 Wiederherstellungspunkt vor Beginn: Tag `pre-design-tokens` (`8cb4712`).
+
+**Datenmodell — offen:** Der Umbau auf Mehrfachmitgliedschaft steht bei Stufe 3c (Details
+im Abschnitt oben). Letzter Commit `00ae765` vom 11.09., 19:30 Uhr. Offen sind mindestens:
+die UI zu `join_tenant()`, das Entfernen von `debug_request_tenant_header()` in Stufe 4, die
+befristete Übergangsregel ohne Header — und die Frage, ob PROD den Stufen 1 bis 3c folgt.
+
+**Welcher Strang zuerst weitergeht, ist hier nicht entschieden.** Der Design-Strang nimmt
+unten die Nummerierung aus Paket 3 wieder auf; das ist der Stand vom 09.09., keine
+Priorisierung gegenüber dem Datenmodell.
 
 **Als Nächstes — Paket 3, Layout:**
 
@@ -152,14 +220,11 @@ Einladung, Gedrückt-Zustand statt Hover.
 - Dieselbe Zahl heißt für `user` „Alle Kurse" und für `admin`/`owner` „Kommende Kurse".
   Namensangleichung bei Gelegenheit.
 - `unregister_from_course` hat `pg_temp` im `search_path`, ohne temporäre Tabellen zu nutzen.
-  Beim nächsten Anfassen entfernen.
-- `public/hero-dashboard.png` zeigt einen veralteten Stand samt „Frank". Wird nach Paket 3
-  komplett neu erstellt, nicht korrigiert.
-- JS-Bundle 1.040 kB, gzip 272 kB. Relevant, weil die Zielgruppe über Instagram aufs Handy
-  kommt. Nach Paket 3 angehen, zusammen mit der Frage, ob die Marketingseite aus der SPA
-  gelöst wird.
-- Prüfen, ob `users.email` global oder pro Tenant eindeutig ist. Bei global eindeutig kann
-  eine Teilnehmerin nicht bei zwei Studios buchen.
+  Die Funktion wurde am 11.09. in `20260911173000` neu geschrieben, `pg_temp` steht dort in
+  Zeile 454 weiterhin drin. Beim nächsten Anfassen entfernen.
+- JS-Bundle 1.039 kB, gzip 273 kB (Build vom 13.09.2026 auf diesem Stand). Relevant, weil die
+  Zielgruppe über Instagram aufs Handy kommt. Nach Paket 3 angehen, zusammen mit der Frage,
+  ob die Marketingseite aus der SPA gelöst wird.
 - Der Lehrerfilter auf der Kursseite ist sichtbar — ungeklärt, ob er tatsächlich filtert.
 - `close_past_course_registrations()` ist ohne jede Prüfung für `anon` aufrufbar, wirkt über
   alle Tenants und rechnet `date + time` als UTC statt `Europe/Berlin`.
