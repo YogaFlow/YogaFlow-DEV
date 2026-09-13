@@ -3,7 +3,11 @@ import { useAuth } from '../../context/AuthContext';
 import { useTenant } from '../../context/TenantContext';
 import { Eye, EyeOff, User, Mail, Lock } from 'lucide-react';
 
-const RegisterForm: React.FC = () => {
+type RegisterFormProps = {
+  onSwitchToLogin?: () => void;
+};
+
+const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -47,9 +51,8 @@ const RegisterForm: React.FC = () => {
       return;
     }
 
-    const duplicateEmailMessage =
-      'Ein Benutzer mit dieser E-Mail-Adresse ist bereits registriert. ' +
-      'Bitte verwende eine andere E-Mail-Adresse oder melde dich an.';
+    const duplicateJoinHint =
+      `Diese E-Mail hat bereits ein Omlify-Konto. Melde dich an, um ${tenant?.name ?? 'diesem Studio'} beizutreten.`;
 
     try {
       const { data, error: signUpError } = await signUp(formData.email, formData.password, {
@@ -61,7 +64,8 @@ const RegisterForm: React.FC = () => {
       if (signUpError) {
         const msg = (signUpError as { message?: string }).message ?? '';
         if (/already registered|already exists|already in use/i.test(msg)) {
-          setError(duplicateEmailMessage);
+          setError(duplicateJoinHint);
+          onSwitchToLogin?.();
         } else if (/rate limit exceeded/i.test(msg)) {
           setError(
             'Zu viele Registrierungsversuche. Bitte warte etwa eine Stunde und versuche es erneut.',
@@ -74,7 +78,8 @@ const RegisterForm: React.FC = () => {
 
       const identities = (data?.user as { identities?: unknown[] })?.identities;
       if (data?.user && Array.isArray(identities) && identities.length === 0) {
-        setError(duplicateEmailMessage);
+        setError(duplicateJoinHint);
+        onSwitchToLogin?.();
         return;
       }
 

@@ -22,6 +22,7 @@ import Layout from './components/Layout/Layout';
 import LandingPage from './pages/LandingPage';
 import OnboardingWizard from './pages/OnboardingWizard';
 import LegalPage from './pages/LegalPage';
+import JoinStudio from './pages/JoinStudio';
 
 /** Mandanten-App: Guard → Auth → Layout → Kindroute (`Outlet`). Pathloses Layout, damit RR6/7 `/dashboard` & Co. zuverlässig matched (nicht `path="*"` + Kinder). */
 const TenantAppShell: React.FC = () => (
@@ -46,8 +47,8 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
     );
   }
 
-  if (user && isEmailConfirmed && !userProfile) {
-    return <Navigate to={withDevTenant('/auth?profile_missing=1')} replace />;
+  if (user && tenant && !userProfile && !profileLoading) {
+    return <JoinStudio />;
   }
 
   if (user && isEmailConfirmed && userProfile && tenant && userProfile.tenant_id !== tenant.id) {
@@ -226,11 +227,12 @@ const HomeRoute: React.FC = () => {
     // Profil lädt noch im Hintergrund: warten bevor Redirect-Entscheidung getroffen wird.
     if (user && isEmailConfirmed && profileLoading) return <Spinner />;
 
+    if (user && tenant && !userProfile && !profileLoading) {
+      return <JoinStudio />;
+    }
+
     if (user && isEmailConfirmed && userProfile && userProfile.tenant_id !== tenant.id) {
       return <Navigate to={withDevTenant('/auth?wrong_studio=1')} replace />;
-    }
-    if (user && isEmailConfirmed && !userProfile) {
-      return <Navigate to={withDevTenant('/auth?profile_missing=1')} replace />;
     }
 
     return <Navigate to={withDevTenant('/auth')} replace />;

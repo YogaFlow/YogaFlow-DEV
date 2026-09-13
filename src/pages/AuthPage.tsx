@@ -5,6 +5,7 @@ import RegisterForm from '../components/Auth/RegisterForm';
 import { Heart } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTenant, buildApexHref, withDevTenant } from '../context/TenantContext';
+import JoinStudio from './JoinStudio';
 
 type AccessNotice = 'wrong_studio' | 'profile_missing' | 'email_not_confirmed' | null;
 
@@ -188,6 +189,10 @@ const AuthPage: React.FC = () => {
     );
   }
 
+  if (user && tenant && !userProfile && !profileLoading && !loading) {
+    return <JoinStudio />;
+  }
+
   return (
     <div className="min-h-screen bg-sand flex items-center justify-center p-4">
       <div className="w-full max-w-4xl">
@@ -347,7 +352,7 @@ const AuthPage: React.FC = () => {
             {isLogin || tenantPending ? (
               <LoginForm key={loginFormKey} emailJustVerified={showVerifiedMessage} />
             ) : (
-              <RegisterForm />
+              <RegisterForm onSwitchToLogin={() => setIsLogin(true)} />
             )}
           </div>
         </div>
