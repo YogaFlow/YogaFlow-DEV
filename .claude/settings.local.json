@@ -13,7 +13,18 @@
       "Bash(supabase status *)",
       "Bash(supabase db *)",
       "Bash(wrangler whoami *)",
-      "PowerShell(npx wrangler whoami 2>&1)"
+      "PowerShell(npx wrangler whoami 2>&1)",
+      "Bash(npx eslint *)",
+      "Bash(node -p \"['eslint','@typescript-eslint/eslint-plugin','typescript-eslint'].map\\(p=>{try{return p+': '+require\\('./node_modules/'+p+'/package.json'\\).version}catch\\(e\\){return p+': fehlt'}}\\).join\\('\\\\n'\\)\")",
+      "Bash(npm run *)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" http://localhost:5173/)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" -H \"Host: yomita.localhost:5173\" http://127.0.0.1:5173/)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" -H \"Host: test.localhost:5173\" http://127.0.0.1:5173/dashboard)",
+      "Bash(curl -s -w \"\\\\nHTTP %{http_code}\\\\n\" -H \"Host: evil.example.com\" http://127.0.0.1:5173/)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" http://127.0.0.1:5173/)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" \"http://[::1]:5173/\")",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" --resolve \"yomita.localhost:5173:[::1]\" http://yomita.localhost:5173/)",
+      "Bash(curl -s --resolve \"evil.example.com:5173:[::1]\" http://evil.example.com:5173/)"
     ]
   }
 }
