@@ -4,7 +4,7 @@ import { Calendar, Check, Users, BookOpen, Settings } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Course, Registration } from '../types';
-import { isCourseRunning, isCourseUpcoming, isRegistrationVisible } from '../lib/courseDateTime';
+import { isCourseCancelled, isCourseRunning, isCourseUpcoming, isRegistrationVisible } from '../lib/courseDateTime';
 import { formatDayLabel, formatPrice, formatTime, formatTimeRange } from '../lib/format';
 import { runPastRegistrationCleanup } from '../lib/registrationMaintenance';
 import { fetchCourseParticipantCounts } from '../lib/courseParticipantCounts';
@@ -51,6 +51,8 @@ const Dashboard: React.FC = () => {
       try {
         await runPastRegistrationCleanup();
 
+        let participantCourseCandidates: Course[] = [];
+
         if (userProfile.role !== 'user') {
           let coursesQuery = supabase
             .from('courses')
@@ -74,7 +76,19 @@ const Dashboard: React.FC = () => {
           const visibleCourses = (coursesData || []).filter((course) => isCourseUpcoming(course)).slice(0, 5);
           setCourses(await attachCounts(visibleCourses));
         } else if (isMounted) {
-          setCourses([]);
+          const { data: participantCoursesData, error: participantCoursesError } = await supabase
+            .from('courses')
+            .select(`
+              *,
+              teacher:users!courses_teacher_id_fkey(first_name, last_name)
+            `)
+            .gte('date', new Date().toISOString().split('T')[0])
+            .order('date', { ascending: true })
+            .order('time', { ascending: true })
+            .limit(30);
+
+          if (participantCoursesError) throw participantCoursesError;
+          participantCourseCandidates = participantCoursesData || [];
         }
 
         let myRegistrationsFromList = 0;
@@ -124,6 +138,30 @@ const Dashboard: React.FC = () => {
           });
           setRegistrations(sortedRegistrations);
           myRegistrationsFromList = sortedRegistrations.length;
+
+          if (userProfile.role === 'user') {
+            const enrolledCourseIds = new Set(
+              sortedRegistrations.map((registration) => registration.course_id)
+            );
+            const eligible = participantCourseCandidates.filter(
+              (course) =>
+                isCourseUpcoming(course) &&
+                !isCourseCancelled(course.status) &&
+                !enrolledCourseIds.has(course.id) &&
+                course.teacher_id !== userProfile.id
+            );
+            const counted = await attachCounts(eligible);
+            if (!isMounted) return;
+            setCourses(
+              counted
+                .filter((course) => {
+                  const maxParticipants = course.max_participants;
+                  if (maxParticipants == null) return false;
+                  return (course.registrationCount ?? 0) < maxParticipants;
+                })
+                .slice(0, 3)
+            );
+          }
         } else if (isMounted) {
           setRegistrations([]);
         }
@@ -277,7 +315,7 @@ const Dashboard: React.FC = () => {
   const renderCourseCards = (
     items: Array<CourseWithCount | Registration>,
     emptyMessage: string,
-    options?: { showRegisteredBadge?: boolean }
+    options?: { showRegisteredBadge?: boolean; rowLink?: string }
   ) => {
     if (items.length === 0) {
       return <p className="px-3.5 py-8 text-center text-textMuted">{emptyMessage}</p>;
@@ -348,27 +386,44 @@ const Dashboard: React.FC = () => {
             );
           }
 
+          const rowInner = (
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <h3 className="text-[17px] font-medium text-text">{course.title}</h3>
+                {meta ? (
+                  <p className="text-[13px] text-textMuted tabular-nums">{meta}</p>
+                ) : null}
+                {description ? (
+                  <p className="line-clamp-1 text-[13px] text-textSubtle">{description}</p>
+                ) : null}
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                {status}
+                {course.price != null && (
+                  <span className="text-[17px] font-medium text-text tabular-nums">
+                    {formatPrice(course.price)}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+
+          if (options?.rowLink) {
+            return (
+              <Link
+                key={course.id || index}
+                to={options.rowLink}
+                className="block min-h-11 px-3.5 py-3 no-underline text-inherit active:bg-surfaceSunken focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+              >
+                {/* Künftig öffnet ein Tipp ein Kurs-Infofenster statt des Links. */}
+                {rowInner}
+              </Link>
+            );
+          }
+
           return (
             <div key={course.id || index} className="px-3.5 py-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-[17px] font-medium text-text">{course.title}</h3>
-                  {meta ? (
-                    <p className="text-[13px] text-textMuted tabular-nums">{meta}</p>
-                  ) : null}
-                  {description ? (
-                    <p className="line-clamp-1 text-[13px] text-textSubtle">{description}</p>
-                  ) : null}
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  {status}
-                  {course.price != null && (
-                    <span className="text-[17px] font-medium text-text tabular-nums">
-                      {formatPrice(course.price)}
-                    </span>
-                  )}
-                </div>
-              </div>
+              {rowInner}
             </div>
           );
         })}
@@ -539,57 +594,37 @@ const Dashboard: React.FC = () => {
               )}
             </div>
           )}
-
-          {isParticipantOnly && heroRegistration && danachAll.length === 0 && (
-            <p className="text-[13px] text-textMuted">
-              Keine weiteren Anmeldungen ·{' '}
-              <Link
-                to="/courses"
-                className="inline-flex min-h-11 items-center text-brand no-underline"
-              >
-                Kurse ansehen
-              </Link>
-            </p>
-          )}
         </div>
 
-        <div className="bg-surface rounded-md border border-border">
-          <div className="p-3.5 border-b border-border">
-            <h2 className="text-lg font-medium text-text">Schnellzugriff</h2>
+        {isParticipantOnly ? (
+          <div className="bg-surface rounded-md border border-border">
+            <div className="p-3.5 border-b border-border">
+              <h2 className="text-lg font-medium text-text">Noch Plätze frei</h2>
+            </div>
+            <div>
+              {renderCourseCards(
+                courses,
+                'Gerade ist nichts frei — oder du bist überall schon dabei.',
+                { rowLink: '/courses' }
+              )}
+            </div>
+            <div className="border-t border-border px-3.5 py-2">
+              <Link
+                to="/courses"
+                className="inline-flex min-h-11 items-center text-[13px] font-medium text-brand no-underline"
+              >
+                Alle Kurse ansehen
+              </Link>
+            </div>
           </div>
-          <div className="p-3.5">
-            <div className="grid grid-cols-1 gap-4">
-              {isTeacher && (
-                <button
-                  onClick={() => navigate('/courses')}
-                  className="flex items-center p-3.5 bg-sage-100 hover:bg-sage-100 rounded-md transition-colors text-left"
-                >
-                  <Calendar className="w-5 h-5 text-brand mr-3" />
-                  <span className="font-medium text-brand">Kurse durchsuchen</span>
-                </button>
-              )}
-
-              {isCourseLeader && (
-                <>
-                  <button
-                    onClick={() => navigate('/create-course')}
-                    className="flex items-center p-3.5 bg-sage-100 hover:bg-sage-100 rounded-md transition-colors text-left"
-                  >
-                    <BookOpen className="w-5 h-5 text-brand mr-3" />
-                    <span className="font-medium text-brand">Neuen Kurs erstellen</span>
-                  </button>
-                  <button
-                    onClick={() => navigate('/participants')}
-                    className="flex items-center p-3.5 bg-sage-100 hover:bg-sage-100 rounded-md transition-colors text-left"
-                  >
-                    <Users className="w-5 h-5 text-brand mr-3" />
-                    <span className="font-medium text-brand">Teilnehmer verwalten</span>
-                  </button>
-                </>
-              )}
-
-              {isParticipantOnly && (
-                <>
+        ) : (
+          <div className="bg-surface rounded-md border border-border">
+            <div className="p-3.5 border-b border-border">
+              <h2 className="text-lg font-medium text-text">Schnellzugriff</h2>
+            </div>
+            <div className="p-3.5">
+              <div className="grid grid-cols-1 gap-4">
+                {isTeacher && (
                   <button
                     onClick={() => navigate('/courses')}
                     className="flex items-center p-3.5 bg-sage-100 hover:bg-sage-100 rounded-md transition-colors text-left"
@@ -597,37 +632,49 @@ const Dashboard: React.FC = () => {
                     <Calendar className="w-5 h-5 text-brand mr-3" />
                     <span className="font-medium text-brand">Kurse durchsuchen</span>
                   </button>
-                  <button
-                    onClick={() => navigate('/my-registrations')}
-                    className="flex items-center p-3.5 bg-sage-100 hover:bg-sage-100 rounded-md transition-colors text-left"
-                  >
-                    <BookOpen className="w-5 h-5 text-brand mr-3" />
-                    <span className="font-medium text-brand">Meine Anmeldungen</span>
-                  </button>
-                </>
-              )}
+                )}
 
-              {isAdmin && (
-                <>
-                  <button
-                    onClick={() => navigate('/users')}
-                    className="flex items-center p-3.5 bg-sage-100 hover:bg-sage-100 rounded-md transition-colors text-left"
-                  >
-                    <Users className="w-5 h-5 text-brand mr-3" />
-                    <span className="font-medium text-brand">Benutzer verwalten</span>
-                  </button>
-                  <button
-                    onClick={() => navigate('/settings')}
-                    className="flex items-center p-3.5 bg-surfaceSunken hover:bg-surfaceSunken rounded-md transition-colors text-left"
-                  >
-                    <Settings className="w-5 h-5 text-textMuted mr-3" />
-                    <span className="font-medium text-textMuted">System-Einstellungen</span>
-                  </button>
-                </>
-              )}
+                {isCourseLeader && (
+                  <>
+                    <button
+                      onClick={() => navigate('/create-course')}
+                      className="flex items-center p-3.5 bg-sage-100 hover:bg-sage-100 rounded-md transition-colors text-left"
+                    >
+                      <BookOpen className="w-5 h-5 text-brand mr-3" />
+                      <span className="font-medium text-brand">Neuen Kurs erstellen</span>
+                    </button>
+                    <button
+                      onClick={() => navigate('/participants')}
+                      className="flex items-center p-3.5 bg-sage-100 hover:bg-sage-100 rounded-md transition-colors text-left"
+                    >
+                      <Users className="w-5 h-5 text-brand mr-3" />
+                      <span className="font-medium text-brand">Teilnehmer verwalten</span>
+                    </button>
+                  </>
+                )}
+
+                {isAdmin && (
+                  <>
+                    <button
+                      onClick={() => navigate('/users')}
+                      className="flex items-center p-3.5 bg-sage-100 hover:bg-sage-100 rounded-md transition-colors text-left"
+                    >
+                      <Users className="w-5 h-5 text-brand mr-3" />
+                      <span className="font-medium text-brand">Benutzer verwalten</span>
+                    </button>
+                    <button
+                      onClick={() => navigate('/settings')}
+                      className="flex items-center p-3.5 bg-surfaceSunken hover:bg-surfaceSunken rounded-md transition-colors text-left"
+                    >
+                      <Settings className="w-5 h-5 text-textMuted mr-3" />
+                      <span className="font-medium text-textMuted">System-Einstellungen</span>
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
