@@ -148,31 +148,29 @@ const CourseDetail: React.FC = () => {
     : formatTimeRange(course.time, course.end_time);
   const prerequisites = course.prerequisites?.trim() ?? '';
 
-  let status: React.ReactNode = null;
-  if (isRegistered && registrationStatus === 'registered') {
-    status = (
-      <span className="inline-flex items-center gap-1 text-[13px] font-medium text-success">
-        <Check className="h-4 w-4" aria-hidden />
-        Angemeldet
-      </span>
-    );
-  } else if (isRegistered) {
-    status = (
-      <AccentPill>
-        {waitlistPosition ? `Warteliste Pos. ${waitlistPosition}` : 'Warteliste'}
-      </AccentPill>
+  let courseStatus: React.ReactNode = null;
+  if (cancelled) {
+    courseStatus = <span className="text-[13px] font-medium text-textMuted">Abgesagt</span>;
+  } else if (!upcoming) {
+    courseStatus = (
+      <span className="text-[13px] font-medium text-textMuted">Hat bereits begonnen</span>
     );
   } else if (isFull) {
-    status = <span className="text-[13px] font-medium text-textMuted">Ausgebucht</span>;
+    courseStatus = <span className="text-[13px] font-medium text-textMuted">Ausgebucht</span>;
   } else if (remaining <= 2) {
-    status = (
+    courseStatus = (
       <AccentPill>
         {remaining === 1 ? 'noch 1 Platz' : `noch ${remaining} Plätze`}
       </AccentPill>
     );
   } else if (course.teacher_id === userProfile?.id) {
-    status = <span className="text-[13px] font-medium text-textMuted">Dein Kurs</span>;
+    courseStatus = <span className="text-[13px] font-medium text-textMuted">Dein Kurs</span>;
   }
+
+  const buttonShape =
+    'inline-flex items-center justify-center rounded-full min-h-11 min-w-[9.5rem] px-5 text-[15px] font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2';
+  const staffButtonShape =
+    'inline-flex items-center justify-center rounded-full min-h-11 px-5 text-[15px] font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2';
 
   const goBack = () => {
     if (location.key === 'default') {
@@ -204,13 +202,7 @@ const CourseDetail: React.FC = () => {
 
       <h2 className="mt-4 text-[22px] font-medium text-text">{course.title}</h2>
 
-      <div className="mt-2 flex flex-wrap items-center gap-2">
-        {status}
-        {cancelled ? <span className="text-[13px] font-medium text-textMuted">Abgesagt</span> : null}
-        {!upcoming ? (
-          <span className="text-[13px] font-medium text-textMuted">Hat bereits begonnen</span>
-        ) : null}
-      </div>
+      {courseStatus ? <div className="mt-2">{courseStatus}</div> : null}
 
       <div className="mt-5 divide-y divide-border overflow-hidden rounded-md border border-border bg-surface">
         {dateLine ? (
@@ -279,48 +271,68 @@ const CourseDetail: React.FC = () => {
 
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-surface pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:sticky lg:inset-x-auto lg:bottom-0 lg:-mx-6 lg:mt-8 lg:py-3">
         <div className="mx-auto flex min-h-11 max-w-2xl items-center justify-between gap-3 px-3 max-[380px]:px-2 sm:px-6 lg:max-w-none lg:px-6">
-          <p className="text-[19px] font-medium text-text tabular-nums">{formatPrice(course.price)}</p>
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            {canAct ? (
-              isRegistered ? (
-                <button
-                  type="button"
-                  onClick={() => requestUnregister(course)}
-                  className="inline-flex min-h-11 items-center px-3 text-[15px] font-medium text-danger"
-                >
-                  Abmelden
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => handleRegister(course.id)}
-                  className={`inline-flex min-h-11 items-center rounded-full px-4 text-[15px] font-medium ${
-                    isFull
-                      ? 'border border-accent bg-accentSoft text-accentText'
-                      : 'bg-brand text-onBrand'
-                  }`}
-                >
-                  {isFull ? 'Warteliste' : 'Anmelden'}
-                </button>
-              )
-            ) : null}
-            {showStaffLinks ? (
-              <>
-                <Link
-                  to={`/course/${course.id}/participants`}
-                  className="inline-flex min-h-11 items-center px-2 text-[15px] font-medium text-brand"
-                >
-                  Teilnehmer
-                </Link>
-                <Link
-                  to={`/course/${course.id}/edit`}
-                  className="inline-flex min-h-11 items-center px-2 text-[15px] font-medium text-brand"
-                >
-                  Bearbeiten
-                </Link>
-              </>
-            ) : null}
+          <div className="min-w-0 shrink-0">
+            <p className="text-[19px] font-medium leading-tight text-text tabular-nums">
+              {formatPrice(course.price)}
+            </p>
+            {isRegistered && registrationStatus === 'registered' ? (
+              <span className="mt-0.5 inline-flex items-center gap-1 text-[13px] font-medium text-success">
+                <Check className="h-3.5 w-3.5" aria-hidden />
+                Angemeldet
+              </span>
+            ) : isRegistered ? (
+              <span className="mt-0.5 inline-block">
+                <AccentPill>
+                  {waitlistPosition ? `Warteliste Pos. ${waitlistPosition}` : 'Warteliste'}
+                </AccentPill>
+              </span>
+            ) : (
+              <p className="mt-0.5 text-[13px] text-textMuted">pro Termin</p>
+            )}
           </div>
+          {canAct ? (
+            isRegistered ? (
+              <button
+                type="button"
+                onClick={() => requestUnregister(course)}
+                className={`${buttonShape} border border-borderStrong bg-surface text-danger active:bg-dangerSoft`}
+              >
+                Abmelden
+              </button>
+            ) : isFull ? (
+              <button
+                type="button"
+                onClick={() => handleRegister(course.id)}
+                className={`${buttonShape} border border-accent bg-accentSoft text-accentText`}
+              >
+                Auf die Warteliste
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => handleRegister(course.id)}
+                className={`${buttonShape} bg-brand text-onBrand active:bg-brandPressed`}
+              >
+                Anmelden
+              </button>
+            )
+          ) : null}
+          {showStaffLinks ? (
+            <div className="flex items-center gap-2">
+              <Link
+                to={`/course/${course.id}/participants`}
+                className={`${staffButtonShape} border border-borderStrong bg-surface text-brand`}
+              >
+                Teilnehmer
+              </Link>
+              <Link
+                to={`/course/${course.id}/edit`}
+                className={`${staffButtonShape} border border-borderStrong bg-surface text-brand`}
+              >
+                Bearbeiten
+              </Link>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
