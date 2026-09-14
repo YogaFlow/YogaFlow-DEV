@@ -25,7 +25,7 @@ Deno.serve(async (req: Request) => {
 
     if (!token || typeof token !== "string" || token === "undefined" || token.length < 10) {
       return new Response(
-        JSON.stringify({ error: "Token ist erforderlich oder ungültig. Bitte nutzen Sie den neuesten Link aus der E-Mail oder fordern Sie eine neue Bestätigungsmail an." }),
+        JSON.stringify({ error: "Token ist erforderlich oder ungültig. Bitte nutze den neuesten Link aus der E-Mail oder fordere eine neue Bestätigungsmail an." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

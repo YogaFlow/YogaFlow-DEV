@@ -100,10 +100,10 @@ Deno.serve(async (req: Request) => {
               <p style="margin: 0 0 24px 0; color: #0f766e; font-size: 14px; font-weight: 700;">Omlify</p>
               <h1 style="margin: 0 0 16px 0; color: #111827; font-size: 22px; line-height: 1.3;">Passwort geändert</h1>
               <p style="margin: 0 0 16px 0; color: #374151; font-size: 16px; line-height: 1.5;">
-                Das Passwort für Ihr Omlify-Konto wurde geändert.
+                Das Passwort für dein Omlify-Konto wurde geändert.
               </p>
               <p style="margin: 0; color: #6b7280; font-size: 13px; line-height: 1.5;">
-                Wenn Sie diese Änderung nicht vorgenommen haben, antworten Sie bitte nicht auf diese E-Mail und kontaktieren Sie den Omlify-Support.
+                Wenn du diese Änderung nicht vorgenommen hast, antworte bitte nicht auf diese E-Mail und kontaktiere den Omlify-Support.
               </p>
             </div>
           </body>
@@ -120,7 +120,7 @@ Deno.serve(async (req: Request) => {
         },
         body: JSON.stringify({
           to: userData.email,
-          subject: "Ihr Passwort wurde geändert - Omlify",
+          subject: "Dein Passwort wurde geändert - Omlify",
           html: emailHtml,
         }),
       }).catch((e) => console.error("Error sending confirmation email:", e));

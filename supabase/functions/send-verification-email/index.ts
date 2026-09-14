@@ -116,13 +116,13 @@ Deno.serve(async (req: Request) => {
             <p style="margin: 0 0 24px 0; color: #0f766e; font-size: 14px; font-weight: 700;">Omlify</p>
             <h1 style="margin: 0 0 16px 0; color: #111827; font-size: 22px; line-height: 1.3;">E-Mail-Adresse bestätigen</h1>
             <p style="margin: 0 0 24px 0; color: #374151; font-size: 16px; line-height: 1.5;">
-              Bitte bestätigen Sie Ihre E-Mail-Adresse, um Ihr Omlify-Konto zu aktivieren.
+              Bitte bestätige deine E-Mail-Adresse, um dein Omlify-Konto zu aktivieren.
             </p>
             <p style="margin: 0 0 28px 0;">
               <a href="${verificationLink}" style="display: inline-block; padding: 12px 18px; background-color: #0f766e; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 15px; font-weight: 600;">E-Mail-Adresse bestätigen</a>
             </p>
             <p style="margin: 0; color: #6b7280; font-size: 13px; line-height: 1.5;">
-              Dieser Link ist 24 Stunden gültig. Wenn Sie kein Omlify-Konto erstellt haben, können Sie diese E-Mail ignorieren.
+              Dieser Link ist 24 Stunden gültig. Wenn du kein Omlify-Konto erstellt hast, kannst du diese E-Mail ignorieren.
             </p>
           </div>
         </body>

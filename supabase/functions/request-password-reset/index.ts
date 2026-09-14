@@ -75,16 +75,16 @@ Deno.serve(async (req: Request) => {
                 <p style="margin: 0 0 24px 0; color: #0f766e; font-size: 14px; font-weight: 700;">Omlify</p>
                 <h1 style="margin: 0 0 16px 0; color: #111827; font-size: 22px; line-height: 1.3;">Passwort zurücksetzen</h1>
                 <p style="margin: 0 0 16px 0; color: #374151; font-size: 16px; line-height: 1.5;">
-                  Für Ihr Omlify-Konto wurde ein neues Passwort angefordert.
+                  Für dein Omlify-Konto wurde ein neues Passwort angefordert.
                 </p>
                 <p style="margin: 0 0 24px 0; color: #374151; font-size: 16px; line-height: 1.5;">
-                  Über den folgenden Button können Sie ein neues Passwort vergeben. Der Link ist 1 Stunde gültig.
+                  Über den folgenden Button kannst du ein neues Passwort vergeben. Der Link ist 1 Stunde gültig.
                 </p>
                 <p style="margin: 0 0 28px 0;">
                   <a href="${resetLink}" style="display: inline-block; padding: 12px 18px; background-color: #0f766e; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 15px; font-weight: 600;">Passwort zurücksetzen</a>
                 </p>
                 <p style="margin: 0; color: #6b7280; font-size: 13px; line-height: 1.5;">
-                  Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren. Ihr bisheriges Passwort bleibt unverändert.
+                  Wenn du diese Anfrage nicht gestellt hast, kannst du diese E-Mail ignorieren. Dein bisheriges Passwort bleibt unverändert.
                 </p>
               </div>
             </body>
@@ -118,14 +118,14 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: "Wenn ein Konto mit dieser E-Mail-Adresse existiert, haben wir Ihnen eine E-Mail zum Zurücksetzen des Passworts geschickt." 
+        message: "Wenn ein Konto mit dieser E-Mail-Adresse existiert, haben wir dir eine E-Mail zum Zurücksetzen des Passworts geschickt." 
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("Error:", error);
     return new Response(
-      JSON.stringify({ error: "Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut." }),
+      JSON.stringify({ error: "Ein Fehler ist aufgetreten. Bitte versuche es später erneut." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

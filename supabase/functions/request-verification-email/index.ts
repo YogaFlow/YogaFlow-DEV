@@ -48,7 +48,7 @@ Deno.serve(async (req: Request) => {
       return new Response(
         JSON.stringify({
           success: true,
-          message: "Falls ein Konto mit dieser E-Mail-Adresse existiert, wurde eine Bestätigungsmail gesendet. Bitte prüfen Sie Ihr Postfach.",
+          message: "Falls ein Konto mit dieser E-Mail-Adresse existiert, wurde eine Bestätigungsmail gesendet. Bitte prüfe dein Postfach.",
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -62,7 +62,7 @@ Deno.serve(async (req: Request) => {
     if (tokenError || tokenData == null) {
       console.error("Error creating verification token:", tokenError);
       return new Response(
-        JSON.stringify({ error: "Token konnte nicht erstellt werden. Bitte versuchen Sie es später erneut." }),
+        JSON.stringify({ error: "Token konnte nicht erstellt werden. Bitte versuche es später erneut." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -71,7 +71,7 @@ Deno.serve(async (req: Request) => {
     if (!token) {
       console.error("Invalid token data from create_verification_token");
       return new Response(
-        JSON.stringify({ error: "Token konnte nicht erstellt werden. Bitte versuchen Sie es später erneut." }),
+        JSON.stringify({ error: "Token konnte nicht erstellt werden. Bitte versuche es später erneut." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -112,13 +112,13 @@ Deno.serve(async (req: Request) => {
             <p style="margin: 0 0 24px 0; color: #0f766e; font-size: 14px; font-weight: 700;">Omlify</p>
             <h1 style="margin: 0 0 16px 0; color: #111827; font-size: 22px; line-height: 1.3;">E-Mail-Adresse bestätigen</h1>
             <p style="margin: 0 0 24px 0; color: #374151; font-size: 16px; line-height: 1.5;">
-              Bitte bestätigen Sie Ihre E-Mail-Adresse, um Ihr Omlify-Konto zu aktivieren.
+              Bitte bestätige deine E-Mail-Adresse, um dein Omlify-Konto zu aktivieren.
             </p>
             <p style="margin: 0 0 28px 0;">
               <a href="${verificationLink}" style="display: inline-block; padding: 12px 18px; background-color: #0f766e; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 15px; font-weight: 600;">E-Mail-Adresse bestätigen</a>
             </p>
             <p style="margin: 0; color: #6b7280; font-size: 13px; line-height: 1.5;">
-              Dieser Link ist 24 Stunden gültig. Wenn Sie kein Omlify-Konto erstellt haben, können Sie diese E-Mail ignorieren.
+              Dieser Link ist 24 Stunden gültig. Wenn du kein Omlify-Konto erstellt hast, kannst du diese E-Mail ignorieren.
             </p>
           </div>
         </body>
@@ -144,7 +144,7 @@ Deno.serve(async (req: Request) => {
       const errorText = await emailResponse.text();
       console.error("Error sending verification email:", errorText);
       return new Response(
-        JSON.stringify({ error: "Die Bestätigungsmail konnte nicht gesendet werden. Bitte versuchen Sie es später erneut.", details: errorText }),
+        JSON.stringify({ error: "Die Bestätigungsmail konnte nicht gesendet werden. Bitte versuche es später erneut.", details: errorText }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -152,7 +152,7 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Falls ein Konto mit dieser E-Mail-Adresse existiert, wurde eine Bestätigungsmail gesendet. Bitte prüfen Sie Ihr Postfach.",
+        message: "Falls ein Konto mit dieser E-Mail-Adresse existiert, wurde eine Bestätigungsmail gesendet. Bitte prüfe dein Postfach.",
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
