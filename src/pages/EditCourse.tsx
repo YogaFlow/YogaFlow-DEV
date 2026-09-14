@@ -122,7 +122,7 @@ const EditCourse: React.FC = () => {
       }
 
       if (data.teacher_id !== userProfile.id && !isAdmin) {
-        setError('Sie haben keine Berechtigung, diesen Kurs zu bearbeiten.');
+        setError('Du hast keine Berechtigung, diesen Kurs zu bearbeiten.');
         setLoading(false);
         return;
       }
@@ -259,7 +259,7 @@ const EditCourse: React.FC = () => {
     const price = parseFloat(formData.price);
 
     if (!selectedTeacherId) {
-      return 'Bitte wählen Sie einen Kursleiter aus.';
+      return 'Bitte wähle einen Kursleiter aus.';
     }
 
     if (formData.title.trim().length < 3) {
@@ -358,7 +358,7 @@ const EditCourse: React.FC = () => {
       }
     } catch (err: any) {
       console.error('Error updating course:', err);
-      setError('Fehler beim Aktualisieren des Kurses. Bitte versuchen Sie es erneut.');
+      setError('Fehler beim Aktualisieren des Kurses. Bitte versuche es erneut.');
     } finally {
       setSaving(false);
     }
@@ -370,7 +370,7 @@ const EditCourse: React.FC = () => {
     return (
       <div className="text-center py-12">
         <h2 className="text-xl font-semibold text-text mb-2">Keine Berechtigung</h2>
-        <p className="text-textMuted">Sie haben keine Berechtigung, Kurse zu bearbeiten.</p>
+        <p className="text-textMuted">Du hast keine Berechtigung, Kurse zu bearbeiten.</p>
       </div>
     );
   }
@@ -442,7 +442,7 @@ const EditCourse: React.FC = () => {
               onChange={handleChange}
               rows={4}
               className="w-full px-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
-              placeholder="Beschreiben Sie den Kurs, Zielgruppe, Schwierigkeitsgrad..."
+              placeholder="Beschreibe den Kurs, Zielgruppe, Schwierigkeitsgrad..."
               required
             />
           </div>
@@ -460,7 +460,7 @@ const EditCourse: React.FC = () => {
                 className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent appearance-none bg-surface"
                 required
               >
-                <option value="">Bitte wählen Sie einen Kursleiter</option>
+                <option value="">Bitte wähle einen Kursleiter</option>
                 {courseLeaders.map((leader) => (
                   <option key={leader.id} value={leader.id}>
                     {leader.first_name} {leader.last_name} ({leader.email})

@@ -140,12 +140,12 @@ const LandingPage: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)] gap-10 lg:gap-12 xl:gap-14 items-center">
           <div className="text-left">
             <h1 className="text-4xl sm:text-5xl lg:text-[3.25rem] font-bold text-text leading-tight tracking-tight">
-              Finden Sie Ihre Balance mit{' '}
+              Finde deine Balance mit{' '}
               <span className="text-brand">Omlify</span>
             </h1>
             <p className="mt-6 text-lg text-textMuted leading-relaxed max-w-xl">
-              Die intuitive Management-Plattform für moderne Yoga-Studios. Verwalten Sie Kurse,
-              Teams und Ihre eigene Marke an einem zentralen Ort.
+              Die intuitive Management-Plattform für moderne Yoga-Studios. Verwalte Kurse,
+              Teams und deine eigene Marke an einem zentralen Ort.
             </p>
             <div className="mt-8">
               <button

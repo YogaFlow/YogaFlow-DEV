@@ -212,7 +212,7 @@ const AuthPage: React.FC = () => {
           <p className="text-textMuted">
             {tenantSlug
               ? "Kurse buchen und verwalten"
-              : "Verwalten Sie Ihre Yoga-Kurse professionell und einfach"}
+              : "Verwalte deine Yoga-Kurse professionell und einfach"}
           </p>
         </div>
 
@@ -261,7 +261,7 @@ const AuthPage: React.FC = () => {
 
           {showVerifiedMessage && (
             <div className="mx-8 mt-6 p-4 bg-sage-100 border border-sage-200 rounded-sm text-center text-sage-800 text-sm">
-              E-Mail bestätigt. Sie können sich jetzt anmelden.
+              E-Mail bestätigt. Du kannst dich jetzt anmelden.
             </div>
           )}
           {isLogin && user && profileLoading && (

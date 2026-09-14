@@ -49,8 +49,8 @@ const ChatDeleteConfirmDialog: React.FC<ChatDeleteConfirmDialogProps> = ({
 
         <p className="text-sm text-textMuted leading-6">
           {isBroadcast
-            ? 'Möchten Sie diese Unterhaltung wirklich löschen? Nachrichten, die Sie nicht löschen dürfen, werden ausgeblendet. Neue Nachrichten in diesem Kurs erscheinen wieder in der Liste.'
-            : 'Möchten Sie diese Unterhaltung wirklich löschen? Alle Nachrichten werden dauerhaft entfernt – auch für den anderen Teilnehmer.'}
+            ? 'Möchtest du diese Unterhaltung wirklich löschen? Nachrichten, die du nicht löschen darfst, werden ausgeblendet. Neue Nachrichten in diesem Kurs erscheinen wieder in der Liste.'
+            : 'Möchtest du diese Unterhaltung wirklich löschen? Alle Nachrichten werden dauerhaft entfernt – auch für den anderen Teilnehmer.'}
         </p>
 
         <div className="mt-6 flex gap-3 justify-end">

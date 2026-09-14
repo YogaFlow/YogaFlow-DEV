@@ -208,7 +208,7 @@ const Courses: React.FC = () => {
           <h3 className="mb-2 text-lg font-medium text-text">Keine Kurse gefunden</h3>
           <p className="text-textMuted">
             {searchTerm || dateFilter.preset || selectedTeacherId
-              ? 'Versuchen Sie andere Suchkriterien.'
+              ? 'Versuche andere Suchkriterien.'
               : 'Derzeit sind keine Kurse verfügbar.'}
           </p>
         </div>

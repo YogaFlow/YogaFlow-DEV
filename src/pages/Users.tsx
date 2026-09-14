@@ -356,7 +356,7 @@ export default function Users() {
     if (targetUser?.role === 'owner' && newRole !== 'owner' && ownerCount <= 1) {
       setFeedbackDialog({
         title:   'Owner-Rolle erforderlich',
-        message: 'Die letzte Owner-Rolle kann nicht entfernt werden. Ernennen Sie zuerst einen weiteren Owner.',
+        message: 'Du bist aktuell der einzige Owner. Ernenne zuerst eine weitere Person zum Owner.',
         type: 'error',
       });
       return;

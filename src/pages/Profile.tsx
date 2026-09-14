@@ -93,7 +93,7 @@ const Profile: React.FC = () => {
       profileSuccessTimeoutRef.current = setTimeout(() => setProfileSuccess(''), 3000);
     } catch (err: any) {
       console.error('Error updating profile:', err);
-      setProfileError('Fehler beim Aktualisieren des Profils. Bitte versuchen Sie es erneut.');
+      setProfileError('Fehler beim Aktualisieren des Profils. Bitte versuche es erneut.');
     } finally {
       setLoading(false);
     }
@@ -128,7 +128,7 @@ const Profile: React.FC = () => {
     setPasswordSuccess('');
 
     if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
-      setPasswordError('Bitte füllen Sie alle Passwortfelder aus.');
+      setPasswordError('Bitte fülle alle Passwortfelder aus.');
       return;
     }
 
@@ -459,7 +459,7 @@ const Profile: React.FC = () => {
             </div>
             <div className="ml-3">
               <h2 className="text-lg font-semibold text-text">Passwort ändern</h2>
-              <p className="text-sm text-textMuted">Aktualisieren Sie Ihr Passwort sicher.</p>
+              <p className="text-sm text-textMuted">Aktualisiere dein Passwort sicher.</p>
             </div>
           </div>
 

@@ -59,7 +59,7 @@ const ResetPassword: React.FC = () => {
       }
     } catch (err) {
       console.error('Password reset error:', err);
-      setError('Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.');
+      setError('Ein Fehler ist aufgetreten. Bitte versuche es erneut.');
     } finally {
       setLoading(false);
     }
@@ -98,10 +98,10 @@ const ResetPassword: React.FC = () => {
               Passwort erfolgreich zurückgesetzt
             </h1>
             <p className="text-textMuted mb-6">
-              Ihr Passwort wurde erfolgreich geändert. Sie können sich jetzt mit Ihrem neuen Passwort anmelden.
+              Dein Passwort wurde erfolgreich geändert. Du kannst dich jetzt mit deinem neuen Passwort anmelden.
             </p>
             <p className="text-sm text-textMuted">
-              Sie werden in Kürze zur Anmeldeseite weitergeleitet...
+              Du wirst in Kürze zur Anmeldeseite weitergeleitet...
             </p>
           </div>
         </div>
@@ -117,7 +117,7 @@ const ResetPassword: React.FC = () => {
             Neues Passwort erstellen
           </h1>
           <p className="text-textMuted">
-            Bitte geben Sie Ihr neues Passwort ein.
+            Bitte gib dein neues Passwort ein.
           </p>
         </div>
 

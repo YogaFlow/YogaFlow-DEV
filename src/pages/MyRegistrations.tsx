@@ -90,7 +90,7 @@ const MyRegistrations: React.FC = () => {
     <div className="space-y-6">
       {loadError ? (
         <div className="rounded-sm border border-danger bg-dangerSoft p-4 text-sm text-danger">
-          Ihre Anmeldungen konnten nicht geladen werden. Bitte laden Sie die Seite erneut.
+          Deine Anmeldungen konnten nicht geladen werden. Bitte lade die Seite erneut.
         </div>
       ) : registrations.length === 0 ? (
         <div className="py-12 text-center">
@@ -99,7 +99,7 @@ const MyRegistrations: React.FC = () => {
             Keine Anmeldungen gefunden
           </h2>
           <p className="mb-6 text-textMuted">
-            Sie sind noch nicht für einen kommenden Kurs angemeldet.
+            Du bist noch nicht für einen kommenden Kurs angemeldet.
           </p>
           <button
             type="button"

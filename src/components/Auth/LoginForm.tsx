@@ -56,15 +56,15 @@ const LoginForm: React.FC<LoginFormProps> = ({ emailJustVerified = false }) => {
           normalizedMessage === 'e-mail oder passwort ist falsch.';
 
         if (isInvalidCredentials) {
-          setError('E-Mail oder Passwort ist falsch. Bitte überprüfen Sie Ihre Eingaben.');
+          setError('E-Mail oder Passwort ist falsch. Bitte überprüfe deine Eingaben.');
         } else if (error.message.includes('Email not confirmed')) {
-          setError('Bitte bestätigen Sie Ihre E-Mail-Adresse über den Link in Ihrer E-Mail. Sie können unten „Bestätigungsmail erneut senden“ nutzen.');
+          setError('Bitte bestätige deine E-Mail-Adresse über den Link in deiner E-Mail. Du kannst unten „Bestätigungsmail erneut senden“ nutzen.');
         } else {
           setError(`Anmeldung fehlgeschlagen: ${error.message}`);
         }
       }
     } catch {
-      setError('Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
+      setError('Ein Fehler ist aufgetreten. Bitte versuche es später erneut.');
     } finally {
       setLoading(false);
     }
@@ -73,7 +73,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ emailJustVerified = false }) => {
   const handleResendVerification = async (e: React.MouseEvent) => {
     e.preventDefault();
     if (!email.trim()) {
-      setVerificationEmailMessage('Bitte geben Sie oben Ihre E-Mail-Adresse ein.');
+      setVerificationEmailMessage('Bitte gib oben deine E-Mail-Adresse ein.');
       return;
     }
     setVerificationEmailLoading(true);
@@ -97,7 +97,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ emailJustVerified = false }) => {
       );
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        setVerificationEmailMessage('Falls ein Konto mit dieser E-Mail existiert, wurde eine Bestätigungsmail gesendet. Bitte prüfen Sie Ihr Postfach und ggf. den Spam-Ordner.');
+        setVerificationEmailMessage('Falls ein Konto mit dieser E-Mail existiert, wurde eine Bestätigungsmail gesendet. Bitte prüfe dein Postfach und ggf. den Spam-Ordner.');
       } else {
         setVerificationEmailMessage(data?.error || 'Bestätigungsmail konnte nicht gesendet werden.');
       }
@@ -123,7 +123,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ emailJustVerified = false }) => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
-              placeholder="ihre@email.de"
+              placeholder="deine@email.de"
               required
             />
           </div>
@@ -179,7 +179,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ emailJustVerified = false }) => {
             <p className="text-sm text-danger">{error}</p>
            {error.includes('E-Mail oder Passwort ist falsch') && (
              <p className="text-xs text-danger mt-1">
-               Hinweis: Stellen Sie sicher, dass Sie ein registriertes Konto haben.
+               Hinweis: Stell sicher, dass du ein registriertes Konto hast.
              </p>
            )}
           </div>

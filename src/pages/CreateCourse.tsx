@@ -241,7 +241,7 @@ const CreateCourse: React.FC = () => {
     today.setHours(0, 0, 0, 0);
 
     if (!selectedTeacherId) {
-      return 'Bitte wählen Sie einen Kursleiter aus.';
+      return 'Bitte wähle einen Kursleiter aus.';
     }
 
     if (formData.title.trim().length < 3) {
@@ -282,7 +282,7 @@ const CreateCourse: React.FC = () => {
 
     if (isRecurring) {
       if (!recurringEndDate) {
-        return 'Bitte geben Sie ein Enddatum für die wiederkehrenden Kurse an.';
+        return 'Bitte gib ein Enddatum für die wiederkehrenden Kurse an.';
       }
 
       const endDate = new Date(recurringEndDate);
@@ -299,11 +299,11 @@ const CreateCourse: React.FC = () => {
 
       const dates = generateRecurringDates();
       if (dates.length > 100) {
-        return 'Es können maximal 100 Kurstermine auf einmal erstellt werden. Bitte passen Sie das Enddatum oder den Wiederholungstyp an.';
+        return 'Es können maximal 100 Kurstermine auf einmal erstellt werden. Bitte passe das Enddatum oder den Wiederholungstyp an.';
       }
 
       if (dates.length === 0) {
-        return 'Es konnten keine gültigen Kurstermine generiert werden. Bitte überprüfen Sie Ihre Eingaben.';
+        return 'Es konnten keine gültigen Kurstermine generiert werden. Bitte überprüfe deine Eingaben.';
       }
     }
 
@@ -414,7 +414,7 @@ const CreateCourse: React.FC = () => {
       });
     } catch (err: any) {
       console.error('Error creating course:', err);
-      const errorMessage = err?.message || 'Fehler beim Erstellen des Kurses. Bitte versuchen Sie es erneut.';
+      const errorMessage = err?.message || 'Fehler beim Erstellen des Kurses. Bitte versuche es erneut.';
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -427,7 +427,7 @@ const CreateCourse: React.FC = () => {
     return (
       <div className="text-center py-12">
         <h2 className="text-xl font-semibold text-text mb-2">Keine Berechtigung</h2>
-        <p className="text-textMuted">Sie haben keine Berechtigung, Kurse zu erstellen.</p>
+        <p className="text-textMuted">Du hast keine Berechtigung, Kurse zu erstellen.</p>
       </div>
     );
   }
@@ -478,7 +478,7 @@ const CreateCourse: React.FC = () => {
               onChange={handleChange}
               rows={4}
               className="w-full px-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
-              placeholder="Beschreiben Sie den Kurs, Zielgruppe, Schwierigkeitsgrad..."
+              placeholder="Beschreibe den Kurs, Zielgruppe, Schwierigkeitsgrad..."
               required
             />
           </div>
@@ -497,7 +497,7 @@ const CreateCourse: React.FC = () => {
                 className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent appearance-none bg-surface"
                 required
               >
-                <option value="">Bitte wählen Sie einen Kursleiter</option>
+                <option value="">Bitte wähle einen Kursleiter</option>
                 {courseLeaders.map((leader) => (
                   <option key={leader.id} value={leader.id}>
                     {leader.first_name} {leader.last_name} ({leader.email})

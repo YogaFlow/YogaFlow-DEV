@@ -135,7 +135,7 @@ const Participants: React.FC = () => {
     setPendingUnregister(participant);
     setConfirmDialog({
       title: 'Teilnehmer abmelden',
-      message: `Möchten Sie ${name || 'diesen Teilnehmer'} wirklich vom Kurs „${courseTitle}" abmelden?`,
+      message: `Möchtest du ${name || 'diesen Teilnehmer'} wirklich vom Kurs „${courseTitle}" abmelden?`,
       confirmLabel: 'Abmelden',
       cancelLabel: 'Abbrechen',
       variant: 'danger',
@@ -194,7 +194,7 @@ const Participants: React.FC = () => {
       const message =
         error instanceof Error
           ? error.message
-          : (error as { message?: string })?.message ?? 'Fehler beim Abmelden. Bitte versuchen Sie es erneut.';
+          : (error as { message?: string })?.message ?? 'Fehler beim Abmelden. Bitte versuche es erneut.';
       setFeedbackDialog({
         title: 'Abmeldung fehlgeschlagen',
         message,
@@ -269,7 +269,7 @@ const Participants: React.FC = () => {
     return (
       <div className="text-center py-12">
         <h2 className="text-xl font-medium text-text mb-2">Keine Berechtigung</h2>
-        <p className="text-textMuted">Sie haben keine Berechtigung, diese Seite zu sehen.</p>
+        <p className="text-textMuted">Du hast keine Berechtigung, diese Seite zu sehen.</p>
       </div>
     );
   }
@@ -299,7 +299,7 @@ const Participants: React.FC = () => {
       }`}>
         {userProfile && userProfile.role === 'teacher' && (
           <p className="text-textMuted">
-            Anmeldungen für Ihre kommenden Kurse
+            Anmeldungen für deine kommenden Kurse
           </p>
         )}
 
@@ -369,7 +369,7 @@ const Participants: React.FC = () => {
           <h3 className="text-lg font-medium text-text mb-2">Keine Teilnehmer gefunden</h3>
           <p className="text-textMuted">
             {searchTerm || selectedCourse || selectedStatus 
-              ? 'Versuchen Sie andere Filterkriterien.' 
+              ? 'Versuche andere Filterkriterien.' 
               : 'Es sind noch keine Teilnehmer angemeldet.'}
           </p>
         </div>

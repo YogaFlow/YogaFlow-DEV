@@ -60,7 +60,7 @@ const ForgotPassword: React.FC = () => {
           data = JSON.parse(text);
         } catch {
           console.error('Password reset: invalid JSON', { status: response.status, body: text.slice(0, 200) });
-          setError('Die Anfrage konnte nicht verarbeitet werden. Bitte prüfen Sie Ihre Verbindung.');
+          setError('Die Anfrage konnte nicht verarbeitet werden. Bitte prüfe deine Verbindung.');
           return;
         }
       }
@@ -68,13 +68,13 @@ const ForgotPassword: React.FC = () => {
       if (response.ok) {
         setSuccess(true);
       } else {
-        setError(data.error ?? 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
+        setError(data.error ?? 'Ein Fehler ist aufgetreten. Bitte versuche es später erneut.');
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       const isNetworkError = err instanceof TypeError;
       console.error('Password reset request error:', message, isNetworkError ? '(network/CORS?)' : '', err);
-      setError('Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut. Details stehen in der Browser-Konsole (F12).');
+      setError('Ein Fehler ist aufgetreten. Bitte versuche es erneut. Details stehen in der Browser-Konsole (F12).');
     } finally {
       setLoading(false);
     }
@@ -92,10 +92,10 @@ const ForgotPassword: React.FC = () => {
               E-Mail versendet
             </h1>
             <p className="text-textMuted mb-6">
-              Wenn ein Konto mit dieser E-Mail-Adresse existiert, haben wir Ihnen eine E-Mail zum Zurücksetzen des Passworts geschickt.
+              Wenn ein Konto mit dieser E-Mail-Adresse existiert, haben wir dir eine E-Mail zum Zurücksetzen des Passworts geschickt.
             </p>
             <p className="text-sm text-textMuted mb-6">
-              Bitte überprüfen Sie Ihr E-Mail-Postfach und folgen Sie den Anweisungen. Falls Sie keine E-Mail sehen, schauen Sie bitte auch im <strong>Spam-Ordner</strong> nach.
+              Bitte überprüfe dein E-Mail-Postfach und folge den Anweisungen. Falls du keine E-Mail siehst, schau bitte auch im <strong>Spam-Ordner</strong> nach.
             </p>
             <button
               onClick={() => navigate('/auth')}
@@ -125,7 +125,7 @@ const ForgotPassword: React.FC = () => {
             Passwort vergessen?
           </h1>
           <p className="text-textMuted">
-            Geben Sie Ihre E-Mail-Adresse ein und wir senden Ihnen einen Link zum Zurücksetzen Ihres Passworts.
+            Gib deine E-Mail-Adresse ein und wir senden dir einen Link zum Zurücksetzen deines Passworts.
           </p>
         </div>
 
@@ -148,7 +148,7 @@ const ForgotPassword: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
-                placeholder="ihre.email@beispiel.de"
+                placeholder="deine.email@beispiel.de"
                 required
               />
             </div>

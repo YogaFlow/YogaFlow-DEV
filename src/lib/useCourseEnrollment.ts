@@ -90,7 +90,7 @@ export function useCourseEnrollment(onAfterSuccess: () => void) {
 
       if (data.waitlist_position) {
         showFeedbackDialog(
-          `Sie wurden auf die Warteliste gesetzt (Position ${data.waitlist_position}). Sie werden benachrichtigt, wenn ein Platz frei wird.`,
+          `Du wurdest auf die Warteliste gesetzt (Position ${data.waitlist_position}). Du wirst benachrichtigt, wenn ein Platz frei wird.`,
           'success',
           'Warteliste'
         );
@@ -105,7 +105,7 @@ export function useCourseEnrollment(onAfterSuccess: () => void) {
         // Ignore serialization issues (e.g. circular refs)
       }
       showFeedbackDialog(
-        getSupabaseErrorMessage(error, 'Fehler bei der Anmeldung. Bitte versuchen Sie es erneut.'),
+        getSupabaseErrorMessage(error, 'Fehler bei der Anmeldung. Bitte versuche es erneut.'),
         'error',
         'Anmeldung fehlgeschlagen'
       );
@@ -116,7 +116,7 @@ export function useCourseEnrollment(onAfterSuccess: () => void) {
     setPendingUnregisterCourseId(course.id);
     setConfirmDialog({
       title: 'Vom Kurs abmelden?',
-      message: `Möchten Sie sich vom Kurs „${course.title}“ abmelden? Der Platz wird wieder frei.`,
+      message: `Möchtest du dich vom Kurs „${course.title}“ abmelden? Der Platz wird wieder frei.`,
       confirmLabel: 'Abmelden',
       cancelLabel: 'Abbrechen',
       variant: 'danger',
@@ -164,7 +164,7 @@ export function useCourseEnrollment(onAfterSuccess: () => void) {
         // Ignore serialization issues (e.g. circular refs)
       }
       showFeedbackDialog(
-        getSupabaseErrorMessage(error, 'Fehler bei der Abmeldung. Bitte versuchen Sie es erneut.'),
+        getSupabaseErrorMessage(error, 'Fehler bei der Abmeldung. Bitte versuche es erneut.'),
         'error',
         'Abmeldung fehlgeschlagen'
       );

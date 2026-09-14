@@ -180,7 +180,7 @@ const NewMessageModal: React.FC<NewMessageModalProps> = ({
                 onChange={(e) => onMessageChange(e.target.value)}
                 rows={4}
                 className="w-full px-3 py-2.5 pr-10 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent resize-none text-base"
-                placeholder="Geben Sie hier Ihre Nachricht ein..."
+                placeholder="Gib hier deine Nachricht ein..."
                 required
               />
               <div className="absolute bottom-2 right-2" ref={pickerRef}>

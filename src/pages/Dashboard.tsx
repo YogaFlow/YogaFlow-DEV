@@ -532,7 +532,7 @@ const Dashboard: React.FC = () => {
                   {renderCourseCards(
                     courses,
                     isTeacher
-                      ? 'Sie haben noch keine Kurse erstellt.'
+                      ? 'Du hast noch keine Kurse erstellt.'
                       : 'Keine kommenden Kurse gefunden.'
                   )}
                 </div>
@@ -547,7 +547,7 @@ const Dashboard: React.FC = () => {
                 <div>
                   {renderCourseCards(
                     registrations,
-                    'Sie sind noch nicht für Kurse angemeldet.',
+                    'Du bist noch nicht für Kurse angemeldet.',
                     { showRegisteredBadge: true }
                   )}
                 </div>

@@ -117,7 +117,7 @@ const MyCourses: React.FC = () => {
         <div className="text-center py-12">
           <Calendar className="w-16 h-16 text-textSubtle mx-auto mb-4" />
           <h3 className="text-lg font-medium text-text mb-2">Keine Kurse gefunden</h3>
-          <p className="text-textMuted mb-6">Sie haben noch keine Kurse erstellt.</p>
+          <p className="text-textMuted mb-6">Du hast noch keine Kurse erstellt.</p>
           <button
             onClick={() => navigate('/create-course')}
             className="bg-brand text-onBrand px-6 py-3 rounded-sm hover:bg-brandPressed transition-colors flex items-center mx-auto"

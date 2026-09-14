@@ -51,7 +51,7 @@ const VerifyEmail: React.FC = () => {
           data = await response.json();
         } catch {
           setStatus('error');
-          setMessage('Ungültige Antwort vom Server. Bitte versuchen Sie es erneut.');
+          setMessage('Ungültige Antwort vom Server. Bitte versuche es erneut.');
           return;
         }
 
@@ -67,7 +67,7 @@ const VerifyEmail: React.FC = () => {
             /* ignore */
           }
           setStatus('success');
-          setMessage('Ihre E-Mail-Adresse wurde erfolgreich bestätigt!');
+          setMessage('Deine E-Mail-Adresse wurde erfolgreich bestätigt!');
           const authQuery = new URLSearchParams({ verified: '1' });
           if (import.meta.env.DEV && SLUG_RE.test(tenantParam)) {
             authQuery.set('tenant', tenantParam);
@@ -80,7 +80,7 @@ const VerifyEmail: React.FC = () => {
       } catch (error) {
         console.error('Verification error:', error);
         setStatus('error');
-        setMessage('Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.');
+        setMessage('Ein Fehler ist aufgetreten. Bitte versuche es erneut.');
       }
     };
 
@@ -98,7 +98,7 @@ const VerifyEmail: React.FC = () => {
                 E-Mail wird verifiziert...
               </h1>
               <p className="text-textMuted">
-                Bitte warten Sie einen Moment.
+                Bitte warte einen Moment.
               </p>
             </>
           )}
@@ -113,7 +113,7 @@ const VerifyEmail: React.FC = () => {
                 {message}
               </p>
               <p className="text-sm text-textMuted">
-                Sie werden in Kürze zur Anmeldeseite weitergeleitet...
+                Du wirst in Kürze zur Anmeldeseite weitergeleitet...
               </p>
             </>
           )}
