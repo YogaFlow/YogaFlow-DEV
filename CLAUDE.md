@@ -157,13 +157,13 @@ Was das für die Arbeit heißt:
   Datenverlust nicht mehr möglich — eine UUID kann nicht gleichzeitig zwei Profilzeilen und
   `auth.users.id` sein. Solange `auth_user_id IS DISTINCT FROM id` null Zeilen zählt, sind
   die Rückwege in den Migrationsköpfen gültig.
-- **Die DB kann mehr als die UI.** `join_tenant()` und `join_tenant_as_owner()` existieren,
-  werden aber **nirgends im Client aufgerufen** (geprüft am 13.09.2026 über `src/`). Es gibt
-  also noch keinen Weg, über den eine Teilnehmerin einem zweiten Studio beitritt.
+- **Beitritt zu einem weiteren Studio** läuft seit `61d15f8` (13.09.) über `JoinStudio.tsx` →
+  `join_tenant()`. `join_tenant_as_owner()` (eingeloggt ein eigenes Studio gründen) hat weiterhin
+  keinen Aufruf im Client.
 - Rückfallpunkt für das ganze Vorhaben: `supabase/snapshots/2026-09-11_pre_membership_dev.sql`.
-- `update-user` wurde in Stufe 3b bewusst nicht angefasst.
-- **Offen:** Ob die Stufen 1 bis 3c auf PROD angewendet sind, geht aus dem Repo nicht hervor —
-  die Migrationsköpfe belegen nur DEV. Vor dem nächsten Schritt am Datenmodell prüfen.
+- `update-user` schreibt seit `0e8bf0f` (3c-B2) nur noch Profilfelder, nie Login-E-Mail oder Passwort.
+- **PROD:** Auf `main` liegt von diesen Migrationen keine, nur der Hotfix `20260911134500`.
+  Die PROD-Datenbank vor dem Release mit `npm run db:status:prod` bestätigen.
 
 ---
 
@@ -182,33 +182,31 @@ Maßgeblich ist `docs/DESIGNSYSTEM.md`. Das Wichtigste in Kürze:
 
 ---
 
-## Stand (13.09.2026)
+## Stand (14.09.2026)
 
-Auf `Julius` liegen zwei Arbeitsstränge nebeneinander. Der Design-Strang pausiert seit dem
-09.09., der Datenmodell-Strang ist am 11.09. dazwischengekommen und nicht abgeschlossen.
+**Release 2026-09 — offen.** `Julius` liegt 42 Commits und 9 Migrationen vor `main`, dazu kommen
+Änderungen an allen 9 Edge Functions. Den Umfang nach Themen beschreibt `docs/RELEASE_2026-09.md`.
+Umfang und Zeitpunkt des Schnitts werden am 15.09. besprochen. Bis zum Schnitt ist `Julius` die
+Release-Linie. Fixes, Landingpage- und Design-Änderungen für das Release gehen dort hinein.
+**Code aus der Geldkette kommt erst nach dem Schnitt und nach der Release-Abnahme auf DEV nach
+`Julius`**, weil DEV nur eine Datenbank und eine Domain hat. Bis dahin liegt er auf dem eigenen
+Branch `feature/geldkette` (committet und gepusht, aber nicht auf DEV, keine Migration in der
+DEV-Datenbank). Der Branch `release/2026-09` entsteht erst am Tag des Schnitts als Kopie von `Julius`.
 
-**Design — fertig:** Paket 1 (Tokens, Farbmigration, Grundflächen, Form) und Paket 2 (Datum,
-Uhrzeit, Preis, `tabular-nums`, Versalien).
+**Design — fertig:** Paket 1 (Tokens, Farbmigration, Grundflächen, Form), Paket 2 (Datum,
+Uhrzeit, Preis, `tabular-nums`, Versalien) und Paket 3 bis auf Punkt 12: Kursliste und
+Kursverwaltung nach Tagen (`85b9c44`, `a9991d5`), Teilnehmerliste nach Kurs (`b6387cf`),
+Dashboard-Zeilen und Kennzahlen in einer Zeile (`a6f25e2`, `1ac8b8a`), Seitentitel im Kopf
+(`468bcb3`). Wiederherstellungspunkt vor Beginn: Tag `pre-design-tokens` (`8cb4712`).
 
-Commits auf `Julius`: `5cb3122`, `be31c44`, `9270058`, `da7d715`.
-Wiederherstellungspunkt vor Beginn: Tag `pre-design-tokens` (`8cb4712`).
+**Offen aus Paket 3:** 12. Dashboard: Hero-Karte „deine nächste Stunde" (kein Treffer in `src/`).
 
-**Datenmodell — offen:** Der Umbau auf Mehrfachmitgliedschaft steht bei Stufe 3c (Details
-im Abschnitt oben). Letzter Commit `00ae765` vom 11.09., 19:30 Uhr. Offen sind mindestens:
-die UI zu `join_tenant()`, das Entfernen von `debug_request_tenant_header()` in Stufe 4, die
-befristete Übergangsregel ohne Header — und die Frage, ob PROD den Stufen 1 bis 3c folgt.
+**Datenmodell — Kern fertig auf DEV:** Mehrfachmitgliedschaft bis 3c-B2 (letzter Commit
+`ed73a32`, 13.09.). Offen: Stufe 4 — `debug_request_tenant_header()` entfernen und die
+befristete Übergangsregel ohne Header entfernen, sobald PROD stabil läuft.
 
-**Welcher Strang zuerst weitergeht, ist hier nicht entschieden.** Der Design-Strang nimmt
-unten die Nummerierung aus Paket 3 wieder auf; das ist der Stand vom 09.09., keine
-Priorisierung gegenüber dem Datenmodell.
-
-**Als Nächstes — Paket 3, Layout:**
-
-9. Kursliste: Kartenstapel → nach Tagen gruppierte Blöcke mit Zeitspalte links
-10. Teilnehmerliste: gleiche Umstellung
-11. Dashboard: Kennzahl-Kacheln → eine Zeile mit Trennern
-12. Dashboard: Hero-Karte „deine nächste Stunde"
-13. Kopfbereich trägt den Seitentitel statt „Willkommen zurück, {Name}!"
+**Geldkette 1a — geplant:** `docs/EPIC_GELDKETTE_1A.md` (Entwurf, Entscheidungen E1–E8 vom
+14.09.). Startet mit Story 0.1 (Stripe-Dashboard, kein Code) und 0.2 nach dem Release-Schnitt.
 
 **Danach — Paket 4:** destruktive Aktionen entschärfen, Tippziele 44 px, Leerzustände als
 Einladung, Gedrückt-Zustand statt Hover.
