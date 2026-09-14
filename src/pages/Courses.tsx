@@ -440,7 +440,8 @@ const Courses: React.FC = () => {
                     isAdmin || isCourseLeader
                       ? `${registeredCount}/${course.max_participants} Plätze`
                       : '';
-                  const meta = [teacherName, course.location, occupancy]
+                  const until = formatTime(course.end_time);
+                  const meta = [until ? `bis ${until}` : '', teacherName, course.location, occupancy]
                     .filter(Boolean)
                     .join(' · ');
                   const description = course.description?.trim() ?? '';
@@ -505,16 +506,9 @@ const Courses: React.FC = () => {
 
                   return (
                     <article key={course.id}>
-                      <div className="hidden items-center gap-4 px-3.5 py-3 md:flex">
-                        <div className="flex w-12 shrink-0 flex-col items-center justify-center rounded-sm bg-brandSoft py-1 text-center leading-tight text-brandOnSoft tabular-nums">
-                          <div className="text-[19px] font-medium">
-                            {formatTime(course.time)}
-                          </div>
-                          {course.end_time ? (
-                            <div className="text-[12px] font-normal">
-                              {formatTime(course.end_time)}
-                            </div>
-                          ) : null}
+                      <div className="hidden items-start gap-3 px-3.5 py-3 md:flex">
+                        <div className="shrink-0 rounded-sm bg-brandSoft px-2 py-1 text-[15px] font-medium leading-tight text-brandOnSoft tabular-nums">
+                          {formatTime(course.time)}
                         </div>
                         <div className="min-w-0 flex-1">
                           <h3 className="text-[17px] font-medium text-text">{course.title}</h3>
@@ -532,8 +526,8 @@ const Courses: React.FC = () => {
                         <div className="shrink-0">{action}</div>
                       </div>
 
-                      <div className="flex gap-3 px-3.5 py-3 md:hidden">
-                        <div className="flex w-12 shrink-0 items-center justify-center rounded-sm bg-brandSoft py-1 text-center text-[19px] font-medium leading-tight text-brandOnSoft tabular-nums">
+                      <div className="flex items-start gap-3 px-3.5 py-3 md:hidden">
+                        <div className="shrink-0 rounded-sm bg-brandSoft px-2 py-1 text-[15px] font-medium leading-tight text-brandOnSoft tabular-nums">
                           {formatTime(course.time)}
                         </div>
                         <div className="min-w-0 flex-1">
