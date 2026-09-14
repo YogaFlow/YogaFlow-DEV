@@ -183,7 +183,7 @@ const CourseDetail: React.FC = () => {
   };
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-2xl pb-28 lg:pb-0">
       <CourseEnrollmentDialogs
         confirmDialog={confirmDialog}
         unregistering={unregistering}
@@ -277,48 +277,50 @@ const CourseDetail: React.FC = () => {
         </section>
       ) : null}
 
-      <div className="sticky bottom-0 z-20 -mx-3 mt-8 flex min-h-11 items-center justify-between gap-3 border-t border-border bg-surface px-3 py-3 sm:-mx-6 sm:px-6">
-        <p className="text-[19px] font-medium text-text tabular-nums">{formatPrice(course.price)}</p>
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          {canAct ? (
-            isRegistered ? (
-              <button
-                type="button"
-                onClick={() => requestUnregister(course)}
-                className="inline-flex min-h-11 items-center px-3 text-[15px] font-medium text-danger"
-              >
-                Abmelden
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => handleRegister(course.id)}
-                className={`inline-flex min-h-11 items-center rounded-full px-4 text-[15px] font-medium ${
-                  isFull
-                    ? 'border border-accent bg-accentSoft text-accentText'
-                    : 'bg-brand text-onBrand'
-                }`}
-              >
-                {isFull ? 'Warteliste' : 'Anmelden'}
-              </button>
-            )
-          ) : null}
-          {showStaffLinks ? (
-            <>
-              <Link
-                to={`/course/${course.id}/participants`}
-                className="inline-flex min-h-11 items-center px-2 text-[15px] font-medium text-brand"
-              >
-                Teilnehmer
-              </Link>
-              <Link
-                to={`/course/${course.id}/edit`}
-                className="inline-flex min-h-11 items-center px-2 text-[15px] font-medium text-brand"
-              >
-                Bearbeiten
-              </Link>
-            </>
-          ) : null}
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-surface pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:sticky lg:inset-x-auto lg:bottom-0 lg:-mx-6 lg:mt-8 lg:py-3">
+        <div className="mx-auto flex min-h-11 max-w-2xl items-center justify-between gap-3 px-3 max-[380px]:px-2 sm:px-6 lg:max-w-none lg:px-6">
+          <p className="text-[19px] font-medium text-text tabular-nums">{formatPrice(course.price)}</p>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {canAct ? (
+              isRegistered ? (
+                <button
+                  type="button"
+                  onClick={() => requestUnregister(course)}
+                  className="inline-flex min-h-11 items-center px-3 text-[15px] font-medium text-danger"
+                >
+                  Abmelden
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => handleRegister(course.id)}
+                  className={`inline-flex min-h-11 items-center rounded-full px-4 text-[15px] font-medium ${
+                    isFull
+                      ? 'border border-accent bg-accentSoft text-accentText'
+                      : 'bg-brand text-onBrand'
+                  }`}
+                >
+                  {isFull ? 'Warteliste' : 'Anmelden'}
+                </button>
+              )
+            ) : null}
+            {showStaffLinks ? (
+              <>
+                <Link
+                  to={`/course/${course.id}/participants`}
+                  className="inline-flex min-h-11 items-center px-2 text-[15px] font-medium text-brand"
+                >
+                  Teilnehmer
+                </Link>
+                <Link
+                  to={`/course/${course.id}/edit`}
+                  className="inline-flex min-h-11 items-center px-2 text-[15px] font-medium text-brand"
+                >
+                  Bearbeiten
+                </Link>
+              </>
+            ) : null}
+          </div>
         </div>
       </div>
     </div>
