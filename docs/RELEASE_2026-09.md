@@ -1,13 +1,13 @@
 # Release 2026-09 — Umfang DEV → PROD
 
-**Stand:** 14.09.2026 · Grundlage für den Termin am 15.09. · **wächst bis zum Schnitt**
-**Vergleich:** `origin/main` (`e1776fd`, 11.09.) gegen `origin/Julius` (`6d1e8a0`, 14.09.)
+**Stand:** 15.09.2026 · Grundlage für den Termin am 15.09. · **wächst bis zum Schnitt**
+**Vergleich:** `origin/main` (`e1776fd`, 11.09.) gegen HEAD (`ebf2554`, 15.09.; wird nach Push `origin/Julius`)
 **Gemeinsamer Vorfahr:** `4d43ad6` (07.09.)
 
 | | |
 |---|---|
-| Commits auf `Julius`, nicht auf `main` | 59 |
-| Dateien | 95 geändert, +9.944 / −2.313 Zeilen |
+| Commits auf `Julius`, nicht auf `main` | 65 |
+| Dateien | 97 geändert, +10.336 / −2.499 Zeilen |
 | Migrationen nur auf DEV | 9 |
 | Edge Functions geändert | alle 9 plus `_shared/studio_slug_for_user.ts` |
 | Nicht im Release | Geldkette 1a (`docs/EPIC_GELDKETTE_1A.md`), Stufe 4 der Mehrfachmitgliedschaft |
@@ -104,6 +104,18 @@ Migrationsdatei `20260911134500` ist in beiden Branches identisch (kein Untersch
 
 **Anmeldeweg geändert: Anmelden, Warteliste und Abmelden gibt es nur noch auf der Kursdetailseite, nicht mehr in der Kursliste.**
 
+## J — Kursverwaltung und Löschen (14.–15.09.)
+
+| Commit | Inhalt |
+|---|---|
+| `1e4446f` | Löschen kommender Kurse von der Detailseite (Owner und Admin) |
+| `a9e3691` | Löschdialog nur mit geprüfter Teilnehmerzahl |
+| `2c25e8a` | Kursverwaltung: Zeilen öffnen die Detailseite, keine Zeilenaktionen |
+| `73e9b6f` | Kursverwaltung nutzt die gemeinsame `CourseRow` |
+| `ebf2554` | Erfolgsbanner nach Anlegen oder Bearbeiten eines Kurses |
+
+**Löschen gibt es nur noch auf der Kursdetailseite, nur für Owner und Admin, nur für kommende Termine. Die Kursverwaltung hat keine Zeilenaktionen mehr.**
+
 ---
 
 ## Nachträge bis zum Schnitt
@@ -113,13 +125,14 @@ Migrationsdatei `20260911134500` ist in beiden Branches identisch (kein Untersch
 | | | Landingpage | *(geplant, noch offen)* |
 | 14.09. | siehe H | Design | Design-Durchlauf Übersicht, siehe Gruppe H |
 | 14.09. | siehe I | Design/Feature | Kursdetailseite und Kurszeilen, siehe Gruppe I |
+| 14.–15.09. | siehe J | Feature | Kursverwaltung und Löschen, siehe Gruppe J |
 | | | Fixes aus Release-Test | |
 
 ---
 
 ## Offene Fragen für den Termin am 15.09.
 
-1. **Umfang:** Geht alles aus A–I gemeinsam nach PROD, oder wird etwas zurückgehalten? Die Mehrfachmitgliedschaft
+1. **Umfang:** Geht alles aus A–J gemeinsam nach PROD, oder wird etwas zurückgehalten? Die Mehrfachmitgliedschaft
    (F) lässt sich nicht sauber von B/C trennen: 7 Dateien werden in beiden Strängen geändert (`App.tsx`,
    `LoginForm.tsx`, `RegisterForm.tsx`, `AuthPage.tsx`, `ForgotPassword.tsx`, `Profile.tsx`, `Users.tsx`).
 2. **Schnitt:** Bis wann kommen Landingpage- und Design-Änderungen noch hinein? Danach nur noch Fixes.
@@ -136,6 +149,13 @@ Migrationsdatei `20260911134500` ist in beiden Branches identisch (kein Untersch
    (E-Mail, Telefon, Adresse). Policy `users_select_participant_staff` (`20260519153000`; zuerst
    `20260519120000`; `is_participant()` in `20260911173000` auf `get_my_member_id()` umgestellt, die Policy
    selbst nicht). Auf DEV belegt, PROD ungeprüft. Vor dem Release klären.
+7. **Löschknopf für Kursleitungen auf PROD:** In der Kursverwaltung auf `main` sehen
+   Kursleitungen einen Löschknopf. Die RLS (`managers_delete_courses`) erlaubt Löschen nur
+   Owner/Admin; der Client prüft die Zahl gelöschter Zeilen nicht und meldet Erfolg.
+   Aus Code und Policy abgeleitet, nicht ausprobiert. Mit diesem Release behoben.
+8. **Löschen entfernt Anmeldungen und Kurs-Chat per ON DELETE CASCADE, Teilnehmende
+   werden nicht benachrichtigt.** Der Dialog warnt mit Personenzahl. „Absagen statt
+   Löschen" mit Benachrichtigung ist eine Produktfrage (Strategie-Projekt).
 
 ## Vor dem Release-PR zu prüfen
 

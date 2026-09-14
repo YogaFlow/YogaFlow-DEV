@@ -73,9 +73,12 @@ sich in einen Design- oder Refactoring-Durchlauf einschleicht: sagen, nicht ausf
   Anmeldungen angezeigt werden (Kurs nicht abgesagt wie in `register_for_course`,
   sichtbar bis Kursende); `hasCourseEnded`, `isCourseRunning`.
 - `src/components/ui/AccentPill.tsx` — einzige Quelle für Safran-Status.
-- `src/components/courses/CourseRow.tsx` — einzige Kurszeile (Dashboard, Kurse, Meine Anmeldungen).
+- `src/components/courses/CourseRow.tsx` — einzige Kurszeile (alle Kurslisten).
 - `src/lib/useCourseEnrollment.ts` und `src/components/courses/CourseEnrollmentDialogs.tsx` —
   einziger Weg für Selbstanmeldung im Client.
+- `src/lib/useCourseDeletion.ts` und `src/components/courses/CourseDeleteDialog.tsx` —
+  einziger Weg, Kurse zu löschen (nur Owner/Admin, nur kommende Termine, Personenzahl
+  geprüft, Anzahl gelöschter Zeilen geprüft).
 - `src/pages/CourseDetail.tsx` — `/course/:courseId`, einziger Ort für Anmelden/Abmelden.
 - `canSelfEnrollInCourse` in `src/lib/userRoles.ts` — ob die Detailseite einen Anmeldeknopf zeigt.
 - `src/lib/tenantSlug.ts` — einzige Quelle für den Studio-Slug (Host, in DEV `?tenant=`
@@ -106,6 +109,10 @@ sich in einen Design- oder Refactoring-Durchlauf einschleicht: sagen, nicht ausf
   scheitert nicht daran.
 - Rollen: `owner`, `admin`, `teacher`, `user`. Die Rolle hängt am Profil, nicht am Login —
   dieselbe Person kann in Studio A `owner` und in Studio B `user` sein.
+- Ein von RLS still verhindertes DELETE/UPDATE liefert keinen Fehler, sondern 0
+  Zeilen. Schreibende Aufrufe mit `.select()` ausführen und die Zeilenzahl prüfen.
+- `fetchCourseParticipantCounts` liefert bei Fehler `{}`. Die RPC gibt für jeden
+  existierenden Kurs eine Zeile zurück; fehlt eine ID, ist die Zählung gescheitert.
 
 **Tenant-Isolation (geprüft am 09.09.2026, umgebaut am 11.09.2026)**
 
@@ -193,7 +200,7 @@ Maßgeblich ist `docs/DESIGNSYSTEM.md`. Das Wichtigste in Kürze:
 
 ## Stand (14.09.2026)
 
-**Release 2026-09 — offen.** `Julius` liegt 59 Commits und 9 Migrationen vor `main`, dazu kommen
+**Release 2026-09 — offen.** `Julius` liegt 65 Commits und 9 Migrationen vor `main`, dazu kommen
 Änderungen an allen 9 Edge Functions. Den Umfang nach Themen beschreibt `docs/RELEASE_2026-09.md`.
 Umfang und Zeitpunkt des Schnitts werden am 15.09. besprochen. Bis zum Schnitt ist `Julius` die
 Release-Linie. Fixes, Landingpage- und Design-Änderungen für das Release gehen dort hinein.
@@ -214,6 +221,9 @@ AccentPill — siehe `docs/RELEASE_2026-09.md` Gruppe H.
 **Kursdetail 14.09.:** Gemeinsame Kurszeile und Kursdetailseite mit Aktionsleiste — siehe
 `docs/RELEASE_2026-09.md` Gruppe I. Anmeldeweg geändert: Anmelden, Warteliste und Abmelden gibt
 es nur noch auf der Kursdetailseite, nicht mehr in der Kursliste.
+
+**Kursverwaltung und Löschen:** Zeilen ohne Aktionen, gemeinsame `CourseRow`, Löschen nur auf
+der Detailseite für Owner/Admin bei kommenden Terminen — siehe `docs/RELEASE_2026-09.md` Gruppe J.
 
 **Datenmodell — Kern fertig auf DEV:** Mehrfachmitgliedschaft bis 3c-B2 (letzter Commit
 `ed73a32`, 13.09.). Offen: Stufe 4 — `debug_request_tenant_header()` entfernen und die
@@ -254,7 +264,7 @@ Einladung, Gedrückt-Zustand statt Hover.
 - Supabase CLI lokal v2.77.0, aktuell v2.117.0.
 - Kursliste der Kursleitung auf der Übersicht filtert abgesagte Kurse nicht
   (`Dashboard.tsx:83`, nur `isCourseUpcoming`).
-- `canSelfEnrollInCourse` (`userRoles.ts:21-29`, genutzt in `CourseDetail.tsx:136`) prüft
+- `canSelfEnrollInCourse` (`userRoles.ts:21-29`, genutzt in `CourseDetail.tsx:154`) prüft
   `status === 'active'`; der Server wertet `NULL` als aktiv (`coalesce(v_course_status, 'active')`
   in `register_for_course`, `20260911173000` Zeile 363 / `isCourseCancelled` in
   `courseDateTime.ts:84-90`) — ein Kurs mit `status` `NULL` zeigt auf der Detailseite keinen
@@ -262,25 +272,32 @@ Einladung, Gedrückt-Zustand statt Hover.
 - Kursliste blendet laufende Kurse ab Beginn aus (`isCourseUpcoming`, `Courses.tsx:52`, `:107`,
   `:168`), Übersicht und Meine Anmeldungen zeigen sie bis Kursende (`isRegistrationVisible`).
 - Warteliste-Wortlaut: „Warteliste Pos. 3" Kursliste und Detailseite (`Courses.tsx:253`,
-  `CourseDetail.tsx:286`), „Warteliste (Pos. 3)" Meine Anmeldungen (`EnrollmentCards.tsx:34`),
+  `CourseDetail.tsx:326`), „Warteliste (Pos. 3)" Meine Anmeldungen (`EnrollmentCards.tsx:34`),
   „Warteliste 3" Teilnehmer mobil (`Participants.tsx:407`), „Warteliste (Pos. 3)" Teilnehmer
   Desktop (`Participants.tsx:525`).
 - „Noch Plätze frei" lädt höchstens 30 Kandidaten, kein Nachladen (`Dashboard.tsx:95`).
-- Kursverwaltung (`MyCourses.tsx:303-304`, `:330-331`) nutzt noch die alte Zeile mit Beschreibung.
-- „Anmelden" ohne Ladezustand (`useCourseEnrollment.ts:68`, `CourseDetail.tsx:311-317`): kein
+- „Anmelden" ohne Ladezustand (`useCourseEnrollment.ts:68`, `CourseDetail.tsx:343-357`): kein
   `registering`-Flag, der Knopf wird nicht gesperrt; Doppeltipp löst zwei Anfragen aus.
 - Anrede uneinheitlich — Anmeldemeldungen siezen (`useCourseEnrollment.ts:93`, `:119`:
   „Möchten Sie …"), Übersicht duzt (`Dashboard.tsx:479`); Titel „Anmeldung nicht moeglich"
   ohne Umlaut (`useCourseEnrollment.ts:83`). Entscheidung Du/Sie offen (Julius).
-- `CourseDetail.tsx:57-60` / `:118-121` zeigt bei Ladefehler „Kurs nicht gefunden" statt der
+- `CourseDetail.tsx:60-64` / `:136-144` zeigt bei Ladefehler „Kurs nicht gefunden" statt der
   Fehlermeldung.
 - `courses.duration` hat Default 60 (`20251105155932` Zeile 60) und ist unzuverlässig — Dauer
   aus `time`/`end_time` (`courseDurationMinutes` in `courseDateTime.ts:42-49`). `room` und
-  `prerequisites` werden angezeigt (`CourseDetail.tsx:143`, `:149`, `:265-269`), aber von keinem
+  `prerequisites` werden angezeigt (`CourseDetail.tsx:161`, `:256-259`, `:167`, `:295-298`), aber von keinem
   Formular geschrieben (`CreateCourse.tsx` / `EditCourse.tsx`: kein Treffer für `room` oder
   `prerequisites`).
 - `index.html:6` ohne `viewport-fit=cover`; `env(safe-area-inset-bottom)` in der Aktionsleiste
-  (`CourseDetail.tsx:272`) ist daher meist 0.
+  (`CourseDetail.tsx:312`) ist daher meist 0.
+- Löschen kaskadiert Anmeldungen (`registrations.course_id`, `20250804174545` Zeile 24) und
+  Kurs-Chat (`messages.course_id`, `20251105155932` Zeile 132) ohne Benachrichtigung;
+  „Absagen statt Löschen" offen (Strategie).
+- Trigger `promote_waitlist_after_registered_delete` (`20260907153100` Zeilen 50–59) läuft in
+  der Löschkaskade und ruft `promote_from_waitlist` auf; ob kurz eine Nachricht „Du hast Glück …"
+  entsteht (`20260907113107` Zeile 384), ist ungeprüft.
+- Owner/Admin sehen in „Kurse verwalten" nur eigene Kurse (`MyCourses.tsx:38`,
+  `teacher_id` = self); fremde erreichen sie über „Kurse" und die Detailseite.
 
 ---
 

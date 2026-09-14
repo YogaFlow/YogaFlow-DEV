@@ -74,6 +74,17 @@ Auch wenn die Änderung „damit nichts zu tun hat". Genau diese Fälle brechen 
 - [ ] Kursleitung in einem fremden Kurs kann sich anmelden
 - [ ] Abgesagter oder begonnener Kurs: kein Anmeldeknopf
 - [ ] Kursliste enthält keine Anmelde-/Abmeldeknöpfe und keine Beschreibung mehr
+- [ ] Owner/Admin: „Kurs löschen" unten auf der Seite, nur bei kommenden Kursen; nicht
+      bei vergangenen, nicht für Kursleitungen
+- [ ] Löschdialog nennt die Zahl angemeldeter/wartender Personen (Vinyasa im Seed)
+- [ ] Nach dem Löschen: Kurse-Liste, „Zurück" führt nicht auf die gelöschte Kursseite
+- [ ] Serie (selbst anlegen, Seed hat keine): „Alle N kommenden Termine löschen" lässt
+      vergangene Termine bestehen
+- [ ] Kursverwaltung: keine Knöpfe in den Zeilen, Zeile öffnet die Detailseite
+- [ ] Nach „Kurs anlegen" und „Kurs bearbeiten" erscheint in „Kurse verwalten" die
+      Erfolgsmeldung
+
+Löschen verändert Seed-Daten; danach `npm run seed:dev`.
 
 ### Rollen
 

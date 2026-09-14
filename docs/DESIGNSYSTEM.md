@@ -4,7 +4,7 @@
 **Ablageort im Repo:** `docs/DESIGNSYSTEM.md`
 **Zugehörig:** `claude/Entscheidung_02_Mobile_Strategie.md` (Tenant-Branding als Vorarbeit)
 
-**v1.3:** Alle Kurslisten außer der Kursverwaltung nutzen `CourseRow`. Titel höchstens zwei Zeilen,
+**v1.3:** Alle Kurslisten nutzen `CourseRow`. Titel höchstens zwei Zeilen,
 keine Beschreibung und keine Knöpfe in der Zeile; die ganze Zeile öffnet die Kursdetailseite.
 Aktionsleiste unten: eigener Zustand und genau eine Aktion, Knöpfe `rounded-full`, mind. 44 px.
 
@@ -176,7 +176,7 @@ Für die spätere Expo-App bleibt die untere Leiste die Vorgabe — dort ist sie
 
 **Kurszeilen:**
 
-- Alle Kurslisten außer der Kursverwaltung nutzen `CourseRow`
+- Alle Kurslisten nutzen `CourseRow`
   (`src/components/courses/CourseRow.tsx`). Aufbau: Datumsblock oder Zeit-Chip · Titel
   (höchstens zwei Zeilen) und Preis · eine Meta-Zeile · optional Status · Pfeil.
 - In Kurszeilen keine Beschreibung und keine Knöpfe. Die ganze Zeile öffnet die
@@ -197,6 +197,9 @@ Für die spätere Expo-App bleibt die untere Leiste die Vorgabe — dort ist sie
   Warteliste) und genau eine Aktion.
 - Knöpfe dort einheitlich `rounded-full`, mind. 44 px. „Abmelden" mit Rahmen, nie
   gefüllt (Regel 7). Mobil fest am unteren Rand, ab `lg` sticky.
+- Destruktive Verwaltungsaktionen (Kurs löschen) stehen als Textknopf in `danger`
+  unter dem Inhalt, nie in der Aktionsleiste. Gefüllt in `danger` ist nur der
+  endgültige Bestätigungsknopf im Dialog.
 
 ## Verbindliche Formatierungsregeln
 
