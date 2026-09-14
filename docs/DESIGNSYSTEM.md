@@ -1,8 +1,11 @@
 # Omlify Designsystem v1 — Farben und Tokens
 
-**Stand:** 09.09.2026 (v1.1 — Grünrampe ergänzt, Navigation entschieden) · **Status:** festgelegt
+**Stand:** 14.09.2026 (v1.2 — Safran-Rampe, `accent-text` für WCAG AA) · **Status:** festgelegt
 **Ablageort im Repo:** `docs/DESIGNSYSTEM.md`
 **Zugehörig:** `claude/Entscheidung_02_Mobile_Strategie.md` (Tenant-Branding als Vorarbeit)
+
+**v1.2:** Safran als Rampe (`50`/`100`/`500`/`700`); jeder Safran-Text in `accent-text`
+(`saffron-700`). `green-300` nie als Textfarbe. Text auf `brand`-Flächen nur in `on-brand`.
 
 ---
 
@@ -56,7 +59,7 @@ Studiofarbe automatisch auf dunkle Schrift umschalten. Sonst gibt es weiße Schr
 | `--green-50` | `#F2F6F3` | Nebel — Kopfbereich, Sektionsflächen, aktive Listenzeile |
 | `--green-100` | `#E3EDE7` | Dunst — Badges, Icon-Flächen |
 | `--green-200` | `#CBDDD3` | Blatt — Fortschrittsbahn, Trenner auf grünem Grund |
-| `--green-300` | `#A5C0B2` | Eukalyptus — Icons und Sekundärtext auf Dunkelgrün |
+| `--green-300` | `#A5C0B2` | Eukalyptus — Icons und Linien auf Dunkelgrün, nie Textfarbe |
 | `--green-500` | `#4A7A69` | Salbei — zweite Aktion, Diagrammflächen, Kopf-Icons |
 | `--green-600` | `#2F5A4E` | Tief-Salbei — Hauptaktion |
 | `--green-800` | `#23443B` | Tanne — gedrückter Zustand, Text auf `green-50`/`100` |
@@ -66,8 +69,8 @@ frei gewählt werden, entstehen zwei Töne, die fast gleich aussehen, aber Unter
 bedeuten — und die Oberfläche wirkt matschig statt ruhig.
 
 **Kontrastregeln:** Text auf `green-50`, `100` und `200` immer in `green-800`, nie in
-`--color-text`. Text auf `green-600` und `800` immer in Weiß. `green-300` ist nie Textfarbe
-auf hellem Grund (zu wenig Kontrast) — nur auf Dunkelgrün.
+`--color-text`. Text auf `green-600` und `800` immer in Weiß. `green-300` ist nie Textfarbe —
+ca. 4,0:1 auf `green-600`, zu wenig für Text. Nur Icons und Linien auf Dunkelgrün.
 
 ### Marke (Standardwert, tenant-überschreibbar)
 
@@ -82,6 +85,9 @@ auf hellem Grund (zu wenig Kontrast) — nur auf Dunkelgrün.
 Nur diese fünf Tokens sind überschreibbar. Die Rampe selbst bleibt, damit Omlify-eigene
 Flächen auch bei einem Studio mit pinker Marke ruhig bleiben.
 
+**Text auf brand-Flächen nur in `on-brand`.** Rangfolge über Größe und Gewicht, nicht über
+eine zweite Farbe — sonst bricht sie bei Tenant-Branding. Beispiel: Hero-Karte auf der Übersicht.
+
 **Konflikt, der dabei entsteht:** Erfolgsgrün und Markengrün sind im Standardfall dieselbe
 Familie. Konsequenz: **Erfolg wird nicht über Farbe allein signalisiert.** Ein gebuchter Kurs
 zeigt Häkchen plus Text („Gebucht"), nicht bloß eine grüne Fläche. Das ist ohnehin die
@@ -89,14 +95,27 @@ barrierefreiere Lösung.
 
 ### Akzent und Status (fest)
 
+**Safran-Rampe** (fest — die Palette, aus der der Akzent schöpft)
+
 | Token | Hex | Verwendung |
 |---|---|---|
-| `--color-accent` | `#B87A2E` | Safran — Hinweise, Warteliste, Aufmerksamkeitskarten |
-| `--color-accent-soft` | `#F7EEDF` | Fläche hinter Akzenttext |
+| `--saffron-50` | `#FBF6EC` | hellste Stufe |
+| `--saffron-100` | `#F7EEDF` | weiche Fläche hinter Akzent |
+| `--saffron-500` | `#B87A2E` | Icons, Rahmen |
+| `--saffron-700` | `#8A5A1F` | jeder Safran-Text |
+
+| Token | Wert | Verwendung |
+|---|---|---|
+| `--color-accent` | `var(--saffron-500)` | Icons, Rahmen |
+| `--color-accent-soft` | `var(--saffron-100)` | weiche Fläche |
+| `--color-accent-text` | `var(--saffron-700)` | jeder Safran-Text |
 | `--color-success` | `#3F7A5E` | gebucht, bezahlt |
 | `--color-success-soft` | `#E4F0E9` | |
 | `--color-danger` | `#A8443A` | stornieren, löschen |
 | `--color-danger-soft` | `#F6E5E2` | |
+
+**Kontrastregel:** Safran als Text immer in `accent-text` (`saffron-700`) — auf Weiß, Sand
+und `accent-soft`. `saffron-500` nur für Icons und Rahmen.
 
 **Bewusst gestrichen:** Blau und Lila. Sie kamen aus dem Standard-Tailwind-Set und gehören zu
 keiner Aussage. Rollen-Badges nutzen künftig `brand-soft` bzw. neutrale Grautöne, nicht je eine
@@ -191,8 +210,9 @@ als Alias beibehalten, dann Bildschirm für Bildschirm umstellen. Reihenfolge na
 
 - **Geschlossen 09.09.2026:** Palette bestätigt. Seitenhintergrund bleibt warmer Sand
   `#F5F3EF`; die grünstichige Variante `#F3F5F1` wurde verworfen, weil sie Wärme kostet.
-- Safran bleibt vorerst als einziges Signal außerhalb der Grünrampe, nur als Icon- und
-  Textfarbe, nicht als Fläche.
+- Seit 14.09.2026: Safran darf als weiche Fläche (`accent-soft`) erscheinen — für
+  Hinweise, Warteliste, knappe Plätze. Nie als gefüllte Fläche in `saffron-500`, nie für
+  eine Hauptaktion.
 - Dunkelmodus: aktuell nicht vorgesehen. Die Token-Struktur macht ihn später möglich,
   ohne dass etwas neu gebaut wird.
 - Logo: das Herz-Symbol ist unverändert übernommen und nicht Teil dieser Entscheidung.

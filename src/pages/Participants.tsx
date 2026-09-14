@@ -399,7 +399,7 @@ const Participants: React.FC = () => {
                         <span className={`flex-shrink-0 inline-flex px-2 py-1 text-xs font-medium rounded-full ${
                           participant.status === 'registered'
                             ? 'bg-sage-100 text-sage-800'
-                            : 'bg-accentSoft text-accent'
+                            : 'bg-accentSoft text-accentText'
                         }`}>
                           {participant.status === 'registered'
                             ? 'Angemeldet'
@@ -517,7 +517,7 @@ const Participants: React.FC = () => {
                           <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
                             participant.status === 'registered'
                               ? 'bg-sage-100 text-sage-800'
-                              : 'bg-accentSoft text-accent'
+                              : 'bg-accentSoft text-accentText'
                           }`}>
                             {participant.status === 'registered'
                               ? 'Angemeldet'

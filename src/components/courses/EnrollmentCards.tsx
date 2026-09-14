@@ -40,7 +40,7 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({ registrations }) => (
             <div
               className={`mt-2 inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
                 isWaitlist
-                  ? 'bg-accentSoft text-accent'
+                  ? 'bg-accentSoft text-accentText'
                   : 'bg-sage-100 text-brand'
               }`}
             >

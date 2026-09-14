@@ -459,7 +459,7 @@ const Courses: React.FC = () => {
                     );
                   } else if (isRegistered) {
                     status = (
-                      <span className="text-[13px] font-medium text-accent">
+                      <span className="text-[13px] font-medium text-accentText">
                         {waitlistPosition ? `Warteliste Pos. ${waitlistPosition}` : 'Warteliste'}
                       </span>
                     );
@@ -469,7 +469,7 @@ const Courses: React.FC = () => {
                     );
                   } else if (remaining <= 2) {
                     status = (
-                      <span className="text-[13px] font-medium text-accent">
+                      <span className="text-[13px] font-medium text-accentText">
                         {remaining === 1 ? 'noch 1 Platz' : `noch ${remaining} Plätze`}
                       </span>
                     );
@@ -494,7 +494,7 @@ const Courses: React.FC = () => {
                         onClick={() => handleRegister(course.id)}
                         className={`inline-flex min-h-11 items-center rounded-sm px-3 text-[13px] font-medium transition-colors ${
                           isFull
-                            ? 'border border-accent bg-accentSoft text-accent hover:bg-accentSoft'
+                            ? 'border border-accent bg-accentSoft text-accentText hover:bg-accentSoft'
                             : 'bg-brand text-onBrand hover:bg-brandPressed'
                         }`}
                       >

@@ -370,7 +370,7 @@ const Dashboard: React.FC = () => {
               ? `Warteliste Pos. ${item.waitlist_position}`
               : 'Warteliste';
             status = (
-              <span className="inline-flex rounded-full bg-accentSoft px-2.5 py-0.5 text-[13px] font-medium text-accent">
+              <span className="inline-flex rounded-full bg-accentSoft px-2.5 py-0.5 text-[13px] font-medium text-accentText">
                 {waitlistLabel}
               </span>
             );
@@ -380,7 +380,7 @@ const Dashboard: React.FC = () => {
             );
           } else if (remainingSpots <= 2) {
             status = (
-              <span className="text-[13px] font-medium text-accent">
+              <span className="text-[13px] font-medium text-accentText">
                 {remainingSpots === 1 ? 'noch 1\u00A0Platz' : `noch ${remainingSpots}\u00A0Plätze`}
               </span>
             );

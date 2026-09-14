@@ -235,7 +235,7 @@ const MyCourses: React.FC = () => {
                     );
                   } else if (remaining <= 2) {
                     occupancyStatus = (
-                      <span className="text-[13px] font-medium text-accent">
+                      <span className="text-[13px] font-medium text-accentText">
                         {remaining === 1 ? 'noch 1 Platz' : `noch ${remaining} Plätze`}
                       </span>
                     );
@@ -243,7 +243,7 @@ const MyCourses: React.FC = () => {
 
                   const waitlistStatus =
                     waitlistCount > 0 ? (
-                      <span className="text-[13px] font-medium text-accent">
+                      <span className="text-[13px] font-medium text-accentText">
                         {waitlistCount} auf Warteliste
                       </span>
                     ) : null;
