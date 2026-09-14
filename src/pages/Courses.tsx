@@ -506,12 +506,12 @@ const Courses: React.FC = () => {
                   return (
                     <article key={course.id}>
                       <div className="hidden items-center gap-4 px-3.5 py-3 md:flex">
-                        <div className="w-[88px] shrink-0 tabular-nums">
-                          <div className="text-[17px] font-medium text-text">
+                        <div className="flex w-12 shrink-0 flex-col items-center justify-center rounded-sm bg-brandSoft py-1 text-center leading-tight text-brandOnSoft tabular-nums">
+                          <div className="text-[19px] font-medium">
                             {formatTime(course.time)}
                           </div>
                           {course.end_time ? (
-                            <div className="text-[13px] text-textMuted">
+                            <div className="text-[12px] font-normal">
                               {formatTime(course.end_time)}
                             </div>
                           ) : null}
@@ -533,7 +533,7 @@ const Courses: React.FC = () => {
                       </div>
 
                       <div className="flex gap-3 px-3.5 py-3 md:hidden">
-                        <div className="w-14 shrink-0 text-[17px] font-medium text-text tabular-nums">
+                        <div className="flex w-12 shrink-0 items-center justify-center rounded-sm bg-brandSoft py-1 text-center text-[19px] font-medium leading-tight text-brandOnSoft tabular-nums">
                           {formatTime(course.time)}
                         </div>
                         <div className="min-w-0 flex-1">

@@ -1,7 +1,7 @@
 import React from 'react';
-import { Calendar, Clock, MapPin } from 'lucide-react';
+import { Clock, MapPin } from 'lucide-react';
 import type { Course, Registration } from '../../types';
-import { formatDayLabel, formatPrice, formatTimeRange } from '../../lib/format';
+import { formatDateBlock, formatDayLabel, formatPrice, formatTimeRange } from '../../lib/format';
 
 interface EnrollmentCardsProps {
   registrations: Registration[];
@@ -14,18 +14,30 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({ registrations }) => (
       if (!course) return null;
 
       const isWaitlist = registration.is_waitlist;
+      const dateBlock = formatDateBlock(course.date);
 
       return (
         <div
           key={registration.id}
-          className="flex items-center rounded-md border border-border bg-surface p-3.5"
+          className="flex items-start gap-3 rounded-md border border-border bg-surface p-3.5"
         >
-          <div className="flex-1">
+          {dateBlock ? (
+            <div className="shrink-0">
+              <div
+                className="flex w-12 flex-col items-center justify-center rounded-sm bg-brandSoft py-1 text-center leading-tight text-brandOnSoft tabular-nums"
+                aria-hidden
+              >
+                <span className="text-[12px] font-normal">{dateBlock.weekday}</span>
+                <span className="text-[19px] font-medium">{dateBlock.day}</span>
+                <span className="text-[12px] font-normal">{dateBlock.month}</span>
+              </div>
+              <span className="sr-only">{formatDayLabel(course.date)}</span>
+            </div>
+          ) : null}
+          <div className="min-w-0 flex-1">
             <h3 className="font-medium text-text">{course.title}</h3>
             <div className="mt-1 flex items-center text-sm text-textMuted">
-              <Calendar className="mr-1 h-4 w-4" />
-              <span className="tabular-nums">{formatDayLabel(course.date)}</span>
-              <Clock className="ml-3 mr-1 h-4 w-4" />
+              <Clock className="mr-1 h-4 w-4" />
               <span className="tabular-nums">{formatTimeRange(course.time, course.end_time)}</span>
             </div>
             <div className="mt-1 flex items-center text-sm text-textMuted">
@@ -53,7 +65,7 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({ registrations }) => (
           </div>
           <div className="text-right">
             {course.price != null && (
-              <p className="text-lg font-semibold text-brand tabular-nums">{formatPrice(course.price)}</p>
+              <p className="text-lg font-medium text-brand tabular-nums">{formatPrice(course.price)}</p>
             )}
           </div>
         </div>

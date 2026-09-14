@@ -98,6 +98,37 @@ export function formatDayLabel(value: string | null | undefined): string {
   return `${weekday}, ${parts.d}. ${month}`;
 }
 
+/** Heute / Morgen, otherwise empty — same near-day logic as formatDayLabel. */
+export function formatTodayOrTomorrow(value: string | null | undefined): string {
+  if (value == null || value === '') return '';
+  const parts = parseCivilDate(value);
+  if (!parts) return '';
+  const today = berlinTodayParts();
+  if (sameDay(parts, today)) return 'Heute';
+  if (sameDay(parts, addDays(today, 1))) return 'Morgen';
+  return '';
+}
+
+/** Compact date-block parts: Do / 7 / Sep (or Jan 27 if not the current Berlin year). */
+export function formatDateBlock(
+  value: string | null | undefined
+): { weekday: string; day: string; month: string } | null {
+  if (value == null || value === '') return null;
+  const parts = parseCivilDate(value);
+  if (!parts) return null;
+  const date = civilToLocalDate(parts);
+  const weekday = stripTrailingDot(
+    new Intl.DateTimeFormat(LOCALE, { weekday: 'short' }).format(date)
+  );
+  const monthName = stripTrailingDot(
+    new Intl.DateTimeFormat(LOCALE, { month: 'short' }).format(date)
+  );
+  const today = berlinTodayParts();
+  const month =
+    parts.y !== today.y ? `${monthName} ${String(parts.y).slice(-2)}` : monthName;
+  return { weekday, day: String(parts.d), month };
+}
+
 export function formatDuration(minutes: number): string {
   return `${minutes} Min`;
 }

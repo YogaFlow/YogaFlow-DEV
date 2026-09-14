@@ -5,7 +5,14 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Course, Registration } from '../types';
 import { isCourseCancelled, isCourseRunning, isCourseUpcoming, isRegistrationVisible } from '../lib/courseDateTime';
-import { formatDayLabel, formatPrice, formatTime, formatTimeRange } from '../lib/format';
+import {
+  formatDateBlock,
+  formatDayLabel,
+  formatPrice,
+  formatTime,
+  formatTimeRange,
+  formatTodayOrTomorrow,
+} from '../lib/format';
 import { runPastRegistrationCleanup } from '../lib/registrationMaintenance';
 import { fetchCourseParticipantCounts } from '../lib/courseParticipantCounts';
 import { isParticipantOnlyRole, isTeacherOnly } from '../lib/userRoles';
@@ -346,8 +353,9 @@ const Dashboard: React.FC = () => {
               ? `${registrationCount}/${maxParticipants}\u00A0Plätze`
               : '';
           const running = isCourseRunning(course);
+          const dateBlock = formatDateBlock(course.date);
           const meta = [
-            formatDayLabel(course.date),
+            formatTodayOrTomorrow(course.date),
             formatTime(course.time),
             running ? 'läuft gerade' : '',
             teacherName,
@@ -388,6 +396,19 @@ const Dashboard: React.FC = () => {
 
           const rowInner = (
             <div className="flex items-start justify-between gap-3">
+              {dateBlock ? (
+                <div className="shrink-0">
+                  <div
+                    className="flex w-12 flex-col items-center justify-center rounded-sm bg-brandSoft py-1 text-center leading-tight text-brandOnSoft tabular-nums"
+                    aria-hidden
+                  >
+                    <span className="text-[12px] font-normal">{dateBlock.weekday}</span>
+                    <span className="text-[19px] font-medium">{dateBlock.day}</span>
+                    <span className="text-[12px] font-normal">{dateBlock.month}</span>
+                  </div>
+                  <span className="sr-only">{formatDayLabel(course.date)}</span>
+                </div>
+              ) : null}
               <div className="min-w-0 flex-1">
                 <h3 className="text-[17px] font-medium text-text">{course.title}</h3>
                 {meta ? (
