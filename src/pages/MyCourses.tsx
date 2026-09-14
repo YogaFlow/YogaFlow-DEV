@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState, useRef } from 'react';
+import { Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { Calendar, Plus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -13,9 +13,12 @@ import { isCourseUpcoming } from '../lib/courseDateTime';
 
 const MyCourses: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { userProfile } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
+  const [successMessage, setSuccessMessage] = useState('');
+  const successTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isCourseManager = isCourseManagerRole(userProfile);
 
@@ -62,10 +65,21 @@ const MyCourses: React.FC = () => {
       loadPage();
     }
 
+    if (location.state?.message) {
+      setSuccessMessage(location.state.message);
+      if (successTimeoutRef.current) {
+        clearTimeout(successTimeoutRef.current);
+      }
+      successTimeoutRef.current = setTimeout(() => setSuccessMessage(''), 5000);
+    }
+
     return () => {
       isMounted = false;
+      if (successTimeoutRef.current) {
+        clearTimeout(successTimeoutRef.current);
+      }
     };
-  }, [userProfile, isCourseManager]);
+  }, [userProfile, location.state, isCourseManager]);
 
   if (loading) {
     return (
@@ -92,6 +106,12 @@ const MyCourses: React.FC = () => {
           Neuer Kurs
         </button>
       </div>
+
+      {successMessage && (
+        <div className="p-4 bg-sage-100 border border-sage-200 rounded-sm">
+          <p className="text-sm text-sage-800">{successMessage}</p>
+        </div>
+      )}
 
       {courses.length === 0 ? (
         <div className="text-center py-12">
