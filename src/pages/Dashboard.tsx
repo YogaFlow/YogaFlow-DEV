@@ -16,6 +16,7 @@ import {
 import { runPastRegistrationCleanup } from '../lib/registrationMaintenance';
 import { fetchCourseParticipantCounts } from '../lib/courseParticipantCounts';
 import { isParticipantOnlyRole, isTeacherOnly } from '../lib/userRoles';
+import AccentPill from '../components/ui/AccentPill';
 
 type StatCard = {
   title: string;
@@ -378,9 +379,9 @@ const Dashboard: React.FC = () => {
               ? `Warteliste Pos. ${item.waitlist_position}`
               : 'Warteliste';
             status = (
-              <span className="inline-flex rounded-full bg-accentSoft px-2.5 py-0.5 text-[13px] font-medium text-accentText">
+              <AccentPill>
                 {waitlistLabel}
-              </span>
+              </AccentPill>
             );
           } else if (isFull) {
             status = (
@@ -388,9 +389,9 @@ const Dashboard: React.FC = () => {
             );
           } else if (remainingSpots <= 2) {
             status = (
-              <span className="text-[13px] font-medium text-accentText">
+              <AccentPill>
                 {remainingSpots === 1 ? 'noch 1\u00A0Platz' : `noch ${remainingSpots}\u00A0Plätze`}
-              </span>
+              </AccentPill>
             );
           }
 

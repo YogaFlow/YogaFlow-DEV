@@ -8,6 +8,7 @@ import { isCourseManagerRole } from '../lib/userRoles';
 import { formatDayLabel, formatPrice, formatTime } from '../lib/format';
 import { groupCoursesByDay } from '../lib/courseGrouping';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
+import AccentPill from '../components/ui/AccentPill';
 import { isCourseUpcoming } from '../lib/courseDateTime';
 
 const MyCourses: React.FC = () => {
@@ -238,17 +239,17 @@ const MyCourses: React.FC = () => {
                     );
                   } else if (remaining <= 2) {
                     occupancyStatus = (
-                      <span className="text-[13px] font-medium text-accentText">
+                      <AccentPill>
                         {remaining === 1 ? 'noch 1 Platz' : `noch ${remaining} Plätze`}
-                      </span>
+                      </AccentPill>
                     );
                   }
 
                   const waitlistStatus =
                     waitlistCount > 0 ? (
-                      <span className="text-[13px] font-medium text-accentText">
+                      <AccentPill>
                         {waitlistCount} auf Warteliste
-                      </span>
+                      </AccentPill>
                     ) : null;
 
                   const status =

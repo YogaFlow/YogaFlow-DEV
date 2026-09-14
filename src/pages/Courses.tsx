@@ -20,6 +20,7 @@ import { groupCoursesByDay } from '../lib/courseGrouping';
 import { runPastRegistrationCleanup } from '../lib/registrationMaintenance';
 import { canSelfEnrollInCourses } from '../lib/userRoles';
 import ConfirmDialog, { ConfirmDialogState } from '../components/ui/ConfirmDialog';
+import AccentPill from '../components/ui/AccentPill';
 
 const Courses: React.FC = () => {
   const navigate = useNavigate();
@@ -460,9 +461,9 @@ const Courses: React.FC = () => {
                     );
                   } else if (isRegistered) {
                     status = (
-                      <span className="text-[13px] font-medium text-accentText">
+                      <AccentPill>
                         {waitlistPosition ? `Warteliste Pos. ${waitlistPosition}` : 'Warteliste'}
-                      </span>
+                      </AccentPill>
                     );
                   } else if (isFull) {
                     status = (
@@ -470,9 +471,9 @@ const Courses: React.FC = () => {
                     );
                   } else if (remaining <= 2) {
                     status = (
-                      <span className="text-[13px] font-medium text-accentText">
+                      <AccentPill>
                         {remaining === 1 ? 'noch 1 Platz' : `noch ${remaining} Plätze`}
-                      </span>
+                      </AccentPill>
                     );
                   } else if (course.teacher_id === userProfile?.id) {
                     status = (
