@@ -80,7 +80,7 @@ export function useCourseEnrollment(onAfterSuccess: () => void) {
         showFeedbackDialog(
           d.message || d.error || 'Fehler bei der Anmeldung.',
           'error',
-          'Anmeldung nicht moeglich'
+          'Anmeldung nicht möglich'
         );
         return;
       }
@@ -147,7 +147,7 @@ export function useCourseEnrollment(onAfterSuccess: () => void) {
         showFeedbackDialog(
           d.message || d.error || 'Fehler bei der Abmeldung.',
           'error',
-          'Abmeldung nicht moeglich'
+          'Abmeldung nicht möglich'
         );
         return;
       }
