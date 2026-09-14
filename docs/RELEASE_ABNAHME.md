@@ -73,6 +73,21 @@ Auch wenn die Änderung „damit nichts zu tun hat". Genau diese Fälle brechen 
 - [ ] Nachricht an einen Teilnehmer senden, kommt beim Empfänger an
 - [ ] Ungelesen-Zähler stimmt und geht nach dem Lesen zurück
 
+### Übersicht und Kurslisten
+
+Demo Alpha, Seed-Konten.
+
+- [ ] `teilnehmer1`: Hero-Karte „Deine nächste Stunde", darunter „Danach"
+- [ ] `teilnehmer3` (eine Anmeldung): Hero-Karte, darunter direkt „Noch Plätze frei" mit
+      buchbaren Kursen, kein leerer Bereich daneben
+- [ ] `teilnehmer4` (nur Warteliste): Karte „Noch keine feste Anmeldung", Warteliste als
+      Pill unter „Danach"
+- [ ] `teacher`: keine Hero-Karte, Schnellzugriff unverändert
+- [ ] Kennzahl „Meine Anmeldungen" = Anzahl der Einträge in Hero + Danach
+- [ ] Kursliste: Uhrzeit als kompakter Chip, Endzeit als „bis HH:MM"
+- [ ] Ein abgesagter Kurs erscheint weder auf der Übersicht noch unter Meine Anmeldungen
+      (Seed enthält keinen; einen Kurs absagen und danach prüfen)
+
 ---
 
 ## Zusätzlich bei bestimmten Änderungen

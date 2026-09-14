@@ -69,6 +69,10 @@ sich in einen Design- oder Refactoring-Durchlauf einschleicht: sagen, nicht ausf
 - `src/design/tokens.ts` — einzige Farbquelle, wandert später in ein gemeinsames Paket
 - `src/lib/format.ts` — Datum, Uhrzeit, Preis, Dauer. Formatierung passiert nirgendwo sonst.
 - `src/lib/courseDateFilter.ts` — Filterlogik der Kursliste
+- `src/lib/courseDateTime.ts` — `isRegistrationVisible` ist die einzige Regel, welche
+  Anmeldungen angezeigt werden (Kurs nicht abgesagt wie in `register_for_course`,
+  sichtbar bis Kursende); `hasCourseEnded`, `isCourseRunning`.
+- `src/components/ui/AccentPill.tsx` — einzige Quelle für Safran-Status.
 - `src/lib/tenantSlug.ts` — einzige Quelle für den Studio-Slug (Host, in DEV `?tenant=`
   und `sessionStorage`). `src/lib/supabase.ts` hängt ihn als `x-omlify-tenant` an jeden
   Supabase-Request; die RLS-Policies hängen daran.
@@ -184,7 +188,7 @@ Maßgeblich ist `docs/DESIGNSYSTEM.md`. Das Wichtigste in Kürze:
 
 ## Stand (14.09.2026)
 
-**Release 2026-09 — offen.** `Julius` liegt 42 Commits und 9 Migrationen vor `main`, dazu kommen
+**Release 2026-09 — offen.** `Julius` liegt 51 Commits und 9 Migrationen vor `main`, dazu kommen
 Änderungen an allen 9 Edge Functions. Den Umfang nach Themen beschreibt `docs/RELEASE_2026-09.md`.
 Umfang und Zeitpunkt des Schnitts werden am 15.09. besprochen. Bis zum Schnitt ist `Julius` die
 Release-Linie. Fixes, Landingpage- und Design-Änderungen für das Release gehen dort hinein.
@@ -194,12 +198,13 @@ Branch `feature/geldkette` (committet und gepusht, aber nicht auf DEV, keine Mig
 DEV-Datenbank). Der Branch `release/2026-09` entsteht erst am Tag des Schnitts als Kopie von `Julius`.
 
 **Design — fertig:** Paket 1 (Tokens, Farbmigration, Grundflächen, Form), Paket 2 (Datum,
-Uhrzeit, Preis, `tabular-nums`, Versalien) und Paket 3 bis auf Punkt 12: Kursliste und
+Uhrzeit, Preis, `tabular-nums`, Versalien) und Paket 3 vollständig: Kursliste und
 Kursverwaltung nach Tagen (`85b9c44`, `a9991d5`), Teilnehmerliste nach Kurs (`b6387cf`),
 Dashboard-Zeilen und Kennzahlen in einer Zeile (`a6f25e2`, `1ac8b8a`), Seitentitel im Kopf
-(`468bcb3`). Wiederherstellungspunkt vor Beginn: Tag `pre-design-tokens` (`8cb4712`).
+(`468bcb3`), Hero-Karte „deine nächste Stunde" (`8605ede`). Wiederherstellungspunkt vor Beginn: Tag `pre-design-tokens` (`8cb4712`).
 
-**Offen aus Paket 3:** 12. Dashboard: Hero-Karte „deine nächste Stunde" (kein Treffer in `src/`).
+**Design-Durchlauf 14.09.:** Safran-Rampe, Hero + Danach, Noch Plätze frei, Datumsblock/Zeit-Chip,
+AccentPill — siehe `docs/RELEASE_2026-09.md` Gruppe H.
 
 **Datenmodell — Kern fertig auf DEV:** Mehrfachmitgliedschaft bis 3c-B2 (letzter Commit
 `ed73a32`, 13.09.). Offen: Stufe 4 — `debug_request_tenant_header()` entfernen und die
@@ -213,25 +218,39 @@ Einladung, Gedrückt-Zustand statt Hover.
 
 **Notiert, bewusst nicht jetzt:**
 
-- `Dashboard.tsx` ab Zeile 306: Fallback ist für alle vier Rollen unerreichbar, weil
+- `Dashboard.tsx` `getStatCards`, abschließendes `return []`: Fallback ist für alle vier Rollen unerreichbar, weil
   `teacher` vorher aus der Funktion springt. Toter Code, beim Dashboard-Umbau mitnehmen.
-- Dieselbe Zahl heißt für `user` „Alle Kurse" und für `admin`/`owner` „Kommende Kurse".
-  Namensangleichung bei Gelegenheit.
 - `unregister_from_course` hat `pg_temp` im `search_path`, ohne temporäre Tabellen zu nutzen.
   Die Funktion wurde am 11.09. in `20260911173000` neu geschrieben, `pg_temp` steht dort in
   Zeile 454 weiterhin drin. Beim nächsten Anfassen entfernen.
-- JS-Bundle 1.039 kB, gzip 273 kB (Build vom 13.09.2026 auf diesem Stand). Relevant, weil die
+- JS-Bundle 1.046 kB, gzip 275 kB (Build vom 14.09.2026 auf diesem Stand). Relevant, weil die
   Zielgruppe über Instagram aufs Handy kommt. Nach Paket 3 angehen, zusammen mit der Frage,
   ob die Marketingseite aus der SPA gelöst wird.
-- Der Lehrerfilter auf der Kursseite ist sichtbar — ungeklärt, ob er tatsächlich filtert.
 - `close_past_course_registrations()` ist ohne jede Prüfung für `anon` aufrufbar, wirkt über
-  alle Tenants und rechnet `date + time` als UTC statt `Europe/Berlin`.
+  alle Tenants und rechnet `date + time` als UTC statt `Europe/Berlin`. **Sie scheitert außerdem bei
+  jedem Aufruf** (`NULLIF(c.time, '')` auf einer `time`-Spalte → `invalid input syntax for type time`,
+  auf DEV belegt am 14.09.), unbemerkt, weil `registrationMaintenance.ts` das Ergebnis nicht auswertet.
+  Geplant: entfernen statt reparieren (Geldkette Story 0.2).
 - `ensure_public_user` schreibt noch in die entfernte Spalte `roles`. Der Rückfallpfad
   scheitert immer; der Normalfall kehrt vorher zurück.
 - `Profile.tsx` ändert nur die Kopie `users.email`, nicht die Login-E-Mail. In PROD ist das
   bei einem Konto auseinandergelaufen.
 - PROD: 2 Logins ohne Profil, 1 Studio ohne Profil.
 - Supabase CLI lokal v2.77.0, aktuell v2.117.0.
+- Kursliste der Kursleitung auf der Übersicht filtert abgesagte Kurse nicht
+  (`Dashboard.tsx:84`, nur `isCourseUpcoming`).
+- `Courses.tsx` `canAct` prüft `status === 'active'` (`Courses.tsx:449-450`), der Server wertet
+  `NULL` als aktiv (`coalesce` in `register_for_course` / `isCourseCancelled` in
+  `courseDateTime.ts:74-76`) — ein Kurs mit `status` `NULL` zeigt keinen Anmelden-Knopf.
+- Kursliste blendet laufende Kurse ab Beginn aus (`isCourseUpcoming`, `Courses.tsx:341`),
+  Übersicht und Meine Anmeldungen zeigen sie bis Kursende (`isRegistrationVisible`).
+- Warteliste heißt dreifach verschieden: „Warteliste Pos. 3" Kursliste (`Courses.tsx:465`),
+  „Warteliste 3" Teilnehmer mobil (`Participants.tsx:407`), „Warteliste (Pos. 3)" Teilnehmer
+  Desktop (`Participants.tsx:525`).
+- „Noch Plätze frei" lädt höchstens 30 Kandidaten, kein Nachladen (`Dashboard.tsx:96`).
+- Gewünscht, nicht geplant: Kurszeilen und Hero-Karte antippbar → Infofenster mit Kursdetails.
+  Heute verlinken Hero auf `/my-registrations` und „Noch Plätze frei" auf `/courses`; die Stellen
+  tragen einen Code-Kommentar (`Dashboard.tsx:440`, `Dashboard.tsx:501`).
 
 ---
 

@@ -1,11 +1,12 @@
 # Omlify Designsystem v1 — Farben und Tokens
 
-**Stand:** 14.09.2026 (v1.2 — Safran-Rampe, `accent-text` für WCAG AA) · **Status:** festgelegt
+**Stand:** 14.09.2026 (v1.2 — Safran-Rampe, `accent-text` für WCAG AA, Kurszeilen) · **Status:** festgelegt
 **Ablageort im Repo:** `docs/DESIGNSYSTEM.md`
 **Zugehörig:** `claude/Entscheidung_02_Mobile_Strategie.md` (Tenant-Branding als Vorarbeit)
 
 **v1.2:** Safran als Rampe (`50`/`100`/`500`/`700`); jeder Safran-Text in `accent-text`
 (`saffron-700`). `green-300` nie als Textfarbe. Text auf `brand`-Flächen nur in `on-brand`.
+Kurszeilen: Datumsblock bzw. Zeit-Chip, Safran-Status über `AccentPill`.
 
 ---
 
@@ -63,6 +64,8 @@ Studiofarbe automatisch auf dunkle Schrift umschalten. Sonst gibt es weiße Schr
 | `--green-500` | `#4A7A69` | Salbei — zweite Aktion, Diagrammflächen, Kopf-Icons |
 | `--green-600` | `#2F5A4E` | Tief-Salbei — Hauptaktion |
 | `--green-800` | `#23443B` | Tanne — gedrückter Zustand, Text auf `green-50`/`100` |
+
+Im Code heißt die Rampe `sage-*` (`--sage-50` …), weil `green` Tailwinds eigenes Grün überschreiben würde.
 
 **Warum eine Rampe statt einzelner Grüntöne:** Jede Stufe hat eine Aufgabe. Sobald Grüntöne
 frei gewählt werden, entstehen zwei Töne, die fast gleich aussehen, aber Unterschiedliches
@@ -166,6 +169,17 @@ Für die spätere Expo-App bleibt die untere Leiste die Vorgabe — dort ist sie
 3. Höchstens **eine** betonte Fläche pro Bildschirm (die Hero-Karte). Alles Weitere ist
    Weiß auf Sand.
 4. Icon-Kacheln in Signalfarben neben Zahlen entfallen ersatzlos — sie tragen keine Aussage.
+
+**Kurszeilen:**
+
+- Listen ohne Tagesgruppen: Datumsblock links (Wochentag / Tag / Monat),
+  `brand-soft` / `brand-on-soft`, oben ausgerichtet.
+- Listen mit Tagesgruppen: Uhrzeit als kompakter Chip links, so groß wie der Inhalt,
+  oben ausgerichtet, nie auf Zeilenhöhe gestreckt. Endzeit als „bis HH:MM" in der
+  Meta-Zeile.
+- Safran-Status („noch N Plätze", Warteliste) immer über die Komponente `AccentPill`
+  (`src/components/ui/AccentPill.tsx`), nie als bloßer Text.
+- Übersicht für Teilnehmende: die Hero-Karte ist die eine betonte Fläche (Regel 3).
 
 ## Verbindliche Formatierungsregeln
 
