@@ -6,9 +6,7 @@ import { supabase } from '../lib/supabase';
 import { Course, Registration } from '../types';
 import { isCourseCancelled, isCourseRunning, isCourseUpcoming, isRegistrationVisible } from '../lib/courseDateTime';
 import {
-  formatDateBlock,
   formatDayLabel,
-  formatPrice,
   formatTime,
   formatTimeRange,
   formatTodayOrTomorrow,
@@ -17,6 +15,7 @@ import { runPastRegistrationCleanup } from '../lib/registrationMaintenance';
 import { fetchCourseParticipantCounts } from '../lib/courseParticipantCounts';
 import { isParticipantOnlyRole, isTeacherOnly } from '../lib/userRoles';
 import AccentPill from '../components/ui/AccentPill';
+import CourseRow from '../components/courses/CourseRow';
 
 type StatCard = {
   title: string;
@@ -323,7 +322,7 @@ const Dashboard: React.FC = () => {
   const renderCourseCards = (
     items: Array<CourseWithCount | Registration>,
     emptyMessage: string,
-    options?: { showRegisteredBadge?: boolean; rowLink?: boolean }
+    options?: { showRegisteredBadge?: boolean }
   ) => {
     if (items.length === 0) {
       return <p className="px-3.5 py-8 text-center text-textMuted">{emptyMessage}</p>;
@@ -344,7 +343,6 @@ const Dashboard: React.FC = () => {
           const isWaitlist = Boolean(
             isRegistration && (item.status === 'waitlist' || item.is_waitlist)
           );
-          const description = course.description?.trim() ?? '';
           const teacherName =
             course.teacher && course.teacher_id !== userProfile?.id
               ? `${course.teacher.first_name} ${course.teacher.last_name}`.trim()
@@ -354,10 +352,9 @@ const Dashboard: React.FC = () => {
               ? `${registrationCount}/${maxParticipants}\u00A0Plätze`
               : '';
           const running = isCourseRunning(course);
-          const dateBlock = formatDateBlock(course.date);
           const meta = [
             formatTodayOrTomorrow(course.date),
-            formatTime(course.time),
+            formatTimeRange(course.time, course.end_time),
             running ? 'läuft gerade' : '',
             teacherName,
             course.location,
@@ -395,57 +392,15 @@ const Dashboard: React.FC = () => {
             );
           }
 
-          const rowInner = (
-            <div className="flex items-start justify-between gap-3">
-              {dateBlock ? (
-                <div className="shrink-0">
-                  <div
-                    className="flex w-12 flex-col items-center justify-center rounded-sm bg-brandSoft py-1 text-center leading-tight text-brandOnSoft tabular-nums"
-                    aria-hidden
-                  >
-                    <span className="text-[12px] font-normal">{dateBlock.weekday}</span>
-                    <span className="text-[19px] font-medium">{dateBlock.day}</span>
-                    <span className="text-[12px] font-normal">{dateBlock.month}</span>
-                  </div>
-                  <span className="sr-only">{formatDayLabel(course.date)}</span>
-                </div>
-              ) : null}
-              <div className="min-w-0 flex-1">
-                <h3 className="text-[17px] font-medium text-text">{course.title}</h3>
-                {meta ? (
-                  <p className="text-[13px] text-textMuted tabular-nums">{meta}</p>
-                ) : null}
-                {description ? (
-                  <p className="line-clamp-1 text-[13px] text-textSubtle">{description}</p>
-                ) : null}
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                {status}
-                {course.price != null && (
-                  <span className="text-[17px] font-medium text-text tabular-nums">
-                    {formatPrice(course.price)}
-                  </span>
-                )}
-              </div>
-            </div>
-          );
-
-          if (options?.rowLink) {
-            return (
-              <Link
-                key={course.id || index}
-                to={`/course/${course.id}`}
-                className="block min-h-11 px-3.5 py-3 no-underline text-inherit active:bg-surfaceSunken focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
-              >
-                {rowInner}
-              </Link>
-            );
-          }
-
           return (
-            <div key={course.id || index} className="px-3.5 py-3">
-              {rowInner}
-            </div>
+            <CourseRow
+              key={course.id || index}
+              course={course}
+              href={`/course/${course.id}`}
+              leading="date"
+              meta={meta}
+              status={status}
+            />
           );
         })}
       </div>
@@ -578,8 +533,7 @@ const Dashboard: React.FC = () => {
                     courses,
                     isTeacher
                       ? 'Sie haben noch keine Kurse erstellt.'
-                      : 'Keine kommenden Kurse gefunden.',
-                    { rowLink: true }
+                      : 'Keine kommenden Kurse gefunden.'
                   )}
                 </div>
               </div>
@@ -594,7 +548,7 @@ const Dashboard: React.FC = () => {
                   {renderCourseCards(
                     registrations,
                     'Sie sind noch nicht für Kurse angemeldet.',
-                    { showRegisteredBadge: true, rowLink: true }
+                    { showRegisteredBadge: true }
                   )}
                 </div>
               </div>
@@ -606,7 +560,7 @@ const Dashboard: React.FC = () => {
                   <h2 className="text-lg font-medium text-text">Danach</h2>
                 </div>
                 <div>
-                  {renderCourseCards(danach, '', { showRegisteredBadge: true, rowLink: true })}
+                  {renderCourseCards(danach, '', { showRegisteredBadge: true })}
                 </div>
                 {danachAll.length > 3 && (
                   <div className="border-t border-border px-3.5 py-2">
@@ -631,8 +585,7 @@ const Dashboard: React.FC = () => {
             <div>
               {renderCourseCards(
                 courses,
-                'Gerade ist nichts frei — oder du bist überall schon dabei.',
-                { rowLink: true }
+                'Gerade ist nichts frei — oder du bist überall schon dabei.'
               )}
             </div>
             <div className="border-t border-border px-3.5 py-2">

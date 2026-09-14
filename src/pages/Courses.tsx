@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Calendar, Check, Plus } from 'lucide-react';
 import CourseFilterBar from '../components/courses/CourseFilterBar';
+import CourseRow from '../components/courses/CourseRow';
 import {
   EMPTY_DATE_FILTER,
   CourseDateFilterState,
@@ -15,7 +16,7 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Course } from '../types';
 import { isCourseUpcoming } from '../lib/courseDateTime';
-import { formatDayLabel, formatPrice, formatTime } from '../lib/format';
+import { formatDayLabel, formatTime } from '../lib/format';
 import { groupCoursesByDay } from '../lib/courseGrouping';
 import { runPastRegistrationCleanup } from '../lib/registrationMaintenance';
 import { canSelfEnrollInCourses } from '../lib/userRoles';
@@ -212,7 +213,7 @@ const Courses: React.FC = () => {
           </p>
         </div>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-5">
           {dayGroups.map((group) => (
             <section key={group.date}>
               <h2 className="mb-2 text-[15px] font-medium text-textMuted">
@@ -237,7 +238,6 @@ const Courses: React.FC = () => {
                   const meta = [until ? `bis ${until}` : '', teacherName, course.location, occupancy]
                     .filter(Boolean)
                     .join(' · ');
-                  const description = course.description?.trim() ?? '';
 
                   let status: React.ReactNode = null;
                   if (isRegistered && registrationStatus === 'registered') {
@@ -270,55 +270,14 @@ const Courses: React.FC = () => {
                   }
 
                   return (
-                    <article key={course.id} className="relative">
-                      <div className="hidden items-start gap-3 px-3.5 py-3 md:flex">
-                        <div className="shrink-0 rounded-sm bg-brandSoft px-2 py-1 text-[15px] font-medium leading-tight text-brandOnSoft tabular-nums">
-                          {formatTime(course.time)}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <h3 className="text-[17px] font-medium text-text">{course.title}</h3>
-                          {meta ? (
-                            <p className="text-[13px] text-textMuted tabular-nums">{meta}</p>
-                          ) : null}
-                          {description ? (
-                            <p className="line-clamp-1 text-[13px] text-textSubtle">{description}</p>
-                          ) : null}
-                        </div>
-                        <div className="shrink-0">{status}</div>
-                        <div className="w-20 shrink-0 text-right text-[17px] font-medium text-text tabular-nums">
-                          {formatPrice(course.price)}
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-3 px-3.5 py-3 md:hidden">
-                        <div className="shrink-0 rounded-sm bg-brandSoft px-2 py-1 text-[15px] font-medium leading-tight text-brandOnSoft tabular-nums">
-                          {formatTime(course.time)}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-baseline justify-between gap-2">
-                            <h3 className="min-w-0 truncate text-[17px] font-medium text-text">
-                              {course.title}
-                            </h3>
-                            <span className="shrink-0 text-[17px] font-medium text-text tabular-nums">
-                              {formatPrice(course.price)}
-                            </span>
-                          </div>
-                          {meta ? (
-                            <p className="text-[13px] text-textMuted tabular-nums">{meta}</p>
-                          ) : null}
-                          {description ? (
-                            <p className="line-clamp-1 text-[13px] text-textSubtle">{description}</p>
-                          ) : null}
-                          {status ? <div className="mt-2 flex items-center justify-end">{status}</div> : null}
-                        </div>
-                      </div>
-                      <Link
-                        to={`/course/${course.id}`}
-                        className="absolute inset-0 z-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset"
-                      >
-                        <span className="sr-only">{course.title}</span>
-                      </Link>
-                    </article>
+                    <CourseRow
+                      key={course.id}
+                      course={course}
+                      href={`/course/${course.id}`}
+                      leading="time"
+                      meta={meta}
+                      status={status}
+                    />
                   );
                 })}
               </div>
