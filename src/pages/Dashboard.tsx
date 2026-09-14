@@ -456,6 +456,10 @@ const Dashboard: React.FC = () => {
     ? [heroCourse.location, heroTeacherName].filter(Boolean).join(' · ')
     : '';
   const hasWaitlistOnly = isParticipantOnly && !heroRegistration && danachAll.length > 0;
+  const hasLeftColumn =
+    (isCourseLeader && !isParticipantOnly) ||
+    isTeacher ||
+    (isParticipantOnly && danach.length > 0);
 
   return (
     <div className="space-y-6">
@@ -540,64 +544,66 @@ const Dashboard: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="space-y-6">
-          {(isCourseLeader && !isParticipantOnly) && (
-            <div className="bg-surface rounded-md border border-border">
-              <div className="p-3.5 border-b border-border">
-                <h2 className="text-lg font-medium text-text">
-                  {isTeacher ? 'Kurse, die ich gebe' : 'Kommende Kurse'}
-                </h2>
-              </div>
-              <div>
-                {renderCourseCards(
-                  courses,
-                  isTeacher
-                    ? 'Sie haben noch keine Kurse erstellt.'
-                    : 'Keine kommenden Kurse gefunden.'
-                )}
-              </div>
-            </div>
-          )}
-
-          {isTeacher && (
-            <div className="bg-surface rounded-md border border-border">
-              <div className="p-3.5 border-b border-border">
-                <h2 className="text-lg font-medium text-text">Meine kommenden Kurse</h2>
-              </div>
-              <div>
-                {renderCourseCards(
-                  registrations,
-                  'Sie sind noch nicht für Kurse angemeldet.',
-                  { showRegisteredBadge: true }
-                )}
-              </div>
-            </div>
-          )}
-
-          {isParticipantOnly && danach.length > 0 && (
-            <div className="bg-surface rounded-md border border-border">
-              <div className="p-3.5 border-b border-border">
-                <h2 className="text-lg font-medium text-text">Danach</h2>
-              </div>
-              <div>
-                {renderCourseCards(danach, '', { showRegisteredBadge: true })}
-              </div>
-              {danachAll.length > 3 && (
-                <div className="border-t border-border px-3.5 py-2">
-                  <Link
-                    to="/my-registrations"
-                    className="inline-flex min-h-11 items-center text-[13px] font-medium text-brand no-underline"
-                  >
-                    Alle Anmeldungen
-                  </Link>
+        {hasLeftColumn && (
+          <div className="space-y-6">
+            {(isCourseLeader && !isParticipantOnly) && (
+              <div className="bg-surface rounded-md border border-border">
+                <div className="p-3.5 border-b border-border">
+                  <h2 className="text-lg font-medium text-text">
+                    {isTeacher ? 'Kurse, die ich gebe' : 'Kommende Kurse'}
+                  </h2>
                 </div>
-              )}
-            </div>
-          )}
-        </div>
+                <div>
+                  {renderCourseCards(
+                    courses,
+                    isTeacher
+                      ? 'Sie haben noch keine Kurse erstellt.'
+                      : 'Keine kommenden Kurse gefunden.'
+                  )}
+                </div>
+              </div>
+            )}
+
+            {isTeacher && (
+              <div className="bg-surface rounded-md border border-border">
+                <div className="p-3.5 border-b border-border">
+                  <h2 className="text-lg font-medium text-text">Meine kommenden Kurse</h2>
+                </div>
+                <div>
+                  {renderCourseCards(
+                    registrations,
+                    'Sie sind noch nicht für Kurse angemeldet.',
+                    { showRegisteredBadge: true }
+                  )}
+                </div>
+              </div>
+            )}
+
+            {isParticipantOnly && danach.length > 0 && (
+              <div className="bg-surface rounded-md border border-border">
+                <div className="p-3.5 border-b border-border">
+                  <h2 className="text-lg font-medium text-text">Danach</h2>
+                </div>
+                <div>
+                  {renderCourseCards(danach, '', { showRegisteredBadge: true })}
+                </div>
+                {danachAll.length > 3 && (
+                  <div className="border-t border-border px-3.5 py-2">
+                    <Link
+                      to="/my-registrations"
+                      className="inline-flex min-h-11 items-center text-[13px] font-medium text-brand no-underline"
+                    >
+                      Alle Anmeldungen
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {isParticipantOnly ? (
-          <div className="bg-surface rounded-md border border-border">
+          <div className={`bg-surface rounded-md border border-border${hasLeftColumn ? '' : ' lg:col-span-2'}`}>
             <div className="p-3.5 border-b border-border">
               <h2 className="text-lg font-medium text-text">Noch Plätze frei</h2>
             </div>
@@ -618,7 +624,7 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
         ) : (
-          <div className="bg-surface rounded-md border border-border">
+          <div className={`bg-surface rounded-md border border-border${hasLeftColumn ? '' : ' lg:col-span-2'}`}>
             <div className="p-3.5 border-b border-border">
               <h2 className="text-lg font-medium text-text">Schnellzugriff</h2>
             </div>
