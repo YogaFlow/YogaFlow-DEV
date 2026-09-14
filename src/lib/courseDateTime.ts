@@ -1,6 +1,7 @@
 type CourseLike = {
   date?: string | null;
   time?: string | null;
+  end_time?: string | null;
 };
 
 const toCourseStart = (course: CourseLike): Date | null => {
@@ -28,4 +29,43 @@ export const isCourseInPast = (course: CourseLike, now = new Date()): boolean =>
 
 export const isCourseUpcoming = (course: CourseLike, now = new Date()): boolean => {
   return !isCourseInPast(course, now);
+};
+
+const timeToMinutes = (value?: string | null): number | null => {
+  if (value == null || value === '') return null;
+  const [h, m] = value.split(':').map(Number);
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return null;
+  return h * 60 + m;
+};
+
+const toCourseEnd = (course: CourseLike): Date | null => {
+  const start = toCourseStart(course);
+  if (!start || !course.date) return null;
+
+  const startMinutes = timeToMinutes(course.time) ?? 0;
+  const endMinutes = timeToMinutes(course.end_time);
+  const endMissingOrNotAfterStart = endMinutes == null || endMinutes <= startMinutes;
+  if (endMissingOrNotAfterStart) return start;
+
+  const [year, month, day] = course.date.split('-').map(Number);
+  if (!year || !month || !day) return null;
+  const hours = Math.floor(endMinutes / 60);
+  const minutes = endMinutes % 60;
+  return new Date(year, month - 1, day, hours, minutes, 0, 0);
+};
+
+/** True once now is at or after the course end. Missing/invalid end_time → end equals start. */
+export const hasCourseEnded = (course: CourseLike, now = new Date()): boolean => {
+  const end = toCourseEnd(course);
+  if (!end) return false;
+  return end.getTime() <= now.getTime();
+};
+
+/** True while start <= now < end. Never true when end equals start. */
+export const isCourseRunning = (course: CourseLike, now = new Date()): boolean => {
+  const start = toCourseStart(course);
+  const end = toCourseEnd(course);
+  if (!start || !end) return false;
+  const t = now.getTime();
+  return start.getTime() <= t && t < end.getTime();
 };

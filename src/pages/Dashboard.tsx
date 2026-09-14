@@ -4,8 +4,8 @@ import { Calendar, Check, Users, BookOpen, Settings } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Course, Registration } from '../types';
-import { isCourseUpcoming } from '../lib/courseDateTime';
-import { formatDayLabel, formatPrice, formatTime } from '../lib/format';
+import { hasCourseEnded, isCourseRunning, isCourseUpcoming } from '../lib/courseDateTime';
+import { formatDayLabel, formatPrice, formatTime, formatTimeRange } from '../lib/format';
 import { runPastRegistrationCleanup } from '../lib/registrationMaintenance';
 import { fetchCourseParticipantCounts } from '../lib/courseParticipantCounts';
 import { isParticipantOnlyRole, isTeacherOnly } from '../lib/userRoles';
@@ -77,6 +77,8 @@ const Dashboard: React.FC = () => {
           setCourses([]);
         }
 
+        let myRegistrationsFromList = 0;
+
         if (userProfile.role === 'user' || userProfile.role === 'teacher') {
           const { data: regData, error: regError } = await supabase
             .from('registrations')
@@ -88,18 +90,21 @@ const Dashboard: React.FC = () => {
               )
             `)
             .eq('user_id', userProfile.id)
-            .eq('status', 'registered')
+            .in('status', ['registered', 'waitlist'])
             .is('cancellation_timestamp', null);
 
           if (regError) throw regError;
           if (!isMounted) return;
 
-          const futureRegistrations = (regData || []).filter(
-            (registration) => registration.course && isCourseUpcoming(registration.course)
+          const visibleRegistrations = (regData || []).filter(
+            (registration) =>
+              registration.course &&
+              registration.course.status === 'active' &&
+              !hasCourseEnded(registration.course)
           );
 
           const countedCourses = await attachCounts(
-            futureRegistrations
+            visibleRegistrations
               .map((registration) => registration.course)
               .filter((course): course is Course => Boolean(course))
           );
@@ -108,7 +113,7 @@ const Dashboard: React.FC = () => {
           );
 
           if (!isMounted) return;
-          const registrationsWithCounts = futureRegistrations.map((registration) => ({
+          const registrationsWithCounts = visibleRegistrations.map((registration) => ({
             ...registration,
             course: registration.course
               ? { ...registration.course, registrationCount: countsById[registration.course.id] ?? 0 }
@@ -116,16 +121,17 @@ const Dashboard: React.FC = () => {
           }));
 
           const sortedRegistrations = registrationsWithCounts.sort((a, b) => {
-            const dateA = a.course?.date ?? '';
-            const dateB = b.course?.date ?? '';
-            return dateA.localeCompare(dateB);
+            const keyA = `${a.course?.date ?? ''}T${a.course?.time ?? ''}`;
+            const keyB = `${b.course?.date ?? ''}T${b.course?.time ?? ''}`;
+            return keyA.localeCompare(keyB);
           });
           setRegistrations(sortedRegistrations);
+          myRegistrationsFromList = sortedRegistrations.length;
         } else if (isMounted) {
           setRegistrations([]);
         }
 
-        await fetchStats();
+        await fetchStats(myRegistrationsFromList);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -135,7 +141,7 @@ const Dashboard: React.FC = () => {
       }
     };
 
-    const fetchStats = async () => {
+    const fetchStats = async (myRegistrationsFromList = 0) => {
       if (!userProfile || !isMounted) return;
 
       try {
@@ -183,15 +189,7 @@ const Dashboard: React.FC = () => {
         }
 
         if (userProfile.role === 'user' || userProfile.role === 'teacher') {
-          const { data } = await supabase
-            .from('registrations')
-            .select(`
-              course:courses(id, date, time)
-            `)
-            .eq('user_id', userProfile.id)
-            .in('status', ['registered', 'waitlist'])
-            .is('cancellation_timestamp', null);
-          myRegistrationsCount = (data || []).filter((item: any) => item.course && isCourseUpcoming(item.course)).length;
+          myRegistrationsCount = myRegistrationsFromList;
         }
 
         if (!isMounted) return;
@@ -300,6 +298,9 @@ const Dashboard: React.FC = () => {
           const remainingSpots = Math.max(0, maxParticipants - registrationCount);
           const isFull = remainingSpots === 0;
           const isRegistered = Boolean(options?.showRegisteredBadge && isRegistration && item.status === 'registered');
+          const isWaitlist = Boolean(
+            isRegistration && (item.status === 'waitlist' || item.is_waitlist)
+          );
           const description = course.description?.trim() ?? '';
           const teacherName =
             course.teacher && course.teacher_id !== userProfile?.id
@@ -309,9 +310,11 @@ const Dashboard: React.FC = () => {
             (isAdmin || isCourseLeader) && !isRegistration
               ? `${registrationCount}/${maxParticipants}\u00A0Plätze`
               : '';
+          const running = isCourseRunning(course);
           const meta = [
             formatDayLabel(course.date),
             formatTime(course.time),
+            running ? 'läuft gerade' : '',
             teacherName,
             course.location,
             occupancy,
@@ -325,6 +328,15 @@ const Dashboard: React.FC = () => {
               <span className="inline-flex items-center gap-1 text-[13px] font-medium text-success">
                 <Check className="h-4 w-4" aria-hidden />
                 Angemeldet
+              </span>
+            );
+          } else if (isWaitlist) {
+            const waitlistLabel = item.waitlist_position
+              ? `Warteliste Pos. ${item.waitlist_position}`
+              : 'Warteliste';
+            status = (
+              <span className="inline-flex rounded-full bg-accentSoft px-2.5 py-0.5 text-[13px] font-medium text-accent">
+                {waitlistLabel}
               </span>
             );
           } else if (isFull) {
@@ -376,6 +388,22 @@ const Dashboard: React.FC = () => {
   }
 
   const statCards = getStatCards();
+  const heroRegistration = isParticipantOnly
+    ? registrations.find((item) => item.status === 'registered')
+    : undefined;
+  const danachAll = isParticipantOnly
+    ? registrations.filter((item) => item.id !== heroRegistration?.id)
+    : [];
+  const danach = danachAll.slice(0, 3);
+  const heroCourse = heroRegistration?.course;
+  const heroRunning = heroCourse ? isCourseRunning(heroCourse) : false;
+  const heroTeacherName = heroCourse?.teacher
+    ? `${heroCourse.teacher.first_name} ${heroCourse.teacher.last_name}`.trim()
+    : '';
+  const heroPlaceLine = heroCourse
+    ? [heroCourse.location, heroTeacherName].filter(Boolean).join(' · ')
+    : '';
+  const hasWaitlistOnly = isParticipantOnly && !heroRegistration && danachAll.length > 0;
 
   return (
     <div className="space-y-6">
@@ -386,6 +414,48 @@ const Dashboard: React.FC = () => {
             : 'Willkommen zurück!'}
         </p>
       </div>
+
+      {isParticipantOnly && heroCourse && (
+        <Link
+          to="/my-registrations"
+          className="block min-h-11 rounded-lg bg-brand p-5 text-onBrand no-underline active:bg-brandPressed focus:outline-none focus-visible:ring-2 focus-visible:ring-onBrand focus-visible:ring-offset-2"
+        >
+          {/* Künftig öffnet ein Tipp ein Kurs-Infofenster statt des Links. */}
+          <p className="text-[13px] font-normal">
+            {heroRunning
+              ? `Läuft gerade · bis ${formatTime(heroCourse.end_time)}`
+              : 'Deine nächste Stunde'}
+          </p>
+          <h2 className="mt-1 text-[22px] font-medium">{heroCourse.title}</h2>
+          <p className="mt-1 text-[17px] font-normal tabular-nums">
+            {[formatDayLabel(heroCourse.date), formatTimeRange(heroCourse.time, heroCourse.end_time)]
+              .filter(Boolean)
+              .join(' · ')}
+          </p>
+          {heroPlaceLine ? (
+            <p className="mt-0.5 text-[13px] font-normal">{heroPlaceLine}</p>
+          ) : null}
+        </Link>
+      )}
+
+      {isParticipantOnly && !heroRegistration && (
+        <div className="rounded-lg bg-brand p-5 text-onBrand">
+          <h2 className="text-[22px] font-medium">
+            {hasWaitlistOnly ? 'Noch keine feste Anmeldung' : 'Noch nichts gebucht'}
+          </h2>
+          <p className="mt-1 text-[17px] font-normal">
+            {hasWaitlistOnly
+              ? 'Du stehst auf der Warteliste — oder finde eine andere Stunde.'
+              : 'Finde deine nächste Stunde.'}
+          </p>
+          <Link
+            to="/courses"
+            className="mt-4 inline-flex min-h-11 items-center justify-center rounded-full bg-surface px-5 text-[17px] font-medium text-brand no-underline"
+          >
+            Kurse ansehen
+          </Link>
+        </div>
+      )}
 
       <div className="overflow-hidden rounded-md border border-border bg-surface">
         <div className="flex divide-x divide-border">
@@ -437,7 +507,7 @@ const Dashboard: React.FC = () => {
             </div>
           )}
 
-          {(isParticipantOnly || isTeacher) && (
+          {isTeacher && (
             <div className="bg-surface rounded-md border border-border">
               <div className="p-3.5 border-b border-border">
                 <h2 className="text-lg font-medium text-text">Meine kommenden Kurse</h2>
@@ -450,6 +520,39 @@ const Dashboard: React.FC = () => {
                 )}
               </div>
             </div>
+          )}
+
+          {isParticipantOnly && danach.length > 0 && (
+            <div className="bg-surface rounded-md border border-border">
+              <div className="p-3.5 border-b border-border">
+                <h2 className="text-lg font-medium text-text">Danach</h2>
+              </div>
+              <div>
+                {renderCourseCards(danach, '', { showRegisteredBadge: true })}
+              </div>
+              {danachAll.length > 3 && (
+                <div className="border-t border-border px-3.5 py-2">
+                  <Link
+                    to="/my-registrations"
+                    className="inline-flex min-h-11 items-center text-[13px] font-medium text-brand no-underline"
+                  >
+                    Alle Anmeldungen ({danachAll.length})
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
+
+          {isParticipantOnly && heroRegistration && danachAll.length === 0 && (
+            <p className="text-[13px] text-textMuted">
+              Keine weiteren Anmeldungen ·{' '}
+              <Link
+                to="/courses"
+                className="inline-flex min-h-11 items-center text-brand no-underline"
+              >
+                Kurse ansehen
+              </Link>
+            </p>
           )}
         </div>
 
