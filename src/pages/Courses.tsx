@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Calendar, Check, Plus } from 'lucide-react';
-import CourseEnrollmentDialogs from '../components/courses/CourseEnrollmentDialogs';
 import CourseFilterBar from '../components/courses/CourseFilterBar';
 import {
   EMPTY_DATE_FILTER,
@@ -19,7 +18,7 @@ import { isCourseUpcoming } from '../lib/courseDateTime';
 import { formatDayLabel, formatPrice, formatTime } from '../lib/format';
 import { groupCoursesByDay } from '../lib/courseGrouping';
 import { runPastRegistrationCleanup } from '../lib/registrationMaintenance';
-import { canSelfEnrollInCourse, canSelfEnrollInCourses } from '../lib/userRoles';
+import { canSelfEnrollInCourses } from '../lib/userRoles';
 import { useCourseEnrollment } from '../lib/useCourseEnrollment';
 import AccentPill from '../components/ui/AccentPill';
 
@@ -81,14 +80,6 @@ const Courses: React.FC = () => {
 
   const {
     setRegistrations,
-    feedbackDialog,
-    setFeedbackDialog,
-    confirmDialog,
-    unregistering,
-    handleRegister,
-    requestUnregister,
-    cancelUnregister,
-    handleUnregister,
     isUserRegistered,
     getUserRegistrationStatus,
     getUserWaitlistPosition,
@@ -188,14 +179,6 @@ const Courses: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <CourseEnrollmentDialogs
-        confirmDialog={confirmDialog}
-        unregistering={unregistering}
-        handleUnregister={handleUnregister}
-        cancelUnregister={cancelUnregister}
-        feedbackDialog={feedbackDialog}
-        setFeedbackDialog={setFeedbackDialog}
-      />
       {(isAdmin || isCourseLeader) && (
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end">
           <button
@@ -255,7 +238,6 @@ const Courses: React.FC = () => {
                     .filter(Boolean)
                     .join(' · ');
                   const description = course.description?.trim() ?? '';
-                  const canAct = canSelfEnrollInCourse(course, userProfile);
 
                   let status: React.ReactNode = null;
                   if (isRegistered && registrationStatus === 'registered') {
@@ -287,36 +269,6 @@ const Courses: React.FC = () => {
                     );
                   }
 
-                  const action = canAct ? (
-                    isRegistered ? (
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          requestUnregister(course);
-                        }}
-                        className="inline-flex min-h-11 items-center rounded-sm px-3 text-[13px] font-medium text-danger transition-colors hover:bg-dangerSoft"
-                      >
-                        Abmelden
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleRegister(course.id);
-                        }}
-                        className={`inline-flex min-h-11 items-center rounded-sm px-3 text-[13px] font-medium transition-colors ${
-                          isFull
-                            ? 'border border-accent bg-accentSoft text-accentText hover:bg-accentSoft'
-                            : 'bg-brand text-onBrand hover:bg-brandPressed'
-                        }`}
-                      >
-                        {isFull ? 'Warteliste' : 'Anmelden'}
-                      </button>
-                    )
-                  ) : null;
-
                   return (
                     <article key={course.id} className="relative">
                       <div className="hidden items-start gap-3 px-3.5 py-3 md:flex">
@@ -332,11 +284,10 @@ const Courses: React.FC = () => {
                             <p className="line-clamp-1 text-[13px] text-textSubtle">{description}</p>
                           ) : null}
                         </div>
-                        <div className="relative z-10 shrink-0">{status}</div>
+                        <div className="shrink-0">{status}</div>
                         <div className="w-20 shrink-0 text-right text-[17px] font-medium text-text tabular-nums">
                           {formatPrice(course.price)}
                         </div>
-                        <div className="relative z-10 shrink-0">{action}</div>
                       </div>
 
                       <div className="flex items-start gap-3 px-3.5 py-3 md:hidden">
@@ -358,12 +309,7 @@ const Courses: React.FC = () => {
                           {description ? (
                             <p className="line-clamp-1 text-[13px] text-textSubtle">{description}</p>
                           ) : null}
-                          {(status || action) && (
-                            <div className="relative z-10 mt-2 flex items-center justify-end gap-2">
-                              {status}
-                              {action}
-                            </div>
-                          )}
+                          {status ? <div className="mt-2 flex items-center justify-end">{status}</div> : null}
                         </div>
                       </div>
                       <Link
