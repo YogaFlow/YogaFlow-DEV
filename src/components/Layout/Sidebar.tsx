@@ -19,8 +19,8 @@ import { canSelfEnrollInCourses } from '../../lib/userRoles';
 
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
   owner:   { label: 'Inhaberin/Inhaber', color: 'bg-brand text-onBrand' },
-  admin:   { label: 'Admin',             color: 'bg-sage-100 text-sage-800' },
-  teacher: { label: 'Kursleitung',       color: 'bg-sage-100 text-sage-800' },
+  admin:   { label: 'Admin',             color: 'bg-brandSoft text-brandOnSoft' },
+  teacher: { label: 'Kursleitung',       color: 'bg-brandSoft text-brandOnSoft' },
   user:    { label: 'Teilnehmer',         color: 'bg-surfaceSunken text-textMuted' },
 };
 

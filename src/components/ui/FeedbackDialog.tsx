@@ -33,7 +33,7 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ dialog, onClose }) => {
   const colorClasses =
     variant === 'success'
       ? {
-          dot: 'bg-sage-500',
+          dot: 'bg-success',
           button: 'bg-brand hover:bg-brandPressed',
         }
       : variant === 'error'
@@ -42,8 +42,8 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ dialog, onClose }) => {
             button: 'bg-brand hover:bg-brandPressed',
           }
         : {
-            dot: 'bg-sage-500',
-            button: 'bg-sage-500 hover:bg-brandPressed',
+            dot: 'bg-brand',
+            button: 'bg-brand hover:bg-brandPressed',
           };
 
   return (

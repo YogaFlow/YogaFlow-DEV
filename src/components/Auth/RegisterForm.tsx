@@ -119,16 +119,16 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
   if (success) {
     return (
       <div className="w-full max-w-md text-center">
-        <div className="p-3.5 bg-sage-100 border border-sage-200 rounded-md">
-          <h3 className="text-lg font-semibold text-sage-800 mb-2">Registrierung erfolgreich!</h3>
+        <div className="p-3.5 bg-successSoft border border-successSoft rounded-md">
+          <h3 className="text-lg font-semibold text-text mb-2">Registrierung erfolgreich!</h3>
           {emailSentOnSignup ? (
-            <p className="text-sm text-brand">
+            <p className="text-sm text-text">
               Wir haben eine Bestätigungsmail an <strong>{formData.email}</strong> gesendet.
               Bitte klicke auf den Link in der E-Mail, um dein Konto zu aktivieren.
               Danach kannst du dich hier anmelden.
             </p>
           ) : (
-            <p className="text-sm text-brand">
+            <p className="text-sm text-text">
               Dein Konto wurde erstellt. Nutze auf der Anmeldeseite
               „Bestätigungsmail erneut senden", um den Bestätigungslink zu erhalten.
             </p>
@@ -256,7 +256,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-brand text-onBrand py-3 px-4 rounded-sm hover:bg-brandPressed focus:ring-4 focus:ring-sage-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-brand text-onBrand py-3 px-4 rounded-sm hover:bg-brandPressed focus:ring-4 focus:ring-brandSoft transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? 'Registrierung läuft…' : 'Registrieren'}
         </button>

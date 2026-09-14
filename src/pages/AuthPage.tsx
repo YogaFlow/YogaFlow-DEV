@@ -239,7 +239,7 @@ const AuthPage: React.FC = () => {
                 onClick={() => setIsLogin(true)}
                 className={`flex-1 py-4 px-6 text-center font-medium transition-colors ${
                   isLogin
-                    ? 'text-brand border-b-2 border-brand bg-sage-100'
+                    ? 'text-brandOnSoft border-b-2 border-brand bg-brandSoft'
                     : 'text-textMuted hover:text-textMuted'
                 }`}
               >
@@ -250,7 +250,7 @@ const AuthPage: React.FC = () => {
                 onClick={() => setIsLogin(false)}
                 className={`flex-1 py-4 px-6 text-center font-medium transition-colors ${
                   !isLogin
-                    ? 'text-brand border-b-2 border-brand bg-sage-100'
+                    ? 'text-brandOnSoft border-b-2 border-brand bg-brandSoft'
                     : 'text-textMuted hover:text-textMuted'
                 }`}
               >
@@ -260,12 +260,12 @@ const AuthPage: React.FC = () => {
           )}
 
           {showVerifiedMessage && (
-            <div className="mx-8 mt-6 p-4 bg-sage-100 border border-sage-200 rounded-sm text-center text-sage-800 text-sm">
+            <div className="mx-8 mt-6 p-4 bg-successSoft border border-successSoft rounded-sm text-center text-text text-sm">
               E-Mail bestätigt. Du kannst dich jetzt anmelden.
             </div>
           )}
           {isLogin && user && profileLoading && (
-            <div className="mx-8 mt-6 p-4 bg-sage-100 border border-sage-200 rounded-sm text-brand text-sm text-center">
+            <div className="mx-8 mt-6 p-4 bg-brandSoft border border-brandSoft rounded-sm text-brandOnSoft text-sm text-center">
               Anmeldung erfolgreich — Profil wird geladen …
             </div>
           )}

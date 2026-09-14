@@ -607,10 +607,10 @@ const Dashboard: React.FC = () => {
                 {isTeacher && (
                   <button
                     onClick={() => navigate('/courses')}
-                    className="flex items-center p-3.5 bg-sage-100 hover:bg-sage-100 rounded-md transition-colors text-left"
+                    className="flex items-center p-3.5 bg-brandSoft hover:bg-brandSoft rounded-md transition-colors text-left"
                   >
-                    <Calendar className="w-5 h-5 text-brand mr-3" />
-                    <span className="font-medium text-brand">Kurse durchsuchen</span>
+                    <Calendar className="w-5 h-5 text-brandOnSoft mr-3" />
+                    <span className="font-medium text-brandOnSoft">Kurse durchsuchen</span>
                   </button>
                 )}
 
@@ -618,17 +618,17 @@ const Dashboard: React.FC = () => {
                   <>
                     <button
                       onClick={() => navigate('/create-course')}
-                      className="flex items-center p-3.5 bg-sage-100 hover:bg-sage-100 rounded-md transition-colors text-left"
+                      className="flex items-center p-3.5 bg-brandSoft hover:bg-brandSoft rounded-md transition-colors text-left"
                     >
-                      <BookOpen className="w-5 h-5 text-brand mr-3" />
-                      <span className="font-medium text-brand">Neuen Kurs erstellen</span>
+                      <BookOpen className="w-5 h-5 text-brandOnSoft mr-3" />
+                      <span className="font-medium text-brandOnSoft">Neuen Kurs erstellen</span>
                     </button>
                     <button
                       onClick={() => navigate('/participants')}
-                      className="flex items-center p-3.5 bg-sage-100 hover:bg-sage-100 rounded-md transition-colors text-left"
+                      className="flex items-center p-3.5 bg-brandSoft hover:bg-brandSoft rounded-md transition-colors text-left"
                     >
-                      <Users className="w-5 h-5 text-brand mr-3" />
-                      <span className="font-medium text-brand">Teilnehmer verwalten</span>
+                      <Users className="w-5 h-5 text-brandOnSoft mr-3" />
+                      <span className="font-medium text-brandOnSoft">Teilnehmer verwalten</span>
                     </button>
                   </>
                 )}
@@ -637,10 +637,10 @@ const Dashboard: React.FC = () => {
                   <>
                     <button
                       onClick={() => navigate('/users')}
-                      className="flex items-center p-3.5 bg-sage-100 hover:bg-sage-100 rounded-md transition-colors text-left"
+                      className="flex items-center p-3.5 bg-brandSoft hover:bg-brandSoft rounded-md transition-colors text-left"
                     >
-                      <Users className="w-5 h-5 text-brand mr-3" />
-                      <span className="font-medium text-brand">Benutzer verwalten</span>
+                      <Users className="w-5 h-5 text-brandOnSoft mr-3" />
+                      <span className="font-medium text-brandOnSoft">Benutzer verwalten</span>
                     </button>
                     <button
                       onClick={() => navigate('/settings')}

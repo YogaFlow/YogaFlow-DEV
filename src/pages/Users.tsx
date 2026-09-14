@@ -46,8 +46,8 @@ const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
 
 const ROLE_COLORS: Record<UserRole, string> = {
   owner:   'bg-brand text-onBrand',
-  admin:   'bg-sage-100 text-sage-800',
-  teacher: 'bg-sage-100 text-sage-800',
+  admin:   'bg-brandSoft text-brandOnSoft',
+  teacher: 'bg-brandSoft text-brandOnSoft',
   user:    'bg-surfaceSunken text-textMuted',
 };
 
@@ -441,16 +441,16 @@ export default function Users() {
           return (
             <React.Fragment key={user.id}>
               <div className={`bg-surface rounded-md border overflow-hidden transition-colors ${
-                isExpanded ? 'border-sage-200' : 'border-border'
+                isExpanded ? 'border-borderStrong' : 'border-border'
               }`}>
                 {/* Card header */}
-                <div className={`p-3.5 flex items-center justify-between gap-3 ${isSelf ? 'bg-sage-100' : ''}`}>
+                <div className={`p-3.5 flex items-center justify-between gap-3 ${isSelf ? 'bg-brandSoft' : ''}`}>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-semibold text-text">
                         {user.first_name} {user.last_name}
                       </span>
-                      {isSelf && <span className="text-xs text-brand font-medium">(du)</span>}
+                      {isSelf && <span className="text-xs text-brandOnSoft font-medium">(du)</span>}
                       {user.role !== 'user' && (
                         <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${ROLE_COLORS[user.role]}`}>
                           {ROLE_BADGE_LABELS[user.role]}
@@ -681,7 +681,7 @@ export default function Users() {
               return (
                 <React.Fragment key={user.id}>
                   {/* ── Main row ── */}
-                  <tr className={`${isSelf ? 'bg-sage-100' : ''} ${isExpanded ? 'bg-surfaceSunken' : 'hover:bg-surfaceSunken'} transition-colors`}>
+                  <tr className={`${isSelf ? 'bg-brandSoft' : ''} ${isExpanded ? 'bg-surfaceSunken' : 'hover:bg-surfaceSunken'} transition-colors`}>
                     {/* Toggle button */}
                     <td className="px-3 py-4 text-center">
                       {(user.role !== 'owner' || isSelf) && (
@@ -699,7 +699,7 @@ export default function Users() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-text">
                         {user.first_name} {user.last_name}
-                        {isSelf && <span className="ml-2 text-xs text-brand font-normal">(du)</span>}
+                        {isSelf && <span className="ml-2 text-xs text-brandOnSoft font-normal">(du)</span>}
                       </div>
                     </td>
 

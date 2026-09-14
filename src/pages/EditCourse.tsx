@@ -662,7 +662,7 @@ const EditCourse: React.FC = () => {
             <button
               type="submit"
               disabled={saving}
-              className="flex items-center px-6 py-2 bg-brand text-onBrand rounded-sm hover:bg-brandPressed focus:ring-4 focus:ring-sage-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center px-6 py-2 bg-brand text-onBrand rounded-sm hover:bg-brandPressed focus:ring-4 focus:ring-brandSoft transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save className="w-4 h-4 mr-2" />
               {saving ? 'Wird gespeichert...' : 'Änderungen speichern'}

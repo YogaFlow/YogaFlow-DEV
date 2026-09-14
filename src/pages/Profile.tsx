@@ -212,8 +212,8 @@ const Profile: React.FC = () => {
       </div>
 
       {activeTab === 'profile' && profileSuccess && (
-        <div className="p-4 bg-sage-100 border border-sage-200 rounded-sm">
-          <p className="text-sm text-brand">{profileSuccess}</p>
+        <div className="p-4 bg-brandSoft border border-brandSoft rounded-sm">
+          <p className="text-sm text-brandOnSoft">{profileSuccess}</p>
         </div>
       )}
 
@@ -228,8 +228,8 @@ const Profile: React.FC = () => {
           <div className="p-3.5 border-b border-border">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <div className="w-16 h-16 bg-sage-100 rounded-full flex items-center justify-center">
-                  <User className="w-8 h-8 text-brand" />
+                <div className="w-16 h-16 bg-brandSoft rounded-full flex items-center justify-center">
+                  <User className="w-8 h-8 text-brandOnSoft" />
                 </div>
                 <div className="ml-4">
                   <h2 className="text-xl font-semibold text-text">
@@ -242,12 +242,12 @@ const Profile: React.FC = () => {
                       </span>
                     )}
                     {userProfile.role === 'admin' && (
-                      <span className="inline-block px-2 py-1 text-xs rounded-full bg-sage-100 text-sage-800">
+                      <span className="inline-block px-2 py-1 text-xs rounded-full bg-brandSoft text-brandOnSoft">
                         Admin
                       </span>
                     )}
                     {userProfile.role === 'teacher' && (
-                      <span className="inline-block px-2 py-1 text-xs rounded-full bg-sage-100 text-sage-800">
+                      <span className="inline-block px-2 py-1 text-xs rounded-full bg-brandSoft text-brandOnSoft">
                         Kursleitung
                       </span>
                     )}
@@ -442,7 +442,7 @@ const Profile: React.FC = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex items-center px-6 py-2 bg-brand text-onBrand rounded-sm hover:bg-brandPressed focus:ring-4 focus:ring-sage-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center px-6 py-2 bg-brand text-onBrand rounded-sm hover:bg-brandPressed focus:ring-4 focus:ring-brandSoft transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Save className="w-4 h-4 mr-2" />
                   {loading ? 'Wird gespeichert...' : 'Speichern'}
@@ -454,8 +454,8 @@ const Profile: React.FC = () => {
       ) : (
         <div className="bg-surface rounded-md border border-border p-3.5">
           <div className="flex items-center mb-6">
-            <div className="w-12 h-12 bg-sage-100 rounded-full flex items-center justify-center">
-              <Lock className="w-6 h-6 text-brand" />
+            <div className="w-12 h-12 bg-brandSoft rounded-full flex items-center justify-center">
+              <Lock className="w-6 h-6 text-brandOnSoft" />
             </div>
             <div className="ml-3">
               <h2 className="text-lg font-semibold text-text">Passwort ändern</h2>
@@ -464,8 +464,8 @@ const Profile: React.FC = () => {
           </div>
 
           {passwordSuccess && (
-            <div className="p-4 mb-4 bg-sage-100 border border-sage-200 rounded-sm">
-              <p className="text-sm text-brand">{passwordSuccess}</p>
+            <div className="p-4 mb-4 bg-brandSoft border border-brandSoft rounded-sm">
+              <p className="text-sm text-brandOnSoft">{passwordSuccess}</p>
             </div>
           )}
 
@@ -553,7 +553,7 @@ const Profile: React.FC = () => {
               <button
                 type="submit"
                 disabled={passwordLoading}
-                className="flex items-center px-6 py-2 bg-brand text-onBrand rounded-sm hover:bg-brandPressed focus:ring-4 focus:ring-sage-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center px-6 py-2 bg-brand text-onBrand rounded-sm hover:bg-brandPressed focus:ring-4 focus:ring-brandSoft transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save className="w-4 h-4 mr-2" />
                 {passwordLoading ? 'Wird gespeichert...' : 'Passwort speichern'}

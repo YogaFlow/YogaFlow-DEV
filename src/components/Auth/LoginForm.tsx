@@ -185,14 +185,14 @@ const LoginForm: React.FC<LoginFormProps> = ({ emailJustVerified = false }) => {
           </div>
         )}
         {verificationEmailMessage && (
-          <div className={`p-3 rounded-sm text-sm ${verificationEmailMessage.includes('gesendet') ? 'bg-sage-100 border border-sage-200 text-sage-800' : 'bg-accentSoft border border-accent text-text'}`}>
+          <div className={`p-3 rounded-sm text-sm ${verificationEmailMessage.includes('gesendet') ? 'bg-successSoft border border-successSoft text-text' : 'bg-accentSoft border border-accent text-text'}`}>
             {verificationEmailMessage}
           </div>
         )}
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-brand text-onBrand py-3 px-4 rounded-sm hover:bg-brandPressed focus:ring-4 focus:ring-sage-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-brand text-onBrand py-3 px-4 rounded-sm hover:bg-brandPressed focus:ring-4 focus:ring-brandSoft transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? 'Anmeldung läuft...' : 'Anmelden'}
         </button>

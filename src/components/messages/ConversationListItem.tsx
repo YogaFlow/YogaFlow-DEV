@@ -31,14 +31,14 @@ const ConversationListItem: React.FC<ConversationListItemProps> = ({
             <p
               className={`text-xs shrink-0 ${
                 conversation.unreadCount > 0
-                  ? 'text-brand font-medium'
+                  ? `${isActive ? 'text-brandOnSoft' : 'text-brand'} font-medium`
                   : 'text-textMuted'
               }`}
             >
               <span className="tabular-nums">{formatDateTime(conversation.lastMessageAt)}</span>
             </p>
             {conversation.unreadCount > 0 && (
-              <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 mt-1 text-xs font-semibold text-sage-800 tabular-nums rounded-full border border-sage-200 bg-sage-100">
+              <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 mt-1 text-xs font-semibold text-brandOnSoft tabular-nums rounded-full border border-brandSoft bg-brandSoft">
                 {conversation.unreadCount > 9 ? '9+' : conversation.unreadCount}
               </span>
             )}

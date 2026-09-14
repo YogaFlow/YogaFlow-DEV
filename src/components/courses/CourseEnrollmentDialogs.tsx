@@ -32,7 +32,7 @@ const CourseEnrollmentDialogs: React.FC<CourseEnrollmentDialogsProps> = ({
           <div className="mb-3 flex items-center gap-2">
             <span
               className={`inline-flex h-2.5 w-2.5 rounded-full ${
-                feedbackDialog.type === 'success' ? 'bg-sage-500' : 'bg-danger'
+                feedbackDialog.type === 'success' ? 'bg-success' : 'bg-danger'
               }`}
               aria-hidden
             />

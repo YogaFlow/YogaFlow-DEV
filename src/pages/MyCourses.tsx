@@ -108,8 +108,8 @@ const MyCourses: React.FC = () => {
       </div>
 
       {successMessage && (
-        <div className="p-4 bg-sage-100 border border-sage-200 rounded-sm">
-          <p className="text-sm text-sage-800">{successMessage}</p>
+        <div className="p-4 bg-successSoft border border-successSoft rounded-sm">
+          <p className="text-sm text-text">{successMessage}</p>
         </div>
       )}
 

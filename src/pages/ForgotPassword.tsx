@@ -85,8 +85,8 @@ const ForgotPassword: React.FC = () => {
       <div className="min-h-screen bg-sand flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-surface rounded-md border border-border p-3.5">
           <div className="text-center">
-            <div className="w-16 h-16 bg-sage-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Mail className="w-8 h-8 text-brand" />
+            <div className="w-16 h-16 bg-brandSoft rounded-full flex items-center justify-center mx-auto mb-4">
+              <Mail className="w-8 h-8 text-brandOnSoft" />
             </div>
             <h1 className="text-2xl font-bold text-text mb-2">
               E-Mail versendet
@@ -157,7 +157,7 @@ const ForgotPassword: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-brand text-onBrand py-3 rounded-sm hover:bg-brandPressed focus:ring-4 focus:ring-sage-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-brand text-onBrand py-3 rounded-sm hover:bg-brandPressed focus:ring-4 focus:ring-brandSoft transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Wird gesendet...' : 'Zurücksetzungs-Link senden'}
           </button>

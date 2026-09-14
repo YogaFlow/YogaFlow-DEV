@@ -42,7 +42,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   const colorClasses =
     variant === 'primary'
       ? {
-          dot: 'bg-sage-500',
+          dot: 'bg-brand',
           button: 'bg-brand text-onBrand hover:bg-brandPressed',
         }
       : {
