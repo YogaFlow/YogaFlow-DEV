@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Check, Plus } from 'lucide-react';
+import CourseEnrollmentDialogs from '../components/courses/CourseEnrollmentDialogs';
 import CourseFilterBar from '../components/courses/CourseFilterBar';
 import {
   EMPTY_DATE_FILTER,
@@ -13,65 +14,85 @@ import {
 } from '../lib/courseTeacherFilter';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Course, Registration } from '../types';
+import { Course } from '../types';
 import { isCourseUpcoming } from '../lib/courseDateTime';
 import { formatDayLabel, formatPrice, formatTime } from '../lib/format';
 import { groupCoursesByDay } from '../lib/courseGrouping';
 import { runPastRegistrationCleanup } from '../lib/registrationMaintenance';
 import { canSelfEnrollInCourses } from '../lib/userRoles';
-import ConfirmDialog, { ConfirmDialogState } from '../components/ui/ConfirmDialog';
+import { useCourseEnrollment } from '../lib/useCourseEnrollment';
 import AccentPill from '../components/ui/AccentPill';
 
 const Courses: React.FC = () => {
   const navigate = useNavigate();
   const { userProfile, isAdmin, isCourseLeader } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
-  const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [participantCounts, setParticipantCounts] = useState<Record<string, { registered: number; waitlist: number }>>({});
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState<CourseDateFilterState>(EMPTY_DATE_FILTER);
   const [selectedTeacherId, setSelectedTeacherId] = useState<string | null>(null);
-  const [feedbackDialog, setFeedbackDialog] = useState<{
-    title: string;
-    message: string;
-    type: 'success' | 'error';
-  } | null>(null);
-  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
-  const [pendingUnregisterCourseId, setPendingUnregisterCourseId] = useState<string | null>(null);
-  const [unregistering, setUnregistering] = useState(false);
 
   const availableTeachers = useMemo(() => uniqueTeachersFromCourses(courses), [courses]);
 
-  const showFeedbackDialog = (
-    message: string,
-    type: 'success' | 'error' = 'success',
-    title?: string
-  ) => {
-    setFeedbackDialog({
-      title: title || (type === 'success' ? 'Erfolg' : 'Hinweis'),
-      message,
-      type,
-    });
-  };
+  const fetchCourses = async () => {
+    try {
+      await runPastRegistrationCleanup();
+      const { data, error } = await supabase
+        .from('courses')
+        .select(`
+          *,
+          teacher:users!courses_teacher_id_fkey(first_name, last_name)
+        `)
+        .gte('date', new Date().toISOString().split('T')[0])
+        .order('date', { ascending: true })
+        .order('time', { ascending: true });
 
-  const getSupabaseErrorMessage = (error: unknown, fallback: string) => {
-    if (!error || typeof error !== 'object') {
-      return fallback;
+      if (error) throw error;
+      const upcomingCourses = (data || []).filter((course) => isCourseUpcoming(course));
+      setCourses(upcomingCourses);
+
+      if (upcomingCourses.length > 0) {
+        const courseIds = upcomingCourses.map(c => c.id);
+        const { data: countsData, error: countsError } = await supabase.rpc(
+          'get_course_participant_counts',
+          { p_course_ids: courseIds }
+        );
+
+        if (!countsError && countsData) {
+          const countsMap: Record<string, { registered: number; waitlist: number }> = {};
+          countsData.forEach((c: { course_id: string; registered_count: number; waitlist_count: number }) => {
+            countsMap[c.course_id] = {
+              registered: c.registered_count,
+              waitlist: c.waitlist_count
+            };
+          });
+          setParticipantCounts(countsMap);
+        }
+      } else {
+        setParticipantCounts({});
+      }
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+    } finally {
+      setLoading(false);
     }
-
-    const maybeError = error as {
-      message?: string;
-      details?: string;
-      hint?: string;
-      code?: string;
-    };
-
-    const parts = [maybeError.message, maybeError.details, maybeError.hint].filter(Boolean);
-    const withCode = maybeError.code ? [...parts, `Code: ${maybeError.code}`] : parts;
-
-    return withCode.length > 0 ? withCode.join(' | ') : fallback;
   };
+
+  const {
+    setRegistrations,
+    feedbackDialog,
+    setFeedbackDialog,
+    confirmDialog,
+    unregistering,
+    handleRegister,
+    requestUnregister,
+    cancelUnregister,
+    handleUnregister,
+    isUserRegistered,
+    getUserRegistrationStatus,
+    getUserWaitlistPosition,
+  } = useCourseEnrollment(fetchCourses);
 
   useEffect(() => {
     let isMounted = true;
@@ -147,192 +168,6 @@ const Courses: React.FC = () => {
     }
   }, [availableTeachers, selectedTeacherId]);
 
-  const fetchCourses = async () => {
-    try {
-      await runPastRegistrationCleanup();
-      const { data, error } = await supabase
-        .from('courses')
-        .select(`
-          *,
-          teacher:users!courses_teacher_id_fkey(first_name, last_name)
-        `)
-        .gte('date', new Date().toISOString().split('T')[0])
-        .order('date', { ascending: true })
-        .order('time', { ascending: true });
-
-      if (error) throw error;
-      const upcomingCourses = (data || []).filter((course) => isCourseUpcoming(course));
-      setCourses(upcomingCourses);
-
-      if (upcomingCourses.length > 0) {
-        const courseIds = upcomingCourses.map(c => c.id);
-        const { data: countsData, error: countsError } = await supabase.rpc(
-          'get_course_participant_counts',
-          { p_course_ids: courseIds }
-        );
-
-        if (!countsError && countsData) {
-          const countsMap: Record<string, { registered: number; waitlist: number }> = {};
-          countsData.forEach((c: { course_id: string; registered_count: number; waitlist_count: number }) => {
-            countsMap[c.course_id] = {
-              registered: c.registered_count,
-              waitlist: c.waitlist_count
-            };
-          });
-          setParticipantCounts(countsMap);
-        }
-      } else {
-        setParticipantCounts({});
-      }
-    } catch (error) {
-      console.error('Error fetching courses:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchUserRegistrations = async () => {
-    if (!userProfile) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('registrations')
-        .select('course_id, status, is_waitlist, waitlist_position')
-        .eq('user_id', userProfile.id)
-        .is('cancellation_timestamp', null);
-
-      if (error) throw error;
-      setRegistrations(data || []);
-    } catch (error) {
-      console.error('Error fetching registrations:', error);
-    }
-  };
-
-  const handleRegister = async (courseId: string) => {
-    if (!userProfile) return;
-
-    try {
-      const { data, error } = await supabase.rpc('register_for_course', {
-        p_course_id: courseId,
-      });
-
-      if (error) throw error;
-
-      if (data && !data.success) {
-        const d = data as { message?: string; error?: string };
-        showFeedbackDialog(
-          d.message || d.error || 'Fehler bei der Anmeldung.',
-          'error',
-          'Anmeldung nicht moeglich'
-        );
-        return;
-      }
-
-      fetchCourses();
-      fetchUserRegistrations();
-
-      if (data.waitlist_position) {
-        showFeedbackDialog(
-          `Sie wurden auf die Warteliste gesetzt (Position ${data.waitlist_position}). Sie werden benachrichtigt, wenn ein Platz frei wird.`,
-          'success',
-          'Warteliste'
-        );
-      } else {
-        showFeedbackDialog(data.message || 'Erfolgreich angemeldet.', 'success', 'Anmeldung erfolgreich');
-      }
-    } catch (error) {
-      console.error('Error registering for course:', error);
-      try {
-        console.error('Error registering for course (serialized):', JSON.stringify(error, null, 2));
-      } catch {
-        // Ignore serialization issues (e.g. circular refs)
-      }
-      showFeedbackDialog(
-        getSupabaseErrorMessage(error, 'Fehler bei der Anmeldung. Bitte versuchen Sie es erneut.'),
-        'error',
-        'Anmeldung fehlgeschlagen'
-      );
-    }
-  };
-
-  const requestUnregister = (course: Course) => {
-    setPendingUnregisterCourseId(course.id);
-    setConfirmDialog({
-      title: 'Vom Kurs abmelden?',
-      message: `Möchten Sie sich vom Kurs „${course.title}“ abmelden? Der Platz wird wieder frei.`,
-      confirmLabel: 'Abmelden',
-      cancelLabel: 'Abbrechen',
-      variant: 'danger',
-    });
-  };
-
-  const cancelUnregister = () => {
-    if (unregistering) return;
-    setConfirmDialog(null);
-    setPendingUnregisterCourseId(null);
-  };
-
-  const handleUnregister = async () => {
-    if (!userProfile || !pendingUnregisterCourseId) return;
-
-    const courseId = pendingUnregisterCourseId;
-    setUnregistering(true);
-
-    try {
-      const { data, error } = await supabase.rpc('unregister_from_course', {
-        p_course_id: courseId,
-      });
-
-      if (error) throw error;
-
-      if (data && !data.success) {
-        const d = data as { message?: string; error?: string };
-        showFeedbackDialog(
-          d.message || d.error || 'Fehler bei der Abmeldung.',
-          'error',
-          'Abmeldung nicht moeglich'
-        );
-        return;
-      }
-
-      fetchCourses();
-      fetchUserRegistrations();
-
-      showFeedbackDialog(data.message || 'Erfolgreich abgemeldet.', 'success', 'Abmeldung erfolgreich');
-    } catch (error) {
-      console.error('Error unregistering from course:', error);
-      try {
-        console.error('Error unregistering from course (serialized):', JSON.stringify(error, null, 2));
-      } catch {
-        // Ignore serialization issues (e.g. circular refs)
-      }
-      showFeedbackDialog(
-        getSupabaseErrorMessage(error, 'Fehler bei der Abmeldung. Bitte versuchen Sie es erneut.'),
-        'error',
-        'Abmeldung fehlgeschlagen'
-      );
-    } finally {
-      setUnregistering(false);
-      setConfirmDialog(null);
-      setPendingUnregisterCourseId(null);
-    }
-  };
-
-  const isUserRegistered = (courseId: string) => {
-    return registrations.some(reg => reg.course_id === courseId);
-  };
-
-  const getUserRegistrationStatus = (courseId: string) => {
-    const reg = registrations.find(reg => reg.course_id === courseId);
-    return reg?.status || null;
-  };
-
-  const getUserWaitlistPosition = (courseId: string) => {
-    const reg = registrations.find(reg => reg.course_id === courseId);
-    return reg?.waitlist_position || null;
-  };
-
-
   const filteredCourses = courses.filter(course => {
     const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           course.description.toLowerCase().includes(searchTerm.toLowerCase());
@@ -353,40 +188,14 @@ const Courses: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <ConfirmDialog
-        dialog={confirmDialog}
-        loading={unregistering}
-        onConfirm={handleUnregister}
-        onCancel={cancelUnregister}
+      <CourseEnrollmentDialogs
+        confirmDialog={confirmDialog}
+        unregistering={unregistering}
+        handleUnregister={handleUnregister}
+        cancelUnregister={cancelUnregister}
+        feedbackDialog={feedbackDialog}
+        setFeedbackDialog={setFeedbackDialog}
       />
-      {feedbackDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-text/45 p-4">
-          <div className="w-full max-w-md rounded-lg border border-border bg-surface p-6 shadow-lg">
-            <div className="mb-3 flex items-center gap-2">
-              <span
-                className={`inline-flex h-2.5 w-2.5 rounded-full ${
-                  feedbackDialog.type === 'success' ? 'bg-sage-500' : 'bg-danger'
-                }`}
-                aria-hidden
-              />
-              <h3 className="text-lg font-medium text-text">{feedbackDialog.title}</h3>
-            </div>
-            <p className="text-sm leading-6 text-textMuted">{feedbackDialog.message}</p>
-            <div className="mt-6 flex justify-center">
-              <button
-                onClick={() => setFeedbackDialog(null)}
-                className={`rounded-full px-6 py-2 text-sm font-medium text-onBrand transition-colors ${
-                  feedbackDialog.type === 'success'
-                    ? 'bg-brand hover:bg-brandPressed'
-                    : 'bg-danger hover:bg-danger'
-                }`}
-              >
-                OK
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       {(isAdmin || isCourseLeader) && (
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end">
           <button
