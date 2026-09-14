@@ -21,6 +21,13 @@ const LOAD_ERROR: FeedbackDialogState = {
   type: 'error',
 };
 
+const COUNTS_ERROR: FeedbackDialogState = {
+  title: 'Hinweis',
+  message:
+    'Die Anmeldungen zu diesem Kurs konnten nicht geprüft werden. Bitte die Seite neu laden.',
+  type: 'error',
+};
+
 const DELETE_ERROR: FeedbackDialogState = {
   title: 'Hinweis',
   message: 'Der Kurs konnte nicht gelöscht werden. Bitte die Seite neu laden.',
@@ -92,6 +99,11 @@ export function useCourseDeletion(course: Course | null) {
 
       const countIds = upcoming.length > 0 ? upcoming.map((row) => row.id) : [course.id];
       const counts = await fetchCourseParticipantCounts(countIds);
+
+      if (countIds.some((id) => !(id in counts))) {
+        setFeedbackDialog(COUNTS_ERROR);
+        return;
+      }
 
       setUpcomingSessions(upcoming);
       setSinglePersonCount(personSum(counts, course.id));
