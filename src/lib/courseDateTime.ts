@@ -39,6 +39,15 @@ const timeToMinutes = (value?: string | null): number | null => {
   return h * 60 + m;
 };
 
+/** Minutes from time → end_time. Null when end_time is missing or not after time. Ignores `duration`. */
+export const courseDurationMinutes = (course: CourseLike): number | null => {
+  const startMinutes = timeToMinutes(course.time);
+  const endMinutes = timeToMinutes(course.end_time);
+  if (startMinutes == null || endMinutes == null) return null;
+  const minutes = endMinutes - startMinutes;
+  return minutes > 0 ? minutes : null;
+};
+
 const toCourseEnd = (course: CourseLike): Date | null => {
   const start = toCourseStart(course);
   if (!start || !course.date) return null;

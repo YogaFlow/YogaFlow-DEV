@@ -323,7 +323,7 @@ const Dashboard: React.FC = () => {
   const renderCourseCards = (
     items: Array<CourseWithCount | Registration>,
     emptyMessage: string,
-    options?: { showRegisteredBadge?: boolean; rowLink?: string }
+    options?: { showRegisteredBadge?: boolean; rowLink?: boolean }
   ) => {
     if (items.length === 0) {
       return <p className="px-3.5 py-8 text-center text-textMuted">{emptyMessage}</p>;
@@ -434,10 +434,9 @@ const Dashboard: React.FC = () => {
             return (
               <Link
                 key={course.id || index}
-                to={options.rowLink}
+                to={`/course/${course.id}`}
                 className="block min-h-11 px-3.5 py-3 no-underline text-inherit active:bg-surfaceSunken focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
               >
-                {/* Künftig öffnet ein Tipp ein Kurs-Infofenster statt des Links. */}
                 {rowInner}
               </Link>
             );
@@ -495,10 +494,9 @@ const Dashboard: React.FC = () => {
 
       {isParticipantOnly && heroCourse && (
         <Link
-          to="/my-registrations"
+          to={`/course/${heroCourse.id}`}
           className="block min-h-11 rounded-lg bg-brand p-5 text-onBrand no-underline active:bg-brandPressed focus:outline-none focus-visible:ring-2 focus-visible:ring-onBrand focus-visible:ring-offset-2"
         >
-          {/* Künftig öffnet ein Tipp ein Kurs-Infofenster statt des Links. */}
           <p className="text-[13px] font-normal">
             {heroRunning
               ? `Läuft gerade · bis ${formatTime(heroCourse.end_time)}`
@@ -580,7 +578,8 @@ const Dashboard: React.FC = () => {
                     courses,
                     isTeacher
                       ? 'Sie haben noch keine Kurse erstellt.'
-                      : 'Keine kommenden Kurse gefunden.'
+                      : 'Keine kommenden Kurse gefunden.',
+                    { rowLink: true }
                   )}
                 </div>
               </div>
@@ -595,7 +594,7 @@ const Dashboard: React.FC = () => {
                   {renderCourseCards(
                     registrations,
                     'Sie sind noch nicht für Kurse angemeldet.',
-                    { showRegisteredBadge: true }
+                    { showRegisteredBadge: true, rowLink: true }
                   )}
                 </div>
               </div>
@@ -607,7 +606,7 @@ const Dashboard: React.FC = () => {
                   <h2 className="text-lg font-medium text-text">Danach</h2>
                 </div>
                 <div>
-                  {renderCourseCards(danach, '', { showRegisteredBadge: true })}
+                  {renderCourseCards(danach, '', { showRegisteredBadge: true, rowLink: true })}
                 </div>
                 {danachAll.length > 3 && (
                   <div className="border-t border-border px-3.5 py-2">
@@ -633,7 +632,7 @@ const Dashboard: React.FC = () => {
               {renderCourseCards(
                 courses,
                 'Gerade ist nichts frei — oder du bist überall schon dabei.',
-                { rowLink: '/courses' }
+                { rowLink: true }
               )}
             </div>
             <div className="border-t border-border px-3.5 py-2">

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Clock, MapPin } from 'lucide-react';
 import type { Course, Registration } from '../../types';
 import { formatDateBlock, formatDayLabel, formatPrice, formatTimeRange } from '../../lib/format';
@@ -17,9 +18,10 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({ registrations }) => (
       const dateBlock = formatDateBlock(course.date);
 
       return (
-        <div
+        <Link
           key={registration.id}
-          className="flex items-start gap-3 rounded-md border border-border bg-surface p-3.5"
+          to={`/course/${course.id}`}
+          className="flex items-start gap-3 rounded-md border border-border bg-surface p-3.5 no-underline text-inherit active:bg-surfaceSunken focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
         >
           {dateBlock ? (
             <div className="shrink-0">
@@ -68,7 +70,7 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({ registrations }) => (
               <p className="text-lg font-medium text-brand tabular-nums">{formatPrice(course.price)}</p>
             )}
           </div>
-        </div>
+        </Link>
       );
     })}
   </div>

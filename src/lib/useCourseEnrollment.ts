@@ -191,6 +191,7 @@ export function useCourseEnrollment(onAfterSuccess: () => void) {
 
   return {
     setRegistrations,
+    fetchUserRegistrations,
     feedbackDialog,
     setFeedbackDialog,
     confirmDialog,

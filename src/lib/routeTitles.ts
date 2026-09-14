@@ -39,6 +39,10 @@ function courseSegmentTitle(pathname: string): string {
     return id.length > 0 && !id.includes('/') ? 'Teilnehmer' : '';
   }
 
+  if (rest.length > 0 && !rest.includes('/')) {
+    return 'Kurs';
+  }
+
   return '';
 }
 

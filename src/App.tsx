@@ -23,6 +23,7 @@ import LandingPage from './pages/LandingPage';
 import OnboardingWizard from './pages/OnboardingWizard';
 import LegalPage from './pages/LegalPage';
 import JoinStudio from './pages/JoinStudio';
+import CourseDetail from './pages/CourseDetail';
 
 /** Mandanten-App: Guard → Auth → Layout → Kindroute (`Outlet`). Pathloses Layout, damit RR6/7 `/dashboard` & Co. zuverlässig matched (nicht `path="*"` + Kinder). */
 const TenantAppShell: React.FC = () => (
@@ -274,6 +275,7 @@ function App() {
               <Route path="create-course" element={<CreateCourse />} />
               <Route path="course/:courseId/edit" element={<EditCourse />} />
               <Route path="course/:courseId/participants" element={<Participants />} />
+              <Route path="course/:courseId" element={<CourseDetail />} />
               <Route path="my-courses" element={<MyCourses />} />
               <Route path="my-registrations" element={<MyRegistrations />} />
               <Route path="profile" element={<Profile />} />
