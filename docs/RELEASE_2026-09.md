@@ -1,13 +1,13 @@
 # Release 2026-09 — Umfang DEV → PROD
 
 **Stand:** 14.09.2026 · Grundlage für den Termin am 15.09. · **wächst bis zum Schnitt**
-**Vergleich:** `origin/main` (`e1776fd`, 11.09.) gegen `origin/Julius` (`dc5fe79`, 14.09.)
+**Vergleich:** `origin/main` (`e1776fd`, 11.09.) gegen `origin/Julius` (`6d1e8a0`, 14.09.)
 **Gemeinsamer Vorfahr:** `4d43ad6` (07.09.)
 
 | | |
 |---|---|
-| Commits auf `Julius`, nicht auf `main` | 51 |
-| Dateien | 89 geändert, +9.189 / −2.093 Zeilen |
+| Commits auf `Julius`, nicht auf `main` | 59 |
+| Dateien | 95 geändert, +9.944 / −2.313 Zeilen |
 | Migrationen nur auf DEV | 9 |
 | Edge Functions geändert | alle 9 plus `_shared/studio_slug_for_user.ts` |
 | Nicht im Release | Geldkette 1a (`docs/EPIC_GELDKETTE_1A.md`), Stufe 4 der Mehrfachmitgliedschaft |
@@ -90,6 +90,20 @@ Migrationsdatei `20260911134500` ist in beiden Branches identisch (kein Untersch
 | `1a19150` | Zeit-Chip |
 | `dc5fe79` | Safran-Status als Pill |
 
+## I — Kursdetailseite und Kurszeilen (14.09.)
+
+| Commit | Inhalt |
+|---|---|
+| `5de0004` | Anmeldelogik als Hook (`useCourseEnrollment`) |
+| `e6a0c5e` | Detailseite `/course/:id`, alle Kurszeilen verlinken dorthin |
+| `683e0a1` | Aktionsleiste mobil fest |
+| `2ce3bd0` | Aktionsleiste gestaltet |
+| `cfd2ec8` | Anmelden nur noch in der Detailseite |
+| `aaa048b` | gemeinsame Kurszeile ohne Beschreibung |
+| `6d1e8a0` | Titel zweizeilig |
+
+**Anmeldeweg geändert: Anmelden, Warteliste und Abmelden gibt es nur noch auf der Kursdetailseite, nicht mehr in der Kursliste.**
+
 ---
 
 ## Nachträge bis zum Schnitt
@@ -98,13 +112,14 @@ Migrationsdatei `20260911134500` ist in beiden Branches identisch (kein Untersch
 |---|---|---|---|
 | | | Landingpage | *(geplant, noch offen)* |
 | 14.09. | siehe H | Design | Design-Durchlauf Übersicht, siehe Gruppe H |
+| 14.09. | siehe I | Design/Feature | Kursdetailseite und Kurszeilen, siehe Gruppe I |
 | | | Fixes aus Release-Test | |
 
 ---
 
 ## Offene Fragen für den Termin am 15.09.
 
-1. **Umfang:** Geht alles aus A–H gemeinsam nach PROD, oder wird etwas zurückgehalten? Die Mehrfachmitgliedschaft
+1. **Umfang:** Geht alles aus A–I gemeinsam nach PROD, oder wird etwas zurückgehalten? Die Mehrfachmitgliedschaft
    (F) lässt sich nicht sauber von B/C trennen: 7 Dateien werden in beiden Strängen geändert (`App.tsx`,
    `LoginForm.tsx`, `RegisterForm.tsx`, `AuthPage.tsx`, `ForgotPassword.tsx`, `Profile.tsx`, `Users.tsx`).
 2. **Schnitt:** Bis wann kommen Landingpage- und Design-Änderungen noch hinein? Danach nur noch Fixes.
@@ -117,6 +132,10 @@ Migrationsdatei `20260911134500` ist in beiden Branches identisch (kein Untersch
    werden im Onboarding aber als akzeptiert abgefragt (`OnboardingWizard.tsx:558-579`). Die Registrierung von
    Teilnehmenden (`RegisterForm.tsx`) verlinkt keine Datenschutzerklärung. Wer klärt das mit welchem Anwalt, und
    bis wann? Rechtliche Bewertung ausdrücklich nicht durch Claude.
+6. **Sicherheitsbefund `users` (Audit 14.09.):** Teilnehmende dürfen per RLS die ganze Zeile von Staff lesen
+   (E-Mail, Telefon, Adresse). Policy `users_select_participant_staff` (`20260519153000`; zuerst
+   `20260519120000`; `is_participant()` in `20260911173000` auf `get_my_member_id()` umgestellt, die Policy
+   selbst nicht). Auf DEV belegt, PROD ungeprüft. Vor dem Release klären.
 
 ## Vor dem Release-PR zu prüfen
 

@@ -73,6 +73,11 @@ sich in einen Design- oder Refactoring-Durchlauf einschleicht: sagen, nicht ausf
   Anmeldungen angezeigt werden (Kurs nicht abgesagt wie in `register_for_course`,
   sichtbar bis Kursende); `hasCourseEnded`, `isCourseRunning`.
 - `src/components/ui/AccentPill.tsx` — einzige Quelle für Safran-Status.
+- `src/components/courses/CourseRow.tsx` — einzige Kurszeile (Dashboard, Kurse, Meine Anmeldungen).
+- `src/lib/useCourseEnrollment.ts` und `src/components/courses/CourseEnrollmentDialogs.tsx` —
+  einziger Weg für Selbstanmeldung im Client.
+- `src/pages/CourseDetail.tsx` — `/course/:courseId`, einziger Ort für Anmelden/Abmelden.
+- `canSelfEnrollInCourse` in `src/lib/userRoles.ts` — ob die Detailseite einen Anmeldeknopf zeigt.
 - `src/lib/tenantSlug.ts` — einzige Quelle für den Studio-Slug (Host, in DEV `?tenant=`
   und `sessionStorage`). `src/lib/supabase.ts` hängt ihn als `x-omlify-tenant` an jeden
   Supabase-Request; die RLS-Policies hängen daran.
@@ -188,7 +193,7 @@ Maßgeblich ist `docs/DESIGNSYSTEM.md`. Das Wichtigste in Kürze:
 
 ## Stand (14.09.2026)
 
-**Release 2026-09 — offen.** `Julius` liegt 51 Commits und 9 Migrationen vor `main`, dazu kommen
+**Release 2026-09 — offen.** `Julius` liegt 59 Commits und 9 Migrationen vor `main`, dazu kommen
 Änderungen an allen 9 Edge Functions. Den Umfang nach Themen beschreibt `docs/RELEASE_2026-09.md`.
 Umfang und Zeitpunkt des Schnitts werden am 15.09. besprochen. Bis zum Schnitt ist `Julius` die
 Release-Linie. Fixes, Landingpage- und Design-Änderungen für das Release gehen dort hinein.
@@ -206,6 +211,10 @@ Dashboard-Zeilen und Kennzahlen in einer Zeile (`a6f25e2`, `1ac8b8a`), Seitentit
 **Design-Durchlauf 14.09.:** Safran-Rampe, Hero + Danach, Noch Plätze frei, Datumsblock/Zeit-Chip,
 AccentPill — siehe `docs/RELEASE_2026-09.md` Gruppe H.
 
+**Kursdetail 14.09.:** Gemeinsame Kurszeile und Kursdetailseite mit Aktionsleiste — siehe
+`docs/RELEASE_2026-09.md` Gruppe I. Anmeldeweg geändert: Anmelden, Warteliste und Abmelden gibt
+es nur noch auf der Kursdetailseite, nicht mehr in der Kursliste.
+
 **Datenmodell — Kern fertig auf DEV:** Mehrfachmitgliedschaft bis 3c-B2 (letzter Commit
 `ed73a32`, 13.09.). Offen: Stufe 4 — `debug_request_tenant_header()` entfernen und die
 befristete Übergangsregel ohne Header entfernen, sobald PROD stabil läuft.
@@ -218,14 +227,20 @@ Einladung, Gedrückt-Zustand statt Hover.
 
 **Notiert, bewusst nicht jetzt:**
 
+- **Sicherheitsbefund `users` (Audit 14.09.):** Policy `users_select_participant_staff`
+  (`20260519153000`; zuerst `20260519120000`) erlaubt Teilnehmenden SELECT auf jede Staff-Zeile
+  im Tenant (`role IN ('teacher', 'admin', 'owner')`) — RLS ist zeilenweise, also E-Mail, Telefon,
+  Adresse inklusive. `is_participant()` wurde in `20260911173000` auf `get_my_member_id()`
+  umgestellt, die Policy selbst nicht. Auf DEV belegt, PROD ungeprüft. Vor PROD klären, eigener
+  angekündigter Auftrag.
 - `Dashboard.tsx` `getStatCards`, abschließendes `return []`: Fallback ist für alle vier Rollen unerreichbar, weil
   `teacher` vorher aus der Funktion springt. Toter Code, beim Dashboard-Umbau mitnehmen.
 - `unregister_from_course` hat `pg_temp` im `search_path`, ohne temporäre Tabellen zu nutzen.
   Die Funktion wurde am 11.09. in `20260911173000` neu geschrieben, `pg_temp` steht dort in
   Zeile 454 weiterhin drin. Beim nächsten Anfassen entfernen.
-- JS-Bundle 1.046 kB, gzip 275 kB (Build vom 14.09.2026 auf diesem Stand). Relevant, weil die
-  Zielgruppe über Instagram aufs Handy kommt. Nach Paket 3 angehen, zusammen mit der Frage,
-  ob die Marketingseite aus der SPA gelöst wird.
+- JS-Bundle 1.051 kB, gzip 276 kB (Build vom 14.09.2026 auf diesem Stand: `1,051.19 kB` /
+  `275.83 kB`). Relevant, weil die Zielgruppe über Instagram aufs Handy kommt. Nach Paket 3
+  angehen, zusammen mit der Frage, ob die Marketingseite aus der SPA gelöst wird.
 - `close_past_course_registrations()` ist ohne jede Prüfung für `anon` aufrufbar, wirkt über
   alle Tenants und rechnet `date + time` als UTC statt `Europe/Berlin`. **Sie scheitert außerdem bei
   jedem Aufruf** (`NULLIF(c.time, '')` auf einer `time`-Spalte → `invalid input syntax for type time`,
@@ -238,19 +253,34 @@ Einladung, Gedrückt-Zustand statt Hover.
 - PROD: 2 Logins ohne Profil, 1 Studio ohne Profil.
 - Supabase CLI lokal v2.77.0, aktuell v2.117.0.
 - Kursliste der Kursleitung auf der Übersicht filtert abgesagte Kurse nicht
-  (`Dashboard.tsx:84`, nur `isCourseUpcoming`).
-- `Courses.tsx` `canAct` prüft `status === 'active'` (`Courses.tsx:449-450`), der Server wertet
-  `NULL` als aktiv (`coalesce` in `register_for_course` / `isCourseCancelled` in
-  `courseDateTime.ts:74-76`) — ein Kurs mit `status` `NULL` zeigt keinen Anmelden-Knopf.
-- Kursliste blendet laufende Kurse ab Beginn aus (`isCourseUpcoming`, `Courses.tsx:341`),
-  Übersicht und Meine Anmeldungen zeigen sie bis Kursende (`isRegistrationVisible`).
-- Warteliste heißt dreifach verschieden: „Warteliste Pos. 3" Kursliste (`Courses.tsx:465`),
+  (`Dashboard.tsx:83`, nur `isCourseUpcoming`).
+- `canSelfEnrollInCourse` (`userRoles.ts:21-29`, genutzt in `CourseDetail.tsx:136`) prüft
+  `status === 'active'`; der Server wertet `NULL` als aktiv (`coalesce(v_course_status, 'active')`
+  in `register_for_course`, `20260911173000` Zeile 363 / `isCourseCancelled` in
+  `courseDateTime.ts:84-90`) — ein Kurs mit `status` `NULL` zeigt auf der Detailseite keinen
+  Anmeldeknopf.
+- Kursliste blendet laufende Kurse ab Beginn aus (`isCourseUpcoming`, `Courses.tsx:52`, `:107`,
+  `:168`), Übersicht und Meine Anmeldungen zeigen sie bis Kursende (`isRegistrationVisible`).
+- Warteliste-Wortlaut: „Warteliste Pos. 3" Kursliste und Detailseite (`Courses.tsx:253`,
+  `CourseDetail.tsx:286`), „Warteliste (Pos. 3)" Meine Anmeldungen (`EnrollmentCards.tsx:34`),
   „Warteliste 3" Teilnehmer mobil (`Participants.tsx:407`), „Warteliste (Pos. 3)" Teilnehmer
   Desktop (`Participants.tsx:525`).
-- „Noch Plätze frei" lädt höchstens 30 Kandidaten, kein Nachladen (`Dashboard.tsx:96`).
-- Gewünscht, nicht geplant: Kurszeilen und Hero-Karte antippbar → Infofenster mit Kursdetails.
-  Heute verlinken Hero auf `/my-registrations` und „Noch Plätze frei" auf `/courses`; die Stellen
-  tragen einen Code-Kommentar (`Dashboard.tsx:440`, `Dashboard.tsx:501`).
+- „Noch Plätze frei" lädt höchstens 30 Kandidaten, kein Nachladen (`Dashboard.tsx:95`).
+- Kursverwaltung (`MyCourses.tsx:303-304`, `:330-331`) nutzt noch die alte Zeile mit Beschreibung.
+- „Anmelden" ohne Ladezustand (`useCourseEnrollment.ts:68`, `CourseDetail.tsx:311-317`): kein
+  `registering`-Flag, der Knopf wird nicht gesperrt; Doppeltipp löst zwei Anfragen aus.
+- Anrede uneinheitlich — Anmeldemeldungen siezen (`useCourseEnrollment.ts:93`, `:119`:
+  „Möchten Sie …"), Übersicht duzt (`Dashboard.tsx:479`); Titel „Anmeldung nicht moeglich"
+  ohne Umlaut (`useCourseEnrollment.ts:83`). Entscheidung Du/Sie offen (Julius).
+- `CourseDetail.tsx:57-60` / `:118-121` zeigt bei Ladefehler „Kurs nicht gefunden" statt der
+  Fehlermeldung.
+- `courses.duration` hat Default 60 (`20251105155932` Zeile 60) und ist unzuverlässig — Dauer
+  aus `time`/`end_time` (`courseDurationMinutes` in `courseDateTime.ts:42-49`). `room` und
+  `prerequisites` werden angezeigt (`CourseDetail.tsx:143`, `:149`, `:265-269`), aber von keinem
+  Formular geschrieben (`CreateCourse.tsx` / `EditCourse.tsx`: kein Treffer für `room` oder
+  `prerequisites`).
+- `index.html:6` ohne `viewport-fit=cover`; `env(safe-area-inset-bottom)` in der Aktionsleiste
+  (`CourseDetail.tsx:272`) ist daher meist 0.
 
 ---
 

@@ -55,11 +55,25 @@ Auch wenn die Änderung „damit nichts zu tun hat". Genau diese Fälle brechen 
 
 - [ ] Owner legt einen Kurs an, er erscheint in der Liste
 - [ ] Kurs bearbeiten, Änderung ist nach dem Neuladen noch da
-- [ ] Teilnehmer meldet sich zu einem **zukünftigen** Kurs an
-- [ ] Teilnehmer meldet sich wieder ab, Platz wird frei
-- [ ] Anmeldung zu einem **vergangenen** Kurs ist nicht möglich
-- [ ] **Warteliste:** Anmeldung zum vollen *Vinyasa Flow* landet auf der Warteliste
+- [ ] Teilnehmer öffnet einen **zukünftigen** Kurs (Zeile antippen) und meldet sich über den Knopf in der Leiste an
+- [ ] Teilnehmer öffnet denselben Kurs und meldet sich über „Abmelden" in der Leiste wieder ab, Platz wird frei
+- [ ] Anmeldung zu einem **vergangenen** Kurs ist nicht möglich (kein Anmeldeknopf in der Leiste)
+- [ ] **Warteliste:** Zeile des vollen *Vinyasa Flow* antippen, „Auf die Warteliste" in der Leiste; Anmeldung landet auf der Warteliste
 - [ ] Meldet sich ein regulärer Teilnehmer ab, rückt der erste von der Warteliste nach
+
+### Kursdetailseite
+
+- [ ] Zeile in Kurse / Übersicht / Meine Anmeldungen / Hero-Karte öffnet die Detailseite,
+      „Zurück" führt zur Herkunftsseite
+- [ ] Kurs-Link direkt aufrufen (neuer Tab): Seite lädt, „Zurück" führt zu den Kursen
+- [ ] Handy: Aktionsleiste bleibt unten sichtbar, auch nach „Weiterlesen"; geöffnetes
+      Menü liegt darüber
+- [ ] Leiste zeigt je Zustand: „pro Termin" + Anmelden · Ausgebucht oben + „Auf die
+      Warteliste" · „Angemeldet" + Abmelden · Warteliste-Pill + Abmelden
+- [ ] Kursleitung im eigenen Kurs und Admin: „Teilnehmer" und „Bearbeiten" statt Anmelden
+- [ ] Kursleitung in einem fremden Kurs kann sich anmelden
+- [ ] Abgesagter oder begonnener Kurs: kein Anmeldeknopf
+- [ ] Kursliste enthält keine Anmelde-/Abmeldeknöpfe und keine Beschreibung mehr
 
 ### Rollen
 

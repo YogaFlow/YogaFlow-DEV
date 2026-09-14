@@ -1,8 +1,12 @@
 # Omlify Designsystem v1 — Farben und Tokens
 
-**Stand:** 14.09.2026 (v1.2 — Safran-Rampe, `accent-text` für WCAG AA, Kurszeilen) · **Status:** festgelegt
+**Stand:** 14.09.2026 (v1.3 — Kursdetailseite, gemeinsame Kurszeile) · **Status:** festgelegt
 **Ablageort im Repo:** `docs/DESIGNSYSTEM.md`
 **Zugehörig:** `claude/Entscheidung_02_Mobile_Strategie.md` (Tenant-Branding als Vorarbeit)
+
+**v1.3:** Alle Kurslisten außer der Kursverwaltung nutzen `CourseRow`. Titel höchstens zwei Zeilen,
+keine Beschreibung und keine Knöpfe in der Zeile; die ganze Zeile öffnet die Kursdetailseite.
+Aktionsleiste unten: eigener Zustand und genau eine Aktion, Knöpfe `rounded-full`, mind. 44 px.
 
 **v1.2:** Safran als Rampe (`50`/`100`/`500`/`700`); jeder Safran-Text in `accent-text`
 (`saffron-700`). `green-300` nie als Textfarbe. Text auf `brand`-Flächen nur in `on-brand`.
@@ -172,6 +176,11 @@ Für die spätere Expo-App bleibt die untere Leiste die Vorgabe — dort ist sie
 
 **Kurszeilen:**
 
+- Alle Kurslisten außer der Kursverwaltung nutzen `CourseRow`
+  (`src/components/courses/CourseRow.tsx`). Aufbau: Datumsblock oder Zeit-Chip · Titel
+  (höchstens zwei Zeilen) und Preis · eine Meta-Zeile · optional Status · Pfeil.
+- In Kurszeilen keine Beschreibung und keine Knöpfe. Die ganze Zeile öffnet die
+  Kursdetailseite.
 - Listen ohne Tagesgruppen: Datumsblock links (Wochentag / Tag / Monat),
   `brand-soft` / `brand-on-soft`, oben ausgerichtet.
 - Listen mit Tagesgruppen: Uhrzeit als kompakter Chip links, so groß wie der Inhalt,
@@ -180,6 +189,14 @@ Für die spätere Expo-App bleibt die untere Leiste die Vorgabe — dort ist sie
 - Safran-Status („noch N Plätze", Warteliste) immer über die Komponente `AccentPill`
   (`src/components/ui/AccentPill.tsx`), nie als bloßer Text.
 - Übersicht für Teilnehmende: die Hero-Karte ist die eine betonte Fläche (Regel 3).
+
+**Kursdetailseite:**
+
+- Oben der Kurszustand (Abgesagt, Hat bereits begonnen, Ausgebucht, noch N Plätze,
+  Dein Kurs). Unten in der Aktionsleiste der eigene Zustand (pro Termin, Angemeldet,
+  Warteliste) und genau eine Aktion.
+- Knöpfe dort einheitlich `rounded-full`, mind. 44 px. „Abmelden" mit Rahmen, nie
+  gefüllt (Regel 7). Mobil fest am unteren Rand, ab `lg` sticky.
 
 ## Verbindliche Formatierungsregeln
 
