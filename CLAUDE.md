@@ -195,12 +195,13 @@ Maßgeblich ist `docs/DESIGNSYSTEM.md`. Das Wichtigste in Kürze:
 - Uhrzeit nie mit Sekunden, Datum ausgeschrieben, Preis als `18 €`.
 - Gefüllt in `danger` ist nur ein Knopf, der sofort etwas Unwiderrufliches auslöst.
 - Erfolg wird nie allein über Farbe signalisiert.
+- Anrede immer ‚du', kleingeschrieben — auch in Mails, Edge Functions und RPC-Meldungen.
 
 ---
 
-## Stand (14.09.2026)
+## Stand (15.09.2026)
 
-**Release 2026-09 — offen.** `Julius` liegt 65 Commits und 9 Migrationen vor `main`, dazu kommen
+**Release 2026-09 — offen.** `Julius` liegt 70 Commits und 10 Migrationen vor `main`, dazu kommen
 Änderungen an allen 9 Edge Functions. Den Umfang nach Themen beschreibt `docs/RELEASE_2026-09.md`.
 Umfang und Zeitpunkt des Schnitts werden am 15.09. besprochen. Bis zum Schnitt ist `Julius` die
 Release-Linie. Fixes, Landingpage- und Design-Änderungen für das Release gehen dort hinein.
@@ -225,6 +226,10 @@ es nur noch auf der Kursdetailseite, nicht mehr in der Kursliste.
 **Kursverwaltung und Löschen:** Zeilen ohne Aktionen, gemeinsame `CourseRow`, Löschen nur auf
 der Detailseite für Owner/Admin bei kommenden Terminen — siehe `docs/RELEASE_2026-09.md` Gruppe J.
 
+**Anrede du 15.09.:** App, Mails, Edge Functions und Anmelde-RPCs duzen durchgängig —
+siehe `docs/RELEASE_2026-09.md` Gruppe K. RPC-Migration `20260915003628` (Rückweg:
+`supabase/snapshots/2026-09-15_pre_du_enrollment_rpcs_dev.sql`).
+
 **Datenmodell — Kern fertig auf DEV:** Mehrfachmitgliedschaft bis 3c-B2 (letzter Commit
 `ed73a32`, 13.09.). Offen: Stufe 4 — `debug_request_tenant_header()` entfernen und die
 befristete Übergangsregel ohne Header entfernen, sobald PROD stabil läuft.
@@ -246,10 +251,11 @@ Einladung, Gedrückt-Zustand statt Hover.
 - `Dashboard.tsx` `getStatCards`, abschließendes `return []`: Fallback ist für alle vier Rollen unerreichbar, weil
   `teacher` vorher aus der Funktion springt. Toter Code, beim Dashboard-Umbau mitnehmen.
 - `unregister_from_course` hat `pg_temp` im `search_path`, ohne temporäre Tabellen zu nutzen.
-  Die Funktion wurde am 11.09. in `20260911173000` neu geschrieben, `pg_temp` steht dort in
-  Zeile 454 weiterhin drin. Beim nächsten Anfassen entfernen.
-- JS-Bundle 1.051 kB, gzip 276 kB (Build vom 14.09.2026 auf diesem Stand: `1,051.19 kB` /
-  `275.83 kB`). Relevant, weil die Zielgruppe über Instagram aufs Handy kommt. Nach Paket 3
+  Die Funktion wurde am 11.09. in `20260911173000` neu geschrieben (`:454`) und am 15.09. in
+  `20260915003628` erneut (`:183`); `pg_temp` steht an beiden Stellen weiterhin drin. Beim
+  nächsten Anfassen entfernen.
+- JS-Bundle 1.051 kB, gzip 276 kB (Build vom 15.09.2026 auf diesem Stand: `1,050.88 kB` /
+  `276.41 kB`). Relevant, weil die Zielgruppe über Instagram aufs Handy kommt. Nach Paket 3
   angehen, zusammen mit der Frage, ob die Marketingseite aus der SPA gelöst wird.
 - `close_past_course_registrations()` ist ohne jede Prüfung für `anon` aufrufbar, wirkt über
   alle Tenants und rechnet `date + time` als UTC statt `Europe/Berlin`. **Sie scheitert außerdem bei
@@ -266,7 +272,7 @@ Einladung, Gedrückt-Zustand statt Hover.
   (`Dashboard.tsx:83`, nur `isCourseUpcoming`).
 - `canSelfEnrollInCourse` (`userRoles.ts:21-29`, genutzt in `CourseDetail.tsx:154`) prüft
   `status === 'active'`; der Server wertet `NULL` als aktiv (`coalesce(v_course_status, 'active')`
-  in `register_for_course`, `20260911173000` Zeile 363 / `isCourseCancelled` in
+  in `register_for_course`, `20260915003628` Zeile 92 / `isCourseCancelled` in
   `courseDateTime.ts:84-90`) — ein Kurs mit `status` `NULL` zeigt auf der Detailseite keinen
   Anmeldeknopf.
 - Kursliste blendet laufende Kurse ab Beginn aus (`isCourseUpcoming`, `Courses.tsx:52`, `:107`,
@@ -278,9 +284,12 @@ Einladung, Gedrückt-Zustand statt Hover.
 - „Noch Plätze frei" lädt höchstens 30 Kandidaten, kein Nachladen (`Dashboard.tsx:95`).
 - „Anmelden" ohne Ladezustand (`useCourseEnrollment.ts:68`, `CourseDetail.tsx:343-357`): kein
   `registering`-Flag, der Knopf wird nicht gesperrt; Doppeltipp löst zwei Anfragen aus.
-- Anrede uneinheitlich — Anmeldemeldungen siezen (`useCourseEnrollment.ts:93`, `:119`:
-  „Möchten Sie …"), Übersicht duzt (`Dashboard.tsx:479`); Titel „Anmeldung nicht moeglich"
-  ohne Umlaut (`useCourseEnrollment.ts:83`). Entscheidung Du/Sie offen (Julius).
+- Tabelle `email_templates` (Seed `20250804174553` / `20260106130712`) enthält gesiezte
+  Vorlagen, wird von App und Functions nicht gelesen (`grep email_templates` in `src/` und
+  `supabase/functions/`: 0 Treffer) — Altbestand.
+- `index.html` hat `lang="en"` bei deutscher App (`index.html:2`) — Screenreader-Aussprache.
+- Bestätigungsmail-HTML doppelt in `request-verification-email` (`index.ts:110-124`) und
+  `send-verification-email` (`index.ts:114-128`).
 - `CourseDetail.tsx:60-64` / `:136-144` zeigt bei Ladefehler „Kurs nicht gefunden" statt der
   Fehlermeldung.
 - `courses.duration` hat Default 60 (`20251105155932` Zeile 60) und ist unzuverlässig — Dauer

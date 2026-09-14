@@ -1,14 +1,14 @@
 # Release 2026-09 — Umfang DEV → PROD
 
 **Stand:** 15.09.2026 · Grundlage für den Termin am 15.09. · **wächst bis zum Schnitt**
-**Vergleich:** `origin/main` (`e1776fd`, 11.09.) gegen HEAD (`ebf2554`, 15.09.; wird nach Push `origin/Julius`)
+**Vergleich:** `origin/main` (`e1776fd`, 11.09.) gegen HEAD (`a29de25`, 15.09.; wird nach Push `origin/Julius`)
 **Gemeinsamer Vorfahr:** `4d43ad6` (07.09.)
 
 | | |
 |---|---|
-| Commits auf `Julius`, nicht auf `main` | 65 |
-| Dateien | 97 geändert, +10.336 / −2.499 Zeilen |
-| Migrationen nur auf DEV | 9 |
+| Commits auf `Julius`, nicht auf `main` | 70 |
+| Dateien | 99 geändert, +10.990 / −2.565 Zeilen |
+| Migrationen nur auf DEV | 10 |
 | Edge Functions geändert | alle 9 plus `_shared/studio_slug_for_user.ts` |
 | Nicht im Release | Geldkette 1a (`docs/EPIC_GELDKETTE_1A.md`), Stufe 4 der Mehrfachmitgliedschaft |
 
@@ -116,6 +116,18 @@ Migrationsdatei `20260911134500` ist in beiden Branches identisch (kein Untersch
 
 **Löschen gibt es nur noch auf der Kursdetailseite, nur für Owner und Admin, nur für kommende Termine. Die Kursverwaltung hat keine Zeilenaktionen mehr.**
 
+## K — Anrede du (15.09.)
+
+| Commit | Inhalt | Migration |
+|---|---|---|
+| `72ca072` | Anrede du in der App (18 Dateien) | |
+| `bc8c31e` | Umlaute in Anmelde- und Abmeldetiteln | |
+| `60ba991` | Anrede du in Mails und Edge-Function-Meldungen | |
+| `a29de25` | Anrede du in den Anmelde-RPCs | `20260915003628` |
+
+Edge Functions auf DEV deployt am 15.09. (`npm run functions:dev`). Für PROD
+gehören sie zum Deploy-Schritt „alle Edge Functions".
+
 ---
 
 ## Nachträge bis zum Schnitt
@@ -126,13 +138,14 @@ Migrationsdatei `20260911134500` ist in beiden Branches identisch (kein Untersch
 | 14.09. | siehe H | Design | Design-Durchlauf Übersicht, siehe Gruppe H |
 | 14.09. | siehe I | Design/Feature | Kursdetailseite und Kurszeilen, siehe Gruppe I |
 | 14.–15.09. | siehe J | Feature | Kursverwaltung und Löschen, siehe Gruppe J |
+| 15.09. | siehe K | Copy | Anrede du, siehe Gruppe K |
 | | | Fixes aus Release-Test | |
 
 ---
 
 ## Offene Fragen für den Termin am 15.09.
 
-1. **Umfang:** Geht alles aus A–J gemeinsam nach PROD, oder wird etwas zurückgehalten? Die Mehrfachmitgliedschaft
+1. **Umfang:** Geht alles aus A–K gemeinsam nach PROD, oder wird etwas zurückgehalten? Die Mehrfachmitgliedschaft
    (F) lässt sich nicht sauber von B/C trennen: 7 Dateien werden in beiden Strängen geändert (`App.tsx`,
    `LoginForm.tsx`, `RegisterForm.tsx`, `AuthPage.tsx`, `ForgotPassword.tsx`, `Profile.tsx`, `Users.tsx`).
 2. **Schnitt:** Bis wann kommen Landingpage- und Design-Änderungen noch hinein? Danach nur noch Fixes.
@@ -156,11 +169,14 @@ Migrationsdatei `20260911134500` ist in beiden Branches identisch (kein Untersch
 8. **Löschen entfernt Anmeldungen und Kurs-Chat per ON DELETE CASCADE, Teilnehmende
    werden nicht benachrichtigt.** Der Dialog warnt mit Personenzahl. „Absagen statt
    Löschen" mit Benachrichtigung ist eine Produktfrage (Strategie-Projekt).
+9. **Auth-Mailvorlagen im Supabase-Dashboard** (Authentication → Email Templates)
+   liegen nicht im Repo. Auf DEV und PROD prüfen, ob sie noch siezen oder englisch
+   sind — Julius, manuell.
 
 ## Vor dem Release-PR zu prüfen
 
-- [ ] `npm run db:status:prod`: welche der 9 Migrationen PROD schon kennt (Erwartung: keine, `134500` ja)
-- [ ] Probelauf aller 9 Migrationen auf einer PROD-Kopie, inkl. der PROD-Sonderfälle aus `CLAUDE.md`:
+- [ ] `npm run db:status:prod`: welche der 10 Migrationen PROD schon kennt (Erwartung: keine, `134500` ja)
+- [ ] Probelauf aller 10 Migrationen auf einer PROD-Kopie, inkl. der PROD-Sonderfälle aus `CLAUDE.md`:
       2 Logins ohne Profil, 1 Studio ohne Profil, ein Konto mit abweichender `users.email`
 - [ ] Reihenfolge beim Deploy festlegen: Migrationen → alle 9 Edge Functions → Frontend. Die Functions lesen
       `auth_user_id`, das Frontend sendet den Header, beides ohne Migration wirkungslos bzw. fehlerhaft

@@ -1,8 +1,13 @@
 # Omlify Designsystem v1 — Farben und Tokens
 
-**Stand:** 14.09.2026 (v1.3 — Kursdetailseite, gemeinsame Kurszeile) · **Status:** festgelegt
+**Stand:** 15.09.2026 (v1.4 — Anrede du) · **Status:** festgelegt
 **Ablageort im Repo:** `docs/DESIGNSYSTEM.md`
 **Zugehörig:** `claude/Entscheidung_02_Mobile_Strategie.md` (Tenant-Branding als Vorarbeit)
+
+**v1.4:** Anrede immer „du" (alle Rollen, App, Landingpage, Mails, Meldungen aus
+Edge Functions und Datenbank-Funktionen). Kleingeschrieben; keine
+Umlaut-Ersatzschreibung in Nutzertexten; im Nutzertext „Studio", nicht „Tenant".
+Siehe Abschnitt Sprache.
 
 **v1.3:** Alle Kurslisten nutzen `CourseRow`. Titel höchstens zwei Zeilen,
 keine Beschreibung und keine Knöpfe in der Zeile; die ganze Zeile öffnet die Kursdetailseite.
@@ -200,6 +205,17 @@ Für die spätere Expo-App bleibt die untere Leiste die Vorgabe — dort ist sie
 - Destruktive Verwaltungsaktionen (Kurs löschen) stehen als Textknopf in `danger`
   unter dem Inhalt, nie in der Aktionsleiste. Gefüllt in `danger` ist nur der
   endgültige Bestätigungsknopf im Dialog.
+
+## Sprache
+
+Omlify spricht immer mit „du" an — alle Rollen, App, Landingpage, Mails,
+Meldungen aus Edge Functions und Datenbank-Funktionen. Entschieden 15.09.2026.
+
+- Anrede kleingeschrieben (du, dich, dir, dein); am Satzanfang und in
+  Überschriften groß.
+- Unpersönliche Formen sind erlaubt („Bitte später erneut versuchen.").
+- Keine Umlaut-Ersatzschreibung (ae/oe/ue) in Nutzertexten.
+- Im Code heißt es „Studio", nicht „Tenant", sobald ein Text Nutzende erreicht.
 
 ## Verbindliche Formatierungsregeln
 

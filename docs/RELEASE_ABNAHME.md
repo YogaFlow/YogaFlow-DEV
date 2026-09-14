@@ -113,6 +113,16 @@ Demo Alpha, Seed-Konten.
 - [ ] Ein abgesagter Kurs erscheint weder auf der Übersicht noch unter Meine Anmeldungen
       (Seed enthält keinen; einen Kurs absagen und danach prüfen)
 
+### Anrede
+
+- [ ] Login mit falschem Passwort: Meldung duzt
+- [ ] „Passwort vergessen": Seite und Mail duzen; Mail „Dein Passwort wurde geändert"
+      nach dem Zurücksetzen
+- [ ] Registrierung: Bestätigungsmail duzt
+- [ ] Anmeldung zum vollen Kurs: „Du wurdest auf die Warteliste gesetzt …"
+- [ ] Abmelden-Dialog: „Möchtest du dich vom Kurs … abmelden?"
+- [ ] Stichprobe Verwaltung (Kurs anlegen ohne Kursleitung): Fehlermeldung duzt
+
 ---
 
 ## Zusätzlich bei bestimmten Änderungen
