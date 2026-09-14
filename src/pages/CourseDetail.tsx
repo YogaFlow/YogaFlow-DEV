@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Calendar, Check, Clock, MapPin, User, Users } from 'lucide-react';
+import CourseDeleteDialog from '../components/courses/CourseDeleteDialog';
 import CourseEnrollmentDialogs from '../components/courses/CourseEnrollmentDialogs';
 import AccentPill from '../components/ui/AccentPill';
+import FeedbackDialog from '../components/ui/FeedbackDialog';
 import { useAuth } from '../context/AuthContext';
 import {
   courseDurationMinutes,
@@ -19,6 +21,7 @@ import {
 } from '../lib/format';
 import { supabase } from '../lib/supabase';
 import { canSelfEnrollInCourse, canSelfEnrollInCourses } from '../lib/userRoles';
+import { useCourseDeletion } from '../lib/useCourseDeletion';
 import { useCourseEnrollment } from '../lib/useCourseEnrollment';
 import type { Course } from '../types';
 
@@ -83,6 +86,21 @@ const CourseDetail: React.FC = () => {
     getUserRegistrationStatus,
     getUserWaitlistPosition,
   } = useCourseEnrollment(loadCourse);
+
+  const {
+    requestDelete,
+    confirmDelete,
+    cancelDelete,
+    closeFeedback,
+    dialogOpen,
+    deleting,
+    scope,
+    setScope,
+    upcomingCount,
+    personCount,
+    courseTitle,
+    feedbackDialog: deleteFeedback,
+  } = useCourseDeletion(course);
 
   useEffect(() => {
     setLoading(true);
@@ -190,6 +208,18 @@ const CourseDetail: React.FC = () => {
         feedbackDialog={feedbackDialog}
         setFeedbackDialog={setFeedbackDialog}
       />
+      <CourseDeleteDialog
+        open={dialogOpen}
+        courseTitle={courseTitle}
+        upcomingCount={upcomingCount}
+        scope={scope}
+        onScopeChange={setScope}
+        personCount={personCount}
+        deleting={deleting}
+        onCancel={cancelDelete}
+        onConfirm={() => void confirmDelete()}
+      />
+      <FeedbackDialog dialog={deleteFeedback} onClose={closeFeedback} />
 
       <button
         type="button"
@@ -267,6 +297,16 @@ const CourseDetail: React.FC = () => {
           <h3 className="text-[17px] font-medium text-text">Voraussetzungen</h3>
           <p className="mt-2 whitespace-pre-line text-[15px] text-text">{prerequisites}</p>
         </section>
+      ) : null}
+
+      {isAdmin && upcoming ? (
+        <button
+          type="button"
+          onClick={() => void requestDelete()}
+          className="mt-8 inline-flex min-h-11 items-center text-[15px] font-medium text-danger focus:outline-none focus-visible:ring-2 focus-visible:ring-danger focus-visible:ring-offset-2"
+        >
+          Kurs löschen
+        </button>
       ) : null}
 
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-surface pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:sticky lg:inset-x-auto lg:bottom-0 lg:-mx-6 lg:mt-8 lg:py-3">
