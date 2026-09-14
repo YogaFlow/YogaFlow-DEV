@@ -40,10 +40,12 @@ const CourseRow: React.FC<CourseRowProps> = ({ course, href, leading, meta, stat
           </div>
         ) : null}
         <div className="min-w-0 flex-1">
-          <div className="flex items-baseline justify-between gap-2">
-            <h3 className="min-w-0 truncate text-[17px] font-medium text-text">{course.title}</h3>
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="min-w-0 line-clamp-2 break-words text-[17px] font-medium leading-normal text-text">
+              {course.title}
+            </h3>
             {course.price != null ? (
-              <span className="shrink-0 text-[17px] font-medium text-text tabular-nums">
+              <span className="shrink-0 text-[17px] font-medium leading-normal text-text tabular-nums">
                 {formatPrice(course.price)}
               </span>
             ) : null}
