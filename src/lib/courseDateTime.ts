@@ -2,6 +2,7 @@ type CourseLike = {
   date?: string | null;
   time?: string | null;
   end_time?: string | null;
+  status?: string | null;
 };
 
 const toCourseStart = (course: CourseLike): Date | null => {
@@ -68,4 +69,27 @@ export const isCourseRunning = (course: CourseLike, now = new Date()): boolean =
   if (!start || !end) return false;
   const t = now.getTime();
   return start.getTime() <= t && t < end.getTime();
+};
+
+/** Same gate as register_for_course: lower(trim(coalesce(status,'active'))) in canceled/cancelled/not_planned. */
+export const isCourseCancelled = (status: string | null | undefined): boolean => {
+  const normalized = (status ?? 'active').trim().toLowerCase();
+  return (
+    normalized === 'canceled' ||
+    normalized === 'cancelled' ||
+    normalized === 'not_planned'
+  );
+};
+
+type RegistrationLike = {
+  course?: CourseLike | null;
+};
+
+export const isRegistrationVisible = (
+  registration: RegistrationLike,
+  now = new Date()
+): boolean => {
+  if (!registration.course) return false;
+  if (isCourseCancelled(registration.course.status)) return false;
+  return !hasCourseEnded(registration.course, now);
 };

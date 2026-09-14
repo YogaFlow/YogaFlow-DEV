@@ -4,7 +4,7 @@ import { Calendar, Check, Users, BookOpen, Settings } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Course, Registration } from '../types';
-import { hasCourseEnded, isCourseRunning, isCourseUpcoming } from '../lib/courseDateTime';
+import { isCourseRunning, isCourseUpcoming, isRegistrationVisible } from '../lib/courseDateTime';
 import { formatDayLabel, formatPrice, formatTime, formatTimeRange } from '../lib/format';
 import { runPastRegistrationCleanup } from '../lib/registrationMaintenance';
 import { fetchCourseParticipantCounts } from '../lib/courseParticipantCounts';
@@ -96,11 +96,8 @@ const Dashboard: React.FC = () => {
           if (regError) throw regError;
           if (!isMounted) return;
 
-          const visibleRegistrations = (regData || []).filter(
-            (registration) =>
-              registration.course &&
-              registration.course.status === 'active' &&
-              !hasCourseEnded(registration.course)
+          const visibleRegistrations = (regData || []).filter((registration) =>
+            isRegistrationVisible(registration)
           );
 
           const countedCourses = await attachCounts(
@@ -536,7 +533,7 @@ const Dashboard: React.FC = () => {
                     to="/my-registrations"
                     className="inline-flex min-h-11 items-center text-[13px] font-medium text-brand no-underline"
                   >
-                    Alle Anmeldungen ({danachAll.length})
+                    Alle Anmeldungen
                   </Link>
                 </div>
               )}

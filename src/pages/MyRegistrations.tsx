@@ -3,7 +3,7 @@ import { Calendar } from 'lucide-react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import EnrollmentCards from '../components/courses/EnrollmentCards';
 import { useAuth } from '../context/AuthContext';
-import { isCourseUpcoming } from '../lib/courseDateTime';
+import { isRegistrationVisible } from '../lib/courseDateTime';
 import { runPastRegistrationCleanup } from '../lib/registrationMaintenance';
 import { supabase } from '../lib/supabase';
 import { canSelfEnrollInCourses } from '../lib/userRoles';
@@ -51,10 +51,7 @@ const MyRegistrations: React.FC = () => {
         if (!isMounted) return;
 
         const futureRegistrations = (data || [])
-          .filter(
-            (registration: Registration) =>
-              registration.course && isCourseUpcoming(registration.course)
-          )
+          .filter((registration: Registration) => isRegistrationVisible(registration))
           .sort((a: Registration, b: Registration) => {
             const dateA = `${a.course?.date ?? ''}T${a.course?.time ?? ''}`;
             const dateB = `${b.course?.date ?? ''}T${b.course?.time ?? ''}`;
