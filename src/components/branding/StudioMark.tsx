@@ -26,16 +26,18 @@ const StudioMark: React.FC<StudioMarkProps> = ({
 
   if (variant === 'sidebar') {
     const nameVisible = !logoVisible || showName;
+    const logo = logoVisible ? (
+      <img
+        src={logoUrl ?? undefined}
+        alt={nameVisible ? '' : name}
+        className="h-10 w-auto max-w-[160px] object-contain"
+        onError={() => setImgFailed(true)}
+      />
+    ) : null;
+
     return (
       <div className="space-y-2">
-        {logoVisible ? (
-          <img
-            src={logoUrl ?? undefined}
-            alt={name}
-            className="h-10 w-auto max-w-[160px] object-contain"
-            onError={() => setImgFailed(true)}
-          />
-        ) : null}
+        {logo && !nameVisible ? <h1>{logo}</h1> : logo}
         {nameVisible ? <h1 className="text-2xl font-medium text-text">{name}</h1> : null}
       </div>
     );
@@ -46,7 +48,7 @@ const StudioMark: React.FC<StudioMarkProps> = ({
       <img
         src={logoUrl ?? undefined}
         alt={name}
-        className="mx-auto h-16 w-auto max-w-[220px] object-contain"
+        className="mx-auto mb-4 h-16 w-auto max-w-[220px] object-contain"
         onError={() => setImgFailed(true)}
       />
     );

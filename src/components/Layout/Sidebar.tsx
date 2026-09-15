@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTenant } from '../../context/TenantContext';
+import StudioMark from '../branding/StudioMark';
+import { getStudioLogoUrl } from '../../lib/studioBranding';
 import { useUnreadMessages } from '../../lib/useUnreadMessages';
 import { canSelfEnrollInCourses } from '../../lib/userRoles';
 
@@ -92,7 +94,13 @@ const Sidebar: React.FC = () => {
   return (
     <div className="bg-surface shadow-lg h-full flex flex-col">
       <div className="p-6 border-b border-border">
-        <h1 className="text-2xl font-bold text-text">{tenant?.name ?? 'Omlify'}</h1>
+        <StudioMark
+          variant="sidebar"
+          name={tenant?.name ?? 'Omlify'}
+          logoUrl={getStudioLogoUrl(tenant?.logo_path)}
+          showLogo={tenant?.logo_in_sidebar ?? false}
+          showName={tenant?.sidebar_show_name ?? true}
+        />
         <p className="text-sm text-textMuted mt-1">
           {userProfile?.first_name} {userProfile?.last_name}
         </p>

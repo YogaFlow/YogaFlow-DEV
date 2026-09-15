@@ -1,6 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { isBrandColorAllowed, normalizeHex } from '../design/brand';
 import { applyBrandColor, writeCachedBrandColor } from '../lib/brandTheme';
+import { applyDocumentTitle, applyFavicon } from '../lib/documentBranding';
+import { getStudioLogoUrl } from '../lib/studioBranding';
 import { supabase } from '../lib/supabase';
 import { Tenant } from '../types';
 import {
@@ -246,11 +248,19 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   useEffect(() => {
     if (!tenantSlug) {
       applyBrandColor(null);
+      applyDocumentTitle(null);
+      applyFavicon({ brandColor: null, logoUrl: null, useLogo: false });
       return;
     }
     if (loading) return;
     if (tenant) {
       applyBrandColor(tenant.brand_color ?? null);
+      applyDocumentTitle(tenant.name);
+      applyFavicon({
+        brandColor: tenant.brand_color,
+        logoUrl: getStudioLogoUrl(tenant.logo_path),
+        useLogo: tenant.logo_in_sidebar || tenant.logo_on_auth,
+      });
       const normalized = tenant.brand_color ? normalizeHex(tenant.brand_color) : null;
       writeCachedBrandColor(
         tenantSlug,
@@ -261,6 +271,8 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (notFound) {
       applyBrandColor(null);
       writeCachedBrandColor(tenantSlug, null);
+      applyDocumentTitle(null);
+      applyFavicon({ brandColor: null, logoUrl: null, useLogo: false });
       return;
     }
     if (lookupError) return;

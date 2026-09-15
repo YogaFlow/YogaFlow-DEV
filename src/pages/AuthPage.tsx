@@ -3,8 +3,10 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import LoginForm from '../components/Auth/LoginForm';
 import RegisterForm from '../components/Auth/RegisterForm';
 import { Heart } from 'lucide-react';
+import StudioMark from '../components/branding/StudioMark';
 import { useAuth } from '../context/AuthContext';
 import { useTenant, buildApexHref, withDevTenant } from '../context/TenantContext';
+import { getStudioLogoUrl } from '../lib/studioBranding';
 import JoinStudio from './JoinStudio';
 
 type AccessNotice = 'wrong_studio' | 'profile_missing' | 'email_not_confirmed' | null;
@@ -197,9 +199,19 @@ const AuthPage: React.FC = () => {
     <div className="min-h-screen bg-sand flex items-center justify-center p-4">
       <div className="w-full max-w-4xl">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-brand rounded-full mb-4">
-            <Heart className="w-8 h-8 text-onBrand" />
-          </div>
+          {tenant ? (
+            <StudioMark
+              variant="auth"
+              name={tenant.name}
+              logoUrl={getStudioLogoUrl(tenant.logo_path)}
+              showLogo={tenant.logo_on_auth}
+              showName={false}
+            />
+          ) : (
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-brand rounded-full mb-4">
+              <Heart className="w-8 h-8 text-onBrand" />
+            </div>
+          )}
           {/*
             Auf einer Studio-Subdomain steht der Studioname oben: Wer sich bei Yomita
             anmeldet, kennt Yomita - nicht Omlify. Die Plattform bleibt in der Fusszeile
@@ -210,9 +222,11 @@ const AuthPage: React.FC = () => {
             {tenant?.name ?? (tenantSlug ? " " : "Omlify")}
           </h1>
           <p className="text-textMuted">
-            {tenantSlug
-              ? "Kurse buchen und verwalten"
-              : "Verwalte deine Yoga-Kurse professionell und einfach"}
+            {tenant?.tagline
+              ? tenant.tagline
+              : tenantSlug
+                ? "Kurse buchen und verwalten"
+                : "Verwalte deine Yoga-Kurse professionell und einfach"}
           </p>
         </div>
 

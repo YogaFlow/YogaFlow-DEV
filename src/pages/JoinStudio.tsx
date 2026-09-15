@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, User } from 'lucide-react';
+import StudioMark from '../components/branding/StudioMark';
 import { supabase } from '../lib/supabase';
+import { getStudioLogoUrl } from '../lib/studioBranding';
 import { useAuth } from '../context/AuthContext';
 import { useTenant, withDevTenant } from '../context/TenantContext';
 
@@ -74,10 +76,23 @@ const JoinStudio: React.FC = () => {
     <div className="min-h-screen bg-sand flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-brand rounded-full mb-4">
-            <Heart className="w-8 h-8 text-onBrand" />
-          </div>
+          {tenant ? (
+            <StudioMark
+              variant="auth"
+              name={tenant.name}
+              logoUrl={getStudioLogoUrl(tenant.logo_path)}
+              showLogo={tenant.logo_on_auth}
+              showName={false}
+            />
+          ) : (
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-brand rounded-full mb-4">
+              <Heart className="w-8 h-8 text-onBrand" />
+            </div>
+          )}
           <h1 className="text-3xl font-bold text-text mb-2">{tenant?.name ?? 'Studio'}</h1>
+          {tenant?.tagline ? (
+            <p className="text-textMuted mb-2">{tenant.tagline}</p>
+          ) : null}
           <p className="text-textMuted">Tritt diesem Studio mit deinem bestehenden Konto bei.</p>
         </div>
 
