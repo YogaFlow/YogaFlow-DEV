@@ -12,6 +12,7 @@ export interface Tenant {
   logo_in_sidebar: boolean;
   logo_on_auth: boolean;
   sidebar_show_name: boolean;
+  default_max_participants: number;
 }
 
 export interface User {
@@ -112,13 +113,6 @@ export interface UserNotification {
   metadata?: Record<string, unknown>;
   read_at?: string | null;
   created_at: string;
-}
-
-export interface GlobalSettings {
-  id: string;
-  key: string;
-  value: any;
-  updated_at: string;
 }
 
 export interface CourseWithBookings extends Course {

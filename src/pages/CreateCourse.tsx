@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Users, FileText, Save, ArrowLeft, Repeat, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useTenant } from '../context/TenantContext';
 import { supabase } from '../lib/supabase';
 import { DatePicker, TimePicker } from '../components/DateTimePicker';
 
@@ -15,6 +16,7 @@ interface CourseLeader {
 const CreateCourse: React.FC = () => {
   const navigate = useNavigate();
   const { userProfile, isCourseLeader } = useAuth();
+  const { tenant } = useTenant();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [courseLeaders, setCourseLeaders] = useState<CourseLeader[]>([]);
@@ -37,6 +39,7 @@ const CreateCourse: React.FC = () => {
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurringType, setRecurringType] = useState<'daily' | 'weekly'>('weekly');
   const [recurringEndDate, setRecurringEndDate] = useState('');
+  const maxParticipantsTouchedRef = useRef(false);
 
   const timeToMinutes = (time: string): number => {
     if (!time) return 0;
@@ -82,8 +85,14 @@ const CreateCourse: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchDefaultSettings();
-  }, []);
+    if (maxParticipantsTouchedRef.current) return;
+    if (tenant == null) return;
+    if (typeof tenant.default_max_participants !== 'number') return;
+    setFormData(prev => ({
+      ...prev,
+      max_participants: String(tenant.default_max_participants),
+    }));
+  }, [tenant]);
 
   useEffect(() => {
     if (userProfile) fetchCourseLeaders();
@@ -109,30 +118,6 @@ const CreateCourse: React.FC = () => {
       }
     }
   }, [formData.time, formData.duration]);
-
-  const fetchDefaultSettings = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('global_settings')
-        .select('*')
-        .eq('key', 'default_max_participants')
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error fetching default settings:', error);
-        return;
-      }
-
-      if (data?.value) {
-        setFormData(prev => ({
-          ...prev,
-          max_participants: String(data.value)
-        }));
-      }
-    } catch (error) {
-      console.error('Error fetching default settings:', error);
-    }
-  };
 
   const fetchCourseLeaders = async () => {
     if (!userProfile) return;
@@ -222,6 +207,10 @@ const CreateCourse: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+
+    if (name === 'max_participants') {
+      maxParticipantsTouchedRef.current = true;
+    }
 
     if (name === 'duration') {
       handleDurationChange(value);
