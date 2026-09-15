@@ -262,9 +262,9 @@ kein Admin-Login auf DEV; UI-Test Julius OK.
 - [ ] Rückweg: Snapshot `supabase/snapshots/2026-09-11_pre_membership_dev.sql` gilt für DEV. Für PROD vor dem Merge
       ein Backup (`backup-prod.yml`) und dessen Wiederherstellbarkeit belegen
 - [ ] **`scripts/db.mjs push prod` unter Windows reparieren.** Hing am 15.09. zweimal nach der PROD-Abfrage, bevor die CLI
-      sich verband (`status` ohne Abfrage lief). Vermutung: `readline` (`db.mjs:82-85`) hält die Konsoleneingabe,
-      die per `spawnSync(…, stdio: 'inherit')` (`db.mjs:97`) gestartete CLI kommt nicht weiter. Geplant: ausstehende
-      Migrationen zeigen, PROD abfragen, CLI mit `--yes` und ohne Tastatureingabe starten.
+      sich verband (`status` ohne Abfrage lief). Fix in `scripts/db.mjs` (`1cc7495`, Fix-Branch `fix/db-script-windows-prod`, nach Merge auf `main`; auf `Julius` identische Datei); gilt als belegt, sobald
+      `npm run db:push:prod` von `main` ohne ausstehende Migrationen ohne Hänger ‚Remote database is up to date'
+      meldet. Bis dahin bleibt der PowerShell-Weg als Rückfall.
 - [ ] **PROD kennt `20260911134500` und `20260915104222`**, 12 der 13 Julius-Migrationen sind älter →
       `supabase db push` verlangt nach Kenntnisstand `--include-all`. `20260915115057` ist jünger und käme
       als normale ausstehende Datei. Auf einer PROD-Kopie belegen, bevor es live läuft.

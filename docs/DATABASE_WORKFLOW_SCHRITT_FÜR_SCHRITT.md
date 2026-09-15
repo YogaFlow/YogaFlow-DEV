@@ -102,6 +102,9 @@ Das Skript bricht ab, wenn der aktuelle Branch nicht `main` ist, und verlangt da
 - **Windows (15.09.):** `npm run db:push:prod` hing nach der PROD-Abfrage zweimal ohne
   Verbindung. Workaround von `main`: `npx.cmd supabase db push --db-url …`
   (Hotfix `20260915104222`, Ausgabe damals `Finished supabase db push.`).
+  Fix in `scripts/db.mjs` (`1cc7495`, Fix-Branch `fix/db-script-windows-prod`, nach Merge auf `main`; auf `Julius` identische Datei); gilt als belegt, sobald `npm run db:push:prod`
+  von `main` ohne ausstehende Migrationen ohne Hänger ‚Remote database is up to date'
+  meldet. Bis dahin bleibt der PowerShell-Weg als Rückfall.
 
   Das Datenbank-Passwort **nie** direkt in die Befehlszeile tippen oder einfügen
   (landet im Verlauf). Sicherer Weg (PowerShell, auf `main`):

@@ -148,6 +148,9 @@ Demo Alpha, Seed-Konten.
 
       Übergangslösung, bis `db.mjs` repariert ist (Release-Checkliste). Umgeht die
       Branch-Prüfung des Skripts — `git branch --show-current` vorher selbst prüfen.
+      Fix in `scripts/db.mjs` (`1cc7495`, Fix-Branch `fix/db-script-windows-prod`, nach Merge auf `main`; auf `Julius` identische Datei); gilt als belegt, sobald `npm run db:push:prod`
+      von `main` ohne ausstehende Migrationen ohne Hänger ‚Remote database is up to date'
+      meldet. Bis dahin bleibt der PowerShell-Weg als Rückfall.
 - [ ] Es ist klar, ob der neue Code ohne die Migration läuft. Falls nicht: Merge und
       `db:push:prod` unmittelbar nacheinander, sonst ist die Live-Seite dazwischen kaputt
 
