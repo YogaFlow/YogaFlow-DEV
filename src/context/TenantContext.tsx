@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { isBrandColorAllowed, normalizeHex } from '../design/brand';
+import { applyBrandColor, writeCachedBrandColor } from '../lib/brandTheme';
 import { supabase } from '../lib/supabase';
 import { Tenant } from '../types';
 import {
@@ -235,6 +237,29 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       cancelled = true;
     };
   }, [tenantSlug]);
+
+  useEffect(() => {
+    if (!tenantSlug) {
+      applyBrandColor(null);
+      return;
+    }
+    if (loading) return;
+    if (tenant) {
+      applyBrandColor(tenant.brand_color ?? null);
+      const normalized = tenant.brand_color ? normalizeHex(tenant.brand_color) : null;
+      writeCachedBrandColor(
+        tenantSlug,
+        normalized && isBrandColorAllowed(normalized) ? normalized : null,
+      );
+      return;
+    }
+    if (notFound) {
+      applyBrandColor(null);
+      writeCachedBrandColor(tenantSlug, null);
+      return;
+    }
+    if (lookupError) return;
+  }, [tenantSlug, tenant, loading, notFound, lookupError]);
 
   return (
     <TenantContext.Provider value={{ tenant, tenantSlug, loading, notFound, lookupError }}>

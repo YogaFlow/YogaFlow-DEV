@@ -6,6 +6,7 @@ export interface Tenant {
   slug: string;
   created_at: string;
   updated_at: string;
+  brand_color?: string | null;
 }
 
 export interface User {
