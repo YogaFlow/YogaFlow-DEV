@@ -17,13 +17,21 @@ function cacheKey(slug: string): string {
   return `omlify:brand:${slug}`;
 }
 
+export function brandTokensToCssVars(tokens: BrandTokens): Record<string, string> {
+  const vars: Record<string, string> = {};
+  (Object.keys(TOKEN_TO_CSS_VAR) as (keyof BrandTokens)[]).forEach((key) => {
+    vars[TOKEN_TO_CSS_VAR[key]] = tokens[key];
+  });
+  return vars;
+}
+
 export function applyBrandColor(hex: string | null | undefined): void {
   const root = document.documentElement.style;
   const normalized = typeof hex === 'string' ? normalizeHex(hex) : null;
   if (normalized && isBrandColorAllowed(normalized)) {
     const derived = deriveBrandTokens(normalized);
-    (Object.keys(TOKEN_TO_CSS_VAR) as (keyof BrandTokens)[]).forEach((key) => {
-      root.setProperty(TOKEN_TO_CSS_VAR[key], derived[key]);
+    Object.entries(brandTokensToCssVars(derived)).forEach(([name, value]) => {
+      root.setProperty(name, value);
     });
     return;
   }

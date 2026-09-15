@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { isBrandColorAllowed, normalizeHex } from '../design/brand';
 import { applyBrandColor, writeCachedBrandColor } from '../lib/brandTheme';
 import { supabase } from '../lib/supabase';
@@ -97,6 +97,7 @@ interface TenantContextType {
   notFound: boolean;
   /** Supabase-/Netzwerkfehler oder Timeout — nicht mit „nicht gefunden“ verwechseln */
   lookupError: string | null;
+  updateTenant: (patch: Partial<Tenant>) => void;
 }
 
 const TenantContext = createContext<TenantContextType>({
@@ -105,6 +106,7 @@ const TenantContext = createContext<TenantContextType>({
   loading: true,
   notFound: false,
   lookupError: null,
+  updateTenant: () => {},
 });
 
 export const useTenant = () => useContext(TenantContext);
@@ -145,6 +147,9 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [lookupError, setLookupError] = useState<string | null>(null);
   const tenantSlug = resolveSlug();
+  const updateTenant = useCallback((patch: Partial<Tenant>) => {
+    setTenant((prev) => (prev ? { ...prev, ...patch } : prev));
+  }, []);
 
   /** Häufiger Konfigurationsfehler: Basis-ENV = komplette Studio-URL → Slug bleibt immer null. */
   useEffect(() => {
@@ -262,7 +267,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [tenantSlug, tenant, loading, notFound, lookupError]);
 
   return (
-    <TenantContext.Provider value={{ tenant, tenantSlug, loading, notFound, lookupError }}>
+    <TenantContext.Provider value={{ tenant, tenantSlug, loading, notFound, lookupError, updateTenant }}>
       {children}
     </TenantContext.Provider>
   );

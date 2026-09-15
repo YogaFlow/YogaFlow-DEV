@@ -4,9 +4,10 @@ import { useAuth } from '../context/AuthContext';
 import { Save } from 'lucide-react';
 import { GlobalSettings } from '../types';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
+import StudioDesignSection from '../components/settings/StudioDesignSection';
 
 export default function Settings() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isOwner } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [cancellationDeadline, setCancellationDeadline] = useState('48');
@@ -92,18 +93,22 @@ export default function Settings() {
     );
   }
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand"></div>
-      </div>
-    );
-  }
-
   return (
     <div className="p-8 max-w-4xl">
       <FeedbackDialog dialog={feedbackDialog} onClose={() => setFeedbackDialog(null)} />
 
+      {isOwner ? (
+        <div className="mb-6">
+          <StudioDesignSection />
+        </div>
+      ) : null}
+
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand"></div>
+        </div>
+      ) : (
+      <>
       <div className="bg-surface rounded-md border border-border p-3.5 space-y-6">
         <div>
           <h2 className="text-xl font-semibold text-text mb-4">Buchungseinstellungen</h2>
@@ -170,6 +175,8 @@ export default function Settings() {
           </div>
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 }

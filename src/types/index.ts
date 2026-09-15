@@ -6,7 +6,12 @@ export interface Tenant {
   slug: string;
   created_at: string;
   updated_at: string;
-  brand_color?: string | null;
+  brand_color: string | null;
+  tagline: string | null;
+  logo_path: string | null;
+  logo_in_sidebar: boolean;
+  logo_on_auth: boolean;
+  sidebar_show_name: boolean;
 }
 
 export interface User {
