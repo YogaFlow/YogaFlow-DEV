@@ -146,11 +146,11 @@ Demo Alpha, Seed-Konten.
       Remove-Variable dbUrl, cfg
       ```
 
-      Übergangslösung, bis `db.mjs` repariert ist (Release-Checkliste). Umgeht die
+      Fix in `scripts/db.mjs` (`1cc7495`, PR-Merge `ca6fe70` auf `main`; identisch auf `Julius`).
+      **Belegt am 15.09.2026:** `npm run db:push:prod` von `main` im cmd-Terminal ohne
+      ausstehende Migration → Liste, PROD-Abfrage, `db push --yes`, „Remote database is
+      up to date.", kein Hänger. PowerShell-Weg bleibt als Rückfall. Umgeht die
       Branch-Prüfung des Skripts — `git branch --show-current` vorher selbst prüfen.
-      Fix in `scripts/db.mjs` (`1cc7495`, Fix-Branch `fix/db-script-windows-prod`, nach Merge auf `main`; auf `Julius` identische Datei); gilt als belegt, sobald `npm run db:push:prod`
-      von `main` ohne ausstehende Migrationen ohne Hänger ‚Remote database is up to date'
-      meldet. Bis dahin bleibt der PowerShell-Weg als Rückfall.
 - [ ] Es ist klar, ob der neue Code ohne die Migration läuft. Falls nicht: Merge und
       `db:push:prod` unmittelbar nacheinander, sonst ist die Live-Seite dazwischen kaputt
 

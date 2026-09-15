@@ -102,9 +102,10 @@ Das Skript bricht ab, wenn der aktuelle Branch nicht `main` ist, und verlangt da
 - **Windows (15.09.):** `npm run db:push:prod` hing nach der PROD-Abfrage zweimal ohne
   Verbindung. Workaround von `main`: `npx.cmd supabase db push --db-url …`
   (Hotfix `20260915104222`, Ausgabe damals `Finished supabase db push.`).
-  Fix in `scripts/db.mjs` (`1cc7495`, Fix-Branch `fix/db-script-windows-prod`, nach Merge auf `main`; auf `Julius` identische Datei); gilt als belegt, sobald `npm run db:push:prod`
-  von `main` ohne ausstehende Migrationen ohne Hänger ‚Remote database is up to date'
-  meldet. Bis dahin bleibt der PowerShell-Weg als Rückfall.
+  Fix in `scripts/db.mjs` (`1cc7495`, PR-Merge `ca6fe70` auf `main`; identisch auf `Julius`).
+  **Belegt am 15.09.2026:** `npm run db:push:prod` von `main` im cmd-Terminal ohne
+  ausstehende Migration → Liste, PROD-Abfrage, `db push --yes`, „Remote database is
+  up to date.", kein Hänger. PowerShell-Weg bleibt als Rückfall.
 
   Das Datenbank-Passwort **nie** direkt in die Befehlszeile tippen oder einfügen
   (landet im Verlauf). Sicherer Weg (PowerShell, auf `main`):
@@ -117,8 +118,8 @@ Das Skript bricht ab, wenn der aktuelle Branch nicht `main` ist, und verlangt da
   Remove-Variable dbUrl, cfg
   ```
 
-  Übergangslösung, bis `db.mjs` repariert ist (Release-Checkliste). Umgeht die
-  Branch-Prüfung des Skripts — `git branch --show-current` vorher selbst prüfen.
+  PowerShell-Weg als Rückfall. Umgeht die Branch-Prüfung des Skripts —
+  `git branch --show-current` vorher selbst prüfen.
 
 ### Schritt 3: Live-Seite prüfen
 

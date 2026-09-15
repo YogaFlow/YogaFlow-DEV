@@ -171,7 +171,8 @@ Sperre ist die ACL.
 Eingespielt per `npx.cmd supabase db push --db-url …` in PowerShell von `main`,
 weil `npm run db:push:prod` unter Windows nach der PROD-Abfrage zweimal ohne
 Verbindung hing. CLI-Liste enthielt nur diese Datei, Ausgabe
-`Finished supabase db push.`
+`Finished supabase db push.` Windows-Hänger von `db.mjs` seit `ca6fe70` auf `main`
+behoben und belegt (15.09.).
 
 ## N — Barrierefreiheit (15.09.)
 
@@ -212,6 +213,7 @@ kein Admin-Login auf DEV; UI-Test Julius OK.
 | 15.09. | siehe M | Sicherheit | Hotfix Plattformtabellen, siehe Gruppe M |
 | 15.09. | siehe N | a11y | `lang="de"`, siehe Gruppe N |
 | 15.09. | siehe O | Feature | Buchungseinstellungen pro Studio, siehe Gruppe O |
+| 15.09. | `ca6fe70` | Tooling | Windows-Fix `scripts/db.mjs` auf `main` (PR `fix/db-script-windows-prod`) |
 | | | Fixes aus Release-Test | |
 
 ---
@@ -261,13 +263,15 @@ kein Admin-Login auf DEV; UI-Test Julius OK.
 - [ ] Release-Abnahme auf DEV nach `docs/RELEASE_ABNAHME.md` abgeschlossen
 - [ ] Rückweg: Snapshot `supabase/snapshots/2026-09-11_pre_membership_dev.sql` gilt für DEV. Für PROD vor dem Merge
       ein Backup (`backup-prod.yml`) und dessen Wiederherstellbarkeit belegen
-- [ ] **`scripts/db.mjs push prod` unter Windows reparieren.** Hing am 15.09. zweimal nach der PROD-Abfrage, bevor die CLI
-      sich verband (`status` ohne Abfrage lief). Fix in `scripts/db.mjs` (`1cc7495`, Fix-Branch `fix/db-script-windows-prod`, nach Merge auf `main`; auf `Julius` identische Datei); gilt als belegt, sobald
-      `npm run db:push:prod` von `main` ohne ausstehende Migrationen ohne Hänger ‚Remote database is up to date'
-      meldet. Bis dahin bleibt der PowerShell-Weg als Rückfall.
+- [x] **`scripts/db.mjs push prod` unter Windows reparieren.** Hing am 15.09. zweimal nach der PROD-Abfrage, bevor die CLI
+      sich verband (`status` ohne Abfrage lief). Fix in `scripts/db.mjs` (`1cc7495`, PR-Merge `ca6fe70` auf `main`; identisch auf `Julius`).
+      **Belegt am 15.09.2026:** `npm run db:push:prod` von `main` im cmd-Terminal ohne ausstehende Migration → Liste, PROD-Abfrage,
+      `db push --yes`, „Remote database is up to date.", kein Hänger. PowerShell-Weg bleibt als Rückfall.
 - [ ] **PROD kennt `20260911134500` und `20260915104222`**, 12 der 13 Julius-Migrationen sind älter →
       `supabase db push` verlangt nach Kenntnisstand `--include-all`. `20260915115057` ist jünger und käme
       als normale ausstehende Datei. Auf einer PROD-Kopie belegen, bevor es live läuft.
+      `db.mjs` reicht das Flag noch nicht durch — vor dem Release-Push entscheiden (Flag im Skript für `push prod`
+      optional machen oder einmalig manuell).
 - [ ] Nach dem Release: `20260915104222` darf nicht erneut angewendet werden (Datei identisch, Version schon remote) —
       `db:status:prod` prüfen
 - [ ] Admin-Testlogin auf DEV anlegen und Buchungseinstellungen als Admin speichern (B2 nachholen).

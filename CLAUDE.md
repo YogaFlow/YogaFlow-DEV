@@ -356,7 +356,8 @@ Einladung, Gedrückt-Zustand statt Hover.
 - Kein Admin-Login auf DEV.
 - `anon`/`authenticated` haben auf den `public`-Tabellen Tabellen-TRUNCATE; RLS gilt dafür nicht, PostgREST bietet es
   nicht an. Schreiben auf `tenants` seit `20260915115057` gesperrt (42501); `MAINTAIN` (PG17 `m`) bleibt für 7c.
-- `scripts/db.mjs push prod` hängt unter Windows; PROD-Push braucht voraussichtlich `--include-all` — siehe Release-Checkliste.
+- `scripts/db.mjs`: Windows-Hänger behoben und belegt (`ca6fe70`). Node warnt `DEP0190` (`spawnSync` mit `shell: true`;
+  die DB-URL läuft durch cmd) — beim nächsten Anfassen ohne Shell aufrufen. PROD-Push braucht voraussichtlich `--include-all`.
 
 ---
 
