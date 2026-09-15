@@ -759,7 +759,7 @@ export default function Users() {
                         {(user.role !== 'owner' || isSelf) && (
                           <button
                             onClick={() => handleToggleExpand(user)}
-                            className="text-brand hover:text-brandPressed text-sm font-medium"
+                            className={`${isSelf ? 'text-brandOnSoft hover:text-brandPressed' : 'text-brand hover:text-brandPressed'} text-sm font-medium`}
                           >
                             {isExpanded ? 'Schließen' : 'Bearbeiten'}
                           </button>

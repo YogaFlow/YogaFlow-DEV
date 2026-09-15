@@ -136,7 +136,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                         className={`rounded-sm border p-3 ${
                           notification.read_at
                             ? 'border-border bg-surfaceSunken/50'
-                            : 'border-brandSoft bg-brandSoft/30'
+                            : 'border-brandSoft'
                         }`}
                       >
                         <p className="text-sm text-text">{notification.body}</p>
