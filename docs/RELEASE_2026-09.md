@@ -1,14 +1,14 @@
 # Release 2026-09 — Umfang DEV → PROD
 
 **Stand:** 15.09.2026 · Grundlage für den Termin am 15.09. · **wächst bis zum Schnitt**
-**Vergleich:** `origin/main` (`267f87f`, 15.09.) gegen `origin/Julius` (`8d3dbdc`, 15.09.)
+**Vergleich:** `origin/main` (`267f87f`, 15.09.) gegen `origin/Julius` (`2e30a05`, 15.09.)
 **Gemeinsamer Vorfahr:** `4d43ad6` (07.09.)
 
 | | |
 |---|---|
-| Commits auf `Julius`, nicht auf `main` | 80 |
-| Dateien | 111 geändert, +12.957 / −2.579 Zeilen |
-| Migrationen nur auf DEV | 12 |
+| Commits auf `Julius`, nicht auf `main` | 84 |
+| Dateien | 114 geändert, +13.567 / −2.695 Zeilen |
+| Migrationen nur auf DEV | 13 |
 | Edge Functions geändert | alle 9 plus `_shared/studio_slug_for_user.ts` |
 | Nicht im Release | Geldkette 1a (`docs/EPIC_GELDKETTE_1A.md`), Stufe 4 der Mehrfachmitgliedschaft |
 
@@ -177,6 +177,26 @@ Verbindung hing. CLI-Liste enthielt nur diese Datei, Ausgabe
 
 `691a0df` `lang="de"`.
 
+## O — Buchungseinstellungen pro Studio (15.09.)
+
+| Commit | Inhalt | Migration |
+|---|---|---|
+| `ad0d25a` | Standard-Teilnehmerzahl auf `tenants`, Stornofrist-Feld entfernt, Härtung `tenants`/`global_settings` | `20260915115057` |
+| `2e30a05` | Einstellungen und `CreateCourse` lesen den Studio-Wert | |
+
+`tenants.default_max_participants` (1–50, Grenze aus `courses_max_participants_range_check`).
+Schreiben über RPC `update_booking_settings` (Owner und Admin). Das Stornofrist-Feld
+entfällt — es wurde nirgends durchgesetzt. `CreateCourse` liest den Wert aus dem Studio.
+
+Härtung: `anon`/`authenticated` ohne Schreibrechte auf `tenants` und `global_settings`
+(direktes Schreiben → 42501 statt 0 Zeilen). Policy `settings_manage_managers` entfernt.
+
+Übernahme: vorhandener gültiger Wert aus `global_settings` geht beim Einspielen an alle
+Studios (DEV: keiner; PROD: erwartet 10).
+
+Tests DEV: B1–B13 per zurückgerolltem SQL-Block ohne FEHLER, B2 (Admin) übersprungen —
+kein Admin-Login auf DEV; UI-Test Julius OK.
+
 ---
 
 ## Nachträge bis zum Schnitt
@@ -191,13 +211,14 @@ Verbindung hing. CLI-Liste enthielt nur diese Datei, Ausgabe
 | 15.09. | siehe L | Design | Tenant-Branding, siehe Gruppe L |
 | 15.09. | siehe M | Sicherheit | Hotfix Plattformtabellen, siehe Gruppe M |
 | 15.09. | siehe N | a11y | `lang="de"`, siehe Gruppe N |
+| 15.09. | siehe O | Feature | Buchungseinstellungen pro Studio, siehe Gruppe O |
 | | | Fixes aus Release-Test | |
 
 ---
 
 ## Offene Fragen für den Termin am 15.09.
 
-1. **Umfang:** Geht alles aus A–N gemeinsam nach PROD, oder wird etwas zurückgehalten? Gruppe M
+1. **Umfang:** Geht alles aus A–O gemeinsam nach PROD, oder wird etwas zurückgehalten? Gruppe M
    (Plattformtabellen) liegt schon auf `main` und PROD. Die Mehrfachmitgliedschaft
    (F) lässt sich nicht sauber von B/C trennen: 7 Dateien werden in beiden Strängen geändert (`App.tsx`,
    `LoginForm.tsx`, `RegisterForm.tsx`, `AuthPage.tsx`, `ForgotPassword.tsx`, `Profile.tsx`, `Users.tsx`).
@@ -225,19 +246,14 @@ Verbindung hing. CLI-Liste enthielt nur diese Datei, Ausgabe
 9. **Auth-Mailvorlagen im Supabase-Dashboard** (Authentication → Email Templates)
    liegen nicht im Repo. Auf DEV und PROD prüfen, ob sie noch siezen oder englisch
    sind — Julius, manuell.
-10. **`global_settings`:** keine `tenant_id`, `UNIQUE (key)` global; jeder Owner/Admin
-    überschreibt für alle Studios. `cancellation_deadline_hours` wird nirgends
-    durchgesetzt (weder Client noch RPC); PROD hat 48/10, DEV leer. Entschieden 15.09.:
-    Stornofrist-Feld entfällt; Standard-Teilnehmerzahl wird Spalte auf `tenants`
-    (Owner und Admin); Durchsetzung einer Frist gehört zur Geldkette/Strategie.
-    Umsetzung als Auftrag 7 vor dem Schnitt.
+10. **`global_settings`:** umgesetzt in Gruppe O; Tabelle wird nach dem Release entfernt (7c).
 11. **`email_templates`:** Altbestand, niemand liest sie, jeder Manager darf global
     schreiben — entfernen?
 
 ## Vor dem Release-PR zu prüfen
 
-- [ ] `npm run db:status:prod`: welche der 12 Migrationen PROD schon kennt (Erwartung: keine; `134500` und `104222` ja)
-- [ ] Probelauf aller 12 Migrationen auf einer PROD-Kopie, inkl. der PROD-Sonderfälle aus `CLAUDE.md`:
+- [ ] `npm run db:status:prod`: welche der 13 Migrationen PROD schon kennt (Erwartung: keine; `134500` und `104222` ja)
+- [ ] Probelauf aller 13 Migrationen auf einer PROD-Kopie, inkl. der PROD-Sonderfälle aus `CLAUDE.md`:
       2 Logins ohne Profil, 1 Studio ohne Profil, ein Konto mit abweichender `users.email`
 - [ ] Reihenfolge beim Deploy festlegen: Migrationen → alle 9 Edge Functions → Frontend. Die Functions lesen
       `auth_user_id`, das Frontend sendet den Header, beides ohne Migration wirkungslos bzw. fehlerhaft
@@ -249,7 +265,13 @@ Verbindung hing. CLI-Liste enthielt nur diese Datei, Ausgabe
       sich verband (`status` ohne Abfrage lief). Vermutung: `readline` (`db.mjs:82-85`) hält die Konsoleneingabe,
       die per `spawnSync(…, stdio: 'inherit')` (`db.mjs:97`) gestartete CLI kommt nicht weiter. Geplant: ausstehende
       Migrationen zeigen, PROD abfragen, CLI mit `--yes` und ohne Tastatureingabe starten.
-- [ ] **PROD kennt `20260911134500` und `20260915104222`**, alle 12 Julius-Migrationen sind älter →
-      `supabase db push` verlangt nach Kenntnisstand `--include-all`. Auf einer PROD-Kopie belegen, bevor es live läuft.
+- [ ] **PROD kennt `20260911134500` und `20260915104222`**, 12 der 13 Julius-Migrationen sind älter →
+      `supabase db push` verlangt nach Kenntnisstand `--include-all`. `20260915115057` ist jünger und käme
+      als normale ausstehende Datei. Auf einer PROD-Kopie belegen, bevor es live läuft.
 - [ ] Nach dem Release: `20260915104222` darf nicht erneut angewendet werden (Datei identisch, Version schon remote) —
       `db:status:prod` prüfen
+- [ ] Admin-Testlogin auf DEV anlegen und Buchungseinstellungen als Admin speichern (B2 nachholen).
+- [ ] Nach dem Release (7c): `global_settings` per Migration entfernen; dabei `MAINTAIN` auf `tenants` für `anon`/`authenticated`
+      entziehen (PG17-Recht `m`, über die API nicht nutzbar).
+- [ ] Am Release-Tag sieht das alte Frontend kurz die neue Datenbank: Speichern der Buchungseinstellungen scheitert bis zum
+      Frontend-Deploy mit einer Fehlermeldung (erwartet).

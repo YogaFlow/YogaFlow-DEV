@@ -120,13 +120,15 @@ sich in einen Design- oder Refactoring-Durchlauf einschleicht: sagen, nicht ausf
 - `fetchCourseParticipantCounts` liefert bei Fehler `{}`. Die RPC gibt für jeden
   existierenden Kurs eine Zeile zurück; fehlt eine ID, ist die Zählung gescheitert.
 - `tenants` hat seit `20260915082415` `brand_color`, `tagline`, `logo_path`,
-  `logo_in_sidebar`, `logo_on_auth`, `sidebar_show_name`. `tenants` ist für `anon`
-  lesbar — dort nichts Internes ablegen. Schreiben nur über `update_studio_branding`
-  und `set_studio_logo` (nur Owner, `SECURITY DEFINER`). `brand_color` hat einen
-  CHECK mit `yogaflow_private.is_brand_color_allowed`; jede Rolle, die in `tenants`
-  schreibt, braucht EXECUTE darauf. Bucket `studio-branding`: Pfad
-  `<tenant_id>/logo-<ms>.<png|jpg|webp>`; direktes Löschen in `storage.objects` blockt
-  Supabase — nur über die Storage-API.
+  `logo_in_sidebar`, `logo_on_auth`, `sidebar_show_name`. Seit `20260915115057`
+  `default_max_participants` (1–50). `tenants` ist für `anon` lesbar — dort nichts
+  Internes ablegen. Schreiben nur über `update_studio_branding` und `set_studio_logo`
+  (nur Owner, `SECURITY DEFINER`) bzw. `update_booking_settings` (Owner und Admin).
+  `anon`/`authenticated` haben auf `tenants` nur SELECT — direktes Schreiben liefert
+  42501. `brand_color` hat einen CHECK mit `yogaflow_private.is_brand_color_allowed`;
+  jede Rolle, die in `tenants` schreibt, braucht EXECUTE darauf. Bucket
+  `studio-branding`: Pfad `<tenant_id>/logo-<ms>.<png|jpg|webp>`; direktes Löschen in
+  `storage.objects` blockt Supabase — nur über die Storage-API.
 
 **Tenant-Isolation (geprüft am 09.09.2026, umgebaut am 11.09.2026)**
 
@@ -229,7 +231,7 @@ Maßgeblich ist `docs/DESIGNSYSTEM.md`. Das Wichtigste in Kürze:
 
 ## Stand (15.09.2026)
 
-**Release 2026-09 — offen.** `Julius` liegt 80 Commits und 12 Migrationen vor `main`, dazu kommen
+**Release 2026-09 — offen.** `Julius` liegt 84 Commits und 13 Migrationen vor `main`, dazu kommen
 Änderungen an allen 9 Edge Functions. Den Umfang nach Themen beschreibt `docs/RELEASE_2026-09.md`.
 Umfang und Zeitpunkt des Schnitts werden am 15.09. besprochen. Bis zum Schnitt ist `Julius` die
 Release-Linie. Fixes, Landingpage- und Design-Änderungen für das Release gehen dort hinein.
@@ -264,6 +266,10 @@ siehe `docs/RELEASE_2026-09.md` Gruppe K. RPC-Migration `20260915003628` (Rückw
 **Hotfix Plattformtabellen 15.09.:** `system_settings` und `admin_emails` nur noch
 `service_role` — siehe `docs/RELEASE_2026-09.md` Gruppe M. Migration `20260915104222`
 (auf Julius `8d3dbdc`, auf `main` `e0c4b86` / Merge `267f87f`; DEV und PROD).
+
+**Buchungseinstellungen 15.09.:** Standard-Teilnehmerzahl pro Studio, Stornofrist-Feld
+entfernt, Härtung `tenants`/`global_settings` — siehe `docs/RELEASE_2026-09.md` Gruppe O.
+Migration `20260915115057` (`ad0d25a`, `2e30a05`).
 
 **Datenmodell — Kern fertig auf DEV:** Mehrfachmitgliedschaft bis 3c-B2 (letzter Commit
 `ed73a32`, 13.09.). Offen: Stufe 4 — `debug_request_tenant_header()` entfernen und die
@@ -344,10 +350,12 @@ Einladung, Gedrückt-Zustand statt Hover.
   entsteht (`20260907113107` Zeile 384), ist ungeprüft.
 - Owner/Admin sehen in „Kurse verwalten" nur eigene Kurse (`MyCourses.tsx:38`,
   `teacher_id` = self); fremde erreichen sie über „Kurse" und die Detailseite.
-- `global_settings` ohne `tenant_id` — Auftrag 7 läuft (Stornofeld entfällt, Standard-Teilnehmerzahl auf `tenants`).
-- `Users.tsx:679` rechnet `new Date(c.date)` auf `courses.date` — verstößt gegen die Datumsregel.
+- `global_settings` nur-lesend seit `20260915115057`, nach dem Release entfernen.
+- `Users.tsx:679` / `:440` rechnet `new Date(c.date)` auf `courses.date` — verstößt gegen die Datumsregel.
+- Karte „Systeminformationen" in `Settings.tsx` zeigt „Datenbankstatus: Verbunden" als festen Text ohne Prüfung.
+- Kein Admin-Login auf DEV.
 - `anon`/`authenticated` haben auf den `public`-Tabellen Tabellen-TRUNCATE; RLS gilt dafür nicht, PostgREST bietet es
-  nicht an. Härtung von `tenants` mit Auftrag 7.
+  nicht an. Schreiben auf `tenants` seit `20260915115057` gesperrt (42501); `MAINTAIN` (PG17 `m`) bleibt für 7c.
 - `scripts/db.mjs push prod` hängt unter Windows; PROD-Push braucht voraussichtlich `--include-all` — siehe Release-Checkliste.
 
 ---
