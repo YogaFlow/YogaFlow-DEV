@@ -131,7 +131,9 @@ Demo Alpha, Seed-Konten.
 
 - [ ] `npm run db:status:dev` — alle Migrationen auf DEV angewendet
 - [ ] `npm run db:status:prod` — Liste der **ausstehenden** Migrationen gelesen und verstanden
-- [ ] Nach dem Merge: `npm run db:push:prod`, danach die Live-Seite prüfen
+- [ ] Nach dem Merge: `npm run db:push:prod`, danach die Live-Seite prüfen.
+      Unter Windows (15.09.): `npm run db:push:prod` hing nach der PROD-Abfrage zweimal
+      ohne Verbindung. Workaround: von `main` `npx.cmd supabase db push --db-url …`
 - [ ] Es ist klar, ob der neue Code ohne die Migration läuft. Falls nicht: Merge und
       `db:push:prod` unmittelbar nacheinander, sonst ist die Live-Seite dazwischen kaputt
 

@@ -99,6 +99,9 @@ Zeigt die noch nicht angewendeten Migrationen. **Ändert nichts** und verlangt d
 Das Skript bricht ab, wenn der aktuelle Branch nicht `main` ist, und verlangt danach die getippte Eingabe **`PROD`**. Erst dann läuft es.
 
 - **Agent** kann das Kommando starten, aber die Bestätigung tippst **du**.
+- **Windows (15.09.):** `npm run db:push:prod` hing nach der PROD-Abfrage zweimal ohne
+  Verbindung. Workaround von `main`: `npx.cmd supabase db push --db-url …`
+  (Hotfix `20260915104222`, Ausgabe damals `Finished supabase db push.`).
 
 ### Schritt 3: Live-Seite prüfen
 

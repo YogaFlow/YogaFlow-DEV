@@ -1,14 +1,14 @@
 # Release 2026-09 — Umfang DEV → PROD
 
 **Stand:** 15.09.2026 · Grundlage für den Termin am 15.09. · **wächst bis zum Schnitt**
-**Vergleich:** `origin/main` (`e1776fd`, 11.09.) gegen HEAD (`a29de25`, 15.09.; wird nach Push `origin/Julius`)
+**Vergleich:** `origin/main` (`267f87f`, 15.09.) gegen `origin/Julius` (`8d3dbdc`, 15.09.)
 **Gemeinsamer Vorfahr:** `4d43ad6` (07.09.)
 
 | | |
 |---|---|
-| Commits auf `Julius`, nicht auf `main` | 70 |
-| Dateien | 99 geändert, +10.990 / −2.565 Zeilen |
-| Migrationen nur auf DEV | 10 |
+| Commits auf `Julius`, nicht auf `main` | 80 |
+| Dateien | 111 geändert, +12.957 / −2.579 Zeilen |
+| Migrationen nur auf DEV | 12 |
 | Edge Functions geändert | alle 9 plus `_shared/studio_slug_for_user.ts` |
 | Nicht im Release | Geldkette 1a (`docs/EPIC_GELDKETTE_1A.md`), Stufe 4 der Mehrfachmitgliedschaft |
 
@@ -128,6 +128,30 @@ Migrationsdatei `20260911134500` ist in beiden Branches identisch (kein Untersch
 Edge Functions auf DEV deployt am 15.09. (`npm run functions:dev`). Für PROD
 gehören sie zum Deploy-Schritt „alle Edge Functions".
 
+## M — Hotfix Plattformtabellen (15.09.)
+
+`8d3dbdc` auf Julius, `e0c4b86` auf `main` (PR #156, Merge `267f87f`). Die
+Migrationsdatei `20260915104222` ist in beiden Branches identisch (kein Unterschied
+im Diff). **Liegt auf DEV und PROD.**
+
+Befund (Audit 15.09.): Owner/Admin jedes Studios durften `system_settings` lesen und
+schreiben (Policies ohne Studio-Bezug). Jedes Login durfte `admin_emails` lesen
+(`USING true`). Tabellen-ALL lag bei `anon` und `authenticated`. App und Edge
+Functions nutzen beide Tabellen nicht (`grep` in `src/` und `supabase/functions/`:
+0 Treffer); SMTP kommt aus Edge-Function-Secrets.
+
+PROD-Nachprüfung 15.09. (MCP `user-supabase-prod-readonly`,
+`https://otnhxzomnjjthocovasu.supabase.co`): ACL nur `postgres` und `service_role`;
+je Tabelle nur `*_service_role_all`; Zeilen unverändert `system_settings` 2,
+`admin_emails` 3; Profile admin 2 / owner 3 / teacher 1 / user 40; 4 Studios.
+REST-Probe mit Anon-Key übersprungen (kein PROD-Anon-Key lokal). Beleg für die
+Sperre ist die ACL.
+
+Eingespielt per `npx.cmd supabase db push --db-url …` in PowerShell von `main`,
+weil `npm run db:push:prod` unter Windows nach der PROD-Abfrage zweimal ohne
+Verbindung hing. CLI-Liste enthielt nur diese Datei, Ausgabe
+`Finished supabase db push.`
+
 ---
 
 ## Nachträge bis zum Schnitt
@@ -139,13 +163,15 @@ gehören sie zum Deploy-Schritt „alle Edge Functions".
 | 14.09. | siehe I | Design/Feature | Kursdetailseite und Kurszeilen, siehe Gruppe I |
 | 14.–15.09. | siehe J | Feature | Kursverwaltung und Löschen, siehe Gruppe J |
 | 15.09. | siehe K | Copy | Anrede du, siehe Gruppe K |
+| 15.09. | siehe M | Sicherheit | Hotfix Plattformtabellen, siehe Gruppe M |
 | | | Fixes aus Release-Test | |
 
 ---
 
 ## Offene Fragen für den Termin am 15.09.
 
-1. **Umfang:** Geht alles aus A–K gemeinsam nach PROD, oder wird etwas zurückgehalten? Die Mehrfachmitgliedschaft
+1. **Umfang:** Geht alles aus A–K gemeinsam nach PROD, oder wird etwas zurückgehalten? Gruppe M
+   (Plattformtabellen) liegt schon auf `main` und PROD. Die Mehrfachmitgliedschaft
    (F) lässt sich nicht sauber von B/C trennen: 7 Dateien werden in beiden Strängen geändert (`App.tsx`,
    `LoginForm.tsx`, `RegisterForm.tsx`, `AuthPage.tsx`, `ForgotPassword.tsx`, `Profile.tsx`, `Users.tsx`).
 2. **Schnitt:** Bis wann kommen Landingpage- und Design-Änderungen noch hinein? Danach nur noch Fixes.
@@ -175,8 +201,8 @@ gehören sie zum Deploy-Schritt „alle Edge Functions".
 
 ## Vor dem Release-PR zu prüfen
 
-- [ ] `npm run db:status:prod`: welche der 10 Migrationen PROD schon kennt (Erwartung: keine, `134500` ja)
-- [ ] Probelauf aller 10 Migrationen auf einer PROD-Kopie, inkl. der PROD-Sonderfälle aus `CLAUDE.md`:
+- [ ] `npm run db:status:prod`: welche der 12 Migrationen PROD schon kennt (Erwartung: keine; `134500` und `104222` ja)
+- [ ] Probelauf aller 12 Migrationen auf einer PROD-Kopie, inkl. der PROD-Sonderfälle aus `CLAUDE.md`:
       2 Logins ohne Profil, 1 Studio ohne Profil, ein Konto mit abweichender `users.email`
 - [ ] Reihenfolge beim Deploy festlegen: Migrationen → alle 9 Edge Functions → Frontend. Die Functions lesen
       `auth_user_id`, das Frontend sendet den Header, beides ohne Migration wirkungslos bzw. fehlerhaft

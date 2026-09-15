@@ -153,6 +153,16 @@ nur `first_name, last_name, email, phone, street, house_number, postal_code, cit
   explizit entziehen.
 - `email` ist nur vorläufig freigegeben und wird mit der Mehrfachmitgliedschaft Login-Sache.
 
+**Plattformtabellen `system_settings` und `admin_emails` (Hotfix 15.09.2026)**
+
+Owner/Admin jedes Studios durften `system_settings` lesen und schreiben (Policies ohne
+Studio-Bezug). Jedes Login durfte `admin_emails` lesen (`USING true`). `anon` und
+`authenticated` hatten Tabellen-ALL. Seit Migration `20260915104222` (DEV und PROD)
+dürfen nur `postgres` und `service_role` auf die Tabellen; je Tabelle nur die Policy
+`*_service_role_all`. App und Edge Functions lesen die Tabellen nicht (`grep` in `src/`
+und `supabase/functions/`: 0 Treffer). `ensure_public_user` bleibt `SECURITY DEFINER`
+(Eigentümer postgres) und darf `admin_emails` intern weiter lesen.
+
 **Mehrfachmitgliedschaft (Umbau vom 11.09.2026, nicht abgeschlossen)**
 
 Ziel: ein Login, mehrere Studios. Der Umbau läuft in Stufen, jede als eigene Migration mit
@@ -178,8 +188,10 @@ Was das für die Arbeit heißt:
   keinen Aufruf im Client.
 - Rückfallpunkt für das ganze Vorhaben: `supabase/snapshots/2026-09-11_pre_membership_dev.sql`.
 - `update-user` schreibt seit `0e8bf0f` (3c-B2) nur noch Profilfelder, nie Login-E-Mail oder Passwort.
-- **PROD:** Auf `main` liegt von diesen Migrationen keine, nur der Hotfix `20260911134500`.
-  Die PROD-Datenbank vor dem Release mit `npm run db:status:prod` bestätigen.
+- **PROD:** Auf `main` liegt von diesen Mehrfachmitgliedschaft-Migrationen keine. Hotfixes
+  auf `main` und PROD: `20260911134500` (Spaltenrechte `users`) und `20260915104222`
+  (Plattformtabellen). Die PROD-Datenbank vor dem Release mit `npm run db:status:prod`
+  bestätigen.
 
 ---
 
@@ -201,7 +213,7 @@ Maßgeblich ist `docs/DESIGNSYSTEM.md`. Das Wichtigste in Kürze:
 
 ## Stand (15.09.2026)
 
-**Release 2026-09 — offen.** `Julius` liegt 70 Commits und 10 Migrationen vor `main`, dazu kommen
+**Release 2026-09 — offen.** `Julius` liegt 80 Commits und 12 Migrationen vor `main`, dazu kommen
 Änderungen an allen 9 Edge Functions. Den Umfang nach Themen beschreibt `docs/RELEASE_2026-09.md`.
 Umfang und Zeitpunkt des Schnitts werden am 15.09. besprochen. Bis zum Schnitt ist `Julius` die
 Release-Linie. Fixes, Landingpage- und Design-Änderungen für das Release gehen dort hinein.
@@ -230,6 +242,10 @@ der Detailseite für Owner/Admin bei kommenden Terminen — siehe `docs/RELEASE_
 siehe `docs/RELEASE_2026-09.md` Gruppe K. RPC-Migration `20260915003628` (Rückweg:
 `supabase/snapshots/2026-09-15_pre_du_enrollment_rpcs_dev.sql`).
 
+**Hotfix Plattformtabellen 15.09.:** `system_settings` und `admin_emails` nur noch
+`service_role` — siehe `docs/RELEASE_2026-09.md` Gruppe M. Migration `20260915104222`
+(auf Julius `8d3dbdc`, auf `main` `e0c4b86` / Merge `267f87f`; DEV und PROD).
+
 **Datenmodell — Kern fertig auf DEV:** Mehrfachmitgliedschaft bis 3c-B2 (letzter Commit
 `ed73a32`, 13.09.). Offen: Stufe 4 — `debug_request_tenant_header()` entfernen und die
 befristete Übergangsregel ohne Header entfernen, sobald PROD stabil läuft.
@@ -254,8 +270,8 @@ Einladung, Gedrückt-Zustand statt Hover.
   Die Funktion wurde am 11.09. in `20260911173000` neu geschrieben (`:454`) und am 15.09. in
   `20260915003628` erneut (`:183`); `pg_temp` steht an beiden Stellen weiterhin drin. Beim
   nächsten Anfassen entfernen.
-- JS-Bundle 1.051 kB, gzip 276 kB (Build vom 15.09.2026 auf diesem Stand: `1,050.88 kB` /
-  `276.41 kB`). Relevant, weil die Zielgruppe über Instagram aufs Handy kommt. Nach Paket 3
+- JS-Bundle 1.072 kB, gzip 282 kB (Build vom 15.09.2026 auf diesem Stand: `1,071.56 kB` /
+  `282.47 kB`). Relevant, weil die Zielgruppe über Instagram aufs Handy kommt. Nach Paket 3
   angehen, zusammen mit der Frage, ob die Marketingseite aus der SPA gelöst wird.
 - `close_past_course_registrations()` ist ohne jede Prüfung für `anon` aufrufbar, wirkt über
   alle Tenants und rechnet `date + time` als UTC statt `Europe/Berlin`. **Sie scheitert außerdem bei
@@ -287,7 +303,6 @@ Einladung, Gedrückt-Zustand statt Hover.
 - Tabelle `email_templates` (Seed `20250804174553` / `20260106130712`) enthält gesiezte
   Vorlagen, wird von App und Functions nicht gelesen (`grep email_templates` in `src/` und
   `supabase/functions/`: 0 Treffer) — Altbestand.
-- `index.html` hat `lang="en"` bei deutscher App (`index.html:2`) — Screenreader-Aussprache.
 - Bestätigungsmail-HTML doppelt in `request-verification-email` (`index.ts:110-124`) und
   `send-verification-email` (`index.ts:114-128`).
 - `CourseDetail.tsx:60-64` / `:136-144` zeigt bei Ladefehler „Kurs nicht gefunden" statt der
