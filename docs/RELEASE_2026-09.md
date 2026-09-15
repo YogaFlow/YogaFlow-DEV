@@ -128,6 +128,27 @@ Migrationsdatei `20260911134500` ist in beiden Branches identisch (kein Untersch
 Edge Functions auf DEV deployt am 15.09. (`npm run functions:dev`). Für PROD
 gehören sie zum Deploy-Schritt „alle Edge Functions".
 
+## L — Tenant-Branding (15.09.)
+
+| Commit | Inhalt | Migration |
+|---|---|---|
+| `81d403a` | Grünrampe → semantische Tokens | |
+| `20de2bc` | Nachtrag Soft-Flächen, tote Opazitätsklasse | |
+| `1dc5875` | Farbableitung und Laufzeit-Anwendung | |
+| `6f14be2` | Spalten, Kontrast-CHECK, RPC `update_studio_branding` | `20260915082415` |
+| `d49430b` | Bucket `studio-branding`, Owner-Policies, RPC `set_studio_logo` | `20260915090020` |
+| `902ee01` | Einstellungen „Studio & Design" | |
+| `27fd7b4` | Logo, Name, Kurzbeschreibung, Tab-Titel, Favicon | |
+
+Nur Owner. Der Bucket entsteht per Migration. Keine Edge Function geändert.
+
+Tests auf DEV: RPC T1–T13 und Storage S1–S15 per zurückgerolltem SQL-Block (alle OK;
+S14/S15 Info: Supabase blockt direktes Löschen in `storage.objects`); UI-Test Julius
+(Farbe, eigene Farbe, Name, Kurzbeschreibung, Logo hochladen/ersetzen/entfernen, Rollen,
+Seitenleiste, Anmeldeseite, Tab); Favicon und `lang` per DOM geprüft; Header-Weg über
+Storage mit zweitem Profil (Beitritt `demobeta`) bestätigt. Keine verwaisten Dateien
+im Bucket.
+
 ## M — Hotfix Plattformtabellen (15.09.)
 
 `8d3dbdc` auf Julius, `e0c4b86` auf `main` (PR #156, Merge `267f87f`). Die
@@ -152,6 +173,10 @@ weil `npm run db:push:prod` unter Windows nach der PROD-Abfrage zweimal ohne
 Verbindung hing. CLI-Liste enthielt nur diese Datei, Ausgabe
 `Finished supabase db push.`
 
+## N — Barrierefreiheit (15.09.)
+
+`691a0df` `lang="de"`.
+
 ---
 
 ## Nachträge bis zum Schnitt
@@ -163,14 +188,16 @@ Verbindung hing. CLI-Liste enthielt nur diese Datei, Ausgabe
 | 14.09. | siehe I | Design/Feature | Kursdetailseite und Kurszeilen, siehe Gruppe I |
 | 14.–15.09. | siehe J | Feature | Kursverwaltung und Löschen, siehe Gruppe J |
 | 15.09. | siehe K | Copy | Anrede du, siehe Gruppe K |
+| 15.09. | siehe L | Design | Tenant-Branding, siehe Gruppe L |
 | 15.09. | siehe M | Sicherheit | Hotfix Plattformtabellen, siehe Gruppe M |
+| 15.09. | siehe N | a11y | `lang="de"`, siehe Gruppe N |
 | | | Fixes aus Release-Test | |
 
 ---
 
 ## Offene Fragen für den Termin am 15.09.
 
-1. **Umfang:** Geht alles aus A–K gemeinsam nach PROD, oder wird etwas zurückgehalten? Gruppe M
+1. **Umfang:** Geht alles aus A–N gemeinsam nach PROD, oder wird etwas zurückgehalten? Gruppe M
    (Plattformtabellen) liegt schon auf `main` und PROD. Die Mehrfachmitgliedschaft
    (F) lässt sich nicht sauber von B/C trennen: 7 Dateien werden in beiden Strängen geändert (`App.tsx`,
    `LoginForm.tsx`, `RegisterForm.tsx`, `AuthPage.tsx`, `ForgotPassword.tsx`, `Profile.tsx`, `Users.tsx`).
@@ -198,6 +225,14 @@ Verbindung hing. CLI-Liste enthielt nur diese Datei, Ausgabe
 9. **Auth-Mailvorlagen im Supabase-Dashboard** (Authentication → Email Templates)
    liegen nicht im Repo. Auf DEV und PROD prüfen, ob sie noch siezen oder englisch
    sind — Julius, manuell.
+10. **`global_settings`:** keine `tenant_id`, `UNIQUE (key)` global; jeder Owner/Admin
+    überschreibt für alle Studios. `cancellation_deadline_hours` wird nirgends
+    durchgesetzt (weder Client noch RPC); PROD hat 48/10, DEV leer. Entschieden 15.09.:
+    Stornofrist-Feld entfällt; Standard-Teilnehmerzahl wird Spalte auf `tenants`
+    (Owner und Admin); Durchsetzung einer Frist gehört zur Geldkette/Strategie.
+    Umsetzung als Auftrag 7 vor dem Schnitt.
+11. **`email_templates`:** Altbestand, niemand liest sie, jeder Manager darf global
+    schreiben — entfernen?
 
 ## Vor dem Release-PR zu prüfen
 
@@ -210,3 +245,11 @@ Verbindung hing. CLI-Liste enthielt nur diese Datei, Ausgabe
 - [ ] Release-Abnahme auf DEV nach `docs/RELEASE_ABNAHME.md` abgeschlossen
 - [ ] Rückweg: Snapshot `supabase/snapshots/2026-09-11_pre_membership_dev.sql` gilt für DEV. Für PROD vor dem Merge
       ein Backup (`backup-prod.yml`) und dessen Wiederherstellbarkeit belegen
+- [ ] **`scripts/db.mjs push prod` unter Windows reparieren.** Hing am 15.09. zweimal nach der PROD-Abfrage, bevor die CLI
+      sich verband (`status` ohne Abfrage lief). Vermutung: `readline` (`db.mjs:82-85`) hält die Konsoleneingabe,
+      die per `spawnSync(…, stdio: 'inherit')` (`db.mjs:97`) gestartete CLI kommt nicht weiter. Geplant: ausstehende
+      Migrationen zeigen, PROD abfragen, CLI mit `--yes` und ohne Tastatureingabe starten.
+- [ ] **PROD kennt `20260911134500` und `20260915104222`**, alle 12 Julius-Migrationen sind älter →
+      `supabase db push` verlangt nach Kenntnisstand `--include-all`. Auf einer PROD-Kopie belegen, bevor es live läuft.
+- [ ] Nach dem Release: `20260915104222` darf nicht erneut angewendet werden (Datei identisch, Version schon remote) —
+      `db:status:prod` prüfen

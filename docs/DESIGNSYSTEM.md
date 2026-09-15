@@ -1,8 +1,13 @@
 # Omlify Designsystem v1 — Farben und Tokens
 
-**Stand:** 15.09.2026 (v1.4 — Anrede du) · **Status:** festgelegt
+**Stand:** 15.09.2026 (v1.5 — Tenant-Branding umgesetzt) · **Status:** festgelegt
 **Ablageort im Repo:** `docs/DESIGNSYSTEM.md`
 **Zugehörig:** `claude/Entscheidung_02_Mobile_Strategie.md` (Tenant-Branding als Vorarbeit)
+
+**v1.5:** Tenant-Branding ist umgesetzt. Ein Studio wählt eine Markenfarbe;
+`deriveBrandTokens` leitet die fünf Tokens ab. Logo, Name und Kurzbeschreibung
+laufen über `StudioMark`. Helle Farben sind nicht wählbar (`on-brand` bleibt Weiß).
+Siehe Abschnitt Marke sowie Logo und Studiokopf.
 
 **v1.4:** Anrede immer „du" (alle Rollen, App, Landingpage, Mails, Meldungen aus
 Edge Functions und Datenbank-Funktionen). Kleingeschrieben; keine
@@ -41,9 +46,10 @@ herausoperiert werden.
 pink werden und die Storno-Aktion nicht ihre Rot-Bedeutung verlieren. Nur *ein* Token-Paar ist
 brandbar — das reicht für Wiedererkennung und lässt das System nie kaputtgehen.
 
-**Zwingende Prüfung beim Branding-Feature:** Kontrast von `--color-on-brand` gegen die gewählte
-Studiofarbe serverseitig berechnen (WCAG AA, Verhältnis ≥ 4,5:1 für Text). Bei zu heller
-Studiofarbe automatisch auf dunkle Schrift umschalten. Sonst gibt es weiße Schrift auf Hellgelb.
+**Zwingende Prüfung:** Die Studiofarbe braucht Kontrast ≥ 4,5:1 gegen `#FFFFFF` und
+`#F5F3EF`. Geprüft im Client (`isBrandColorAllowed`) und in der Datenbank
+(`yogaflow_private.is_brand_color_allowed`). Helle Farben sind nicht wählbar;
+`--color-on-brand` bleibt Weiß.
 
 ---
 
@@ -83,6 +89,15 @@ bedeuten — und die Oberfläche wirkt matschig statt ruhig.
 **Kontrastregeln:** Text auf `green-50`, `100` und `200` immer in `green-800`, nie in
 `--color-text`. Text auf `green-600` und `800` immer in Weiß. `green-300` ist nie Textfarbe —
 ca. 4,0:1 auf `green-600`, zu wenig für Text. Nur Icons und Linien auf Dunkelgrün.
+**Text und Icons auf `brandSoft` nur in `brandOnSoft`, nie in `brand`.** Bei Studiofarben
+knapp über 4,5:1 auf Weiß fällt `brand` auf der eigenen Soft-Fläche darunter.
+**Erfolgsflächen:** Text auf `successSoft` in `text`, Icon in `success` — `success` auf
+`successSoft` hat nur 4,32:1.
+
+Die Grünrampe `sage-*` direkt nur noch für feste Omlify-Flächen (Meta-Icons Kursdetail,
+Status „Angemeldet" in der Teilnehmerliste, Onboarding, Landingpage). Rollen-Pillen
+Admin/Kursleitung nutzen `brandSoft`/`brandOnSoft`. Tailwind-Opazität (`bg-brandSoft/30`)
+erzeugt bei `var()`-Farben kein CSS — nicht verwenden.
 
 ### Marke (Standardwert, tenant-überschreibbar)
 
@@ -97,8 +112,43 @@ ca. 4,0:1 auf `green-600`, zu wenig für Text. Nur Icons und Linien auf Dunkelgr
 Nur diese fünf Tokens sind überschreibbar. Die Rampe selbst bleibt, damit Omlify-eigene
 Flächen auch bei einem Studio mit pinker Marke ruhig bleiben.
 
+**Umsetzung.** Das Studio wählt **eine** Markenfarbe; `deriveBrandTokens`
+(`src/design/brand.ts`) leitet die fünf Tokens ab: pressed = 25 % Richtung Schwarz,
+soft = 13 % Farbe auf Weiß, on-soft = pressed, bis ≥ 4,5:1 gegen soft abgedunkelt,
+on-brand Weiß. `#2F5A4E` liefert exakt die Standard-Tokens.
+
+Kontrastregel: erlaubt nur ≥ 4,5:1 gegen `#FFFFFF` UND `#F5F3EF`. Geprüft im Client
+(`isBrandColorAllowed`) und in der Datenbank (`yogaflow_private.is_brand_color_allowed`,
+CHECK `tenants_brand_color_allowed`). Früher vorgesehen: bei zu heller Studiofarbe
+automatisch auf dunkle Schrift umschalten. Das gilt nicht mehr: `on-brand` bleibt immer
+Weiß, helle Farben sind nicht wählbar.
+
+Voreinstellungen aus `BRAND_PRESETS`:
+
+| Name | Hex |
+|---|---|
+| Salbei | `#2F5A4E` |
+| Olive | `#5A6B2E` |
+| Petrol | `#1F5F6B` |
+| Nachtblau | `#2C4A7A` |
+| Lavendel | `#5B4B8A` |
+| Pflaume | `#6E3B5E` |
+| Beere | `#A23B62` |
+| Erde | `#6A4E3B` |
+| Schiefer | `#3D4852` |
+
+Salbei wird als `NULL` gespeichert (= Standard, zieht bei künftiger Änderung des
+Standards mit). Terrakotta bewusst nicht — zu nah an `danger`.
+
+Laufzeit: CSS-Variablen auf `<html>` (`src/lib/brandTheme.ts`), Cache pro Studio in
+`localStorage` gegen Aufblitzen. Warn-, Status-, Safran-, Grund- und Textfarben
+ändern sich nie.
+
 **Text auf brand-Flächen nur in `on-brand`.** Rangfolge über Größe und Gewicht, nicht über
 eine zweite Farbe — sonst bricht sie bei Tenant-Branding. Beispiel: Hero-Karte auf der Übersicht.
+
+`text-onBrand` steht auch auf `bg-danger` (Badges, Dialoge). Unkritisch, weil `on-brand`
+immer Weiß bleibt; ändert sich `on-brand` je, eigenes `on-danger` einführen.
 
 **Konflikt, der dabei entsteht:** Erfolgsgrün und Markengrün sind im Standardfall dieselbe
 Familie. Konsequenz: **Erfolg wird nicht über Farbe allein signalisiert.** Ein gebuchter Kurs
@@ -206,6 +256,18 @@ Für die spätere Expo-App bleibt die untere Leiste die Vorgabe — dort ist sie
   unter dem Inhalt, nie in der Aktionsleiste. Gefüllt in `danger` ist nur der
   endgültige Bestätigungsknopf im Dialog.
 
+**Logo und Studiokopf:**
+
+`StudioMark` (`src/components/branding/StudioMark.tsx`) ist die einzige Stelle für
+„Logo oder Name". Logo PNG/JPG/WebP ≤ 1 MB, kein SVG (kann Skripte enthalten).
+Anzeige je Ort schaltbar (Seitenleiste; Anmelde- und Beitrittsseite), Name neben
+Logo wählbar, nie beides unsichtbar; Logo ohne sichtbaren Namen steht im `<h1>`
+mit Studioname als `alt`, sonst `alt=""`. Ohne Logo: Name bzw. Herz-Kreis.
+Kurzbeschreibung (≤ 140 Zeichen) ersetzt auf der Anmeldeseite den festen Untertitel.
+Tab-Titel = Studioname (Apex: „Omlify – Yoga-Studio-Management"). Favicon: Logo nur
+wenn Seitenverhältnis 0,8–1,25 und mindestens ein Logo-Schalter an; sonst Herz in
+Studiofarbe; ohne Branding `public/favicon.svg`.
+
 ## Sprache
 
 Omlify spricht immer mit „du" an — alle Rollen, App, Landingpage, Mails,
@@ -236,15 +298,16 @@ Diese Punkte verursachen mehr „das ist eine Website"-Gefühl als jede Farbe:
 
 ## Technische Umsetzung
 
-**Ablage:** eine einzige Quelldatei `packages/core/src/design/tokens.ts` als reines
-TS-Objekt. Daraus werden erzeugt:
+**Ablage:** heute `src/design/tokens.ts` als reines TS-Objekt; `brand.ts` liest sie.
+Später wandert die Datei nach `packages/core/src/design/tokens.ts`. Daraus werden erzeugt:
 
-- CSS-Variablen für `apps/web` (`:root`-Block, per Build oder zur Laufzeit für Tenant-Werte)
-- ein Theme-Objekt für `apps/mobile` (React Native kennt keine CSS-Variablen)
+- CSS-Variablen für die Web-App. Laufzeitquelle bleibt `:root` in `src/index.css`,
+  überschrieben durch `brandTheme.ts` (Tenant-Werte auf `<html>`)
+- später ein Theme-Objekt für `apps/mobile` (React Native kennt keine CSS-Variablen)
 
 **Warum eine plattformneutrale Quelle:** Nach Entscheidung 02 kommt die Expo-App in Monat 3.
 Eine Palette, die nur in `tailwind.config.js` steht, muss dort von Hand nachgebaut werden und
-läuft anschließend auseinander.
+läuft anschließend auseinander. `brand.ts` bleibt deshalb ohne DOM und ohne React.
 
 **Tailwind:** die semantischen Namen in `theme.extend.colors` eintragen und auf die
 CSS-Variablen zeigen lassen — `brand: 'var(--color-brand)'`. Dadurch schaltet Tenant-Branding
@@ -265,4 +328,5 @@ als Alias beibehalten, dann Bildschirm für Bildschirm umstellen. Reihenfolge na
   eine Hauptaktion.
 - Dunkelmodus: aktuell nicht vorgesehen. Die Token-Struktur macht ihn später möglich,
   ohne dass etwas neu gebaut wird.
-- Logo: das Herz-Symbol ist unverändert übernommen und nicht Teil dieser Entscheidung.
+- Logo: umgesetzt in v1.5. Ohne hochgeladenes Logo bleibt das Herz der Rückfall
+  (Seitenleiste: Studioname; Anmelde- und Beitrittsseite: Herz-Kreis).

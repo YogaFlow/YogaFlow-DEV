@@ -67,6 +67,12 @@ sich in einen Design- oder Refactoring-Durchlauf einschleicht: sagen, nicht ausf
 **Wichtige Dateien**
 
 - `src/design/tokens.ts` — einzige Farbquelle, wandert später in ein gemeinsames Paket
+- `src/design/brand.ts` — Farbableitung, Kontrastregel, Voreinstellungen; plattformneutral (Expo).
+- `src/lib/brandTheme.ts` — setzt die Brand-Variablen zur Laufzeit, Cache pro Studio.
+- `src/lib/studioBranding.ts` — einziger Weg für Logo-URL, Logo-Upload und Speichern von Name/Design.
+- `src/lib/documentBranding.ts` — Tab-Titel und Favicon.
+- `src/components/branding/StudioMark.tsx` — einzige Stelle „Logo oder Name".
+- `src/components/settings/StudioDesignSection.tsx` — Einstellungen „Studio & Design", nur Owner.
 - `src/lib/format.ts` — Datum, Uhrzeit, Preis, Dauer. Formatierung passiert nirgendwo sonst.
 - `src/lib/courseDateFilter.ts` — Filterlogik der Kursliste
 - `src/lib/courseDateTime.ts` — `isRegistrationVisible` ist die einzige Regel, welche
@@ -113,6 +119,14 @@ sich in einen Design- oder Refactoring-Durchlauf einschleicht: sagen, nicht ausf
   Zeilen. Schreibende Aufrufe mit `.select()` ausführen und die Zeilenzahl prüfen.
 - `fetchCourseParticipantCounts` liefert bei Fehler `{}`. Die RPC gibt für jeden
   existierenden Kurs eine Zeile zurück; fehlt eine ID, ist die Zählung gescheitert.
+- `tenants` hat seit `20260915082415` `brand_color`, `tagline`, `logo_path`,
+  `logo_in_sidebar`, `logo_on_auth`, `sidebar_show_name`. `tenants` ist für `anon`
+  lesbar — dort nichts Internes ablegen. Schreiben nur über `update_studio_branding`
+  und `set_studio_logo` (nur Owner, `SECURITY DEFINER`). `brand_color` hat einen
+  CHECK mit `yogaflow_private.is_brand_color_allowed`; jede Rolle, die in `tenants`
+  schreibt, braucht EXECUTE darauf. Bucket `studio-branding`: Pfad
+  `<tenant_id>/logo-<ms>.<png|jpg|webp>`; direktes Löschen in `storage.objects` blockt
+  Supabase — nur über die Storage-API.
 
 **Tenant-Isolation (geprüft am 09.09.2026, umgebaut am 11.09.2026)**
 
@@ -203,7 +217,9 @@ Maßgeblich ist `docs/DESIGNSYSTEM.md`. Das Wichtigste in Kürze:
 - Die Grünrampe heißt **`sage`**, nicht `green` — sonst würde Tailwinds eigenes Grün
   überschrieben.
 - Hintergrund warmer Sand `#F5F3EF`, Marke Tief-Salbei `#2F5A4E`, Akzent Safran `#B87A2E`.
-- Nur `--color-brand` und die vier zugehörigen Tokens sind später pro Tenant überschreibbar.
+- `--color-brand` und die vier zugehörigen Tokens sind pro Studio überschreibbar (eine Markenfarbe,
+  abgeleitet in `brand.ts`).
+- Text auf `brandSoft` nur in `brandOnSoft`.
 - Uhrzeit nie mit Sekunden, Datum ausgeschrieben, Preis als `18 €`.
 - Gefüllt in `danger` ist nur ein Knopf, der sofort etwas Unwiderrufliches auslöst.
 - Erfolg wird nie allein über Farbe signalisiert.
@@ -242,6 +258,9 @@ der Detailseite für Owner/Admin bei kommenden Terminen — siehe `docs/RELEASE_
 siehe `docs/RELEASE_2026-09.md` Gruppe K. RPC-Migration `20260915003628` (Rückweg:
 `supabase/snapshots/2026-09-15_pre_du_enrollment_rpcs_dev.sql`).
 
+**Tenant-Branding 15.09.:** Owner stellen Name, Markenfarbe, Kurzbeschreibung und Logo ein — siehe
+`docs/RELEASE_2026-09.md` Gruppe L. Migrationen `20260915082415`, `20260915090020`.
+
 **Hotfix Plattformtabellen 15.09.:** `system_settings` und `admin_emails` nur noch
 `service_role` — siehe `docs/RELEASE_2026-09.md` Gruppe M. Migration `20260915104222`
 (auf Julius `8d3dbdc`, auf `main` `e0c4b86` / Merge `267f87f`; DEV und PROD).
@@ -278,8 +297,10 @@ Einladung, Gedrückt-Zustand statt Hover.
   jedem Aufruf** (`NULLIF(c.time, '')` auf einer `time`-Spalte → `invalid input syntax for type time`,
   auf DEV belegt am 14.09.), unbemerkt, weil `registrationMaintenance.ts` das Ergebnis nicht auswertet.
   Geplant: entfernen statt reparieren (Geldkette Story 0.2).
-- `ensure_public_user` schreibt noch in die entfernte Spalte `roles`. Der Rückfallpfad
-  scheitert immer; der Normalfall kehrt vorher zurück.
+- `ensure_public_user` weicht DEV/PROD ab: auf PROD schreibt die Funktion noch in die
+  entfernte Spalte `roles`. Der Rückfallpfad scheitert immer; der Normalfall kehrt
+  vorher zurück. Die DEV-Funktion (`20260911185000`) schreibt nicht mehr in `roles`,
+  setzt `is_admin` aber ungenutzt.
 - `Profile.tsx` ändert nur die Kopie `users.email`, nicht die Login-E-Mail. In PROD ist das
   bei einem Konto auseinandergelaufen.
 - PROD: 2 Logins ohne Profil, 1 Studio ohne Profil.
@@ -302,7 +323,8 @@ Einladung, Gedrückt-Zustand statt Hover.
   `registering`-Flag, der Knopf wird nicht gesperrt; Doppeltipp löst zwei Anfragen aus.
 - Tabelle `email_templates` (Seed `20250804174553` / `20260106130712`) enthält gesiezte
   Vorlagen, wird von App und Functions nicht gelesen (`grep email_templates` in `src/` und
-  `supabase/functions/`: 0 Treffer) — Altbestand.
+  `supabase/functions/`: 0 Treffer) — Altbestand. Jeder Manager darf global schreiben
+  (Policies ohne Studio-Bezug) — beim Entfernen des Altbestands mitnehmen.
 - Bestätigungsmail-HTML doppelt in `request-verification-email` (`index.ts:110-124`) und
   `send-verification-email` (`index.ts:114-128`).
 - `CourseDetail.tsx:60-64` / `:136-144` zeigt bei Ladefehler „Kurs nicht gefunden" statt der
@@ -322,6 +344,11 @@ Einladung, Gedrückt-Zustand statt Hover.
   entsteht (`20260907113107` Zeile 384), ist ungeprüft.
 - Owner/Admin sehen in „Kurse verwalten" nur eigene Kurse (`MyCourses.tsx:38`,
   `teacher_id` = self); fremde erreichen sie über „Kurse" und die Detailseite.
+- `global_settings` ohne `tenant_id` — Auftrag 7 läuft (Stornofeld entfällt, Standard-Teilnehmerzahl auf `tenants`).
+- `Users.tsx:679` rechnet `new Date(c.date)` auf `courses.date` — verstößt gegen die Datumsregel.
+- `anon`/`authenticated` haben auf den `public`-Tabellen Tabellen-TRUNCATE; RLS gilt dafür nicht, PostgREST bietet es
+  nicht an. Härtung von `tenants` mit Auftrag 7.
+- `scripts/db.mjs push prod` hängt unter Windows; PROD-Push braucht voraussichtlich `--include-all` — siehe Release-Checkliste.
 
 ---
 

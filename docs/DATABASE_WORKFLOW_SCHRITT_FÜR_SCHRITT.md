@@ -103,6 +103,20 @@ Das Skript bricht ab, wenn der aktuelle Branch nicht `main` ist, und verlangt da
   Verbindung. Workaround von `main`: `npx.cmd supabase db push --db-url …`
   (Hotfix `20260915104222`, Ausgabe damals `Finished supabase db push.`).
 
+  Das Datenbank-Passwort **nie** direkt in die Befehlszeile tippen oder einfügen
+  (landet im Verlauf). Sicherer Weg (PowerShell, auf `main`):
+
+  ```powershell
+  $cfg = @{}; Get-Content .env.deploy | ForEach-Object { if ($_ -match '^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$') { $cfg[$matches[1]] = $matches[2].Trim().Trim('"').Trim("'") } }
+  $cfg.PROD_REF   # muss otnhxzomnjjthocovasu sein
+  $dbUrl = "postgresql://postgres.$($cfg.PROD_REF):$([uri]::EscapeDataString($cfg.PROD_DB_PASSWORD))@$($cfg.PROD_DB_HOST).pooler.supabase.com:5432/postgres"
+  npx.cmd supabase db push --db-url $dbUrl   # Liste prüfen, dann Y
+  Remove-Variable dbUrl, cfg
+  ```
+
+  Übergangslösung, bis `db.mjs` repariert ist (Release-Checkliste). Umgeht die
+  Branch-Prüfung des Skripts — `git branch --show-current` vorher selbst prüfen.
+
 ### Schritt 3: Live-Seite prüfen
 
 `https://omlify.de` öffnen, anmelden, betroffene Features testen. Zusätzlich ein echtes Studio, etwa `https://yomita.omlify.de`.

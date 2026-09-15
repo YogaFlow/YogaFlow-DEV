@@ -133,7 +133,21 @@ Demo Alpha, Seed-Konten.
 - [ ] `npm run db:status:prod` — Liste der **ausstehenden** Migrationen gelesen und verstanden
 - [ ] Nach dem Merge: `npm run db:push:prod`, danach die Live-Seite prüfen.
       Unter Windows (15.09.): `npm run db:push:prod` hing nach der PROD-Abfrage zweimal
-      ohne Verbindung. Workaround: von `main` `npx.cmd supabase db push --db-url …`
+      ohne Verbindung. Workaround von `main`: `npx.cmd supabase db push --db-url …`
+
+      Das Datenbank-Passwort **nie** direkt in die Befehlszeile tippen oder einfügen
+      (landet im Verlauf). Sicherer Weg (PowerShell, auf `main`):
+
+      ```powershell
+      $cfg = @{}; Get-Content .env.deploy | ForEach-Object { if ($_ -match '^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$') { $cfg[$matches[1]] = $matches[2].Trim().Trim('"').Trim("'") } }
+      $cfg.PROD_REF   # muss otnhxzomnjjthocovasu sein
+      $dbUrl = "postgresql://postgres.$($cfg.PROD_REF):$([uri]::EscapeDataString($cfg.PROD_DB_PASSWORD))@$($cfg.PROD_DB_HOST).pooler.supabase.com:5432/postgres"
+      npx.cmd supabase db push --db-url $dbUrl   # Liste prüfen, dann Y
+      Remove-Variable dbUrl, cfg
+      ```
+
+      Übergangslösung, bis `db.mjs` repariert ist (Release-Checkliste). Umgeht die
+      Branch-Prüfung des Skripts — `git branch --show-current` vorher selbst prüfen.
 - [ ] Es ist klar, ob der neue Code ohne die Migration läuft. Falls nicht: Merge und
       `db:push:prod` unmittelbar nacheinander, sonst ist die Live-Seite dazwischen kaputt
 
