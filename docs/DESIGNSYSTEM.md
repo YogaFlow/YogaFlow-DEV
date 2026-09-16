@@ -1,8 +1,11 @@
 # Omlify Designsystem v1 — Farben und Tokens
 
-**Stand:** 16.09.2026 (v1.6 — Teilnehmerzahl nur auf der Kursdetailseite) · **Status:** festgelegt
+**Stand:** 16.09.2026 (v1.7 — Meta-Zeile der Kurszeile umbrechen) · **Status:** festgelegt
 **Ablageort im Repo:** `docs/DESIGNSYSTEM.md`
 **Zugehörig:** `claude/Entscheidung_02_Mobile_Strategie.md` (Tenant-Branding als Vorarbeit)
+
+**v1.7:** Die Meta-Zeile der Kurszeile bricht um (höchstens zwei Zeilen) statt
+mit Auslassungspunkten abzuschneiden.
 
 **v1.6:** Kurszeilen zeigen keine Teilnehmerzahl (`n/max Plätze`). Die belegten
 Plätze stehen nur auf der Kursdetailseite.
@@ -236,7 +239,8 @@ Für die spätere Expo-App bleibt die untere Leiste die Vorgabe — dort ist sie
 
 - Alle Kurslisten nutzen `CourseRow`
   (`src/components/courses/CourseRow.tsx`). Aufbau: Datumsblock oder Zeit-Chip · Titel
-  (höchstens zwei Zeilen) und Preis · eine Meta-Zeile · optional Status · Pfeil.
+  (höchstens zwei Zeilen) und Preis · Meta (höchstens zwei Zeilen, umbrechen statt `…`)
+  · optional Status · Pfeil.
 - In Kurszeilen keine Beschreibung, keine Knöpfe und keine Teilnehmerzahl
   (`n/max Plätze`). Die ganze Zeile öffnet die Kursdetailseite; die belegten
   Plätze stehen nur dort.

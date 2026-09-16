@@ -203,6 +203,11 @@ kein Admin-Login auf DEV; UI-Test Julius OK.
 Kurszeilen (Übersicht, Kurse, Kursverwaltung) zeigen für Owner/Admin/Lehrer keine
 belegten Plätze (`n/max Plätze`) mehr. Die Zahl steht nur auf der Kursdetailseite.
 
+## Q — Meta-Zeile der Kurszeile umbrechen (16.09.)
+
+Lange Orts- oder Leitungsnamen in der Meta-Zeile werden nicht mehr mit `…`
+abgeschnitten. Die Zeile bricht um, höchstens zwei Zeilen.
+
 ---
 
 ## Nachträge bis zum Schnitt
@@ -220,6 +225,7 @@ belegten Plätze (`n/max Plätze`) mehr. Die Zahl steht nur auf der Kursdetailse
 | 15.09. | siehe O | Feature | Buchungseinstellungen pro Studio, siehe Gruppe O |
 | 15.09. | `ca6fe70` | Tooling | Windows-Fix `scripts/db.mjs` auf `main` (PR `fix/db-script-windows-prod`) |
 | 16.09. | siehe P | Design | Teilnehmerzahl nur auf der Kursdetailseite, siehe Gruppe P |
+| 16.09. | siehe Q | Design | Meta-Zeile der Kurszeile umbrechen, siehe Gruppe Q |
 | | | Fixes aus Release-Test | |
 
 ---

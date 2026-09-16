@@ -51,7 +51,9 @@ const CourseRow: React.FC<CourseRowProps> = ({ course, href, leading, meta, stat
             ) : null}
           </div>
           {meta ? (
-            <p className="truncate text-[13px] text-textMuted tabular-nums">{meta}</p>
+            <p className="line-clamp-2 break-words text-[13px] leading-snug text-textMuted tabular-nums">
+              {meta}
+            </p>
           ) : null}
           {status ? <div className="mt-1">{status}</div> : null}
         </div>
