@@ -73,7 +73,8 @@ Auch wenn die Änderung „damit nichts zu tun hat". Genau diese Fälle brechen 
 - [ ] Kursleitung im eigenen Kurs und Admin: „Teilnehmer" und „Bearbeiten" statt Anmelden
 - [ ] Kursleitung in einem fremden Kurs kann sich anmelden
 - [ ] Abgesagter oder begonnener Kurs: kein Anmeldeknopf
-- [ ] Kursliste enthält keine Anmelde-/Abmeldeknöpfe und keine Beschreibung mehr
+- [ ] Kursliste enthält keine Anmelde-/Abmeldeknöpfe, keine Beschreibung und keine
+      Teilnehmerzahl (`n/max Plätze`); die belegten Plätze stehen nur auf der Detailseite
 - [ ] Owner/Admin: „Kurs löschen" unten auf der Seite, nur bei kommenden Kursen; nicht
       bei vergangenen, nicht für Kursleitungen
 - [ ] Löschdialog nennt die Zahl angemeldeter/wartender Personen (Vinyasa im Seed)
@@ -110,6 +111,8 @@ Demo Alpha, Seed-Konten.
 - [ ] `teacher`: keine Hero-Karte, Schnellzugriff unverändert
 - [ ] Kennzahl „Meine Anmeldungen" = Anzahl der Einträge in Hero + Danach
 - [ ] Kursliste: Uhrzeit als kompakter Chip, Endzeit als „bis HH:MM"
+- [ ] Owner: Kurszeilen ohne `n/max Plätze`; nach Antippen steht auf der Detailseite
+      „X von Y Plätzen belegt"
 - [ ] Ein abgesagter Kurs erscheint weder auf der Übersicht noch unter Meine Anmeldungen
       (Seed enthält keinen; einen Kurs absagen und danach prüfen)
 

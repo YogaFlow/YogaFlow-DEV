@@ -198,6 +198,11 @@ Studios (DEV: keiner; PROD: erwartet 10).
 Tests DEV: B1–B13 per zurückgerolltem SQL-Block ohne FEHLER, B2 (Admin) übersprungen —
 kein Admin-Login auf DEV; UI-Test Julius OK.
 
+## P — Teilnehmerzahl nur auf der Kursdetailseite (16.09.)
+
+Kurszeilen (Übersicht, Kurse, Kursverwaltung) zeigen für Owner/Admin/Lehrer keine
+belegten Plätze (`n/max Plätze`) mehr. Die Zahl steht nur auf der Kursdetailseite.
+
 ---
 
 ## Nachträge bis zum Schnitt
@@ -214,13 +219,14 @@ kein Admin-Login auf DEV; UI-Test Julius OK.
 | 15.09. | siehe N | a11y | `lang="de"`, siehe Gruppe N |
 | 15.09. | siehe O | Feature | Buchungseinstellungen pro Studio, siehe Gruppe O |
 | 15.09. | `ca6fe70` | Tooling | Windows-Fix `scripts/db.mjs` auf `main` (PR `fix/db-script-windows-prod`) |
+| 16.09. | siehe P | Design | Teilnehmerzahl nur auf der Kursdetailseite, siehe Gruppe P |
 | | | Fixes aus Release-Test | |
 
 ---
 
 ## Offene Fragen für den Termin am 15.09.
 
-1. **Umfang:** Geht alles aus A–O gemeinsam nach PROD, oder wird etwas zurückgehalten? Gruppe M
+1. **Umfang:** Geht alles aus A–P gemeinsam nach PROD, oder wird etwas zurückgehalten? Gruppe M
    (Plattformtabellen) liegt schon auf `main` und PROD. Die Mehrfachmitgliedschaft
    (F) lässt sich nicht sauber von B/C trennen: 7 Dateien werden in beiden Strängen geändert (`App.tsx`,
    `LoginForm.tsx`, `RegisterForm.tsx`, `AuthPage.tsx`, `ForgotPassword.tsx`, `Profile.tsx`, `Users.tsx`).

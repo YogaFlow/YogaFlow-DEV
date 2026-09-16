@@ -230,12 +230,8 @@ const Courses: React.FC = () => {
                   const teacherName = course.teacher
                     ? `${course.teacher.first_name} ${course.teacher.last_name}`.trim()
                     : '';
-                  const occupancy =
-                    isAdmin || isCourseLeader
-                      ? `${registeredCount}/${course.max_participants} Plätze`
-                      : '';
                   const until = formatTime(course.end_time);
-                  const meta = [until ? `bis ${until}` : '', teacherName, course.location, occupancy]
+                  const meta = [until ? `bis ${until}` : '', teacherName, course.location]
                     .filter(Boolean)
                     .join(' · ');
 

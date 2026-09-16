@@ -143,9 +143,8 @@ const MyCourses: React.FC = () => {
                   ).length ?? 0;
                   const isFull = registeredCount >= (course.max_participants || 0);
                   const remaining = (course.max_participants || 0) - registeredCount;
-                  const occupancy = `${registeredCount}/${course.max_participants} Plätze`;
                   const until = formatTime(course.end_time);
-                  const meta = [until ? `bis ${until}` : '', course.location, occupancy]
+                  const meta = [until ? `bis ${until}` : '', course.location]
                     .filter(Boolean)
                     .join(' · ');
 

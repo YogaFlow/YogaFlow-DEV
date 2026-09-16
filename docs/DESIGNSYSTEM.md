@@ -1,8 +1,11 @@
 # Omlify Designsystem v1 — Farben und Tokens
 
-**Stand:** 15.09.2026 (v1.5 — Tenant-Branding umgesetzt) · **Status:** festgelegt
+**Stand:** 16.09.2026 (v1.6 — Teilnehmerzahl nur auf der Kursdetailseite) · **Status:** festgelegt
 **Ablageort im Repo:** `docs/DESIGNSYSTEM.md`
 **Zugehörig:** `claude/Entscheidung_02_Mobile_Strategie.md` (Tenant-Branding als Vorarbeit)
+
+**v1.6:** Kurszeilen zeigen keine Teilnehmerzahl (`n/max Plätze`). Die belegten
+Plätze stehen nur auf der Kursdetailseite.
 
 **v1.5:** Tenant-Branding ist umgesetzt. Ein Studio wählt eine Markenfarbe;
 `deriveBrandTokens` leitet die fünf Tokens ab. Logo, Name und Kurzbeschreibung
@@ -15,7 +18,7 @@ Umlaut-Ersatzschreibung in Nutzertexten; im Nutzertext „Studio", nicht „Tena
 Siehe Abschnitt Sprache.
 
 **v1.3:** Alle Kurslisten nutzen `CourseRow`. Titel höchstens zwei Zeilen,
-keine Beschreibung und keine Knöpfe in der Zeile; die ganze Zeile öffnet die Kursdetailseite.
+keine Beschreibung, keine Knöpfe und keine Teilnehmerzahl in der Zeile; die ganze Zeile öffnet die Kursdetailseite.
 Aktionsleiste unten: eigener Zustand und genau eine Aktion, Knöpfe `rounded-full`, mind. 44 px.
 
 **v1.2:** Safran als Rampe (`50`/`100`/`500`/`700`); jeder Safran-Text in `accent-text`
@@ -234,8 +237,9 @@ Für die spätere Expo-App bleibt die untere Leiste die Vorgabe — dort ist sie
 - Alle Kurslisten nutzen `CourseRow`
   (`src/components/courses/CourseRow.tsx`). Aufbau: Datumsblock oder Zeit-Chip · Titel
   (höchstens zwei Zeilen) und Preis · eine Meta-Zeile · optional Status · Pfeil.
-- In Kurszeilen keine Beschreibung und keine Knöpfe. Die ganze Zeile öffnet die
-  Kursdetailseite.
+- In Kurszeilen keine Beschreibung, keine Knöpfe und keine Teilnehmerzahl
+  (`n/max Plätze`). Die ganze Zeile öffnet die Kursdetailseite; die belegten
+  Plätze stehen nur dort.
 - Listen ohne Tagesgruppen: Datumsblock links (Wochentag / Tag / Monat),
   `brand-soft` / `brand-on-soft`, oben ausgerichtet.
 - Listen mit Tagesgruppen: Uhrzeit als kompakter Chip links, so groß wie der Inhalt,

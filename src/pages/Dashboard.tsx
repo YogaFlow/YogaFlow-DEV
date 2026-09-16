@@ -347,10 +347,6 @@ const Dashboard: React.FC = () => {
             course.teacher && course.teacher_id !== userProfile?.id
               ? `${course.teacher.first_name} ${course.teacher.last_name}`.trim()
               : '';
-          const occupancy =
-            (isAdmin || isCourseLeader) && !isRegistration
-              ? `${registrationCount}/${maxParticipants}\u00A0Plätze`
-              : '';
           const running = isCourseRunning(course);
           const meta = [
             formatTodayOrTomorrow(course.date),
@@ -358,7 +354,6 @@ const Dashboard: React.FC = () => {
             running ? 'läuft gerade' : '',
             teacherName,
             course.location,
-            occupancy,
           ]
             .filter(Boolean)
             .join(' · ');

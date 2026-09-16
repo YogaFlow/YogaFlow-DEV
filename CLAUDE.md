@@ -251,7 +251,8 @@ AccentPill — siehe `docs/RELEASE_2026-09.md` Gruppe H.
 
 **Kursdetail 14.09.:** Gemeinsame Kurszeile und Kursdetailseite mit Aktionsleiste — siehe
 `docs/RELEASE_2026-09.md` Gruppe I. Anmeldeweg geändert: Anmelden, Warteliste und Abmelden gibt
-es nur noch auf der Kursdetailseite, nicht mehr in der Kursliste.
+es nur noch auf der Kursdetailseite, nicht mehr in der Kursliste. Teilnehmerzahl (`n/max Plätze`)
+steht nur auf der Detailseite, nicht in den Kurszeilen — siehe Gruppe P.
 
 **Kursverwaltung und Löschen:** Zeilen ohne Aktionen, gemeinsame `CourseRow`, Löschen nur auf
 der Detailseite für Owner/Admin bei kommenden Terminen — siehe `docs/RELEASE_2026-09.md` Gruppe J.
