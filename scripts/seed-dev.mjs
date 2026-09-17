@@ -209,10 +209,10 @@ const NAMEN = [
 // Die Vergangenheitskurse werden erst nach den Anmeldungen zurueckdatiert.
 const KURS_VORLAGEN = [
   { titel: 'Hatha Yoga am Morgen', beschreibung: 'Ruhiger Start in den Tag.', zeit: '08:00', plaetze: 12, preis: 15.0, versatz: 3, rueckdatieren: null },
-  { titel: 'Vinyasa Flow', beschreibung: 'Dynamische Abfolge fuer Geuebte.', zeit: '18:30', plaetze: 3, preis: 18.0, versatz: 5, rueckdatieren: null },
+  { titel: 'Vinyasa Flow', beschreibung: 'Dynamische Abfolge für Geübte.', zeit: '18:30', plaetze: 3, preis: 18.0, versatz: 5, rueckdatieren: null },
   { titel: 'Yin Yoga', beschreibung: 'Lange gehaltene Positionen.', zeit: '20:00', plaetze: 10, preis: 16.0, versatz: 12, rueckdatieren: null },
-  { titel: 'Rueckenkurs', beschreibung: 'Kraeftigung fuer den unteren Ruecken.', zeit: '17:00', plaetze: 8, preis: 20.0, versatz: 4, rueckdatieren: -14 },
-  { titel: 'Schwangerschaftsyoga', beschreibung: 'Sanfte Uebungen im zweiten Trimester.', zeit: '10:00', plaetze: 6, preis: 22.0, versatz: 6, rueckdatieren: -7 },
+  { titel: 'Rückenkurs', beschreibung: 'Kräftigung für den unteren Rücken.', zeit: '17:00', plaetze: 8, preis: 20.0, versatz: 4, rueckdatieren: -14 },
+  { titel: 'Schwangerschaftsyoga', beschreibung: 'Sanfte Übungen im zweiten Trimester.', zeit: '10:00', plaetze: 6, preis: 22.0, versatz: 6, rueckdatieren: -7 },
 ];
 
 async function studioAnlegen({ name, slug, teilnehmerAnzahl }) {
