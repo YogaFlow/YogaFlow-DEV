@@ -1,132 +1,39 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Clock, MapPin, Users, Plus } from 'lucide-react';
+import { Calendar, Check, Plus } from 'lucide-react';
 import CourseFilterBar from '../components/courses/CourseFilterBar';
+import CourseRow from '../components/courses/CourseRow';
 import {
   EMPTY_DATE_FILTER,
   CourseDateFilterState,
   matchesCourseDateFilter,
 } from '../lib/courseDateFilter';
+import {
+  matchesCourseTeacherFilter,
+  uniqueTeachersFromCourses,
+} from '../lib/courseTeacherFilter';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Course, Registration } from '../types';
-import { format, parseISO, isToday, isTomorrow } from 'date-fns';
-import { de } from 'date-fns/locale';
+import { Course } from '../types';
 import { isCourseUpcoming } from '../lib/courseDateTime';
+import { formatDayLabel, formatTime } from '../lib/format';
+import { groupCoursesByDay } from '../lib/courseGrouping';
 import { runPastRegistrationCleanup } from '../lib/registrationMaintenance';
+import { canSelfEnrollInCourses } from '../lib/userRoles';
+import { useCourseEnrollment } from '../lib/useCourseEnrollment';
+import AccentPill from '../components/ui/AccentPill';
 
 const Courses: React.FC = () => {
   const navigate = useNavigate();
   const { userProfile, isAdmin, isCourseLeader } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
-  const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [participantCounts, setParticipantCounts] = useState<Record<string, { registered: number; waitlist: number }>>({});
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState<CourseDateFilterState>(EMPTY_DATE_FILTER);
-  const [feedbackDialog, setFeedbackDialog] = useState<{
-    title: string;
-    message: string;
-    type: 'success' | 'error';
-  } | null>(null);
+  const [selectedTeacherId, setSelectedTeacherId] = useState<string | null>(null);
 
-  const showFeedbackDialog = (
-    message: string,
-    type: 'success' | 'error' = 'success',
-    title?: string
-  ) => {
-    setFeedbackDialog({
-      title: title || (type === 'success' ? 'Erfolg' : 'Hinweis'),
-      message,
-      type,
-    });
-  };
-
-  const getSupabaseErrorMessage = (error: unknown, fallback: string) => {
-    if (!error || typeof error !== 'object') {
-      return fallback;
-    }
-
-    const maybeError = error as {
-      message?: string;
-      details?: string;
-      hint?: string;
-      code?: string;
-    };
-
-    const parts = [maybeError.message, maybeError.details, maybeError.hint].filter(Boolean);
-    const withCode = maybeError.code ? [...parts, `Code: ${maybeError.code}`] : parts;
-
-    return withCode.length > 0 ? withCode.join(' | ') : fallback;
-  };
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadData = async () => {
-      try {
-        await runPastRegistrationCleanup();
-        const { data, error } = await supabase
-          .from('courses')
-          .select(`
-            *,
-            teacher:users!courses_teacher_id_fkey(first_name, last_name)
-          `)
-          .gte('date', new Date().toISOString().split('T')[0])
-          .order('date', { ascending: true })
-          .order('time', { ascending: true });
-
-        if (error) throw error;
-        if (isMounted) {
-          const upcomingCourses = (data || []).filter((course) => isCourseUpcoming(course));
-          setCourses(upcomingCourses);
-
-          if (upcomingCourses.length > 0) {
-            const courseIds = upcomingCourses.map(c => c.id);
-            const { data: countsData, error: countsError } = await supabase.rpc(
-              'get_course_participant_counts',
-              { p_course_ids: courseIds }
-            );
-
-            if (!countsError && countsData && isMounted) {
-              const countsMap: Record<string, { registered: number; waitlist: number }> = {};
-              countsData.forEach((c: { course_id: string; registered_count: number; waitlist_count: number }) => {
-                countsMap[c.course_id] = {
-                  registered: c.registered_count,
-                  waitlist: c.waitlist_count
-                };
-              });
-              setParticipantCounts(countsMap);
-            }
-          }
-        }
-
-        if (userProfile?.role === 'user') {
-          const { data: regData, error: regError } = await supabase
-            .from('registrations')
-            .select('course_id, status, is_waitlist, waitlist_position')
-            .eq('user_id', userProfile.id)
-            .is('cancellation_timestamp', null);
-
-          if (!regError && isMounted) {
-            setRegistrations(regData || []);
-          }
-        }
-      } catch (error) {
-        console.error('Error loading data:', error);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    loadData();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [userProfile]);
+  const availableTeachers = useMemo(() => uniqueTeachersFromCourses(courses), [courses]);
 
   const fetchCourses = async () => {
     try {
@@ -172,324 +79,206 @@ const Courses: React.FC = () => {
     }
   };
 
-  const fetchUserRegistrations = async () => {
-    if (!userProfile) return;
+  const {
+    setRegistrations,
+    isUserRegistered,
+    getUserRegistrationStatus,
+    getUserWaitlistPosition,
+  } = useCourseEnrollment(fetchCourses);
 
-    try {
-      const { data, error } = await supabase
-        .from('registrations')
-        .select('course_id, status, is_waitlist, waitlist_position')
-        .eq('user_id', userProfile.id)
-        .is('cancellation_timestamp', null);
+  useEffect(() => {
+    let isMounted = true;
 
-      if (error) throw error;
-      setRegistrations(data || []);
-    } catch (error) {
-      console.error('Error fetching registrations:', error);
-    }
-  };
-
-  const handleRegister = async (courseId: string) => {
-    if (!userProfile) return;
-
-    try {
-      const { data, error } = await supabase.rpc('register_for_course', {
-        p_course_id: courseId,
-      });
-
-      if (error) throw error;
-
-      if (data && !data.success) {
-        const d = data as { message?: string; error?: string };
-        showFeedbackDialog(
-          d.message || d.error || 'Fehler bei der Anmeldung.',
-          'error',
-          'Anmeldung nicht moeglich'
-        );
-        return;
-      }
-
-      fetchCourses();
-      fetchUserRegistrations();
-
-      if (data.waitlist_position) {
-        showFeedbackDialog(
-          `Sie wurden auf die Warteliste gesetzt (Position ${data.waitlist_position}). Sie werden benachrichtigt, wenn ein Platz frei wird.`,
-          'success',
-          'Warteliste'
-        );
-      } else {
-        showFeedbackDialog(data.message || 'Erfolgreich angemeldet.', 'success', 'Anmeldung erfolgreich');
-      }
-    } catch (error) {
-      console.error('Error registering for course:', error);
+    const loadData = async () => {
       try {
-        console.error('Error registering for course (serialized):', JSON.stringify(error, null, 2));
-      } catch {
-        // Ignore serialization issues (e.g. circular refs)
+        await runPastRegistrationCleanup();
+        const { data, error } = await supabase
+          .from('courses')
+          .select(`
+            *,
+            teacher:users!courses_teacher_id_fkey(first_name, last_name)
+          `)
+          .gte('date', new Date().toISOString().split('T')[0])
+          .order('date', { ascending: true })
+          .order('time', { ascending: true });
+
+        if (error) throw error;
+        if (isMounted) {
+          const upcomingCourses = (data || []).filter((course) => isCourseUpcoming(course));
+          setCourses(upcomingCourses);
+
+          if (upcomingCourses.length > 0) {
+            const courseIds = upcomingCourses.map(c => c.id);
+            const { data: countsData, error: countsError } = await supabase.rpc(
+              'get_course_participant_counts',
+              { p_course_ids: courseIds }
+            );
+
+            if (!countsError && countsData && isMounted) {
+              const countsMap: Record<string, { registered: number; waitlist: number }> = {};
+              countsData.forEach((c: { course_id: string; registered_count: number; waitlist_count: number }) => {
+                countsMap[c.course_id] = {
+                  registered: c.registered_count,
+                  waitlist: c.waitlist_count
+                };
+              });
+              setParticipantCounts(countsMap);
+            }
+          }
+        }
+
+        if (canSelfEnrollInCourses(userProfile)) {
+          const { data: regData, error: regError } = await supabase
+            .from('registrations')
+            .select('course_id, status, is_waitlist, waitlist_position')
+            .eq('user_id', userProfile.id)
+            .is('cancellation_timestamp', null);
+
+          if (!regError && isMounted) {
+            setRegistrations(regData || []);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
-      showFeedbackDialog(
-        getSupabaseErrorMessage(error, 'Fehler bei der Anmeldung. Bitte versuchen Sie es erneut.'),
-        'error',
-        'Anmeldung fehlgeschlagen'
-      );
+    };
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [userProfile]);
+
+  useEffect(() => {
+    if (selectedTeacherId && !availableTeachers.some((teacher) => teacher.id === selectedTeacherId)) {
+      setSelectedTeacherId(null);
     }
-  };
-
-  const handleUnregister = async (courseId: string) => {
-    if (!userProfile) return;
-
-    try {
-      const { data, error } = await supabase.rpc('unregister_from_course', {
-        p_course_id: courseId,
-      });
-
-      if (error) throw error;
-
-      if (data && !data.success) {
-        const d = data as { message?: string; error?: string };
-        showFeedbackDialog(
-          d.message || d.error || 'Fehler bei der Abmeldung.',
-          'error',
-          'Abmeldung nicht moeglich'
-        );
-        return;
-      }
-
-      fetchCourses();
-      fetchUserRegistrations();
-
-      showFeedbackDialog(data.message || 'Erfolgreich abgemeldet.', 'success', 'Abmeldung erfolgreich');
-    } catch (error) {
-      console.error('Error unregistering from course:', error);
-      try {
-        console.error('Error unregistering from course (serialized):', JSON.stringify(error, null, 2));
-      } catch {
-        // Ignore serialization issues (e.g. circular refs)
-      }
-      showFeedbackDialog(
-        getSupabaseErrorMessage(error, 'Fehler bei der Abmeldung. Bitte versuchen Sie es erneut.'),
-        'error',
-        'Abmeldung fehlgeschlagen'
-      );
-    }
-  };
-
-  const isUserRegistered = (courseId: string) => {
-    return registrations.some(reg => reg.course_id === courseId);
-  };
-
-  const getUserRegistrationStatus = (courseId: string) => {
-    const reg = registrations.find(reg => reg.course_id === courseId);
-    return reg?.status || null;
-  };
-
-  const getUserWaitlistPosition = (courseId: string) => {
-    const reg = registrations.find(reg => reg.course_id === courseId);
-    return reg?.waitlist_position || null;
-  };
-
-  const formatDate = (dateString: string) => {
-    try {
-      const date = parseISO(dateString);
-      if (isToday(date)) {
-        return 'Heute';
-      } else if (isTomorrow(date)) {
-        return 'Morgen';
-      }
-      return format(date, 'dd.MM.yyyy', { locale: de });
-    } catch {
-      return dateString;
-    }
-  };
+  }, [availableTeachers, selectedTeacherId]);
 
   const filteredCourses = courses.filter(course => {
     const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           course.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDate = matchesCourseDateFilter(course.date, dateFilter);
-    return matchesSearch && matchesDate && isCourseUpcoming(course);
+    const matchesTeacher = matchesCourseTeacherFilter(course.teacher_id, selectedTeacherId);
+    return matchesSearch && matchesDate && matchesTeacher && isCourseUpcoming(course);
   });
+
+  const dayGroups = groupCoursesByDay(filteredCourses);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand"></div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {feedbackDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-gray-100 bg-white p-6 shadow-2xl">
-            <div className="mb-3 flex items-center gap-2">
-              <span
-                className={`inline-flex h-2.5 w-2.5 rounded-full ${
-                  feedbackDialog.type === 'success' ? 'bg-teal-500' : 'bg-red-500'
-                }`}
-                aria-hidden
-              />
-              <h3 className="text-lg font-semibold text-gray-900">{feedbackDialog.title}</h3>
-            </div>
-            <p className="text-sm leading-6 text-gray-600">{feedbackDialog.message}</p>
-            <div className="mt-6 flex justify-center">
-              <button
-                onClick={() => setFeedbackDialog(null)}
-                className={`rounded-full px-6 py-2 text-sm font-semibold text-white transition-colors ${
-                  feedbackDialog.type === 'success'
-                    ? 'bg-teal-600 hover:bg-teal-700'
-                    : 'bg-red-600 hover:bg-red-700'
-                }`}
-              >
-                OK
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Kurse</h1>
-          <p className="text-gray-600">Entdecken Sie unsere Yoga-Kurse</p>
-        </div>
-        
-        {(isAdmin || isCourseLeader) && (
+      {(isAdmin || isCourseLeader) && (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end">
           <button
             onClick={() => navigate('/create-course')}
-            className="mt-4 sm:mt-0 bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition-colors flex items-center"
+            className="inline-flex items-center self-start rounded-sm border border-border px-3 py-2 text-[13px] font-medium text-brand transition-colors hover:bg-surfaceSunken"
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="mr-2 h-4 w-4" />
             Neuer Kurs
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       <CourseFilterBar
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
         filterState={dateFilter}
         onFilterChange={setDateFilter}
+        teachers={availableTeachers}
+        selectedTeacherId={selectedTeacherId}
+        onTeacherChange={setSelectedTeacherId}
       />
 
-      {/* Courses grid */}
       {filteredCourses.length === 0 ? (
-        <div className="text-center py-12">
-          <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Keine Kurse gefunden</h3>
-          <p className="text-gray-600">
-            {searchTerm || dateFilter.preset
-              ? 'Versuchen Sie andere Suchkriterien.' 
+        <div className="py-12 text-center">
+          <Calendar className="mx-auto mb-4 h-16 w-16 text-textSubtle" />
+          <h3 className="mb-2 text-lg font-medium text-text">Keine Kurse gefunden</h3>
+          <p className="text-textMuted">
+            {searchTerm || dateFilter.preset || selectedTeacherId
+              ? 'Versuche andere Suchkriterien.'
               : 'Derzeit sind keine Kurse verfügbar.'}
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredCourses.map((course) => {
-            const registeredCount = participantCounts[course.id]?.registered || 0;
-            const isRegistered = isUserRegistered(course.id);
-            const registrationStatus = getUserRegistrationStatus(course.id);
-            const waitlistPosition = getUserWaitlistPosition(course.id);
-            const isFull = registeredCount >= course.max_participants;
+        <div className="space-y-5">
+          {dayGroups.map((group) => (
+            <section key={group.date}>
+              <h2 className="mb-2 text-[15px] font-medium text-textMuted">
+                {formatDayLabel(group.date)}
+              </h2>
+              <div className="divide-y divide-border overflow-hidden rounded-md border border-border bg-surface">
+                {group.courses.map((course) => {
+                  const registeredCount = participantCounts[course.id]?.registered || 0;
+                  const isRegistered = isUserRegistered(course.id);
+                  const registrationStatus = getUserRegistrationStatus(course.id);
+                  const waitlistPosition = getUserWaitlistPosition(course.id);
+                  const isFull = registeredCount >= course.max_participants;
+                  const remaining = course.max_participants - registeredCount;
+                  const teacherName = course.teacher
+                    ? `${course.teacher.first_name} ${course.teacher.last_name}`.trim()
+                    : '';
+                  const until = formatTime(course.end_time);
+                  const meta = [until ? `bis ${until}` : '', teacherName, course.location]
+                    .filter(Boolean)
+                    .join(' · ');
 
-            return (
-              <div
-                key={course.id}
-                className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md"
-              >
-                <div className="p-5">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <h3 className="text-xl font-bold leading-tight text-gray-900">{course.title}</h3>
-                          <p className="mt-1 line-clamp-1 text-xs font-semibold uppercase tracking-wide text-gray-400">
-                            {course.description}
-                          </p>
-                        </div>
-                        <span className="shrink-0 text-2xl font-bold text-teal-600">€{course.price}</span>
-                      </div>
+                  let status: React.ReactNode = null;
+                  if (isRegistered && registrationStatus === 'registered') {
+                    status = (
+                      <span className="inline-flex items-center gap-1 text-[13px] font-medium text-success">
+                        <Check className="h-4 w-4" aria-hidden />
+                        Angemeldet
+                      </span>
+                    );
+                  } else if (isRegistered) {
+                    status = (
+                      <AccentPill>
+                        {waitlistPosition ? `Warteliste Pos. ${waitlistPosition}` : 'Warteliste'}
+                      </AccentPill>
+                    );
+                  } else if (isFull) {
+                    status = (
+                      <span className="text-[13px] font-medium text-textMuted">Ausgebucht</span>
+                    );
+                  } else if (remaining <= 2) {
+                    status = (
+                      <AccentPill>
+                        {remaining === 1 ? 'noch 1 Platz' : `noch ${remaining} Plätze`}
+                      </AccentPill>
+                    );
+                  } else if (course.teacher_id === userProfile?.id) {
+                    status = (
+                      <span className="text-[13px] font-medium text-textMuted">Dein Kurs</span>
+                    );
+                  }
 
-                      <div className="mt-4 space-y-2 text-sm text-gray-600">
-                        <div className="flex items-center gap-2 font-medium text-gray-500">
-                          <Calendar className="h-4 w-4 shrink-0" />
-                          {formatDate(course.date)}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 shrink-0" />
-                          {course.time}{course.end_time && ` - ${course.end_time}`}
-                          {course.duration && ` (${course.duration} Min.)`}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 shrink-0" />
-                          {course.location}
-                        </div>
-                        {(isAdmin || isCourseLeader) && (
-                          <div className="flex items-center gap-2">
-                            <Users className="h-4 w-4 shrink-0" />
-                            {registeredCount}/{course.max_participants} Teilnehmer
-                          </div>
-                        )}
-                      </div>
-
-                      {course.teacher && (
-                        <div className="mt-5 border-t border-gray-100 pt-4">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Kursleitung</p>
-                          <p className="mt-1 text-sm font-semibold text-gray-700">
-                            Lehrer: {course.teacher.first_name} {course.teacher.last_name}
-                          </p>
-                        </div>
-                      )}
-
-                      <div className="mt-5 flex items-center justify-between gap-3 border-t border-gray-100 pt-4">
-                        <div className="flex items-center gap-2">
-                          <div className={`h-2.5 w-2.5 rounded-full ${
-                            isFull ? 'bg-red-500' : (course.max_participants - registeredCount <= 2 ? 'bg-yellow-500' : 'bg-green-500')
-                          }`}></div>
-                          <span className="text-sm font-medium text-gray-600">
-                            {isFull ? 'Leider schon ausgebucht' : (course.max_participants - registeredCount <= 2 ? `noch ${course.max_participants - registeredCount} ${course.max_participants - registeredCount === 1 ? 'Restplatz' : 'Restplätze'}` : 'Verfügbar')}
-                          </span>
-                        </div>
-
-                        {isRegistered && registrationStatus === 'registered' && (
-                          <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-green-700">
-                            Angemeldet
-                          </span>
-                        )}
-                      </div>
-
-                      {course.status === 'active' && userProfile?.role === 'user' && course.teacher_id !== userProfile?.id && (
-                        <div className="mt-4">
-                          {isRegistered ? (
-                            <div className="space-y-2">
-                              {registrationStatus !== 'registered' && (
-                                <div className="inline-flex items-center justify-center rounded px-4 py-2 text-sm font-medium bg-yellow-100 text-yellow-700">
-                                  {waitlistPosition ? `Warteliste (Pos. ${waitlistPosition})` : 'Warteliste'}
-                                </div>
-                              )}
-                              <button
-                                onClick={() => handleUnregister(course.id)}
-                                className="w-full rounded-lg px-4 py-2 text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-colors"
-                              >
-                                Abmelden
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => handleRegister(course.id)}
-                              className={`w-full px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                                isFull
-                                  ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                                  : 'bg-teal-600 text-white hover:bg-teal-700'
-                              }`}
-                            >
-                              {isFull ? 'Warteliste' : 'Anmelden'}
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                  return (
+                    <CourseRow
+                      key={course.id}
+                      course={course}
+                      href={`/course/${course.id}`}
+                      leading="time"
+                      meta={meta}
+                      status={status}
+                    />
+                  );
+                })}
               </div>
-            );
-          })}
+            </section>
+          ))}
         </div>
       )}
     </div>

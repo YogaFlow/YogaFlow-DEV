@@ -10,22 +10,27 @@ import {
   Home,
   MessageSquare,
   UserCog,
+  ClipboardCheck,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTenant } from '../../context/TenantContext';
+import StudioMark from '../branding/StudioMark';
+import { getStudioLogoUrl } from '../../lib/studioBranding';
 import { useUnreadMessages } from '../../lib/useUnreadMessages';
+import { canSelfEnrollInCourses } from '../../lib/userRoles';
 
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
-  owner:   { label: 'Owner',     color: 'bg-purple-100 text-purple-800' },
-  admin:   { label: 'Admin',     color: 'bg-red-100 text-red-800' },
-  teacher: { label: 'Lehrer',    color: 'bg-blue-100 text-blue-800' },
-  user:    { label: 'Teilnehmer', color: 'bg-green-100 text-green-800' },
+  owner:   { label: 'Inhaberin/Inhaber', color: 'bg-brand text-onBrand' },
+  admin:   { label: 'Admin',             color: 'bg-brandSoft text-brandOnSoft' },
+  teacher: { label: 'Kursleitung',       color: 'bg-brandSoft text-brandOnSoft' },
+  user:    { label: 'Teilnehmer',         color: 'bg-surfaceSunken text-textMuted' },
 };
 
 const Sidebar: React.FC = () => {
   const { userProfile, signOut, isAdmin, isCourseLeader } = useAuth();
   const { tenant } = useTenant();
   const { unreadCount } = useUnreadMessages();
+  const canSelfEnroll = canSelfEnrollInCourses(userProfile);
 
   // Kurzer "Pop"-Effekt jedes Mal, wenn die Anzahl ungelesener Nachrichten steigt.
   const prevUnreadRef = useRef(unreadCount);
@@ -46,10 +51,26 @@ const Sidebar: React.FC = () => {
     ];
 
     if (isCourseLeader) {
-      items.splice(2, 0,
-        { to: '/my-courses',   icon: BookOpen, label: 'Meine Kurse' },
-        { to: '/participants', icon: Users,    label: 'Teilnehmer' },
-      );
+      const courseItems = [
+        { to: '/my-courses', icon: BookOpen, label: 'Kurse verwalten' },
+      ];
+
+      if (canSelfEnroll) {
+        courseItems.push({
+          to: '/my-registrations',
+          icon: ClipboardCheck,
+          label: 'Meine Anmeldungen',
+        });
+      }
+
+      courseItems.push({ to: '/participants', icon: Users, label: 'Teilnehmer' });
+      items.splice(2, 0, ...courseItems);
+    } else if (canSelfEnroll) {
+      items.splice(2, 0, {
+        to: '/my-registrations',
+        icon: ClipboardCheck,
+        label: 'Meine Anmeldungen',
+      });
     }
 
     if (isAdmin) {
@@ -71,10 +92,16 @@ const Sidebar: React.FC = () => {
   const roleInfo = userProfile?.role ? ROLE_LABELS[userProfile.role] : null;
 
   return (
-    <div className="bg-white shadow-lg h-full flex flex-col">
-      <div className="p-6 border-b border-gray-200">
-        <h1 className="text-2xl font-bold text-gray-900">{tenant?.name ?? 'Omlify'}</h1>
-        <p className="text-sm text-gray-600 mt-1">
+    <div className="bg-surface shadow-lg h-full flex flex-col">
+      <div className="p-6 border-b border-border">
+        <StudioMark
+          variant="sidebar"
+          name={tenant?.name ?? 'Omlify'}
+          logoUrl={getStudioLogoUrl(tenant?.logo_path)}
+          showLogo={tenant?.logo_in_sidebar ?? false}
+          showName={tenant?.sidebar_show_name ?? true}
+        />
+        <p className="text-sm text-textMuted mt-1">
           {userProfile?.first_name} {userProfile?.last_name}
         </p>
         {roleInfo && (
@@ -96,8 +123,8 @@ const Sidebar: React.FC = () => {
                 <NavLink
                   to={item.to}
                   className={({ isActive }) =>
-                    `flex items-center px-4 py-3 rounded-lg transition-colors ${
-                      isActive ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'
+                    `flex items-center px-4 py-3 rounded-sm transition-colors ${
+                      isActive ? 'bg-brand text-onBrand' : 'text-textMuted hover:bg-surfaceSunken'
                     }`
                   }
                 >
@@ -108,15 +135,15 @@ const Sidebar: React.FC = () => {
                           key={isMessages ? popKey : undefined}
                           className={`w-5 h-5 ${
                             hasUnread
-                              ? `text-red-500 animate-pulse${popKey ? ' animate-pop' : ''}`
+                              ? `text-danger animate-pulse${popKey ? ' animate-pop' : ''}`
                               : ''
                           }`}
                         />
                         {hasUnread && (
                           <span
                             aria-label={`${unreadCount} ungelesene Nachrichten`}
-                            className={`absolute -top-1.5 -right-2 min-w-[1rem] h-4 px-1 rounded-full bg-red-500 text-[10px] leading-4 text-white text-center font-semibold ring-2 ${
-                              isActive ? 'ring-gray-900' : 'ring-white'
+                            className={`absolute -top-1.5 -right-2 min-w-[1rem] h-4 px-1 rounded-full bg-danger text-[10px] leading-4 text-onBrand text-center font-semibold ring-2 ${
+                              isActive ? 'ring-brand' : 'ring-surface'
                             }`}
                           >
                             {unreadCount > 9 ? '9+' : unreadCount}
@@ -133,10 +160,10 @@ const Sidebar: React.FC = () => {
         </ul>
       </nav>
 
-      <div className="p-4 border-t border-gray-200">
+      <div className="p-4 border-t border-border">
         <button
           onClick={signOut}
-          className="flex items-center w-full px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+          className="flex items-center w-full px-4 py-3 text-textMuted hover:bg-surfaceSunken rounded-sm transition-colors"
         >
           <LogOut className="w-5 h-5 mr-3" />
           Abmelden

@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Calendar, Search } from 'lucide-react';
+import { Calendar, ChevronDown, Search, User } from 'lucide-react';
 import FilterChip from './FilterChip';
 import CourseFilterDatePicker from './CourseFilterDatePicker';
 import {
@@ -10,12 +10,19 @@ import {
   selectCustomDate,
   selectPreset,
 } from '../../lib/courseDateFilter';
+import {
+  CourseTeacherOption,
+  formatTeacherName,
+} from '../../lib/courseTeacherFilter';
 
 interface CourseFilterBarProps {
   searchTerm: string;
   onSearchChange: (value: string) => void;
   filterState: CourseDateFilterState;
   onFilterChange: (state: CourseDateFilterState) => void;
+  teachers: CourseTeacherOption[];
+  selectedTeacherId: string | null;
+  onTeacherChange: (teacherId: string | null) => void;
 }
 
 const QUICK_PRESETS: { id: Exclude<DateFilterPreset, 'custom'>; label: string }[] = [
@@ -29,6 +36,9 @@ const CourseFilterBar: React.FC<CourseFilterBarProps> = ({
   onSearchChange,
   filterState,
   onFilterChange,
+  teachers,
+  selectedTeacherId,
+  onTeacherChange,
 }) => {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerVariant, setPickerVariant] = useState<'popover' | 'modal'>('popover');
@@ -108,19 +118,39 @@ const CourseFilterBar: React.FC<CourseFilterBarProps> = ({
   );
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm md:p-6">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-start md:gap-3">
+    <div className="rounded-md border border-border bg-surface p-3.5">
+      <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center md:justify-start md:gap-3">
         {/* Search */}
         <div className="relative w-full md:w-52 md:shrink-0 lg:w-60">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-textSubtle" />
           <input
             type="text"
             placeholder="Kurse suchen..."
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 focus:border-transparent focus:ring-2 focus:ring-teal-500"
+            className="w-full rounded-sm border border-border py-2 pl-10 pr-4 focus:border-transparent focus:ring-2 focus:ring-brand"
           />
         </div>
+
+        {teachers.length > 1 && (
+          <div className="relative w-full md:w-52 md:shrink-0 lg:w-60">
+            <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-textSubtle" />
+            <select
+              value={selectedTeacherId ?? ''}
+              onChange={(e) => onTeacherChange(e.target.value || null)}
+              aria-label="Nach Lehrer filtern"
+              className="w-full appearance-none rounded-sm border border-border bg-surface py-2 pl-10 pr-8 focus:border-transparent focus:ring-2 focus:ring-brand"
+            >
+              <option value="">Alle Lehrer</option>
+              {teachers.map((teacher) => (
+                <option key={teacher.id} value={teacher.id}>
+                  {formatTeacherName(teacher)}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-textSubtle" />
+          </div>
+        )}
 
         {/* Desktop: chips */}
         <div className="hidden flex-wrap items-center gap-2 md:flex">
@@ -137,31 +167,17 @@ const CourseFilterBar: React.FC<CourseFilterBarProps> = ({
           {dateChooseChip}
         </div>
 
-        {/* Mobile: scrollable chips with fade hint */}
+        {/* Mobile: wrapping chips */}
         <div className="flex items-center gap-2 md:hidden">
-          <div className="relative min-w-0 flex-1">
-            {!isCustom && (
-              <div
-                className="pointer-events-none absolute inset-y-0 left-0 z-10 w-5 bg-gradient-to-r from-white to-transparent"
-                aria-hidden
-              />
-            )}
-            <div
-              className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-l from-white to-transparent"
-              aria-hidden
-            />
-            <div className="overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <div className="flex w-max items-center gap-2 py-0.5 pl-1 pr-4">
-                {customChip}
-                {renderPresetChips(false)}
-              </div>
-            </div>
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+            {customChip}
+            {renderPresetChips(false)}
           </div>
           <button
             type="button"
             onClick={handleCalendarClick}
             aria-label="Datum auswählen"
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-600 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-surface text-textMuted transition-colors hover:bg-surfaceSunken focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
           >
             <Calendar className="h-5 w-5" />
           </button>

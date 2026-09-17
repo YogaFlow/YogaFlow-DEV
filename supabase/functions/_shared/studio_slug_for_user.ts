@@ -11,7 +11,9 @@ function tenantIdFromMetadata(meta: Record<string, unknown> | undefined): string
   return null;
 }
 
-/** Lädt den Tenant-Slug für Verifizierungs-/Reset-Links (Service-Role, RLS egal). */
+/** Lädt den Tenant-Slug für Verifizierungs-/Reset-Links (Service-Role, RLS egal).
+ *  userId ist der Login (auth.users.id / auth_user_id).
+ *  Bei mehreren Profilen: ältestes (created_at), wenn kein Hint greift. */
 export async function fetchStudioSlugForUser(
   supabase: SupabaseClient,
   userId: string,
@@ -19,7 +21,9 @@ export async function fetchStudioSlugForUser(
   const { data: u, error: uErr } = await supabase
     .from("users")
     .select("tenant_id")
-    .eq("id", userId)
+    .eq("auth_user_id", userId)
+    .order("created_at", { ascending: true })
+    .limit(1)
     .maybeSingle();
   if (uErr) console.error("fetchStudioSlugForUser users:", uErr.message);
 
@@ -45,7 +49,7 @@ export async function fetchStudioSlugForUser(
 
 /**
  * Optionaler Slug aus dem Client (z. B. sessionStorage nach Onboarding): nur gültig,
- * wenn derselbe Slug in der DB dem Tenant des Nutzers entspricht.
+ * wenn derselbe Slug zu einer Membership des Logins gehört.
  */
 export async function verifyClientStudioSlugHint(
   supabase: SupabaseClient,
@@ -65,7 +69,8 @@ export async function verifyClientStudioSlugHint(
   const { data: u } = await supabase
     .from("users")
     .select("tenant_id")
-    .eq("id", userId)
+    .eq("auth_user_id", userId)
+    .eq("tenant_id", tenantRow.id)
     .maybeSingle();
   let userTenantId: string | null = typeof u?.tenant_id === "string" ? u.tenant_id : null;
   if (!userTenantId) {

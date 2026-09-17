@@ -99,6 +99,27 @@ Zeigt die noch nicht angewendeten Migrationen. **Ändert nichts** und verlangt d
 Das Skript bricht ab, wenn der aktuelle Branch nicht `main` ist, und verlangt danach die getippte Eingabe **`PROD`**. Erst dann läuft es.
 
 - **Agent** kann das Kommando starten, aber die Bestätigung tippst **du**.
+- **Windows (15.09.):** `npm run db:push:prod` hing nach der PROD-Abfrage zweimal ohne
+  Verbindung. Workaround von `main`: `npx.cmd supabase db push --db-url …`
+  (Hotfix `20260915104222`, Ausgabe damals `Finished supabase db push.`).
+  Fix in `scripts/db.mjs` (`1cc7495`, PR-Merge `ca6fe70` auf `main`; identisch auf `Julius`).
+  **Belegt am 15.09.2026:** `npm run db:push:prod` von `main` im cmd-Terminal ohne
+  ausstehende Migration → Liste, PROD-Abfrage, `db push --yes`, „Remote database is
+  up to date.", kein Hänger. PowerShell-Weg bleibt als Rückfall.
+
+  Das Datenbank-Passwort **nie** direkt in die Befehlszeile tippen oder einfügen
+  (landet im Verlauf). Sicherer Weg (PowerShell, auf `main`):
+
+  ```powershell
+  $cfg = @{}; Get-Content .env.deploy | ForEach-Object { if ($_ -match '^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$') { $cfg[$matches[1]] = $matches[2].Trim().Trim('"').Trim("'") } }
+  $cfg.PROD_REF   # muss otnhxzomnjjthocovasu sein
+  $dbUrl = "postgresql://postgres.$($cfg.PROD_REF):$([uri]::EscapeDataString($cfg.PROD_DB_PASSWORD))@$($cfg.PROD_DB_HOST).pooler.supabase.com:5432/postgres"
+  npx.cmd supabase db push --db-url $dbUrl   # Liste prüfen, dann Y
+  Remove-Variable dbUrl, cfg
+  ```
+
+  PowerShell-Weg als Rückfall. Umgeht die Branch-Prüfung des Skripts —
+  `git branch --show-current` vorher selbst prüfen.
 
 ### Schritt 3: Live-Seite prüfen
 

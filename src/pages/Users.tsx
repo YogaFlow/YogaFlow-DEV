@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import { formatDate } from '../lib/format';
 import { User, UserRole, Course } from '../types';
 import { useAuth } from '../context/AuthContext';
 import {
   Mail, ChevronDown, ChevronUp, Save, Plus,
-  Eye, EyeOff, UserCheck,
+  UserCheck,
 } from 'lucide-react';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
 
@@ -21,7 +22,6 @@ interface EditFormData {
   house_number: string;
   postal_code: string;
   city: string;
-  new_password: string;
 }
 
 interface RegWithCourse {
@@ -45,15 +45,18 @@ const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
 ];
 
 const ROLE_COLORS: Record<UserRole, string> = {
-  owner:   'bg-purple-100 text-purple-800',
-  admin:   'bg-red-100 text-red-800',
-  teacher: 'bg-blue-100 text-blue-800',
-  user:    'bg-green-100 text-green-800',
+  owner:   'bg-brand text-onBrand',
+  admin:   'bg-brandSoft text-brandOnSoft',
+  teacher: 'bg-brandSoft text-brandOnSoft',
+  user:    'bg-surfaceSunken text-textMuted',
 };
 
-function getRoleLabel(role: UserRole): string {
-  return ROLE_OPTIONS.find(r => r.value === role)?.label ?? role;
-}
+const ROLE_BADGE_LABELS: Record<UserRole, string> = {
+  owner: 'Inhaberin/Inhaber',
+  admin: 'Admin',
+  teacher: 'Kursleitung',
+  user: 'Teilnehmer',
+};
 
 function getRoleChangeErrorMessage(error: unknown): string {
   const extract = (val: unknown): string => {
@@ -94,7 +97,7 @@ function isLastOwnerSelfDowngrade(user: User, ownerCount: number, isSelf: boolea
 }
 
 function canShowCourseSection(role: UserRole): boolean {
-  return role === 'user';
+  return role === 'user' || role === 'teacher';
 }
 
 // ---------------------------------------------------------------------------
@@ -118,7 +121,6 @@ export default function Users() {
   const [loading, setLoading]                   = useState(true);
   const [expandedId, setExpandedId]             = useState<string | null>(null);
   const [editForm, setEditForm]                 = useState<EditFormData | null>(null);
-  const [showPassword, setShowPassword]         = useState(false);
   const [userRegistrations, setUserRegistrations] = useState<RegWithCourse[]>([]);
   const [regsLoading, setRegsLoading]           = useState(false);
   const [selectedCourseId, setSelectedCourseId] = useState('');
@@ -213,7 +215,6 @@ export default function Users() {
       setEditForm(null);
       setUserRegistrations([]);
       setSelectedCourseId('');
-      setShowPassword(false);
       return;
     }
     setExpandedId(user.id);
@@ -226,10 +227,8 @@ export default function Users() {
       house_number: user.house_number || '',
       postal_code:  user.postal_code  || '',
       city:         user.city         || '',
-      new_password: '',
     });
     setSelectedCourseId('');
-    setShowPassword(false);
     if (canShowCourseSection(user.role)) {
       setRegsLoading(true);
       const regs = await fetchUserRegistrations(user.id);
@@ -242,7 +241,7 @@ export default function Users() {
   };
 
   // ---------------------------------------------------------------------------
-  // Save profile + password
+  // Save studio profile (no login email/password)
   // ---------------------------------------------------------------------------
 
   const handleSaveProfile = async (userId: string) => {
@@ -253,14 +252,12 @@ export default function Users() {
         userId,
         first_name:   editForm.first_name,
         last_name:    editForm.last_name,
-        email:        editForm.email,
         phone:        editForm.phone,
         street:       editForm.street,
         house_number: editForm.house_number,
         postal_code:  editForm.postal_code,
         city:         editForm.city,
       };
-      if (editForm.new_password) payload.new_password = editForm.new_password;
 
       const { error: fnError } = await supabase.functions.invoke('update-user', {
         body: payload,
@@ -279,14 +276,12 @@ export default function Users() {
         ...u,
         first_name:   editForm.first_name,
         last_name:    editForm.last_name,
-        email:        editForm.email,
         phone:        editForm.phone,
         street:       editForm.street,
         house_number: editForm.house_number,
         postal_code:  editForm.postal_code,
         city:         editForm.city,
       } : u));
-      setEditForm(prev => prev ? { ...prev, new_password: '' } : prev);
       setFeedbackDialog({ title: 'Gespeichert', message: 'Nutzerdaten wurden erfolgreich aktualisiert.', type: 'success' });
     } catch (err: unknown) {
       setFeedbackDialog({
@@ -319,6 +314,8 @@ export default function Users() {
       if (!result.success) {
         if (result.error === 'already_registered') {
           setFeedbackDialog({ title: 'Hinweis', message: 'Der Nutzer ist bereits in diesem Kurs angemeldet.', type: 'info' });
+        } else if (result.error === 'Course teachers cannot be added as participants to their own course') {
+          setFeedbackDialog({ title: 'Hinweis', message: 'Lehrer können nicht als Teilnehmer in den eigenen Kurs aufgenommen werden.', type: 'info' });
         } else {
           throw new Error(result.error);
         }
@@ -359,7 +356,7 @@ export default function Users() {
     if (targetUser?.role === 'owner' && newRole !== 'owner' && ownerCount <= 1) {
       setFeedbackDialog({
         title:   'Owner-Rolle erforderlich',
-        message: 'Die letzte Owner-Rolle kann nicht entfernt werden. Ernennen Sie zuerst einen weiteren Owner.',
+        message: 'Du bist aktuell der einzige Owner. Ernenne zuerst eine weitere Person zum Owner.',
         type: 'error',
       });
       return;
@@ -394,7 +391,7 @@ export default function Users() {
   if (!isCourseLeader) {
     return (
       <div className="p-8">
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+        <div className="bg-dangerSoft border border-danger text-danger px-4 py-3 rounded-sm">
           Zugriff verweigert. Diese Seite ist nur für Lehrer, Admins und Studio-Owner zugänglich.
         </div>
       </div>
@@ -404,7 +401,7 @@ export default function Users() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600" />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand" />
       </div>
     );
   }
@@ -418,18 +415,17 @@ export default function Users() {
       <FeedbackDialog dialog={feedbackDialog} onClose={() => setFeedbackDialog(null)} />
 
       <div className="mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Nutzerverwaltung</h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-sm text-textMuted mt-1">
           {isTeacher
-            ? 'Alle Teilnehmer deines Studios – Stammdaten und Passwörter bearbeiten, Kurse zuweisen.'
-            : 'Alle Studio-Nutzer verwalten – Stammdaten, Passwörter, Rollen und Kursbelegung.'}
+            ? 'Alle Teilnehmer deines Studios – Stammdaten bearbeiten, Kurse zuweisen.'
+            : 'Alle Studio-Nutzer verwalten – Stammdaten, Rollen und Kursbelegung.'}
         </p>
       </div>
 
       {/* ── Mobile card list (< lg) ── */}
       <div className="lg:hidden space-y-2">
         {users.length === 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 px-6 py-12 text-center text-gray-500 text-sm">
+          <div className="bg-surface rounded-md border border-border p-3.5 text-center text-textMuted text-sm">
             {isTeacher ? 'Noch keine Teilnehmer gefunden.' : 'Noch keine Nutzer gefunden.'}
           </div>
         )}
@@ -441,25 +437,27 @@ export default function Users() {
           const lastOwnerLocked = isLastOwnerSelfDowngrade(user, ownerCount, isSelf);
           const alreadyRegisteredIds = new Set(userRegistrations.map(r => r.course_id));
           const today = new Date(); today.setHours(0, 0, 0, 0);
-          const availableCoursesToAdd = courses.filter(c => !alreadyRegisteredIds.has(c.id) && (!c.date || new Date(c.date) >= today));
+          const availableCoursesToAdd = courses.filter(c => !alreadyRegisteredIds.has(c.id) && (!c.date || new Date(c.date) >= today) && c.teacher_id !== user.id);
           return (
             <React.Fragment key={user.id}>
-              <div className={`bg-white rounded-xl border shadow-sm overflow-hidden transition-colors ${
-                isExpanded ? 'border-teal-300' : 'border-gray-200'
+              <div className={`bg-surface rounded-md border overflow-hidden transition-colors ${
+                isExpanded ? 'border-borderStrong' : 'border-border'
               }`}>
                 {/* Card header */}
-                <div className={`px-4 py-3 flex items-center justify-between gap-3 ${isSelf ? 'bg-teal-50' : ''}`}>
+                <div className={`p-3.5 flex items-center justify-between gap-3 ${isSelf ? 'bg-brandSoft' : ''}`}>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-semibold text-gray-900">
+                      <span className="text-sm font-semibold text-text">
                         {user.first_name} {user.last_name}
                       </span>
-                      {isSelf && <span className="text-xs text-teal-600 font-medium">(du)</span>}
-                      <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${ROLE_COLORS[user.role]}`}>
-                        {getRoleLabel(user.role)}
-                      </span>
+                      {isSelf && <span className="text-xs text-brandOnSoft font-medium">(du)</span>}
+                      {user.role !== 'user' && (
+                        <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${ROLE_COLORS[user.role]}`}>
+                          {ROLE_BADGE_LABELS[user.role]}
+                        </span>
+                      )}
                     </div>
-                    <p className="flex items-center gap-1 text-xs text-gray-400 mt-0.5 truncate">
+                    <p className="flex items-center gap-1 text-xs text-textSubtle mt-0.5 truncate">
                       <Mail size={11} className="flex-shrink-0" />
                       {user.email}
                     </p>
@@ -468,10 +466,10 @@ export default function Users() {
                     {(user.role !== 'owner' || isSelf) && (
                       <button
                         onClick={() => handleToggleExpand(user)}
-                        className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                        className={`flex items-center gap-1 px-3 py-1.5 rounded-sm text-xs font-semibold transition-colors ${
                           isExpanded
-                            ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                            : 'bg-teal-600 text-white hover:bg-teal-700'
+                            ? 'bg-surfaceSunken text-textMuted hover:bg-borderStrong'
+                            : 'bg-brand text-onBrand hover:bg-brandPressed'
                         }`}
                       >
                         {isExpanded
@@ -484,19 +482,19 @@ export default function Users() {
 
                 {/* Expanded panel (mobile) */}
                 {isExpanded && editForm && (
-                  <div className="border-t border-gray-100 bg-gray-50 px-4 py-4 space-y-4">
+                  <div className="border-t border-border bg-surfaceSunken p-3.5 space-y-4">
 
                     {/* Rolle – nur auf Mobile im Panel */}
                     {showRoleDropdown && (
                       <div>
-                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Rolle</label>
+                        <label className="block text-xs font-semibold text-textMuted mb-1.5">Rolle</label>
                         <div className="flex items-center gap-2">
                           <select
                             value={user.role}
                             onChange={e => handleRoleChange(user.id, e.target.value as UserRole)}
                             disabled={savingRoleId === user.id || lastOwnerLocked}
                             title={lastOwnerLocked ? 'Du bist der einzige Owner. Ernenne zuerst einen weiteren Owner.' : undefined}
-                            className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50"
+                            className="flex-1 text-sm border border-border rounded-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand disabled:opacity-50"
                           >
                             {roleOptionsForActor.map(opt => (
                               <option
@@ -508,10 +506,10 @@ export default function Users() {
                               </option>
                             ))}
                           </select>
-                          {savingRoleId === user.id && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-teal-600" />}
+                          {savingRoleId === user.id && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-brand" />}
                         </div>
                         {lastOwnerLocked && (
-                          <p className="mt-1 text-xs text-amber-600">
+                          <p className="mt-1 text-xs text-text">
                             Du bist der einzige Owner. Ernenne zuerst einen weiteren Owner.
                           </p>
                         )}
@@ -520,132 +518,112 @@ export default function Users() {
 
                     {/* Stammdaten */}
                     <div>
-                      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Stammdaten</h3>
+                      <h3 className="text-xs font-semibold text-textMuted mb-2">Stammdaten</h3>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-xs text-gray-500 mb-1">Vorname</label>
+                          <label className="block text-xs text-textMuted mb-1">Vorname</label>
                           <input type="text" value={editForm.first_name}
                             onChange={e => setEditForm(f => f ? { ...f, first_name: e.target.value } : f)}
-                            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                            className="w-full text-sm border border-border rounded-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand" />
                         </div>
                         <div>
-                          <label className="block text-xs text-gray-500 mb-1">Nachname</label>
+                          <label className="block text-xs text-textMuted mb-1">Nachname</label>
                           <input type="text" value={editForm.last_name}
                             onChange={e => setEditForm(f => f ? { ...f, last_name: e.target.value } : f)}
-                            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                            className="w-full text-sm border border-border rounded-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand" />
                         </div>
                         <div className="col-span-2">
-                          <label className="block text-xs text-gray-500 mb-1">E-Mail</label>
-                          <input type="email" value={editForm.email}
-                            onChange={e => setEditForm(f => f ? { ...f, email: e.target.value } : f)}
-                            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                          <label className="block text-xs text-textMuted mb-1">E-Mail</label>
+                          <input type="email" value={editForm.email} readOnly
+                            className="w-full text-sm border border-border rounded-sm px-3 py-2 bg-surfaceSunken cursor-not-allowed text-textMuted" />
+                          <p className="mt-1 text-xs text-textSubtle">Login-E-Mail, nicht änderbar</p>
                         </div>
                         <div className="col-span-2">
-                          <label className="block text-xs text-gray-500 mb-1">Telefon</label>
+                          <label className="block text-xs text-textMuted mb-1">Telefon</label>
                           <input type="tel" value={editForm.phone}
                             onChange={e => setEditForm(f => f ? { ...f, phone: e.target.value } : f)}
-                            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                            className="w-full text-sm border border-border rounded-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand" />
                         </div>
                         <div>
-                          <label className="block text-xs text-gray-500 mb-1">Straße</label>
+                          <label className="block text-xs text-textMuted mb-1">Straße</label>
                           <input type="text" value={editForm.street}
                             onChange={e => setEditForm(f => f ? { ...f, street: e.target.value } : f)}
-                            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                            className="w-full text-sm border border-border rounded-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand" />
                         </div>
                         <div>
-                          <label className="block text-xs text-gray-500 mb-1">Hausnummer</label>
+                          <label className="block text-xs text-textMuted mb-1">Hausnummer</label>
                           <input type="text" value={editForm.house_number}
                             onChange={e => setEditForm(f => f ? { ...f, house_number: e.target.value } : f)}
-                            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                            className="w-full text-sm border border-border rounded-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand" />
                         </div>
                         <div>
-                          <label className="block text-xs text-gray-500 mb-1">PLZ</label>
+                          <label className="block text-xs text-textMuted mb-1">PLZ</label>
                           <input type="text" value={editForm.postal_code}
                             onChange={e => setEditForm(f => f ? { ...f, postal_code: e.target.value } : f)}
-                            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                            className="w-full text-sm border border-border rounded-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand" />
                         </div>
                         <div>
-                          <label className="block text-xs text-gray-500 mb-1">Stadt</label>
+                          <label className="block text-xs text-textMuted mb-1">Stadt</label>
                           <input type="text" value={editForm.city}
                             onChange={e => setEditForm(f => f ? { ...f, city: e.target.value } : f)}
-                            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                            className="w-full text-sm border border-border rounded-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand" />
                         </div>
-                      </div>
-                    </div>
-
-                    {/* Passwort */}
-                    <div>
-                      <label className="block text-xs text-gray-500 mb-1">
-                        Neues Passwort <span className="text-gray-400">(optional)</span>
-                      </label>
-                      <div className="flex gap-2">
-                        <input
-                          type={showPassword ? 'text' : 'password'}
-                          value={editForm.new_password}
-                          onChange={e => setEditForm(f => f ? { ...f, new_password: e.target.value } : f)}
-                          placeholder="Leer lassen = nicht ändern"
-                          className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                        />
-                        <button type="button" onClick={() => setShowPassword(p => !p)}
-                          className="px-3 text-gray-400 hover:text-gray-600 border border-gray-300 rounded-lg">
-                          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                        </button>
                       </div>
                     </div>
 
                     <button
                       onClick={() => handleSaveProfile(user.id)}
                       disabled={savingProfile}
-                      className="flex items-center gap-2 bg-teal-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-teal-700 disabled:opacity-50 transition-colors"
+                      className="flex items-center gap-2 bg-brand text-onBrand px-5 py-2 rounded-sm text-sm font-medium hover:bg-brandPressed disabled:opacity-50 transition-colors"
                     >
                       {savingProfile
-                        ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                        ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-onBrand" />
                         : <Save size={16} />}
                       Speichern
                     </button>
 
                     {canShowCourseSection(user.role) && (
-                      <div className="border-t border-gray-200 pt-4">
-                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Kurs zuweisen</h3>
+                      <div className="border-t border-border pt-4">
+                        <h3 className="text-xs font-semibold text-textMuted mb-3">Kurs zuweisen</h3>
                         <div className="flex gap-2 mb-4">
                           <select
                             value={selectedCourseId}
                             onChange={e => setSelectedCourseId(e.target.value)}
-                            className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                            className="flex-1 text-sm border border-border rounded-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
                           >
                             <option value="">Kurs auswählen…</option>
                             {availableCoursesToAdd.map(c => (
                               <option key={c.id} value={c.id}>
-                                {c.title}{c.date ? ` (${new Date(c.date).toLocaleDateString('de-DE')})` : ''}
+                                {c.title}{c.date ? ` (${formatDate(c.date)})` : ''}
                               </option>
                             ))}
                           </select>
                           <button
                             onClick={() => handleAddToCourse(user.id)}
                             disabled={!selectedCourseId || addingCourse}
-                            className="flex items-center justify-center px-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-colors"
+                            className="flex items-center justify-center px-3 bg-brand text-onBrand rounded-sm hover:bg-brandPressed disabled:opacity-50 transition-colors"
                           >
                             {addingCourse
-                              ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                              ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-onBrand" />
                               : <Plus size={18} />}
                           </button>
                         </div>
-                        <h4 className="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">Aktuelle Buchungen</h4>
+                        <h4 className="text-xs font-medium text-textMuted mb-2">Aktuelle Buchungen</h4>
                         {regsLoading ? (
-                          <div className="flex items-center gap-2 text-xs text-gray-400">
-                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-teal-500" />Lade…
+                          <div className="flex items-center gap-2 text-xs text-textSubtle">
+                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-brand" />Lade…
                           </div>
                         ) : userRegistrations.length === 0 ? (
-                          <p className="text-xs text-gray-400 italic">Keine aktiven Buchungen.</p>
+                          <p className="text-xs text-textSubtle italic">Keine aktiven Buchungen.</p>
                         ) : (
                           <ul className="space-y-1.5">
                             {userRegistrations.map(reg => (
-                              <li key={reg.id} className="flex items-start gap-2 text-xs text-gray-600">
-                                <UserCheck size={13} className="text-teal-500 flex-shrink-0 mt-0.5" />
+                              <li key={reg.id} className="flex items-start gap-2 text-xs text-textMuted">
+                                <UserCheck size={13} className="text-brand flex-shrink-0 mt-0.5" />
                                 <span>
                                   {reg.courses?.title ?? '—'}
                                   {reg.courses?.date && (
-                                    <span className="text-gray-400"> ({new Date(reg.courses.date).toLocaleDateString('de-DE')})</span>
+                                    <span className="text-textSubtle tabular-nums"> ({formatDate(reg.courses.date)})</span>
                                   )}
                                   {reg.is_waitlist && (
                                     <span className="ml-1 text-orange-500 font-medium">Warteliste #{reg.waitlist_position}</span>
@@ -666,21 +644,21 @@ export default function Users() {
       </div>
 
       {/* ── Desktop table (lg+) ── */}
-      <div className="hidden lg:block bg-white rounded-lg shadow overflow-x-auto w-full">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+      <div className="hidden lg:block bg-surface rounded-md border border-border overflow-x-auto w-full">
+        <table className="min-w-full divide-y divide-border">
+          <thead className="bg-surfaceSunken">
             <tr>
               <th className="px-3 py-3 w-8" />
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">E-Mail</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rolle</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aktionen</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-textMuted">Name</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-textMuted">E-Mail</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-textMuted">Rolle</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-textMuted">Aktionen</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-surface divide-y divide-border">
             {users.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                <td colSpan={5} className="px-6 py-12 text-center text-textMuted">
                   {isTeacher
                     ? 'Noch keine Teilnehmer gefunden.'
                     : 'Noch keine Nutzer gefunden.'}
@@ -698,18 +676,18 @@ export default function Users() {
               // Courses the user is already registered in (for dropdown filtering)
               const alreadyRegisteredIds = new Set(userRegistrations.map(r => r.course_id));
               const today = new Date(); today.setHours(0, 0, 0, 0);
-              const availableCoursesToAdd = courses.filter(c => !alreadyRegisteredIds.has(c.id) && (!c.date || new Date(c.date) >= today));
+              const availableCoursesToAdd = courses.filter(c => !alreadyRegisteredIds.has(c.id) && (!c.date || new Date(c.date) >= today) && c.teacher_id !== user.id);
 
               return (
                 <React.Fragment key={user.id}>
                   {/* ── Main row ── */}
-                  <tr className={`${isSelf ? 'bg-teal-50' : ''} ${isExpanded ? 'bg-gray-50' : 'hover:bg-gray-50'} transition-colors`}>
+                  <tr className={`${isSelf ? 'bg-brandSoft' : ''} ${isExpanded ? 'bg-surfaceSunken' : 'hover:bg-surfaceSunken'} transition-colors`}>
                     {/* Toggle button */}
                     <td className="px-3 py-4 text-center">
                       {(user.role !== 'owner' || isSelf) && (
                         <button
                           onClick={() => handleToggleExpand(user)}
-                          className="text-gray-400 hover:text-teal-600 transition-colors"
+                          className="text-textSubtle hover:text-brandPressed transition-colors"
                           title={isExpanded ? 'Schließen' : 'Bearbeiten'}
                         >
                           {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
@@ -719,15 +697,15 @@ export default function Users() {
 
                     {/* Name */}
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
+                      <div className="text-sm font-medium text-text">
                         {user.first_name} {user.last_name}
-                        {isSelf && <span className="ml-2 text-xs text-teal-600 font-normal">(du)</span>}
+                        {isSelf && <span className="ml-2 text-xs text-brandOnSoft font-normal">(du)</span>}
                       </div>
                     </td>
 
                     {/* E-Mail */}
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                      <div className="flex items-center gap-1.5 text-sm text-textMuted">
                         <Mail size={14} className="flex-shrink-0" />
                         {user.email}
                       </div>
@@ -737,9 +715,11 @@ export default function Users() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2">
-                          <span className={`px-2 py-1 text-xs rounded-full font-medium ${ROLE_COLORS[user.role]}`}>
-                            {getRoleLabel(user.role)}
-                          </span>
+                          {user.role !== 'user' && (
+                            <span className={`px-2 py-1 text-xs rounded-full font-medium ${ROLE_COLORS[user.role]}`}>
+                              {ROLE_BADGE_LABELS[user.role]}
+                            </span>
+                          )}
                           {showRoleDropdown && (
                             <>
                               <select
@@ -747,7 +727,7 @@ export default function Users() {
                                 onChange={e => handleRoleChange(user.id, e.target.value as UserRole)}
                                 disabled={savingRoleId === user.id || lastOwnerLocked}
                                 title={lastOwnerLocked ? 'Du bist der einzige Owner. Ernenne zuerst einen weiteren Owner.' : undefined}
-                                className="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50"
+                                className="text-xs border border-border rounded-sm px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand disabled:opacity-50"
                               >
                                 {roleOptionsForActor.map(opt => (
                                   <option
@@ -760,13 +740,13 @@ export default function Users() {
                                 ))}
                               </select>
                               {savingRoleId === user.id && (
-                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-teal-600" />
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-brand" />
                               )}
                             </>
                           )}
                         </div>
                         {showRoleDropdown && lastOwnerLocked && (
-                          <p className="text-xs text-amber-600 max-w-xs">
+                          <p className="text-xs text-text max-w-xs">
                             Du bist der einzige Owner. Ernenne zuerst einen weiteren Owner.
                           </p>
                         )}
@@ -779,7 +759,7 @@ export default function Users() {
                         {(user.role !== 'owner' || isSelf) && (
                           <button
                             onClick={() => handleToggleExpand(user)}
-                            className="text-teal-600 hover:text-teal-800 text-sm font-medium"
+                            className={`${isSelf ? 'text-brandOnSoft hover:text-brandPressed' : 'text-brand hover:text-brandPressed'} text-sm font-medium`}
                           >
                             {isExpanded ? 'Schließen' : 'Bearbeiten'}
                           </button>
@@ -791,117 +771,95 @@ export default function Users() {
                   {/* ── Expanded edit panel ── */}
                   {isExpanded && editForm && (
                     <tr>
-                      <td colSpan={5} className="bg-gray-50 border-b border-gray-100 px-0 py-0">
-                        <div className="px-8 py-6">
+                      <td colSpan={5} className="bg-surfaceSunken border-b border-border px-0 py-0">
+                        <div className="p-3.5">
                           <div className={`grid grid-cols-1 gap-6 ${canShowCourseSection(user.role) ? 'lg:grid-cols-3' : ''}`}>
 
                             {/* ── Left: Stammdaten + Passwort ── */}
                             <div className={`space-y-4 ${canShowCourseSection(user.role) ? 'lg:col-span-2' : ''}`}>
-                              <h3 className="text-sm font-semibold text-gray-700">Stammdaten</h3>
+                              <h3 className="text-sm font-semibold text-textMuted">Stammdaten</h3>
 
                               <div className="grid grid-cols-2 gap-3">
                                 {/* Vorname */}
                                 <div>
-                                  <label className="block text-xs text-gray-500 mb-1">Vorname</label>
+                                  <label className="block text-xs text-textMuted mb-1">Vorname</label>
                                   <input
                                     type="text"
                                     value={editForm.first_name}
                                     onChange={e => setEditForm(f => f ? { ...f, first_name: e.target.value } : f)}
-                                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                    className="w-full text-sm border border-border rounded-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
                                   />
                                 </div>
                                 {/* Nachname */}
                                 <div>
-                                  <label className="block text-xs text-gray-500 mb-1">Nachname</label>
+                                  <label className="block text-xs text-textMuted mb-1">Nachname</label>
                                   <input
                                     type="text"
                                     value={editForm.last_name}
                                     onChange={e => setEditForm(f => f ? { ...f, last_name: e.target.value } : f)}
-                                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                    className="w-full text-sm border border-border rounded-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
                                   />
                                 </div>
                                 {/* E-Mail */}
                                 <div>
-                                  <label className="block text-xs text-gray-500 mb-1">E-Mail</label>
+                                  <label className="block text-xs text-textMuted mb-1">E-Mail</label>
                                   <input
                                     type="email"
                                     value={editForm.email}
-                                    onChange={e => setEditForm(f => f ? { ...f, email: e.target.value } : f)}
-                                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                    readOnly
+                                    className="w-full text-sm border border-border rounded-sm px-3 py-2 bg-surfaceSunken cursor-not-allowed text-textMuted"
                                   />
+                                  <p className="mt-1 text-xs text-textSubtle">Login-E-Mail, nicht änderbar</p>
                                 </div>
                                 {/* Telefon */}
                                 <div>
-                                  <label className="block text-xs text-gray-500 mb-1">Telefon</label>
+                                  <label className="block text-xs text-textMuted mb-1">Telefon</label>
                                   <input
                                     type="tel"
                                     value={editForm.phone}
                                     onChange={e => setEditForm(f => f ? { ...f, phone: e.target.value } : f)}
-                                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                    className="w-full text-sm border border-border rounded-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
                                   />
                                 </div>
                                 {/* Straße */}
                                 <div>
-                                  <label className="block text-xs text-gray-500 mb-1">Straße</label>
+                                  <label className="block text-xs text-textMuted mb-1">Straße</label>
                                   <input
                                     type="text"
                                     value={editForm.street}
                                     onChange={e => setEditForm(f => f ? { ...f, street: e.target.value } : f)}
-                                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                    className="w-full text-sm border border-border rounded-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
                                   />
                                 </div>
                                 {/* Hausnummer */}
                                 <div>
-                                  <label className="block text-xs text-gray-500 mb-1">Hausnummer</label>
+                                  <label className="block text-xs text-textMuted mb-1">Hausnummer</label>
                                   <input
                                     type="text"
                                     value={editForm.house_number}
                                     onChange={e => setEditForm(f => f ? { ...f, house_number: e.target.value } : f)}
-                                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                    className="w-full text-sm border border-border rounded-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
                                   />
                                 </div>
                                 {/* PLZ */}
                                 <div>
-                                  <label className="block text-xs text-gray-500 mb-1">PLZ</label>
+                                  <label className="block text-xs text-textMuted mb-1">PLZ</label>
                                   <input
                                     type="text"
                                     value={editForm.postal_code}
                                     onChange={e => setEditForm(f => f ? { ...f, postal_code: e.target.value } : f)}
-                                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                    className="w-full text-sm border border-border rounded-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
                                   />
                                 </div>
                                 {/* Stadt */}
                                 <div>
-                                  <label className="block text-xs text-gray-500 mb-1">Stadt</label>
+                                  <label className="block text-xs text-textMuted mb-1">Stadt</label>
                                   <input
                                     type="text"
                                     value={editForm.city}
                                     onChange={e => setEditForm(f => f ? { ...f, city: e.target.value } : f)}
-                                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                    className="w-full text-sm border border-border rounded-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
                                   />
-                                </div>
-                              </div>
-
-                              {/* Passwort */}
-                              <div>
-                                <label className="block text-xs text-gray-500 mb-1">
-                                  Neues Passwort <span className="text-gray-400">(optional – leer lassen = nicht ändern)</span>
-                                </label>
-                                <div className="flex gap-2">
-                                  <input
-                                    type={showPassword ? 'text' : 'password'}
-                                    value={editForm.new_password}
-                                    onChange={e => setEditForm(f => f ? { ...f, new_password: e.target.value } : f)}
-                                    placeholder="Neues Passwort eingeben…"
-                                    className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={() => setShowPassword(p => !p)}
-                                    className="px-3 text-gray-400 hover:text-gray-600 border border-gray-300 rounded-lg"
-                                  >
-                                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                                  </button>
                                 </div>
                               </div>
 
@@ -909,10 +867,10 @@ export default function Users() {
                               <button
                                 onClick={() => handleSaveProfile(user.id)}
                                 disabled={savingProfile}
-                                className="flex items-center gap-2 bg-teal-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-teal-700 disabled:opacity-50 transition-colors"
+                                className="flex items-center gap-2 bg-brand text-onBrand px-5 py-2 rounded-sm text-sm font-medium hover:bg-brandPressed disabled:opacity-50 transition-colors"
                               >
                                 {savingProfile
-                                  ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                                  ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-onBrand" />
                                   : <Save size={16} />
                                 }
                                 Speichern
@@ -921,20 +879,20 @@ export default function Users() {
 
                             {canShowCourseSection(user.role) && (
                               <div>
-                                <h3 className="text-sm font-semibold text-gray-700 mb-3">Kurs zuweisen</h3>
+                                <h3 className="text-sm font-semibold text-textMuted mb-3">Kurs zuweisen</h3>
                                 <div className="mb-5 lg:mt-[5px]">
-                                  <label className="block text-xs text-gray-500 mb-1">Kurs</label>
+                                  <label className="block text-xs text-textMuted mb-1">Kurs</label>
                                   <div className="flex gap-2">
                                     <select
                                       value={selectedCourseId}
                                       onChange={e => setSelectedCourseId(e.target.value)}
-                                      className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                      className="flex-1 text-sm border border-border rounded-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
                                     >
                                       <option value="">Kurs auswählen…</option>
                                       {availableCoursesToAdd.map(c => (
                                         <option key={c.id} value={c.id}>
                                           {c.title}
-                                          {c.date ? ` (${new Date(c.date).toLocaleDateString('de-DE')})` : ''}
+                                          {c.date ? ` (${formatDate(c.date)})` : ''}
                                         </option>
                                       ))}
                                     </select>
@@ -942,36 +900,36 @@ export default function Users() {
                                       onClick={() => handleAddToCourse(user.id)}
                                       disabled={!selectedCourseId || addingCourse}
                                       title="Hinzufügen"
-                                      className="flex items-center justify-center px-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-colors"
+                                      className="flex items-center justify-center px-3 bg-brand text-onBrand rounded-sm hover:bg-brandPressed disabled:opacity-50 transition-colors"
                                     >
                                       {addingCourse
-                                        ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                                        ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-onBrand" />
                                         : <Plus size={18} />
                                       }
                                     </button>
                                   </div>
                                 </div>
 
-                                <h4 className="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">
+                                <h4 className="text-xs font-medium text-textMuted mb-2">
                                   Aktuelle Buchungen
                                 </h4>
                                 {regsLoading ? (
-                                  <div className="flex items-center gap-2 text-xs text-gray-400">
-                                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-teal-500" />
+                                  <div className="flex items-center gap-2 text-xs text-textSubtle">
+                                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-brand" />
                                     Lade…
                                   </div>
                                 ) : userRegistrations.length === 0 ? (
-                                  <p className="text-xs text-gray-400 italic">Keine aktiven Buchungen.</p>
+                                  <p className="text-xs text-textSubtle italic">Keine aktiven Buchungen.</p>
                                 ) : (
                                   <ul className="space-y-1.5">
                                     {userRegistrations.map(reg => (
-                                      <li key={reg.id} className="flex items-start gap-2 text-xs text-gray-600">
-                                        <UserCheck size={13} className="text-teal-500 flex-shrink-0 mt-0.5" />
+                                      <li key={reg.id} className="flex items-start gap-2 text-xs text-textMuted">
+                                        <UserCheck size={13} className="text-brand flex-shrink-0 mt-0.5" />
                                         <span>
                                           {reg.courses?.title ?? '—'}
                                           {reg.courses?.date && (
-                                            <span className="text-gray-400">
-                                              {' '}({new Date(reg.courses.date).toLocaleDateString('de-DE')})
+                                            <span className="text-textSubtle">
+                                              {' '}<span className="tabular-nums">({formatDate(reg.courses.date)})</span>
                                             </span>
                                           )}
                                           {reg.is_waitlist && (

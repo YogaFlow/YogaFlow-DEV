@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, ArrowLeft } from 'lucide-react';
+import { currentTenantSlug } from '../lib/tenantSlug';
 
 const ForgotPassword: React.FC = () => {
   const navigate = useNavigate();
@@ -25,6 +26,7 @@ const ForgotPassword: React.FC = () => {
     const apiBase = import.meta.env.DEV ? '/api-supabase' : supabaseUrl;
 
     try {
+      const studioSlug = currentTenantSlug();
       const response = await fetch(
         `${apiBase}/functions/v1/request-password-reset`,
         {
@@ -33,7 +35,10 @@ const ForgotPassword: React.FC = () => {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           },
-          body: JSON.stringify({ email }),
+          body: JSON.stringify({
+            email,
+            ...(studioSlug ? { studio_slug: studioSlug } : {}),
+          }),
         }
       );
 
@@ -55,7 +60,7 @@ const ForgotPassword: React.FC = () => {
           data = JSON.parse(text);
         } catch {
           console.error('Password reset: invalid JSON', { status: response.status, body: text.slice(0, 200) });
-          setError('Die Anfrage konnte nicht verarbeitet werden. Bitte prüfen Sie Ihre Verbindung.');
+          setError('Die Anfrage konnte nicht verarbeitet werden. Bitte prüfe deine Verbindung.');
           return;
         }
       }
@@ -63,13 +68,13 @@ const ForgotPassword: React.FC = () => {
       if (response.ok) {
         setSuccess(true);
       } else {
-        setError(data.error ?? 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
+        setError(data.error ?? 'Ein Fehler ist aufgetreten. Bitte versuche es später erneut.');
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       const isNetworkError = err instanceof TypeError;
       console.error('Password reset request error:', message, isNetworkError ? '(network/CORS?)' : '', err);
-      setError('Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut. Details stehen in der Browser-Konsole (F12).');
+      setError('Ein Fehler ist aufgetreten. Bitte versuche es erneut. Details stehen in der Browser-Konsole (F12).');
     } finally {
       setLoading(false);
     }
@@ -77,24 +82,24 @@ const ForgotPassword: React.FC = () => {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
+      <div className="min-h-screen bg-sand flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-surface rounded-md border border-border p-3.5">
           <div className="text-center">
-            <div className="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Mail className="w-8 h-8 text-teal-600" />
+            <div className="w-16 h-16 bg-brandSoft rounded-full flex items-center justify-center mx-auto mb-4">
+              <Mail className="w-8 h-8 text-brandOnSoft" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            <h1 className="text-2xl font-bold text-text mb-2">
               E-Mail versendet
             </h1>
-            <p className="text-gray-600 mb-6">
-              Wenn ein Konto mit dieser E-Mail-Adresse existiert, haben wir Ihnen eine E-Mail zum Zurücksetzen des Passworts geschickt.
+            <p className="text-textMuted mb-6">
+              Wenn ein Konto mit dieser E-Mail-Adresse existiert, haben wir dir eine E-Mail zum Zurücksetzen des Passworts geschickt.
             </p>
-            <p className="text-sm text-gray-500 mb-6">
-              Bitte überprüfen Sie Ihr E-Mail-Postfach und folgen Sie den Anweisungen. Falls Sie keine E-Mail sehen, schauen Sie bitte auch im <strong>Spam-Ordner</strong> nach.
+            <p className="text-sm text-textMuted mb-6">
+              Bitte überprüfe dein E-Mail-Postfach und folge den Anweisungen. Falls du keine E-Mail siehst, schau bitte auch im <strong>Spam-Ordner</strong> nach.
             </p>
             <button
               onClick={() => navigate('/auth')}
-              className="w-full bg-teal-600 text-white py-3 rounded-lg hover:bg-teal-700 transition-colors"
+              className="w-full bg-brand text-onBrand py-3 rounded-sm hover:bg-brandPressed transition-colors"
             >
               Zur Anmeldung
             </button>
@@ -105,45 +110,45 @@ const ForgotPassword: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
+    <div className="min-h-screen bg-sand flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-surface rounded-md border border-border p-3.5">
         <button
           onClick={() => navigate('/auth')}
-          className="flex items-center text-gray-600 hover:text-gray-900 mb-6"
+          className="flex items-center text-textMuted hover:text-text mb-6"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Zurück zur Anmeldung
         </button>
 
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          <h1 className="text-2xl font-bold text-text mb-2">
             Passwort vergessen?
           </h1>
-          <p className="text-gray-600">
-            Geben Sie Ihre E-Mail-Adresse ein und wir senden Ihnen einen Link zum Zurücksetzen Ihres Passworts.
+          <p className="text-textMuted">
+            Gib deine E-Mail-Adresse ein und wir senden dir einen Link zum Zurücksetzen deines Passworts.
           </p>
         </div>
 
         {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-600">{error}</p>
+          <div className="mb-4 p-4 bg-dangerSoft border border-danger rounded-sm">
+            <p className="text-sm text-danger">{error}</p>
           </div>
         )}
 
         <form onSubmit={handleSubmit}>
           <div className="mb-6">
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="email" className="block text-sm font-medium text-textMuted mb-2">
               E-Mail-Adresse
             </label>
             <div className="relative">
-              <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+              <Mail className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
               <input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                placeholder="ihre.email@beispiel.de"
+                className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
+                placeholder="deine.email@beispiel.de"
                 required
               />
             </div>
@@ -152,7 +157,7 @@ const ForgotPassword: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-teal-600 text-white py-3 rounded-lg hover:bg-teal-700 focus:ring-4 focus:ring-teal-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-brand text-onBrand py-3 rounded-sm hover:bg-brandPressed focus:ring-4 focus:ring-brandSoft transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Wird gesendet...' : 'Zurücksetzungs-Link senden'}
           </button>

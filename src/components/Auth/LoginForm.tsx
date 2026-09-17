@@ -56,21 +56,15 @@ const LoginForm: React.FC<LoginFormProps> = ({ emailJustVerified = false }) => {
           normalizedMessage === 'e-mail oder passwort ist falsch.';
 
         if (isInvalidCredentials) {
-          if (tenantSlug) {
-            setError(
-              `Kein Konto gefunden: Diese E-Mail ist im Studio ${tenantSlug} nicht hinterlegt. Bitte registriere dich zuerst oder nutze eine andere E-Mail-Adresse.`,
-            );
-          } else {
-            setError('E-Mail oder Passwort ist falsch. Bitte überprüfen Sie Ihre Eingaben.');
-          }
+          setError('E-Mail oder Passwort ist falsch. Bitte überprüfe deine Eingaben.');
         } else if (error.message.includes('Email not confirmed')) {
-          setError('Bitte bestätigen Sie Ihre E-Mail-Adresse über den Link in Ihrer E-Mail. Sie können unten „Bestätigungsmail erneut senden“ nutzen.');
+          setError('Bitte bestätige deine E-Mail-Adresse über den Link in deiner E-Mail. Du kannst unten „Bestätigungsmail erneut senden“ nutzen.');
         } else {
           setError(`Anmeldung fehlgeschlagen: ${error.message}`);
         }
       }
     } catch {
-      setError('Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
+      setError('Ein Fehler ist aufgetreten. Bitte versuche es später erneut.');
     } finally {
       setLoading(false);
     }
@@ -79,7 +73,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ emailJustVerified = false }) => {
   const handleResendVerification = async (e: React.MouseEvent) => {
     e.preventDefault();
     if (!email.trim()) {
-      setVerificationEmailMessage('Bitte geben Sie oben Ihre E-Mail-Adresse ein.');
+      setVerificationEmailMessage('Bitte gib oben deine E-Mail-Adresse ein.');
       return;
     }
     setVerificationEmailLoading(true);
@@ -103,7 +97,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ emailJustVerified = false }) => {
       );
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        setVerificationEmailMessage('Falls ein Konto mit dieser E-Mail existiert, wurde eine Bestätigungsmail gesendet. Bitte prüfen Sie Ihr Postfach und ggf. den Spam-Ordner.');
+        setVerificationEmailMessage('Falls ein Konto mit dieser E-Mail existiert, wurde eine Bestätigungsmail gesendet. Bitte prüfe dein Postfach und ggf. den Spam-Ordner.');
       } else {
         setVerificationEmailMessage(data?.error || 'Bestätigungsmail konnte nicht gesendet werden.');
       }
@@ -118,18 +112,18 @@ const LoginForm: React.FC<LoginFormProps> = ({ emailJustVerified = false }) => {
     <div className="w-full max-w-md">
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="email" className="block text-sm font-medium text-textMuted mb-2">
             E-Mail-Adresse
           </label>
           <div className="relative">
-            <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+            <Mail className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
             <input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-              placeholder="ihre@email.de"
+              className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
+              placeholder="deine@email.de"
               required
             />
           </div>
@@ -137,43 +131,43 @@ const LoginForm: React.FC<LoginFormProps> = ({ emailJustVerified = false }) => {
 
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="password" className="block text-sm font-medium text-textMuted">
               Passwort
             </label>
             <button
               type="button"
               onClick={() => navigate('/forgot-password')}
-              className="text-sm text-teal-600 hover:text-teal-700"
+              className="text-sm text-brand hover:text-brandPressed"
             >
               Passwort vergessen?
             </button>
           </div>
           <div className="relative">
-            <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+            <Lock className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
             <input
               id="password"
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              className="w-full pl-10 pr-12 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
               placeholder="••••••••"
               required
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+              className="absolute right-3 top-3 text-textSubtle hover:text-textMuted"
             >
               {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
             </button>
           </div>
-          <p className="text-sm text-gray-500 mt-2">
+          <p className="text-sm text-textMuted mt-2">
             Bestätigungsmail nicht erhalten?{' '}
             <button
               type="button"
               onClick={handleResendVerification}
               disabled={verificationEmailLoading}
-              className="text-teal-600 hover:text-teal-700 underline disabled:opacity-50"
+              className="text-brand hover:text-brandPressed underline disabled:opacity-50"
             >
               {verificationEmailLoading ? 'Wird gesendet...' : 'Erneut senden'}
             </button>
@@ -181,24 +175,24 @@ const LoginForm: React.FC<LoginFormProps> = ({ emailJustVerified = false }) => {
         </div>
 
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-600">{error}</p>
+          <div className="p-3 bg-dangerSoft border border-danger rounded-sm">
+            <p className="text-sm text-danger">{error}</p>
            {error.includes('E-Mail oder Passwort ist falsch') && (
-             <p className="text-xs text-red-500 mt-1">
-               Hinweis: Stellen Sie sicher, dass Sie ein registriertes Konto haben.
+             <p className="text-xs text-danger mt-1">
+               Hinweis: Stell sicher, dass du ein registriertes Konto hast.
              </p>
            )}
           </div>
         )}
         {verificationEmailMessage && (
-          <div className={`p-3 rounded-lg text-sm ${verificationEmailMessage.includes('gesendet') ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-amber-50 border border-amber-200 text-amber-700'}`}>
+          <div className={`p-3 rounded-sm text-sm ${verificationEmailMessage.includes('gesendet') ? 'bg-successSoft border border-successSoft text-text' : 'bg-accentSoft border border-accent text-text'}`}>
             {verificationEmailMessage}
           </div>
         )}
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-teal-600 text-white py-3 px-4 rounded-lg hover:bg-teal-700 focus:ring-4 focus:ring-teal-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-brand text-onBrand py-3 px-4 rounded-sm hover:bg-brandPressed focus:ring-4 focus:ring-brandSoft transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? 'Anmeldung läuft...' : 'Anmelden'}
         </button>

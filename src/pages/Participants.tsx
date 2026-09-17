@@ -4,19 +4,35 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Course, Registration, User } from '../types';
 import { isCourseManagerRole, isStudioAdmin, isTeacherOnly } from '../lib/userRoles';
-import { Calendar, Clock, Users, Mail, Phone, Search, Filter, Download, UserMinus } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
-import { de } from 'date-fns/locale';
+import { Users, Mail, Phone, Search, Filter, Download, UserMinus } from 'lucide-react';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
+import {
+  formatDate,
+  formatDateTime,
+  formatTimeRange,
+} from '../lib/format';
 import ConfirmDialog, { ConfirmDialogState } from '../components/ui/ConfirmDialog';
 import { isCourseUpcoming } from '../lib/courseDateTime';
 import { runPastRegistrationCleanup } from '../lib/registrationMaintenance';
 import { formatUserAddress } from '../lib/userAddress';
+import { groupParticipantsByCourse } from '../lib/participantGrouping';
 
 interface ParticipantWithDetails extends Registration {
   user: User;
   course: Course;
 }
+
+const courseGroupHeading = (course: Course, count: number) => {
+  const countLabel = count === 1 ? '1 Anmeldung' : `${count} Anmeldungen`;
+  return (
+    <>
+      <div className="text-[15px] font-medium text-text">{course.title}</div>
+      <div className="text-[13px] text-textMuted tabular-nums">
+        {formatDate(course.date)} · {formatTimeRange(course.time, course.end_time)} · {countLabel}
+      </div>
+    </>
+  );
+};
 
 const Participants: React.FC = () => {
   const { courseId } = useParams<{ courseId?: string }>();
@@ -52,7 +68,13 @@ const Participants: React.FC = () => {
           .order('date', { ascending: true });
 
         if (coursesError) throw coursesError;
-        const upcomingCourses = (coursesData || []).filter((course) => isCourseUpcoming(course));
+        const upcomingCourses = (coursesData || []).filter((course) => {
+          if (!isCourseUpcoming(course)) return false;
+          if (isTeacherOnly(userProfile)) {
+            return course.teacher_id === userProfile.id;
+          }
+          return true;
+        });
         if (!isMounted) return;
         setCourses(upcomingCourses);
 
@@ -71,7 +93,8 @@ const Participants: React.FC = () => {
             (registration: any) =>
               registration.course &&
               isCourseUpcoming(registration.course) &&
-              registration.cancellation_timestamp == null
+              registration.cancellation_timestamp == null &&
+              (!isTeacherOnly(userProfile) || registration.course.teacher_id === userProfile.id)
           );
           setParticipants(upcomingParticipants);
         }
@@ -112,7 +135,7 @@ const Participants: React.FC = () => {
     setPendingUnregister(participant);
     setConfirmDialog({
       title: 'Teilnehmer abmelden',
-      message: `Möchten Sie ${name || 'diesen Teilnehmer'} wirklich vom Kurs „${courseTitle}" abmelden?`,
+      message: `Möchtest du ${name || 'diesen Teilnehmer'} wirklich vom Kurs „${courseTitle}" abmelden?`,
       confirmLabel: 'Abmelden',
       cancelLabel: 'Abbrechen',
       variant: 'danger',
@@ -171,7 +194,7 @@ const Participants: React.FC = () => {
       const message =
         error instanceof Error
           ? error.message
-          : (error as { message?: string })?.message ?? 'Fehler beim Abmelden. Bitte versuchen Sie es erneut.';
+          : (error as { message?: string })?.message ?? 'Fehler beim Abmelden. Bitte versuche es erneut.';
       setFeedbackDialog({
         title: 'Abmeldung fehlgeschlagen',
         message,
@@ -184,31 +207,14 @@ const Participants: React.FC = () => {
     }
   };
 
-  const formatRegistrationDate = (dateString: string) => {
-    try {
-      return format(parseISO(dateString), 'dd.MM.yyyy HH:mm', { locale: de });
-    } catch {
-      return dateString;
-    }
-  };
-
   const exportParticipants = () => {
-    const formatCourseDate = (dateString: string | undefined) => {
-      if (!dateString) return '';
-      try {
-        return format(parseISO(dateString), 'dd.MM.yyyy', { locale: de });
-      } catch {
-        return dateString;
-      }
-    };
-
     const escapeCell = (value: string) => `"${value.replace(/"/g, '""')}"`;
 
     const rows = [
       ['Kurs', 'Datum', 'Teilnehmer', 'E-Mail', 'Telefon', 'Status', 'Anmeldedatum'],
       ...filteredParticipants.map(p => [
         p.course?.title || '',
-        formatCourseDate(p.course?.date),
+        p.course?.date ? formatDate(p.course.date) : '',
         `${p.user?.first_name || ''} ${p.user?.last_name || ''}`.trim(),
         p.user?.email || '',
         p.user?.phone || '',
@@ -217,7 +223,7 @@ const Participants: React.FC = () => {
           : p.waitlist_position
             ? `Warteliste (Pos. ${p.waitlist_position})`
             : 'Warteliste',
-        formatRegistrationDate(p.registered_at)
+        formatDateTime(p.registered_at)
       ])
     ];
 
@@ -253,6 +259,8 @@ const Participants: React.FC = () => {
     return matchesSearch && matchesCourse && matchesStatus;
   });
 
+  const groupedParticipants = groupParticipantsByCourse(filteredParticipants);
+
   const showActionsColumn = filteredParticipants.some(canUnregisterParticipant);
 
   const hasPermission = isCourseManagerRole(userProfile);
@@ -260,8 +268,8 @@ const Participants: React.FC = () => {
   if (!hasPermission) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Keine Berechtigung</h2>
-        <p className="text-gray-600">Sie haben keine Berechtigung, diese Seite zu sehen.</p>
+        <h2 className="text-xl font-medium text-text mb-2">Keine Berechtigung</h2>
+        <p className="text-textMuted">Du hast keine Berechtigung, diese Seite zu sehen.</p>
       </div>
     );
   }
@@ -269,10 +277,12 @@ const Participants: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand"></div>
       </div>
     );
   }
+
+  const headingColSpan = showActionsColumn ? 5 : 4;
 
   return (
     <div className="space-y-6">
@@ -283,52 +293,53 @@ const Participants: React.FC = () => {
         onConfirm={executeUnregister}
         onCancel={cancelUnregister}
       />
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Teilnehmer</h1>
-          <p className="text-gray-600">
-            {userProfile && userProfile.role === 'teacher'
-              ? 'Alle Studio-Anmeldungen für kommende Kurse'
-              : 'Verwalten Sie Kursteilnehmer und Anmeldungen'}
+      {((userProfile && userProfile.role === 'teacher') || filteredParticipants.length > 0) && (
+      <div className={`flex flex-col gap-4 sm:flex-row sm:items-center ${
+        userProfile && userProfile.role === 'teacher' ? 'sm:justify-between' : 'sm:justify-end'
+      }`}>
+        {userProfile && userProfile.role === 'teacher' && (
+          <p className="text-textMuted">
+            Anmeldungen für deine kommenden Kurse
           </p>
-        </div>
-        
+        )}
+
         {filteredParticipants.length > 0 && (
           <button
             onClick={exportParticipants}
-            className="mt-4 sm:mt-0 bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition-colors flex items-center"
+            className="self-start inline-flex items-center border border-border text-brand px-4 py-2 rounded-sm hover:bg-surfaceSunken transition-colors"
           >
             <Download className="w-4 h-4 mr-2" />
             CSV Export
           </button>
         )}
       </div>
+      )}
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="bg-surface rounded-md border border-border p-3.5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-3 h-4 w-4 text-textSubtle" />
             <input
               type="text"
               placeholder="Teilnehmer suchen..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
             />
           </div>
           
           <div className="relative">
-            <Filter className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+            <Filter className="absolute left-3 top-3 h-4 w-4 text-textSubtle" />
             <select
               value={selectedCourse}
               onChange={(e) => setSelectedCourse(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent appearance-none"
+              className="w-full pl-10 pr-4 py-2 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent appearance-none"
             >
               <option value="">Alle Kurse</option>
               {courses.map(course => (
                 <option key={course.id} value={course.id}>
-                  {course.title} – {format(parseISO(course.date), 'dd.MM.yyyy', { locale: de })}
+                  {course.title} – {formatDate(course.date)}
                 </option>
               ))}
             </select>
@@ -338,221 +349,211 @@ const Participants: React.FC = () => {
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               <option value="">Alle Status</option>
               <option value="registered">Angemeldet</option>
               <option value="waitlist">Warteliste</option>
             </select>
           </div>
-
-          <div className="text-sm text-gray-600 flex items-center">
-            <Users className="w-4 h-4 mr-2" />
-            {filteredParticipants.length} Teilnehmer
-          </div>
         </div>
+        <p className="mt-3 text-[13px] text-textMuted tabular-nums">
+          {filteredParticipants.length} Teilnehmer
+        </p>
       </div>
 
       {/* Participants List */}
       {filteredParticipants.length === 0 ? (
         <div className="text-center py-12">
-          <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Keine Teilnehmer gefunden</h3>
-          <p className="text-gray-600">
+          <Users className="w-16 h-16 text-textSubtle mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-text mb-2">Keine Teilnehmer gefunden</h3>
+          <p className="text-textMuted">
             {searchTerm || selectedCourse || selectedStatus 
-              ? 'Versuchen Sie andere Filterkriterien.' 
+              ? 'Versuche andere Filterkriterien.' 
               : 'Es sind noch keine Teilnehmer angemeldet.'}
           </p>
         </div>
       ) : (
         <>
-          {/* Mobile: card list */}
-          <div className="sm:hidden space-y-3">
-            {filteredParticipants.map((participant) => (
-              <div key={participant.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                <div className="flex items-start justify-between gap-2 mb-3">
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium text-gray-900">
-                      {participant.user.first_name} {participant.user.last_name}
-                    </div>
-                    {formatUserAddress(participant.user) && (
-                      <div className="text-xs text-gray-500 mt-0.5 truncate">
-                        {formatUserAddress(participant.user)}
+          {/* Mobile: one block per course */}
+          <div className="sm:hidden space-y-8">
+            {groupedParticipants.map((group) => (
+              <section key={group.courseId}>
+                <div className="mb-2">
+                  {courseGroupHeading(group.course, group.participants.length)}
+                </div>
+                <div className="divide-y divide-border overflow-hidden rounded-md border border-border bg-surface">
+                  {group.participants.map((participant) => (
+                    <div key={participant.id} className="px-3.5 py-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="text-[15px] font-medium text-text">
+                            {participant.user.first_name} {participant.user.last_name}
+                          </div>
+                          {formatUserAddress(participant.user) && (
+                            <div className="text-[13px] text-textMuted mt-0.5 truncate">
+                              {formatUserAddress(participant.user)}
+                            </div>
+                          )}
+                        </div>
+                        <span className={`flex-shrink-0 inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                          participant.status === 'registered'
+                            ? 'bg-sage-100 text-sage-800'
+                            : 'bg-accentSoft text-accentText'
+                        }`}>
+                          {participant.status === 'registered'
+                            ? 'Angemeldet'
+                            : participant.waitlist_position
+                              ? `Warteliste ${participant.waitlist_position}`
+                              : 'Warteliste'}
+                        </span>
                       </div>
-                    )}
-                  </div>
-                  <span className={`flex-shrink-0 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                    participant.status === 'registered'
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {participant.status === 'registered'
-                      ? 'Angemeldet'
-                      : participant.waitlist_position
-                        ? `WL ${participant.waitlist_position}`
-                        : 'Warteliste'}
-                  </span>
-                </div>
 
-                <div className="text-sm font-medium text-gray-800 mb-1">{participant.course.title}</div>
-                <div className="flex items-center gap-3 text-xs text-gray-500 mb-3">
-                  <span className="flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
-                    {format(parseISO(participant.course.date), 'dd.MM.yyyy', { locale: de })}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    {participant.course.time}{participant.course.end_time && ` – ${participant.course.end_time}`}
-                  </span>
-                </div>
+                      <div className="mt-2 space-y-1 text-[13px]">
+                        <a href={`mailto:${participant.user.email}`} className="flex items-center gap-1.5 text-textMuted hover:text-brandPressed">
+                          <Mail className="w-3 h-3 flex-shrink-0" />
+                          <span className="truncate">{participant.user.email}</span>
+                        </a>
+                        {participant.user.phone && (
+                          <a href={`tel:${participant.user.phone}`} className="flex items-center gap-1.5 text-textMuted hover:text-brandPressed">
+                            <Phone className="w-3 h-3 flex-shrink-0" />
+                            {participant.user.phone}
+                          </a>
+                        )}
+                      </div>
 
-                <div className="space-y-1 text-xs mb-3">
-                  <a href={`mailto:${participant.user.email}`} className="flex items-center gap-1.5 text-gray-600 hover:text-teal-600">
-                    <Mail className="w-3 h-3 flex-shrink-0" />
-                    <span className="truncate">{participant.user.email}</span>
-                  </a>
-                  {participant.user.phone && (
-                    <a href={`tel:${participant.user.phone}`} className="flex items-center gap-1.5 text-gray-600 hover:text-teal-600">
-                      <Phone className="w-3 h-3 flex-shrink-0" />
-                      {participant.user.phone}
-                    </a>
-                  )}
+                      <div className="mt-2 flex items-center justify-between">
+                        <span className="text-[13px] text-textSubtle tabular-nums">
+                          {formatDateTime(participant.registered_at)}
+                        </span>
+                        {canUnregisterParticipant(participant) && (
+                          <button
+                            type="button"
+                            onClick={() => requestUnregister(participant)}
+                            disabled={unregisteringId === participant.id}
+                            className="inline-flex min-h-11 items-center gap-1 text-[13px] font-medium text-danger hover:text-danger disabled:opacity-50"
+                          >
+                            {unregisteringId === participant.id ? (
+                              <span className="animate-spin rounded-full h-3 w-3 border-b-2 border-danger" />
+                            ) : (
+                              <UserMinus className="w-3 h-3" />
+                            )}
+                            Abmelden
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-
-                <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                  <span className="text-xs text-gray-400">
-                    {format(parseISO(participant.registered_at), 'dd.MM.yyyy HH:mm', { locale: de })}
-                  </span>
-                  {canUnregisterParticipant(participant) && (
-                    <button
-                      type="button"
-                      onClick={() => requestUnregister(participant)}
-                      disabled={unregisteringId === participant.id}
-                      className="inline-flex items-center gap-1 text-xs font-medium text-red-600 hover:text-red-700 disabled:opacity-50"
-                    >
-                      {unregisteringId === participant.id ? (
-                        <span className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-600" />
-                      ) : (
-                        <UserMinus className="w-3 h-3" />
-                      )}
-                      Abmelden
-                    </button>
-                  )}
-                </div>
-              </div>
+              </section>
             ))}
           </div>
 
-          {/* Desktop: table */}
-          <div className="hidden sm:block bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          {/* Desktop: one table, one tbody per course */}
+          <div className="hidden sm:block bg-surface rounded-md border border-border overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-border">
+                <thead className="bg-surfaceSunken">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-textMuted">
                       Teilnehmer
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Kurs
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-textMuted">
                       Kontakt
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-textMuted">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-textMuted">
                       Angemeldet
                     </th>
                     {showActionsColumn && (
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-textMuted">
                         Aktionen
                       </th>
                     )}
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredParticipants.map((participant) => (
-                    <tr key={participant.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {participant.user.first_name} {participant.user.last_name}
-                          </div>
-                          {formatUserAddress(participant.user) && (
-                            <div className="text-sm text-gray-500">
-                              {formatUserAddress(participant.user)}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {participant.course.title}
-                          </div>
-                          <div className="text-sm text-gray-500 flex items-center">
-                            <Calendar className="w-3 h-3 mr-1" />
-                            {format(parseISO(participant.course.date), 'dd.MM.yyyy', { locale: de })}
-                            <Clock className="w-3 h-3 ml-2 mr-1" />
-                            {participant.course.time}{participant.course.end_time && ` - ${participant.course.end_time}`}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900 flex items-center">
-                          <Mail className="w-3 h-3 mr-1" />
-                          <a href={`mailto:${participant.user.email}`} className="hover:text-teal-600">
-                            {participant.user.email}
-                          </a>
-                        </div>
-                        <div className="text-sm text-gray-500 flex items-center mt-1">
-                          <Phone className="w-3 h-3 mr-1" />
-                          <a href={`tel:${participant.user.phone}`} className="hover:text-teal-600">
-                            {participant.user.phone}
-                          </a>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          participant.status === 'registered'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {participant.status === 'registered'
-                            ? 'Angemeldet'
-                            : participant.waitlist_position
-                              ? `Warteliste (Pos. ${participant.waitlist_position})`
-                              : 'Warteliste'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {format(parseISO(participant.registered_at), 'dd.MM.yyyy HH:mm', { locale: de })}
-                      </td>
-                      {showActionsColumn && (
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          {canUnregisterParticipant(participant) ? (
-                            <button
-                              type="button"
-                              onClick={() => requestUnregister(participant)}
-                              disabled={unregisteringId === participant.id}
-                              className="inline-flex items-center gap-1.5 text-red-600 hover:text-red-700 disabled:opacity-50"
-                            >
-                              {unregisteringId === participant.id ? (
-                                <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600" />
-                              ) : (
-                                <UserMinus className="w-4 h-4" />
-                              )}
-                              Abmelden
-                            </button>
-                          ) : (
-                            <span className="text-gray-400">—</span>
-                          )}
-                        </td>
-                      )}
+                {groupedParticipants.map((group) => (
+                  <tbody key={group.courseId} className="bg-surface divide-y divide-border">
+                    <tr>
+                      <th
+                        colSpan={headingColSpan}
+                        scope="colgroup"
+                        className="bg-surfaceSunken px-6 py-3 text-left font-normal"
+                      >
+                        {courseGroupHeading(group.course, group.participants.length)}
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
+                    {group.participants.map((participant) => (
+                      <tr key={participant.id} className="hover:bg-surfaceSunken">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div>
+                            <div className="text-sm font-medium text-text">
+                              {participant.user.first_name} {participant.user.last_name}
+                            </div>
+                            {formatUserAddress(participant.user) && (
+                              <div className="text-sm text-textMuted">
+                                {formatUserAddress(participant.user)}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-text flex items-center">
+                            <Mail className="w-3 h-3 mr-1" />
+                            <a href={`mailto:${participant.user.email}`} className="hover:text-brandPressed">
+                              {participant.user.email}
+                            </a>
+                          </div>
+                          <div className="text-sm text-textMuted flex items-center mt-1">
+                            <Phone className="w-3 h-3 mr-1" />
+                            <a href={`tel:${participant.user.phone}`} className="hover:text-brandPressed">
+                              {participant.user.phone}
+                            </a>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                            participant.status === 'registered'
+                              ? 'bg-sage-100 text-sage-800'
+                              : 'bg-accentSoft text-accentText'
+                          }`}>
+                            {participant.status === 'registered'
+                              ? 'Angemeldet'
+                              : participant.waitlist_position
+                                ? `Warteliste (Pos. ${participant.waitlist_position})`
+                                : 'Warteliste'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-textMuted tabular-nums">
+                          {formatDateTime(participant.registered_at)}
+                        </td>
+                        {showActionsColumn && (
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            {canUnregisterParticipant(participant) ? (
+                              <button
+                                type="button"
+                                onClick={() => requestUnregister(participant)}
+                                disabled={unregisteringId === participant.id}
+                                className="inline-flex items-center gap-1.5 text-danger hover:text-danger disabled:opacity-50"
+                              >
+                                {unregisteringId === participant.id ? (
+                                  <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-danger" />
+                                ) : (
+                                  <UserMinus className="w-4 h-4" />
+                                )}
+                                Abmelden
+                              </button>
+                            ) : (
+                              <span className="text-textSubtle">—</span>
+                            )}
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                ))}
               </table>
             </div>
           </div>

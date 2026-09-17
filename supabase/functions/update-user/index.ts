@@ -4,7 +4,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, x-omlify-tenant",
 };
 
 interface UpdateUserRequest {
@@ -83,7 +83,10 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { userId, new_password, ...profileFields } = body;
+    // email / new_password: still accepted in the body shape, deliberately unused
+    const { userId, new_password: _newPassword, email: _email, ...profileFields } = body;
+    void _newPassword;
+    void _email;
     if (!userId) {
       return new Response(
         JSON.stringify({ error: "Missing userId" }),
@@ -136,9 +139,9 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // 7. Build profile update (only whitelisted fields)
+    // 7. Build profile update (only whitelisted fields — no email)
     const ALLOWED_PROFILE_FIELDS = [
-      "first_name", "last_name", "email",
+      "first_name", "last_name",
       "phone", "street", "house_number", "postal_code", "city",
     ] as const;
 
@@ -149,22 +152,7 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // 8. Update auth.users (email + password via Admin API)
-    const authUpdate: { email?: string; password?: string } = {};
-    if (profileFields.email !== undefined) authUpdate.email = profileFields.email;
-    if (new_password) authUpdate.password = new_password;
-
-    if (Object.keys(authUpdate).length > 0) {
-      const { error: authUpdateError } = await adminClient.auth.admin.updateUserById(userId, authUpdate);
-      if (authUpdateError) {
-        return new Response(
-          JSON.stringify({ error: "Failed to update auth credentials", details: authUpdateError.message }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
-    }
-
-    // 9. Update public.users
+    // 8. Update public.users (studio profile only; never auth.users)
     if (Object.keys(profileUpdate).length > 0) {
       const { error: profileUpdateError } = await adminClient
         .from("users")

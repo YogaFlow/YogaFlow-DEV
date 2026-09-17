@@ -80,15 +80,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   /** Separater Lade-Zustand für den DB-Fetch aus public.users. */
   const [profileLoading, setProfileLoading] = useState(false);
 
-  const fetchUserProfile = useCallback(async (userId: string, signal: AbortSignal) => {
+  const fetchUserProfile = useCallback(async (userId: string, signal: AbortSignal): Promise<User | null> => {
     const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', userId)
+      .rpc('get_current_member')
       .abortSignal(signal)
       .maybeSingle();
-    if (error) throw error;
-    return data ?? null;
+    if (error) {
+      console.error('Auth: get_current_member fehlgeschlagen', userId, error);
+      throw error;
+    }
+    return (data as User) ?? null;
   }, []);
 
   useEffect(() => {

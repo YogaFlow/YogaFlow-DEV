@@ -3,7 +3,11 @@ import { useAuth } from '../../context/AuthContext';
 import { useTenant } from '../../context/TenantContext';
 import { Eye, EyeOff, User, Mail, Lock } from 'lucide-react';
 
-const RegisterForm: React.FC = () => {
+type RegisterFormProps = {
+  onSwitchToLogin?: () => void;
+};
+
+const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -47,9 +51,8 @@ const RegisterForm: React.FC = () => {
       return;
     }
 
-    const duplicateEmailMessage =
-      'Ein Benutzer mit dieser E-Mail-Adresse ist bereits registriert. ' +
-      'Bitte verwende eine andere E-Mail-Adresse oder melde dich an.';
+    const duplicateJoinHint =
+      `Diese E-Mail hat bereits ein Omlify-Konto. Melde dich an, um ${tenant?.name ?? 'diesem Studio'} beizutreten.`;
 
     try {
       const { data, error: signUpError } = await signUp(formData.email, formData.password, {
@@ -61,7 +64,8 @@ const RegisterForm: React.FC = () => {
       if (signUpError) {
         const msg = (signUpError as { message?: string }).message ?? '';
         if (/already registered|already exists|already in use/i.test(msg)) {
-          setError(duplicateEmailMessage);
+          setError(duplicateJoinHint);
+          onSwitchToLogin?.();
         } else if (/rate limit exceeded/i.test(msg)) {
           setError(
             'Zu viele Registrierungsversuche. Bitte warte etwa eine Stunde und versuche es erneut.',
@@ -74,7 +78,8 @@ const RegisterForm: React.FC = () => {
 
       const identities = (data?.user as { identities?: unknown[] })?.identities;
       if (data?.user && Array.isArray(identities) && identities.length === 0) {
-        setError(duplicateEmailMessage);
+        setError(duplicateJoinHint);
+        onSwitchToLogin?.();
         return;
       }
 
@@ -114,16 +119,16 @@ const RegisterForm: React.FC = () => {
   if (success) {
     return (
       <div className="w-full max-w-md text-center">
-        <div className="p-6 bg-green-50 border border-green-200 rounded-lg">
-          <h3 className="text-lg font-semibold text-green-800 mb-2">Registrierung erfolgreich!</h3>
+        <div className="p-3.5 bg-successSoft border border-successSoft rounded-md">
+          <h3 className="text-lg font-semibold text-text mb-2">Registrierung erfolgreich!</h3>
           {emailSentOnSignup ? (
-            <p className="text-sm text-green-600">
+            <p className="text-sm text-text">
               Wir haben eine Bestätigungsmail an <strong>{formData.email}</strong> gesendet.
               Bitte klicke auf den Link in der E-Mail, um dein Konto zu aktivieren.
               Danach kannst du dich hier anmelden.
             </p>
           ) : (
-            <p className="text-sm text-green-600">
+            <p className="text-sm text-text">
               Dein Konto wurde erstellt. Nutze auf der Anmeldeseite
               „Bestätigungsmail erneut senden", um den Bestätigungslink zu erhalten.
             </p>
@@ -138,35 +143,35 @@ const RegisterForm: React.FC = () => {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="first_name" className="block text-sm font-medium text-textMuted mb-1">
               Vorname *
             </label>
             <div className="relative">
-              <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+              <User className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
               <input
                 id="first_name"
                 name="first_name"
                 type="text"
                 value={formData.first_name}
                 onChange={handleChange}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
                 required
               />
             </div>
           </div>
           <div>
-            <label htmlFor="last_name" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="last_name" className="block text-sm font-medium text-textMuted mb-1">
               Nachname *
             </label>
             <div className="relative">
-              <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+              <User className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
               <input
                 id="last_name"
                 name="last_name"
                 type="text"
                 value={formData.last_name}
                 onChange={handleChange}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
                 required
               />
             </div>
@@ -174,29 +179,29 @@ const RegisterForm: React.FC = () => {
         </div>
 
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="email" className="block text-sm font-medium text-textMuted mb-1">
             E-Mail-Adresse *
           </label>
           <div className="relative">
-            <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+            <Mail className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
             <input
               id="email"
               name="email"
               type="email"
               value={formData.email}
               onChange={handleChange}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
               required
             />
           </div>
         </div>
 
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="password" className="block text-sm font-medium text-textMuted mb-1">
             Passwort *
           </label>
           <div className="relative">
-            <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+            <Lock className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
             <input
               id="password"
               name="password"
@@ -204,13 +209,13 @@ const RegisterForm: React.FC = () => {
               value={formData.password}
               onChange={handleChange}
               placeholder="Mindestens 6 Zeichen"
-              className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              className="w-full pl-10 pr-12 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
               required
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+              className="absolute right-3 top-3 text-textSubtle hover:text-textMuted"
             >
               {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
             </button>
@@ -218,24 +223,24 @@ const RegisterForm: React.FC = () => {
         </div>
 
         <div>
-          <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="confirmPassword" className="block text-sm font-medium text-textMuted mb-1">
             Passwort bestätigen *
           </label>
           <div className="relative">
-            <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+            <Lock className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
             <input
               id="confirmPassword"
               name="confirmPassword"
               type={showConfirmPassword ? 'text' : 'password'}
               value={formData.confirmPassword}
               onChange={handleChange}
-              className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              className="w-full pl-10 pr-12 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
               required
             />
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+              className="absolute right-3 top-3 text-textSubtle hover:text-textMuted"
             >
               {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
             </button>
@@ -243,15 +248,15 @@ const RegisterForm: React.FC = () => {
         </div>
 
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-600">{error}</p>
+          <div className="p-3 bg-dangerSoft border border-danger rounded-sm">
+            <p className="text-sm text-danger">{error}</p>
           </div>
         )}
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-teal-600 text-white py-3 px-4 rounded-lg hover:bg-teal-700 focus:ring-4 focus:ring-teal-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-brand text-onBrand py-3 px-4 rounded-sm hover:bg-brandPressed focus:ring-4 focus:ring-brandSoft transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? 'Registrierung läuft…' : 'Registrieren'}
         </button>

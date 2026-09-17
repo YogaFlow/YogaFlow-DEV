@@ -6,7 +6,7 @@ import { fetchStudioSlugForUser, verifyClientStudioSlugHint } from "../_shared/s
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, x-omlify-tenant",
 };
 
 interface VerificationRequest {
@@ -34,25 +34,37 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Ensure user exists in public.users (trigger may not have run yet)
-    const { error: ensureError } = await supabase.rpc("ensure_public_user", { p_user_id: userId });
-    if (ensureError) {
-      console.error("ensure_public_user:", ensureError);
-      return new Response(
-        JSON.stringify({
-          error: "User setup failed",
-          details: ensureError.message,
-          code: "ensure_public_user_failed",
-        }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // Profil über den Login; Trigger legt es an. ensure nur wenn noch keine Zeile.
+    const { data: existing, error: existingError } = await supabase
+      .from("users")
+      .select("id")
+      .eq("auth_user_id", userId)
+      .limit(1)
+      .maybeSingle();
+    if (existingError) {
+      console.error("User lookup by auth_user_id:", existingError);
     }
 
-    // Verify user exists in public.users (auth_tokens has FK to users); avoid race after signUp
+    if (!existing) {
+      const { error: ensureError } = await supabase.rpc("ensure_public_user", { p_user_id: userId });
+      if (ensureError) {
+        console.error("ensure_public_user:", ensureError);
+        return new Response(
+          JSON.stringify({
+            error: "User setup failed",
+            details: ensureError.message,
+            code: "ensure_public_user_failed",
+          }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     const { data: userRow, error: userCheckError } = await supabase
       .from("users")
       .select("id")
-      .eq("id", userId)
+      .eq("auth_user_id", userId)
+      .limit(1)
       .maybeSingle();
     if (userCheckError || !userRow) {
       console.error("User not in public.users yet:", userCheckError ?? "no row");
@@ -104,13 +116,13 @@ Deno.serve(async (req: Request) => {
             <p style="margin: 0 0 24px 0; color: #0f766e; font-size: 14px; font-weight: 700;">Omlify</p>
             <h1 style="margin: 0 0 16px 0; color: #111827; font-size: 22px; line-height: 1.3;">E-Mail-Adresse bestätigen</h1>
             <p style="margin: 0 0 24px 0; color: #374151; font-size: 16px; line-height: 1.5;">
-              Bitte bestätigen Sie Ihre E-Mail-Adresse, um Ihr Omlify-Konto zu aktivieren.
+              Bitte bestätige deine E-Mail-Adresse, um dein Omlify-Konto zu aktivieren.
             </p>
             <p style="margin: 0 0 28px 0;">
               <a href="${verificationLink}" style="display: inline-block; padding: 12px 18px; background-color: #0f766e; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 15px; font-weight: 600;">E-Mail-Adresse bestätigen</a>
             </p>
             <p style="margin: 0; color: #6b7280; font-size: 13px; line-height: 1.5;">
-              Dieser Link ist 24 Stunden gültig. Wenn Sie kein Omlify-Konto erstellt haben, können Sie diese E-Mail ignorieren.
+              Dieser Link ist 24 Stunden gültig. Wenn du kein Omlify-Konto erstellt hast, kannst du diese E-Mail ignorieren.
             </p>
           </div>
         </body>

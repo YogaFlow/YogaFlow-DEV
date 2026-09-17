@@ -1,33 +1,26 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Calendar, Clock, MapPin, Users, Plus, Edit, Trash2, Eye, AlertCircle, X } from 'lucide-react';
+import { Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { Calendar, Plus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Course, Registration } from '../types';
-import { format, parseISO, isToday, isTomorrow } from 'date-fns';
-import { de } from 'date-fns/locale';
-import { isCourseManagerRole, isParticipantOnlyRole } from '../lib/userRoles';
-import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
+import { Course } from '../types';
+import { isCourseManagerRole } from '../lib/userRoles';
+import { formatDayLabel, formatTime } from '../lib/format';
+import { groupCoursesByDay } from '../lib/courseGrouping';
+import CourseRow from '../components/courses/CourseRow';
+import AccentPill from '../components/ui/AccentPill';
 import { isCourseUpcoming } from '../lib/courseDateTime';
-import { runPastRegistrationCleanup } from '../lib/registrationMaintenance';
 
 const MyCourses: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { userProfile } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
-  const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
   const [successMessage, setSuccessMessage] = useState('');
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [courseToDelete, setCourseToDelete] = useState<{ id: string; title: string; series_id: string | null } | null>(null);
-  const [seriesCount, setSeriesCount] = useState(0);
-  const [deleteScope, setDeleteScope] = useState<'single' | 'series'>('single');
   const successTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [feedbackDialog, setFeedbackDialog] = useState<FeedbackDialogState | null>(null);
 
   const isCourseManager = isCourseManagerRole(userProfile);
-  const isParticipantOnly = isParticipantOnlyRole(userProfile);
 
   useEffect(() => {
     let isMounted = true;
@@ -35,71 +28,32 @@ const MyCourses: React.FC = () => {
     const fetchMyCourses = async () => {
       if (!userProfile || !isCourseManager) return;
 
-      try {
-        setLoading(true);
-        await runPastRegistrationCleanup();
-        const { data, error } = await supabase
-          .from('courses')
-          .select(`
-            *,
-            teacher:users!courses_teacher_id_fkey(first_name, last_name),
-            registrations:registrations(user_id, status, is_waitlist, cancellation_timestamp)
-          `)
-          .eq('teacher_id', userProfile.id)
-          .order('date', { ascending: true })
-          .order('time', { ascending: true });
+      const { data, error } = await supabase
+        .from('courses')
+        .select(`
+          *,
+          teacher:users!courses_teacher_id_fkey(first_name, last_name),
+          registrations:registrations(user_id, status, is_waitlist, cancellation_timestamp)
+        `)
+        .eq('teacher_id', userProfile.id)
+        .order('date', { ascending: true })
+        .order('time', { ascending: true });
 
-        if (error) throw error;
-        if (isMounted) {
-          setCourses((data || []).filter((course) => isCourseUpcoming(course)));
-        }
-      } catch (error) {
-        console.error('Error fetching courses:', error);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+      if (error) throw error;
+      if (isMounted) {
+        setCourses((data || []).filter((course) => isCourseUpcoming(course)));
       }
     };
 
-    const fetchParticipantRegistrations = async () => {
-      if (!userProfile || !isParticipantOnly) return;
-
+    const loadPage = async () => {
+      if (!userProfile) return;
       try {
         setLoading(true);
-        await runPastRegistrationCleanup();
-        const { data, error } = await supabase
-          .from('registrations')
-          .select(
-            `
-            *,
-            course:courses(
-              *,
-              teacher:users!courses_teacher_id_fkey(first_name, last_name)
-            )
-          `
-          )
-          .eq('user_id', userProfile.id)
-          .in('status', ['registered', 'waitlist'])
-          .is('cancellation_timestamp', null);
-
-        if (error) throw error;
-        if (!isMounted) return;
-
-        const futureRegistrations = (data || [])
-          .filter(
-            (registration: any) =>
-              registration.course && isCourseUpcoming(registration.course)
-          )
-          .sort((a: any, b: any) => {
-            const dateA = `${a.course.date}T${a.course.time}`;
-            const dateB = `${b.course.date}T${b.course.time}`;
-            return dateA.localeCompare(dateB);
-          });
-
-        setRegistrations(futureRegistrations);
+        if (isCourseManager) {
+          await fetchMyCourses();
+        }
       } catch (error) {
-        console.error('Error fetching registrations:', error);
+        console.error('Error loading my courses:', error);
       } finally {
         if (isMounted) {
           setLoading(false);
@@ -108,13 +62,7 @@ const MyCourses: React.FC = () => {
     };
 
     if (userProfile) {
-      if (isCourseManager) {
-        fetchMyCourses();
-      } else if (isParticipantOnly) {
-        fetchParticipantRegistrations();
-      } else if (isMounted) {
-        setLoading(false);
-      }
+      loadPage();
     }
 
     if (location.state?.message) {
@@ -131,194 +79,28 @@ const MyCourses: React.FC = () => {
         clearTimeout(successTimeoutRef.current);
       }
     };
-  }, [userProfile, location.state, isCourseManager, isParticipantOnly]);
-
-  const handleDeleteClick = async (courseId: string, courseTitle: string, seriesId: string | null) => {
-    if (!seriesId) {
-      if (!confirm(`Möchten Sie den Kurs "${courseTitle}" wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`)) {
-        return;
-      }
-      await deleteCourse(courseId, 'single');
-      return;
-    }
-
-    try {
-      const { count } = await supabase
-        .from('courses')
-        .select('*', { count: 'exact', head: true })
-        .eq('series_id', seriesId);
-
-      setSeriesCount(count || 0);
-      setCourseToDelete({ id: courseId, title: courseTitle, series_id: seriesId });
-      setDeleteScope('single');
-      setDeleteDialogOpen(true);
-    } catch (error) {
-      console.error('Error checking series:', error);
-      setFeedbackDialog({
-        title: 'Fehler',
-        message: 'Fehler beim Überpruefen der Serie. Bitte versuchen Sie es erneut.',
-        type: 'error',
-      });
-    }
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!courseToDelete) return;
-
-    await deleteCourse(courseToDelete.id, deleteScope);
-    setDeleteDialogOpen(false);
-    setCourseToDelete(null);
-  };
-
-  const deleteCourse = async (courseId: string, scope: 'single' | 'series') => {
-    try {
-      if (scope === 'series' && courseToDelete?.series_id) {
-        const { error } = await supabase
-          .from('courses')
-          .delete()
-          .eq('series_id', courseToDelete.series_id);
-
-        if (error) throw error;
-
-        setCourses(courses.filter(course => course.series_id !== courseToDelete.series_id));
-        setSuccessMessage(`Alle ${seriesCount} Kurse der Serie wurden erfolgreich gelöscht!`);
-      } else {
-        const { error } = await supabase
-          .from('courses')
-          .delete()
-          .eq('id', courseId);
-
-        if (error) throw error;
-
-        setCourses(courses.filter(course => course.id !== courseId));
-        setSuccessMessage('Kurs erfolgreich gelöscht!');
-      }
-
-      if (successTimeoutRef.current) {
-        clearTimeout(successTimeoutRef.current);
-      }
-      successTimeoutRef.current = setTimeout(() => setSuccessMessage(''), 5000);
-    } catch (error) {
-      console.error('Error deleting course:', error);
-      setFeedbackDialog({
-        title: 'Loeschen fehlgeschlagen',
-        message: 'Fehler beim Loeschen des Kurses. Bitte versuchen Sie es erneut.',
-        type: 'error',
-      });
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    try {
-      const date = parseISO(dateString);
-      if (isToday(date)) {
-        return 'Heute';
-      } else if (isTomorrow(date)) {
-        return 'Morgen';
-      }
-      return format(date, 'dd.MM.yyyy', { locale: de });
-    } catch {
-      return dateString;
-    }
-  };
+  }, [userProfile, location.state, isCourseManager]);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand"></div>
       </div>
     );
   }
 
-  if (isParticipantOnly) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Meine Anmeldungen</h1>
-          <p className="text-gray-600">
-            Hier sehen Sie Ihre kommenden Kurs-Anmeldungen.
-          </p>
-        </div>
-
-        {registrations.length === 0 ? (
-          <div className="text-center py-12">
-            <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Keine Anmeldungen gefunden</h3>
-            <p className="text-gray-600 mb-6">
-              Sie sind noch nicht für Kurse angemeldet.
-            </p>
-            <button
-              onClick={() => navigate('/courses')}
-              className="bg-teal-600 text-white px-6 py-3 rounded-lg hover:bg-teal-700 transition-colors"
-            >
-              Kurse durchsuchen
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {registrations.map((registration) => {
-              const course = registration.course as Course | undefined;
-              if (!course) return null;
-
-              const isWaitlist = registration.is_waitlist;
-
-              return (
-                <div
-                  key={registration.id}
-                  className="flex items-center p-4 bg-white rounded-lg shadow-sm border border-gray-200"
-                >
-                  <div className="flex-1">
-                    <h3 className="font-medium text-gray-900">{course.title}</h3>
-                    <div className="flex items-center mt-1 text-sm text-gray-600">
-                      <Calendar className="w-4 h-4 mr-1" />
-                      {formatDate(course.date)}
-                      <Clock className="w-4 h-4 ml-3 mr-1" />
-                      {course.time}
-                      {course.end_time && ` - ${course.end_time}`}
-                    </div>
-                    <div className="flex items-center mt-1 text-sm text-gray-600">
-                      <MapPin className="w-4 h-4 mr-1" />
-                      {course.location}
-                    </div>
-                    {course.teacher && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        Lehrer: {course.teacher.first_name} {course.teacher.last_name}
-                      </p>
-                    )}
-                    <div className={`mt-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${isWaitlist ? 'bg-yellow-50 text-yellow-700' : 'bg-teal-50 text-teal-700'}`}>
-                      {isWaitlist
-                        ? (registration.waitlist_position ? `Warteliste (Pos. ${registration.waitlist_position})` : 'Warteliste')
-                        : 'Angemeldet'}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    {course.price != null && (
-                      <p className="text-lg font-semibold text-teal-600">
-                        €{course.price}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    );
+  if (!isCourseManager) {
+    return <Navigate to="/my-registrations" replace />;
   }
+
+  const dayGroups = groupCoursesByDay(courses);
 
   return (
     <div className="space-y-6">
-      <FeedbackDialog dialog={feedbackDialog} onClose={() => setFeedbackDialog(null)} />
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Meine Kurse</h1>
-          <p className="text-gray-600">Verwalten Sie Ihre Yoga-Kurse</p>
-        </div>
-        
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end">
         <button
           onClick={() => navigate('/create-course')}
-          className="mt-4 sm:mt-0 bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition-colors flex items-center"
+          className="bg-brand text-onBrand px-4 py-2 rounded-sm hover:bg-brandPressed transition-colors flex items-center"
         >
           <Plus className="w-4 h-4 mr-2" />
           Neuer Kurs
@@ -326,221 +108,88 @@ const MyCourses: React.FC = () => {
       </div>
 
       {successMessage && (
-        <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-          <p className="text-sm text-green-600">{successMessage}</p>
+        <div className="p-4 bg-successSoft border border-successSoft rounded-sm">
+          <p className="text-sm text-text">{successMessage}</p>
         </div>
       )}
 
       {courses.length === 0 ? (
         <div className="text-center py-12">
-          <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Keine Kurse gefunden</h3>
-          <p className="text-gray-600 mb-6">Sie haben noch keine Kurse erstellt.</p>
+          <Calendar className="w-16 h-16 text-textSubtle mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-text mb-2">Keine Kurse gefunden</h3>
+          <p className="text-textMuted mb-6">Du hast noch keine Kurse erstellt.</p>
           <button
             onClick={() => navigate('/create-course')}
-            className="bg-teal-600 text-white px-6 py-3 rounded-lg hover:bg-teal-700 transition-colors flex items-center mx-auto"
+            className="bg-brand text-onBrand px-6 py-3 rounded-sm hover:bg-brandPressed transition-colors flex items-center mx-auto"
           >
             <Plus className="w-4 h-4 mr-2" />
             Ersten Kurs erstellen
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {courses.map((course) => {
-            const registeredCount = course.registrations?.filter(
-              (r) => r.status === 'registered' && !r.is_waitlist && !r.cancellation_timestamp
-            ).length ?? 0;
-            const waitlistCount = course.registrations?.filter(
-              (r) => r.is_waitlist && !r.cancellation_timestamp
-            ).length ?? 0;
-            const isFull = registeredCount >= (course.max_participants || 0);
-            return (
-              <div key={course.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-                <div className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">{course.title}</h3>
-                    <span className="text-xl font-bold text-teal-600">€{course.price}</span>
-                  </div>
-                  
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-3">{course.description}</p>
-                  
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Calendar className="w-4 h-4 mr-2" />
-                      {formatDate(course.date)}
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Clock className="w-4 h-4 mr-2" />
-                      {course.time}{course.end_time && ` - ${course.end_time}`}
-                      {course.duration && ` (${course.duration} Min.)`}
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <MapPin className="w-4 h-4 mr-2" />
-                      {course.location}
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Users className="w-4 h-4 mr-2" />
-                      {registeredCount}/{course.max_participants} Teilnehmer
-                      {waitlistCount > 0 && (
-                        <span className="ml-2 px-2 py-0.5 text-xs bg-yellow-100 text-yellow-800 rounded-full">
-                          +{waitlistCount} Wartend
-                        </span>
-                      )}
-                    </div>
-                  </div>
+        <div className="space-y-5">
+          {dayGroups.map((group) => (
+            <section key={group.date}>
+              <h2 className="mb-2 text-[15px] font-medium text-textMuted">
+                {formatDayLabel(group.date)}
+              </h2>
+              <div className="divide-y divide-border overflow-hidden rounded-md border border-border bg-surface">
+                {group.courses.map((course) => {
+                  const registeredCount = course.registrations?.filter(
+                    (r) => r.status === 'registered' && !r.is_waitlist && !r.cancellation_timestamp
+                  ).length ?? 0;
+                  const waitlistCount = course.registrations?.filter(
+                    (r) => r.is_waitlist && !r.cancellation_timestamp
+                  ).length ?? 0;
+                  const isFull = registeredCount >= (course.max_participants || 0);
+                  const remaining = (course.max_participants || 0) - registeredCount;
+                  const until = formatTime(course.end_time);
+                  const meta = [until ? `bis ${until}` : '', course.location]
+                    .filter(Boolean)
+                    .join(' · ');
 
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center">
-                      <div className={`w-3 h-3 rounded-full mr-2 ${
-                        isFull ? 'bg-red-500' : (course.max_participants - registeredCount <= 2 ? 'bg-yellow-500' : 'bg-green-500')
-                      }`}></div>
-                      <span className="text-xs text-gray-600">
-                        {isFull ? 'Leider schon ausgebucht' : (course.max_participants - registeredCount <= 2 ? `noch ${course.max_participants - registeredCount} ${course.max_participants - registeredCount === 1 ? 'Restplatz' : 'Restplätze'}` : 'Verfügbar')}
-                      </span>
-                    </div>
-                  </div>
+                  let occupancyStatus: React.ReactNode = null;
+                  if (isFull) {
+                    occupancyStatus = (
+                      <span className="text-[13px] font-medium text-textMuted">Ausgebucht</span>
+                    );
+                  } else if (remaining <= 2) {
+                    occupancyStatus = (
+                      <AccentPill>
+                        {remaining === 1 ? 'noch 1 Platz' : `noch ${remaining} Plätze`}
+                      </AccentPill>
+                    );
+                  }
 
-                  <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                    <button
-                      onClick={() => navigate(`/course/${course.id}/participants`)}
-                      className="flex items-center text-teal-600 hover:text-teal-700 text-sm"
-                    >
-                      <Eye className="w-4 h-4 mr-1" />
-                      Teilnehmer
-                    </button>
-                    
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => navigate(`/course/${course.id}/edit`)}
-                        className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
-                        title="Bearbeiten"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteClick(course.id, course.title, course.series_id ?? null)}
-                        className="p-2 text-gray-400 hover:text-red-600 transition-colors"
-                        title="Löschen"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+                  const waitlistStatus =
+                    waitlistCount > 0 ? (
+                      <AccentPill>
+                        {waitlistCount} auf Warteliste
+                      </AccentPill>
+                    ) : null;
 
-      {deleteDialogOpen && courseToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4">
-            <div className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-start">
-                  <AlertCircle className="w-6 h-6 text-red-600 mr-3 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                      Kurs löschen
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      {courseToDelete.title}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setDeleteDialogOpen(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {seriesCount > 1 ? (
-                <div className="space-y-4">
-                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                    <p className="text-sm text-amber-900">
-                      Dieser Kurs ist Teil einer Serie mit {seriesCount} Terminen.
-                      Möchten Sie nur diesen Termin oder alle Termine der Serie löschen?
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="flex items-start p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                      <input
-                        type="radio"
-                        value="single"
-                        checked={deleteScope === 'single'}
-                        onChange={(e) => setDeleteScope(e.target.value as 'single' | 'series')}
-                        className="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500 mt-0.5"
-                      />
-                      <div className="ml-3">
-                        <span className="block text-sm font-medium text-gray-900">
-                          Nur diesen Termin löschen
-                        </span>
-                        <span className="block text-sm text-gray-600 mt-1">
-                          Die anderen Termine der Serie bleiben bestehen.
-                        </span>
+                  const status =
+                    occupancyStatus || waitlistStatus ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        {occupancyStatus}
+                        {waitlistStatus}
                       </div>
-                    </label>
+                    ) : null;
 
-                    <label className="flex items-start p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                      <input
-                        type="radio"
-                        value="series"
-                        checked={deleteScope === 'series'}
-                        onChange={(e) => setDeleteScope(e.target.value as 'single' | 'series')}
-                        className="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500 mt-0.5"
-                      />
-                      <div className="ml-3">
-                        <span className="block text-sm font-medium text-gray-900">
-                          Alle {seriesCount} Termine der Serie löschen
-                        </span>
-                        <span className="block text-sm text-gray-600 mt-1">
-                          Alle Termine dieser Serie werden unwiderruflich gelöscht.
-                        </span>
-                      </div>
-                    </label>
-                  </div>
-
-                  <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="text-sm text-red-800 font-medium">
-                      Diese Aktion kann nicht rückgängig gemacht werden!
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <p className="text-sm text-gray-600">
-                    Möchten Sie diesen Kurs wirklich löschen?
-                  </p>
-                  <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="text-sm text-red-800 font-medium">
-                      Diese Aktion kann nicht rückgängig gemacht werden!
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex items-center justify-end space-x-3 mt-6 pt-6 border-t border-gray-200">
-                <button
-                  onClick={() => setDeleteDialogOpen(false)}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                >
-                  Abbrechen
-                </button>
-                <button
-                  onClick={handleConfirmDelete}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                >
-                  {deleteScope === 'series' && seriesCount > 1
-                    ? `Alle ${seriesCount} Termine löschen`
-                    : 'Kurs löschen'}
-                </button>
+                  return (
+                    <CourseRow
+                      key={course.id}
+                      course={course}
+                      href={`/course/${course.id}`}
+                      leading="time"
+                      meta={meta}
+                      status={status}
+                    />
+                  );
+                })}
               </div>
-            </div>
-          </div>
+            </section>
+          ))}
         </div>
       )}
     </div>

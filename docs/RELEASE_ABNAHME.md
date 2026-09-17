@@ -31,8 +31,10 @@ Auch wenn die Änderung „damit nichts zu tun hat". Genau diese Fälle brechen 
 - [ ] Owner kann sich anmelden und landet im Dashboard
 - [ ] Falsches Passwort erzeugt eine verständliche Fehlermeldung, keine leere Seite
 - [ ] Abmelden funktioniert, danach ist `/dashboard` nicht mehr erreichbar
-- [ ] Anmeldung mit den Daten von **Demo Alpha** auf `demobeta.omlify-dev.de` wird abgewiesen
-      (Hinweis „falsches Studio") — das ist die Mandantentrennung
+- [ ] Login mit Demo-Alpha-Konto auf `demobeta` zeigt die Beitrittsseite; `/dashboard` und `/courses` zeigen ohne Beitritt keine Beta-Daten
+- [ ] nach „Beitreten“: auf `demobeta` nur Teilnehmerrechte, auf `demoalpha` weiterhin Owner
+- [ ] Kurs-Link aus Alpha auf der Beta-Subdomain: „Kurs nicht gefunden“
+- [ ] bekannt: 400 von `rpc/close_past_course_registrations` in der Konsole (entfällt mit Geldkette Story 0.2)
 - [ ] `https://gibtsnicht.omlify-dev.de` zeigt „Studio nicht gefunden"
 
 ### Registrierung und Bestätigung
@@ -55,11 +57,37 @@ Auch wenn die Änderung „damit nichts zu tun hat". Genau diese Fälle brechen 
 
 - [ ] Owner legt einen Kurs an, er erscheint in der Liste
 - [ ] Kurs bearbeiten, Änderung ist nach dem Neuladen noch da
-- [ ] Teilnehmer meldet sich zu einem **zukünftigen** Kurs an
-- [ ] Teilnehmer meldet sich wieder ab, Platz wird frei
-- [ ] Anmeldung zu einem **vergangenen** Kurs ist nicht möglich
-- [ ] **Warteliste:** Anmeldung zum vollen *Vinyasa Flow* landet auf der Warteliste
+- [ ] Teilnehmer öffnet einen **zukünftigen** Kurs (Zeile antippen) und meldet sich über den Knopf in der Leiste an
+- [ ] Teilnehmer öffnet denselben Kurs und meldet sich über „Abmelden" in der Leiste wieder ab, Platz wird frei
+- [ ] Anmeldung zu einem **vergangenen** Kurs ist nicht möglich (kein Anmeldeknopf in der Leiste)
+- [ ] **Warteliste:** Zeile des vollen *Vinyasa Flow* antippen, „Auf die Warteliste" in der Leiste; Anmeldung landet auf der Warteliste
 - [ ] Meldet sich ein regulärer Teilnehmer ab, rückt der erste von der Warteliste nach
+
+### Kursdetailseite
+
+- [ ] Zeile in Kurse / Übersicht / Meine Anmeldungen / Hero-Karte öffnet die Detailseite,
+      „Zurück" führt zur Herkunftsseite
+- [ ] Kurs-Link direkt aufrufen (neuer Tab): Seite lädt, „Zurück" führt zu den Kursen
+- [ ] Handy: Aktionsleiste bleibt unten sichtbar, auch nach „Weiterlesen"; geöffnetes
+      Menü liegt darüber
+- [ ] Leiste zeigt je Zustand: „pro Termin" + Anmelden · Ausgebucht oben + „Auf die
+      Warteliste" · „Angemeldet" + Abmelden · Warteliste-Pill + Abmelden
+- [ ] Kursleitung im eigenen Kurs und Admin: „Teilnehmer" und „Bearbeiten" statt Anmelden
+- [ ] Kursleitung in einem fremden Kurs kann sich anmelden
+- [ ] Abgesagter oder begonnener Kurs: kein Anmeldeknopf
+- [ ] Kursliste enthält keine Anmelde-/Abmeldeknöpfe, keine Beschreibung und keine
+      Teilnehmerzahl (`n/max Plätze`); die belegten Plätze stehen nur auf der Detailseite
+- [ ] Owner/Admin: „Kurs löschen" unten auf der Seite, nur bei kommenden Kursen; nicht
+      bei vergangenen, nicht für Kursleitungen
+- [ ] Löschdialog nennt die Zahl angemeldeter/wartender Personen (Vinyasa im Seed)
+- [ ] Nach dem Löschen: Kurse-Liste, „Zurück" führt nicht auf die gelöschte Kursseite
+- [ ] Serie (selbst anlegen, Seed hat keine): „Alle N kommenden Termine löschen" lässt
+      vergangene Termine bestehen
+- [ ] Kursverwaltung: keine Knöpfe in den Zeilen, Zeile öffnet die Detailseite
+- [ ] Nach „Kurs anlegen" und „Kurs bearbeiten" erscheint in „Kurse verwalten" die
+      Erfolgsmeldung
+
+Löschen verändert Seed-Daten; danach `npm run seed:dev`.
 
 ### Rollen
 
@@ -73,6 +101,33 @@ Auch wenn die Änderung „damit nichts zu tun hat". Genau diese Fälle brechen 
 - [ ] Nachricht an einen Teilnehmer senden, kommt beim Empfänger an
 - [ ] Ungelesen-Zähler stimmt und geht nach dem Lesen zurück
 
+### Übersicht und Kurslisten
+
+Demo Alpha, Seed-Konten.
+
+- [ ] `teilnehmer1`: Hero-Karte „Deine nächste Stunde", darunter „Danach"
+- [ ] `teilnehmer3` (eine Anmeldung): Hero-Karte, darunter direkt „Noch Plätze frei" mit
+      buchbaren Kursen, kein leerer Bereich daneben
+- [ ] `teilnehmer4` (nur Warteliste): Karte „Noch keine feste Anmeldung", Warteliste als
+      Pill unter „Danach"
+- [ ] `teacher`: keine Hero-Karte, Schnellzugriff unverändert
+- [ ] Kennzahl „Meine Anmeldungen" = Anzahl der Einträge in Hero + Danach
+- [ ] Kursliste: Uhrzeit als kompakter Chip, Endzeit als „bis HH:MM"
+- [ ] Owner: Kurszeilen ohne `n/max Plätze`; nach Antippen steht auf der Detailseite
+      „X von Y Plätzen belegt"
+- [ ] Ein abgesagter Kurs erscheint weder auf der Übersicht noch unter Meine Anmeldungen
+      (Seed enthält keinen; einen Kurs absagen und danach prüfen)
+
+### Anrede
+
+- [ ] Login mit falschem Passwort: Meldung duzt
+- [ ] „Passwort vergessen": Seite und Mail duzen; Mail „Dein Passwort wurde geändert"
+      nach dem Zurücksetzen
+- [ ] Registrierung: Bestätigungsmail duzt
+- [ ] Anmeldung zum vollen Kurs: „Du wurdest auf die Warteliste gesetzt …"
+- [ ] Abmelden-Dialog: „Möchtest du dich vom Kurs … abmelden?"
+- [ ] Stichprobe Verwaltung (Kurs anlegen ohne Kursleitung): Fehlermeldung duzt
+
 ---
 
 ## Zusätzlich bei bestimmten Änderungen
@@ -81,7 +136,26 @@ Auch wenn die Änderung „damit nichts zu tun hat". Genau diese Fälle brechen 
 
 - [ ] `npm run db:status:dev` — alle Migrationen auf DEV angewendet
 - [ ] `npm run db:status:prod` — Liste der **ausstehenden** Migrationen gelesen und verstanden
-- [ ] Nach dem Merge: `npm run db:push:prod`, danach die Live-Seite prüfen
+- [ ] Nach dem Merge: `npm run db:push:prod`, danach die Live-Seite prüfen.
+      Unter Windows (15.09.): `npm run db:push:prod` hing nach der PROD-Abfrage zweimal
+      ohne Verbindung. Workaround von `main`: `npx.cmd supabase db push --db-url …`
+
+      Das Datenbank-Passwort **nie** direkt in die Befehlszeile tippen oder einfügen
+      (landet im Verlauf). Sicherer Weg (PowerShell, auf `main`):
+
+      ```powershell
+      $cfg = @{}; Get-Content .env.deploy | ForEach-Object { if ($_ -match '^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$') { $cfg[$matches[1]] = $matches[2].Trim().Trim('"').Trim("'") } }
+      $cfg.PROD_REF   # muss otnhxzomnjjthocovasu sein
+      $dbUrl = "postgresql://postgres.$($cfg.PROD_REF):$([uri]::EscapeDataString($cfg.PROD_DB_PASSWORD))@$($cfg.PROD_DB_HOST).pooler.supabase.com:5432/postgres"
+      npx.cmd supabase db push --db-url $dbUrl   # Liste prüfen, dann Y
+      Remove-Variable dbUrl, cfg
+      ```
+
+      Fix in `scripts/db.mjs` (`1cc7495`, PR-Merge `ca6fe70` auf `main`; identisch auf `Julius`).
+      **Belegt am 15.09.2026:** `npm run db:push:prod` von `main` im cmd-Terminal ohne
+      ausstehende Migration → Liste, PROD-Abfrage, `db push --yes`, „Remote database is
+      up to date.", kein Hänger. PowerShell-Weg bleibt als Rückfall. Umgeht die
+      Branch-Prüfung des Skripts — `git branch --show-current` vorher selbst prüfen.
 - [ ] Es ist klar, ob der neue Code ohne die Migration läuft. Falls nicht: Merge und
       `db:push:prod` unmittelbar nacheinander, sonst ist die Live-Seite dazwischen kaputt
 

@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Users, FileText, Save, ArrowLeft, Repeat, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useTenant } from '../context/TenantContext';
 import { supabase } from '../lib/supabase';
 import { DatePicker, TimePicker } from '../components/DateTimePicker';
 
@@ -15,6 +16,7 @@ interface CourseLeader {
 const CreateCourse: React.FC = () => {
   const navigate = useNavigate();
   const { userProfile, isCourseLeader } = useAuth();
+  const { tenant } = useTenant();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [courseLeaders, setCourseLeaders] = useState<CourseLeader[]>([]);
@@ -37,6 +39,7 @@ const CreateCourse: React.FC = () => {
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurringType, setRecurringType] = useState<'daily' | 'weekly'>('weekly');
   const [recurringEndDate, setRecurringEndDate] = useState('');
+  const maxParticipantsTouchedRef = useRef(false);
 
   const timeToMinutes = (time: string): number => {
     if (!time) return 0;
@@ -82,8 +85,14 @@ const CreateCourse: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchDefaultSettings();
-  }, []);
+    if (maxParticipantsTouchedRef.current) return;
+    if (tenant == null) return;
+    if (typeof tenant.default_max_participants !== 'number') return;
+    setFormData(prev => ({
+      ...prev,
+      max_participants: String(tenant.default_max_participants),
+    }));
+  }, [tenant]);
 
   useEffect(() => {
     if (userProfile) fetchCourseLeaders();
@@ -109,30 +118,6 @@ const CreateCourse: React.FC = () => {
       }
     }
   }, [formData.time, formData.duration]);
-
-  const fetchDefaultSettings = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('global_settings')
-        .select('*')
-        .eq('key', 'default_max_participants')
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error fetching default settings:', error);
-        return;
-      }
-
-      if (data?.value) {
-        setFormData(prev => ({
-          ...prev,
-          max_participants: String(data.value)
-        }));
-      }
-    } catch (error) {
-      console.error('Error fetching default settings:', error);
-    }
-  };
 
   const fetchCourseLeaders = async () => {
     if (!userProfile) return;
@@ -223,6 +208,10 @@ const CreateCourse: React.FC = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
 
+    if (name === 'max_participants') {
+      maxParticipantsTouchedRef.current = true;
+    }
+
     if (name === 'duration') {
       handleDurationChange(value);
     } else {
@@ -241,7 +230,7 @@ const CreateCourse: React.FC = () => {
     today.setHours(0, 0, 0, 0);
 
     if (!selectedTeacherId) {
-      return 'Bitte wählen Sie einen Kursleiter aus.';
+      return 'Bitte wähle einen Kursleiter aus.';
     }
 
     if (formData.title.trim().length < 3) {
@@ -282,7 +271,7 @@ const CreateCourse: React.FC = () => {
 
     if (isRecurring) {
       if (!recurringEndDate) {
-        return 'Bitte geben Sie ein Enddatum für die wiederkehrenden Kurse an.';
+        return 'Bitte gib ein Enddatum für die wiederkehrenden Kurse an.';
       }
 
       const endDate = new Date(recurringEndDate);
@@ -299,11 +288,11 @@ const CreateCourse: React.FC = () => {
 
       const dates = generateRecurringDates();
       if (dates.length > 100) {
-        return 'Es können maximal 100 Kurstermine auf einmal erstellt werden. Bitte passen Sie das Enddatum oder den Wiederholungstyp an.';
+        return 'Es können maximal 100 Kurstermine auf einmal erstellt werden. Bitte passe das Enddatum oder den Wiederholungstyp an.';
       }
 
       if (dates.length === 0) {
-        return 'Es konnten keine gültigen Kurstermine generiert werden. Bitte überprüfen Sie Ihre Eingaben.';
+        return 'Es konnten keine gültigen Kurstermine generiert werden. Bitte überprüfe deine Eingaben.';
       }
     }
 
@@ -414,7 +403,7 @@ const CreateCourse: React.FC = () => {
       });
     } catch (err: any) {
       console.error('Error creating course:', err);
-      const errorMessage = err?.message || 'Fehler beim Erstellen des Kurses. Bitte versuchen Sie es erneut.';
+      const errorMessage = err?.message || 'Fehler beim Erstellen des Kurses. Bitte versuche es erneut.';
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -426,8 +415,8 @@ const CreateCourse: React.FC = () => {
   if (!hasPermission) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Keine Berechtigung</h2>
-        <p className="text-gray-600">Sie haben keine Berechtigung, Kurse zu erstellen.</p>
+        <h2 className="text-xl font-semibold text-text mb-2">Keine Berechtigung</h2>
+        <p className="text-textMuted">Du hast keine Berechtigung, Kurse zu erstellen.</p>
       </div>
     );
   }
@@ -437,31 +426,29 @@ const CreateCourse: React.FC = () => {
       <div className="mb-6">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center text-gray-600 hover:text-gray-900 mb-4"
+          className="flex items-center text-textMuted hover:text-text mb-4"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Zurück
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">Neuen Kurs erstellen</h1>
-        <p className="text-gray-600">Erstellen Sie einen neuen Yoga-Kurs für Ihre Teilnehmer.</p>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+      <div className="bg-surface rounded-md border border-border">
+        <form onSubmit={handleSubmit} className="p-3.5 space-y-6">
           {/* Title */}
           <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="title" className="block text-sm font-medium text-textMuted mb-2">
               Kurstitel *
             </label>
             <div className="relative">
-              <FileText className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+              <FileText className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
               <input
                 id="title"
                 name="title"
                 type="text"
                 value={formData.title}
                 onChange={handleChange}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
                 placeholder="z.B. Hatha Yoga für Anfänger"
                 required
               />
@@ -470,7 +457,7 @@ const CreateCourse: React.FC = () => {
 
           {/* Description */}
           <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="description" className="block text-sm font-medium text-textMuted mb-2">
               Beschreibung *
             </label>
             <textarea
@@ -479,27 +466,27 @@ const CreateCourse: React.FC = () => {
               value={formData.description}
               onChange={handleChange}
               rows={4}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-              placeholder="Beschreiben Sie den Kurs, Zielgruppe, Schwierigkeitsgrad..."
+              className="w-full px-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
+              placeholder="Beschreibe den Kurs, Zielgruppe, Schwierigkeitsgrad..."
               required
             />
           </div>
 
           {/* Course Leader Selection */}
           <div>
-            <label htmlFor="teacher_id" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="teacher_id" className="block text-sm font-medium text-textMuted mb-2">
               Kursleiter *
             </label>
             <div className="relative">
-              <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+              <User className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
               <select
                 id="teacher_id"
                 value={selectedTeacherId}
                 onChange={(e) => setSelectedTeacherId(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent appearance-none bg-white"
+                className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent appearance-none bg-surface"
                 required
               >
-                <option value="">Bitte wählen Sie einen Kursleiter</option>
+                <option value="">Bitte wähle einen Kursleiter</option>
                 {courseLeaders.map((leader) => (
                   <option key={leader.id} value={leader.id}>
                     {leader.first_name} {leader.last_name} ({leader.email})
@@ -508,7 +495,7 @@ const CreateCourse: React.FC = () => {
               </select>
             </div>
             {courseLeaders.length === 0 && (
-              <p className="mt-2 text-sm text-amber-700">
+              <p className="mt-2 text-sm text-text">
                 Keine Kursleiter gefunden. Bitte in der Nutzerverwaltung mindestens einen Nutzer als Kursleiter anlegen.
               </p>
             )}
@@ -516,7 +503,7 @@ const CreateCourse: React.FC = () => {
 
           {/* Date */}
           <div>
-            <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="date" className="block text-sm font-medium text-textMuted mb-2">
               {isRecurring ? 'Startdatum *' : 'Datum *'}
             </label>
             <DatePicker
@@ -530,16 +517,16 @@ const CreateCourse: React.FC = () => {
           </div>
 
           {/* Recurring Options */}
-          <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+          <div className="border border-border rounded-md p-3.5 bg-surfaceSunken">
             <div className="flex items-center mb-4">
               <input
                 id="isRecurring"
                 type="checkbox"
                 checked={isRecurring}
                 onChange={(e) => setIsRecurring(e.target.checked)}
-                className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
+                className="w-4 h-4 text-brand border-border rounded-sm focus:ring-brand"
               />
-              <label htmlFor="isRecurring" className="ml-2 flex items-center text-sm font-medium text-gray-700">
+              <label htmlFor="isRecurring" className="ml-2 flex items-center text-sm font-medium text-textMuted">
                 <Repeat className="w-4 h-4 mr-1" />
                 Wiederkehrender Kurs
               </label>
@@ -548,7 +535,7 @@ const CreateCourse: React.FC = () => {
             {isRecurring && (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-textMuted mb-2">
                     Wiederholung *
                   </label>
                   <div className="flex space-x-4">
@@ -558,9 +545,9 @@ const CreateCourse: React.FC = () => {
                         value="weekly"
                         checked={recurringType === 'weekly'}
                         onChange={(e) => setRecurringType(e.target.value as 'daily' | 'weekly')}
-                        className="w-4 h-4 text-teal-600 border-gray-300 focus:ring-teal-500"
+                        className="w-4 h-4 text-brand border-border focus:ring-brand"
                       />
-                      <span className="ml-2 text-sm text-gray-700">Wöchentlich</span>
+                      <span className="ml-2 text-sm text-textMuted">Wöchentlich</span>
                     </label>
                     <label className="flex items-center">
                       <input
@@ -568,15 +555,15 @@ const CreateCourse: React.FC = () => {
                         value="daily"
                         checked={recurringType === 'daily'}
                         onChange={(e) => setRecurringType(e.target.value as 'daily' | 'weekly')}
-                        className="w-4 h-4 text-teal-600 border-gray-300 focus:ring-teal-500"
+                        className="w-4 h-4 text-brand border-border focus:ring-brand"
                       />
-                      <span className="ml-2 text-sm text-gray-700">Täglich</span>
+                      <span className="ml-2 text-sm text-textMuted">Täglich</span>
                     </label>
                   </div>
                 </div>
 
                 <div>
-                  <label htmlFor="recurringEndDate" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="recurringEndDate" className="block text-sm font-medium text-textMuted mb-2">
                     Enddatum (max. 12 Monate) *
                   </label>
                   <DatePicker
@@ -589,7 +576,7 @@ const CreateCourse: React.FC = () => {
                     placeholder="Enddatum wählen"
                   />
                   {recurringEndDate && formData.date && (
-                    <p className="mt-2 text-xs text-gray-500">
+                    <p className="mt-2 text-xs text-textMuted">
                       {generateRecurringDates().length} Kurse werden erstellt
                     </p>
                   )}
@@ -601,7 +588,7 @@ const CreateCourse: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Start Time */}
             <div>
-              <label htmlFor="time" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="time" className="block text-sm font-medium text-textMuted mb-2">
                 Kursbeginn *
               </label>
               <TimePicker
@@ -615,7 +602,7 @@ const CreateCourse: React.FC = () => {
 
             {/* Duration */}
             <div>
-              <label htmlFor="duration" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="duration" className="block text-sm font-medium text-textMuted mb-2">
                 Dauer (Min.)
               </label>
               <input
@@ -626,14 +613,14 @@ const CreateCourse: React.FC = () => {
                 step="15"
                 value={formData.duration}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
                 placeholder="z.B. 60"
               />
             </div>
 
             {/* End Time */}
             <div>
-              <label htmlFor="end_time" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="end_time" className="block text-sm font-medium text-textMuted mb-2">
                 Kursende
               </label>
               <TimePicker
@@ -647,18 +634,18 @@ const CreateCourse: React.FC = () => {
 
           {/* Location */}
           <div>
-            <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="location" className="block text-sm font-medium text-textMuted mb-2">
               Ort *
             </label>
             <div className="relative">
-              <MapPin className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+              <MapPin className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
               <input
                 id="location"
                 name="location"
                 type="text"
                 value={formData.location}
                 onChange={handleChange}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
                 placeholder="z.B. Yoga-Studio Mitte, Raum 1"
                 required
               />
@@ -668,11 +655,11 @@ const CreateCourse: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Max Participants */}
             <div>
-              <label htmlFor="max_participants" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="max_participants" className="block text-sm font-medium text-textMuted mb-2">
                 Max. Teilnehmer *
               </label>
               <div className="relative">
-                <Users className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                <Users className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
                 <input
                   id="max_participants"
                   name="max_participants"
@@ -681,7 +668,7 @@ const CreateCourse: React.FC = () => {
                   max="50"
                   value={formData.max_participants}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
                   placeholder="z.B. 12"
                   required
                 />
@@ -690,11 +677,10 @@ const CreateCourse: React.FC = () => {
 
             {/* Price */}
             <div>
-              <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="price" className="block text-sm font-medium text-textMuted mb-2">
                 Preis (EUR) *
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-3 text-gray-400 font-semibold">€</span>
                 <input
                   id="price"
                   name="price"
@@ -703,32 +689,33 @@ const CreateCourse: React.FC = () => {
                   step="0.01"
                   value={formData.price}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className="w-full pl-4 pr-10 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
                   placeholder="z.B. 25.00"
                   required
                 />
+                <span className="absolute right-3 top-3 text-textSubtle font-semibold">€</span>
               </div>
             </div>
           </div>
 
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-600">{error}</p>
+            <div className="p-3 bg-dangerSoft border border-danger rounded-sm">
+              <p className="text-sm text-danger">{error}</p>
             </div>
           )}
 
-          <div className="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200">
+          <div className="flex items-center justify-end space-x-4 pt-6 border-t border-border">
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              className="px-4 py-2 text-textMuted bg-surfaceSunken hover:bg-borderStrong rounded-sm transition-colors"
             >
               Abbrechen
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex items-center px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 focus:ring-4 focus:ring-teal-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center px-6 py-2 bg-brand text-onBrand rounded-sm hover:bg-brandPressed focus:ring-4 focus:ring-brandSoft transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save className="w-4 h-4 mr-2" />
               {loading ? 'Wird erstellt...' : 'Kurs erstellen'}

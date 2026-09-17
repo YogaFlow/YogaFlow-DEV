@@ -3,8 +3,11 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import LoginForm from '../components/Auth/LoginForm';
 import RegisterForm from '../components/Auth/RegisterForm';
 import { Heart } from 'lucide-react';
+import StudioMark from '../components/branding/StudioMark';
 import { useAuth } from '../context/AuthContext';
 import { useTenant, buildApexHref, withDevTenant } from '../context/TenantContext';
+import { getStudioLogoUrl } from '../lib/studioBranding';
+import JoinStudio from './JoinStudio';
 
 type AccessNotice = 'wrong_studio' | 'profile_missing' | 'email_not_confirmed' | null;
 
@@ -141,29 +144,29 @@ const AuthPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+      <div className="min-h-screen bg-sand flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand"></div>
       </div>
     );
   }
 
   if (tenantSlug && lookupError) {
     return (
-      <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-6 text-center">
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">Studio konnte nicht geladen werden</h1>
-        <p className="text-gray-600 text-sm max-w-lg leading-relaxed">{lookupError}</p>
-        <p className="text-gray-500 text-xs max-w-md mt-3">
+      <div className="min-h-screen bg-sand flex flex-col items-center justify-center p-6 text-center">
+        <h1 className="text-2xl font-bold text-text mb-2">Studio konnte nicht geladen werden</h1>
+        <p className="text-textMuted text-sm max-w-lg leading-relaxed">{lookupError}</p>
+        <p className="text-textMuted text-xs max-w-md mt-3">
           Wenn der Eintrag in Supabase sichtbar ist: Live-Build muss dieselbe Supabase-URL und denselben Anon-Key
           nutzen (Cloudflare Pages → Environment variables).
         </p>
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className="mt-6 rounded-lg bg-teal-600 text-white px-4 py-2 text-sm font-medium hover:bg-teal-700"
+          className="mt-6 rounded-sm bg-brand text-onBrand px-4 py-2 text-sm font-medium hover:bg-brandPressed"
         >
           Neu laden
         </button>
-        <a href={buildApexHref()} className="mt-3 text-teal-600 hover:underline text-sm font-medium">
+        <a href={buildApexHref()} className="mt-3 text-brand hover:underline text-sm font-medium">
           Zur Startseite
         </a>
       </div>
@@ -172,15 +175,15 @@ const AuthPage: React.FC = () => {
 
   if (tenantSlug && notFound) {
     return (
-      <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-6 text-center">
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">Studio nicht gefunden</h1>
-        <p className="text-gray-500 max-w-md">
+      <div className="min-h-screen bg-sand flex flex-col items-center justify-center p-6 text-center">
+        <h1 className="text-2xl font-bold text-text mb-2">Studio nicht gefunden</h1>
+        <p className="text-textMuted max-w-md">
           Unter der Adresse <span className="font-mono">{tenantSlug}</span> ist in der von der App angesprochenen
           Datenbank kein Studio eingetragen.
         </p>
         <a
           href={buildApexHref()}
-          className="mt-6 text-teal-600 hover:underline font-medium"
+          className="mt-6 text-brand hover:underline font-medium"
         >
           Zur Startseite
         </a>
@@ -188,54 +191,70 @@ const AuthPage: React.FC = () => {
     );
   }
 
+  if (user && tenant && !userProfile && !profileLoading && !loading) {
+    return <JoinStudio />;
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-indigo-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-sand flex items-center justify-center p-4">
       <div className="w-full max-w-4xl">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-teal-600 rounded-full mb-4">
-            <Heart className="w-8 h-8 text-white" />
-          </div>
+          {tenant ? (
+            <StudioMark
+              variant="auth"
+              name={tenant.name}
+              logoUrl={getStudioLogoUrl(tenant.logo_path)}
+              showLogo={tenant.logo_on_auth}
+              showName={false}
+            />
+          ) : (
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-brand rounded-full mb-4">
+              <Heart className="w-8 h-8 text-onBrand" />
+            </div>
+          )}
           {/*
             Auf einer Studio-Subdomain steht der Studioname oben: Wer sich bei Yomita
             anmeldet, kennt Yomita - nicht Omlify. Die Plattform bleibt in der Fusszeile
             sichtbar. Solange der Tenant noch laedt, bleibt die Zeile leer statt kurz
             "Omlify" zu zeigen und dann umzuspringen.
           */}
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-3xl font-bold text-text mb-2">
             {tenant?.name ?? (tenantSlug ? " " : "Omlify")}
           </h1>
-          <p className="text-gray-600">
-            {tenantSlug
-              ? "Kurse buchen und verwalten"
-              : "Verwalten Sie Ihre Yoga-Kurse professionell und einfach"}
+          <p className="text-textMuted">
+            {tenant?.tagline
+              ? tenant.tagline
+              : tenantSlug
+                ? "Kurse buchen und verwalten"
+                : "Verwalte deine Yoga-Kurse professionell und einfach"}
           </p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+        <div className="bg-surface rounded-md border border-border overflow-hidden">
           {isApexAuth ? (
-            <div className="border-b border-gray-200 py-4 px-6 text-center">
-              <h2 className="text-lg font-semibold text-gray-900">Anmelden</h2>
-              <p className="text-sm text-gray-500 mt-1">
+            <div className="border-b border-border py-4 px-6 text-center">
+              <h2 className="text-lg font-semibold text-text">Anmelden</h2>
+              <p className="text-sm text-textMuted mt-1">
                 Neues Studio?{' '}
-                <a href="/onboarding" className="text-teal-600 hover:text-teal-700 font-medium">
+                <a href="/onboarding" className="text-brand hover:text-brandPressed font-medium">
                   Jetzt kostenlos starten
                 </a>
               </p>
             </div>
           ) : tenantPending ? (
-            <div className="border-b border-gray-200 py-4 px-6 text-center">
-              <h2 className="text-lg font-semibold text-gray-900">Anmelden</h2>
-              <p className="text-sm text-gray-500 mt-1">Studio wird geladen …</p>
+            <div className="border-b border-border py-4 px-6 text-center">
+              <h2 className="text-lg font-semibold text-text">Anmelden</h2>
+              <p className="text-sm text-textMuted mt-1">Studio wird geladen …</p>
             </div>
           ) : (
-            <div className="flex border-b border-gray-200">
+            <div className="flex border-b border-border">
               <button
                 type="button"
                 onClick={() => setIsLogin(true)}
                 className={`flex-1 py-4 px-6 text-center font-medium transition-colors ${
                   isLogin
-                    ? 'text-teal-600 border-b-2 border-teal-600 bg-teal-50'
-                    : 'text-gray-500 hover:text-gray-700'
+                    ? 'text-brandOnSoft border-b-2 border-brand bg-brandSoft'
+                    : 'text-textMuted hover:text-textMuted'
                 }`}
               >
                 Anmelden
@@ -245,8 +264,8 @@ const AuthPage: React.FC = () => {
                 onClick={() => setIsLogin(false)}
                 className={`flex-1 py-4 px-6 text-center font-medium transition-colors ${
                   !isLogin
-                    ? 'text-teal-600 border-b-2 border-teal-600 bg-teal-50'
-                    : 'text-gray-500 hover:text-gray-700'
+                    ? 'text-brandOnSoft border-b-2 border-brand bg-brandSoft'
+                    : 'text-textMuted hover:text-textMuted'
                 }`}
               >
                 Registrieren
@@ -255,17 +274,17 @@ const AuthPage: React.FC = () => {
           )}
 
           {showVerifiedMessage && (
-            <div className="mx-8 mt-6 p-4 bg-green-50 border border-green-200 rounded-lg text-center text-green-800 text-sm">
-              E-Mail bestätigt. Sie können sich jetzt anmelden.
+            <div className="mx-8 mt-6 p-4 bg-successSoft border border-successSoft rounded-sm text-center text-text text-sm">
+              E-Mail bestätigt. Du kannst dich jetzt anmelden.
             </div>
           )}
           {isLogin && user && profileLoading && (
-            <div className="mx-8 mt-6 p-4 bg-teal-50 border border-teal-200 rounded-lg text-teal-900 text-sm text-center">
+            <div className="mx-8 mt-6 p-4 bg-brandSoft border border-brandSoft rounded-sm text-brandOnSoft text-sm text-center">
               Anmeldung erfolgreich — Profil wird geladen …
             </div>
           )}
           {loginBlockReason === 'profile_missing' && (
-            <div className="mx-8 mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-sm">
+            <div className="mx-8 mt-6 p-4 bg-accentSoft border border-accent rounded-sm text-text text-sm">
               <p className="font-medium mb-1">Anmeldung erkannt, Profil fehlt</p>
               <p>
                 Die Anmeldung war erfolgreich, aber es gibt keinen Eintrag in der Studio-Datenbank. Bitte registriere
@@ -274,7 +293,7 @@ const AuthPage: React.FC = () => {
             </div>
           )}
           {loginBlockReason === 'email_not_confirmed' && (
-            <div className="mx-8 mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-sm">
+            <div className="mx-8 mt-6 p-4 bg-accentSoft border border-accent rounded-sm text-text text-sm">
               <p className="font-medium mb-1">E-Mail noch nicht bestätigt (Omlify)</p>
               <p>
                 Bitte den Link aus der <strong>Omlify</strong>-Bestätigungsmail öffnen (Button „E-Mail-Adresse
@@ -284,7 +303,7 @@ const AuthPage: React.FC = () => {
             </div>
           )}
           {loginBlockReason === 'wrong_studio' && (
-            <div className="mx-8 mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-sm">
+            <div className="mx-8 mt-6 p-4 bg-accentSoft border border-accent rounded-sm text-text text-sm">
               <p className="font-medium mb-1">Falsches Studio</p>
               <p>
                 Dieses Konto gehört nicht zu <span className="font-mono">{tenantSlug}</span>. Bitte nutze die
@@ -293,7 +312,7 @@ const AuthPage: React.FC = () => {
             </div>
           )}
           {accessNotice === 'wrong_studio' && (
-            <div className="mx-8 mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-sm">
+            <div className="mx-8 mt-6 p-4 bg-accentSoft border border-accent rounded-sm text-text text-sm">
               <p className="font-medium mb-1">Falsche Studio-Adresse</p>
               <p>
                 Dieses Konto ist nicht für die Studio-URL{' '}
@@ -303,14 +322,14 @@ const AuthPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setAccessNotice(null)}
-                className="mt-3 text-teal-700 font-medium hover:underline"
+                className="mt-3 text-brand font-medium hover:underline"
               >
                 Hinweis schließen
               </button>
             </div>
           )}
           {accessNotice === 'profile_missing' && (
-            <div className="mx-8 mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-sm">
+            <div className="mx-8 mt-6 p-4 bg-accentSoft border border-accent rounded-sm text-text text-sm">
               <p className="font-medium mb-1">Profil unvollständig</p>
               <p>
                 Für dein Konto existiert kein Eintrag in der Studio-Datenbank (z.&nbsp;B. abgebrochene Registrierung).
@@ -320,14 +339,14 @@ const AuthPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setAccessNotice(null)}
-                className="mt-3 text-teal-700 font-medium hover:underline"
+                className="mt-3 text-brand font-medium hover:underline"
               >
                 Hinweis schließen
               </button>
             </div>
           )}
           {accessNotice === 'email_not_confirmed' && (
-            <div className="mx-8 mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-sm">
+            <div className="mx-8 mt-6 p-4 bg-accentSoft border border-accent rounded-sm text-text text-sm">
               <p className="font-medium mb-1">E-Mail-Adresse noch nicht bestätigt</p>
               <p>
                 Bitte den Link aus der Bestätigungsmail öffnen (grüner Button „E-Mail-Adresse
@@ -337,22 +356,22 @@ const AuthPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setAccessNotice(null)}
-                className="mt-3 text-teal-700 font-medium hover:underline"
+                className="mt-3 text-brand font-medium hover:underline"
               >
                 Hinweis schließen
               </button>
             </div>
           )}
-          <div className="p-8 flex justify-center">
+          <div className="p-3.5 flex justify-center">
             {isLogin || tenantPending ? (
               <LoginForm key={loginFormKey} emailJustVerified={showVerifiedMessage} />
             ) : (
-              <RegisterForm />
+              <RegisterForm onSwitchToLogin={() => setIsLogin(true)} />
             )}
           </div>
         </div>
 
-        <div className="text-center mt-8 text-sm text-gray-500">
+        <div className="text-center mt-8 text-sm text-textMuted">
           <p>© {new Date().getFullYear()} Omlify · Kursverwaltung für Yogastudios</p>
         </div>
       </div>

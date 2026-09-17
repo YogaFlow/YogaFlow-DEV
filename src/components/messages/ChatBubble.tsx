@@ -1,6 +1,6 @@
 import React from 'react';
-import { format } from 'date-fns';
 import { Message } from '../../types';
+import { formatDateTime } from '../../lib/format';
 
 interface ChatBubbleProps {
   message: Message;
@@ -14,7 +14,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
   showCourseTitle = true,
 }) => {
   const courseTitle = (message.course as { title?: string } | undefined)?.title;
-  const timeLabel = format(new Date(message.created_at), 'dd.MM.yyyy HH:mm');
+  const timeLabel = formatDateTime(message.created_at);
 
   return (
     <div className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
@@ -25,7 +25,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
       >
         {showCourseTitle && courseTitle && (
           <span
-            className={`text-[10px] text-gray-400 px-1 ${isOwnMessage ? 'text-right' : 'text-left'}`}
+            className={`text-[10px] text-textSubtle px-1 ${isOwnMessage ? 'text-right' : 'text-left'}`}
           >
             {courseTitle}
           </span>
@@ -33,14 +33,14 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({
         <div
           className={`px-4 py-2.5 whitespace-pre-wrap break-words text-sm leading-relaxed ${
             isOwnMessage
-              ? 'bg-teal-600 text-white rounded-2xl rounded-br-sm'
-              : 'bg-gray-100 text-gray-900 rounded-2xl rounded-bl-sm'
+              ? 'bg-brand text-onBrand rounded-md rounded-br-sm'
+              : 'bg-surfaceSunken text-text rounded-md rounded-bl-sm'
           }`}
         >
           {message.content}
         </div>
         <span
-          className={`text-[10px] text-gray-400 px-1 ${isOwnMessage ? 'text-right' : 'text-left'}`}
+          className={`text-[10px] text-textSubtle px-1 tabular-nums ${isOwnMessage ? 'text-right' : 'text-left'}`}
         >
           {timeLabel}
         </span>

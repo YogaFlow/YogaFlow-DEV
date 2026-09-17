@@ -1,16 +1,16 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { buildEmailActionLink } from "../_shared/email_link_base_url.ts";
-import { fetchStudioSlugForUser } from "../_shared/studio_slug_for_user.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, x-omlify-tenant",
 };
 
 interface ResetRequest {
   email: string;
+  studio_slug?: string;
 }
 
 Deno.serve(async (req: Request) => {
@@ -23,7 +23,8 @@ Deno.serve(async (req: Request) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { email }: ResetRequest = await req.json();
+    const { email, studio_slug: clientStudioSlug }: ResetRequest = await req.json();
+    const headerSlug = req.headers.get("x-omlify-tenant");
 
     if (!email) {
       return new Response(
@@ -32,31 +33,33 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { data: userData, error: userError } = await supabase
-      .from("users")
-      .select("id, email, first_name")
-      .eq("email", email)
-      .maybeSingle();
+    const { data: loginId, error: userError } = await supabase.rpc(
+      "lookup_login_by_email",
+      { p_email: email },
+    );
 
     if (userError) {
       console.error("Database error:", userError);
     }
 
-    if (!userData) {
+    if (!loginId) {
       console.log("Password reset: no user found for email:", email, "- no email sent (by design)");
     }
 
-    if (userData) {
+    if (loginId) {
       const { data: tokenData, error: tokenError } = await supabase.rpc(
         "create_password_reset_token",
-        { p_user_id: userData.id, p_email: userData.email ?? email }
+        { p_user_id: loginId, p_email: email }
       );
 
       if (tokenError || !tokenData) {
         console.error("Error creating token:", tokenError);
       } else {
         const token = tokenData as string;
-        const studioSlug = await fetchStudioSlugForUser(supabase, userData.id);
+        const { data: studioSlug } = await supabase.rpc(
+          "lookup_studio_slug_for_login",
+          { p_auth_user_id: loginId, p_hint: clientStudioSlug ?? headerSlug },
+        );
         const resetLink = buildEmailActionLink(req, studioSlug, "reset-password", token);
 
         const emailHtml = `
@@ -72,16 +75,16 @@ Deno.serve(async (req: Request) => {
                 <p style="margin: 0 0 24px 0; color: #0f766e; font-size: 14px; font-weight: 700;">Omlify</p>
                 <h1 style="margin: 0 0 16px 0; color: #111827; font-size: 22px; line-height: 1.3;">Passwort zurücksetzen</h1>
                 <p style="margin: 0 0 16px 0; color: #374151; font-size: 16px; line-height: 1.5;">
-                  Für Ihr Omlify-Konto wurde ein neues Passwort angefordert.
+                  Für dein Omlify-Konto wurde ein neues Passwort angefordert.
                 </p>
                 <p style="margin: 0 0 24px 0; color: #374151; font-size: 16px; line-height: 1.5;">
-                  Über den folgenden Button können Sie ein neues Passwort vergeben. Der Link ist 1 Stunde gültig.
+                  Über den folgenden Button kannst du ein neues Passwort vergeben. Der Link ist 1 Stunde gültig.
                 </p>
                 <p style="margin: 0 0 28px 0;">
                   <a href="${resetLink}" style="display: inline-block; padding: 12px 18px; background-color: #0f766e; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 15px; font-weight: 600;">Passwort zurücksetzen</a>
                 </p>
                 <p style="margin: 0; color: #6b7280; font-size: 13px; line-height: 1.5;">
-                  Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren. Ihr bisheriges Passwort bleibt unverändert.
+                  Wenn du diese Anfrage nicht gestellt hast, kannst du diese E-Mail ignorieren. Dein bisheriges Passwort bleibt unverändert.
                 </p>
               </div>
             </body>
@@ -115,14 +118,14 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: "Wenn ein Konto mit dieser E-Mail-Adresse existiert, haben wir Ihnen eine E-Mail zum Zurücksetzen des Passworts geschickt." 
+        message: "Wenn ein Konto mit dieser E-Mail-Adresse existiert, haben wir dir eine E-Mail zum Zurücksetzen des Passworts geschickt." 
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("Error:", error);
     return new Response(
-      JSON.stringify({ error: "Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut." }),
+      JSON.stringify({ error: "Ein Fehler ist aufgetreten. Bitte versuche es später erneut." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

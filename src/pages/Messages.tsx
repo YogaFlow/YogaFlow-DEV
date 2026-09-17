@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { MessageSquare } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
 import ConversationList from '../components/messages/ConversationList';
@@ -300,7 +299,7 @@ export default function Messages() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600" />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand" />
       </div>
     );
   }
@@ -369,11 +368,6 @@ export default function Messages() {
         sending={sending}
       />
 
-      <div className="flex items-center gap-3 mb-3 shrink-0 lg:mb-4">
-        <MessageSquare size={26} className="text-gray-900 lg:w-7 lg:h-7" />
-        <h1 className="text-xl lg:text-2xl font-bold text-gray-900">Nachrichten</h1>
-      </div>
-
       {/* Desktop / Tablet: two columns */}
       <div className="hidden lg:grid lg:grid-cols-[minmax(280px,360px)_1fr] gap-4 flex-1 min-h-0">
         <div className="min-h-0">{listPanel}</div>
@@ -385,7 +379,7 @@ export default function Messages() {
         {!isMobileChatOpen ? (
           listPanel
         ) : (
-          <div className="fixed inset-0 z-30 flex flex-col bg-white lg:hidden">
+          <div className="fixed inset-0 z-30 flex flex-col bg-surface lg:hidden">
             {threadPanel}
           </div>
         )}

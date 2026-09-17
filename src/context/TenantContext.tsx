@@ -1,69 +1,19 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { isBrandColorAllowed, normalizeHex } from '../design/brand';
+import { applyBrandColor, writeCachedBrandColor } from '../lib/brandTheme';
+import { applyDocumentTitle, applyFavicon } from '../lib/documentBranding';
+import { getStudioLogoUrl } from '../lib/studioBranding';
 import { supabase } from '../lib/supabase';
 import { Tenant } from '../types';
+import {
+  APP_BASE_DOMAIN,
+  DEV_SLUG_KEY,
+  normalizeAppBaseDomain,
+  resolveSlug,
+  slugFromHostname,
+} from '../lib/tenantSlug';
 
-const DEV_SLUG_KEY = '__dev_tenant_slug__';
-
-/**
- * Env-Wert wie `https://omlify.de/` oder `www.omlify.de` → Hostname für Subdomain-Vergleiche (`omlify.de`).
- */
-export function normalizeAppBaseDomain(raw: string | undefined): string {
-  const fallback = 'omlify.de';
-  if (raw == null || !String(raw).trim()) return fallback;
-  let s = String(raw).trim().toLowerCase();
-  s = s.replace(/^https?:\/\//, '');
-  s = s.split('/')[0].split('?')[0];
-  s = s.split(':')[0];
-  s = s.replace(/\.$/, '');
-  if (s.startsWith('www.')) s = s.slice(4);
-  return s || fallback;
-}
-
-export const APP_BASE_DOMAIN = normalizeAppBaseDomain(
-  import.meta.env.VITE_APP_BASE_DOMAIN as string | undefined,
-);
-
-/** Slug aus Host <slug>.<baseDomain>, Apex / www → null. */
-export function slugFromHostname(hostname: string, baseDomain: string): string | null {
-  const h = hostname.toLowerCase();
-  const b = baseDomain.toLowerCase();
-  if (!b) return null;
-  if (h === b || h === `www.${b}`) return null;
-  if (!h.endsWith(`.${b}`)) return null;
-  const slug = h.slice(0, h.length - b.length - 1);
-  if (!slug || slug.includes('.')) return null;
-  return slug;
-}
-
-/**
- * Liest den Tenant-Slug:
- *
- * Zuerst immer aus dem Hostnamen (`<slug>.<APP_BASE_DOMAIN>`), damit echte Subdomains auch in DEV
- * (Tunnel/ngrok) und bei falsch formatierter VITE_APP_BASE_DOMAIN funktionieren.
- * DEV zusätzlich: ?tenant= und sessionStorage.
- * Apex ohne Slug → null (Landing / Onboarding).
- */
-function resolveSlug(): string | null {
-  const params = new URLSearchParams(window.location.search);
-  const override = params.get('tenant');
-  const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
-
-  const fromHost = slugFromHostname(hostname, APP_BASE_DOMAIN);
-  if (fromHost) {
-    if (import.meta.env.DEV) sessionStorage.setItem(DEV_SLUG_KEY, fromHost);
-    return fromHost;
-  }
-
-  if (import.meta.env.DEV) {
-    if (override) {
-      sessionStorage.setItem(DEV_SLUG_KEY, override);
-      return override;
-    }
-    return sessionStorage.getItem(DEV_SLUG_KEY) ?? null;
-  }
-
-  return null;
-}
+export { APP_BASE_DOMAIN, normalizeAppBaseDomain, slugFromHostname };
 
 /** Löscht den DEV-Slug aus sessionStorage (beim Abmelden aufrufen). */
 export function clearDevTenantSlug() {
@@ -149,6 +99,7 @@ interface TenantContextType {
   notFound: boolean;
   /** Supabase-/Netzwerkfehler oder Timeout — nicht mit „nicht gefunden“ verwechseln */
   lookupError: string | null;
+  updateTenant: (patch: Partial<Tenant>) => void;
 }
 
 const TenantContext = createContext<TenantContextType>({
@@ -157,6 +108,7 @@ const TenantContext = createContext<TenantContextType>({
   loading: true,
   notFound: false,
   lookupError: null,
+  updateTenant: () => {},
 });
 
 export const useTenant = () => useContext(TenantContext);
@@ -197,6 +149,9 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [lookupError, setLookupError] = useState<string | null>(null);
   const tenantSlug = resolveSlug();
+  const updateTenant = useCallback((patch: Partial<Tenant>) => {
+    setTenant((prev) => (prev ? { ...prev, ...patch } : prev));
+  }, []);
 
   /** Häufiger Konfigurationsfehler: Basis-ENV = komplette Studio-URL → Slug bleibt immer null. */
   useEffect(() => {
@@ -290,8 +245,41 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
   }, [tenantSlug]);
 
+  useEffect(() => {
+    if (!tenantSlug) {
+      applyBrandColor(null);
+      applyDocumentTitle(null);
+      applyFavicon({ brandColor: null, logoUrl: null, useLogo: false });
+      return;
+    }
+    if (loading) return;
+    if (tenant) {
+      applyBrandColor(tenant.brand_color ?? null);
+      applyDocumentTitle(tenant.name);
+      applyFavicon({
+        brandColor: tenant.brand_color,
+        logoUrl: getStudioLogoUrl(tenant.logo_path),
+        useLogo: tenant.logo_in_sidebar || tenant.logo_on_auth,
+      });
+      const normalized = tenant.brand_color ? normalizeHex(tenant.brand_color) : null;
+      writeCachedBrandColor(
+        tenantSlug,
+        normalized && isBrandColorAllowed(normalized) ? normalized : null,
+      );
+      return;
+    }
+    if (notFound) {
+      applyBrandColor(null);
+      writeCachedBrandColor(tenantSlug, null);
+      applyDocumentTitle(null);
+      applyFavicon({ brandColor: null, logoUrl: null, useLogo: false });
+      return;
+    }
+    if (lookupError) return;
+  }, [tenantSlug, tenant, loading, notFound, lookupError]);
+
   return (
-    <TenantContext.Provider value={{ tenant, tenantSlug, loading, notFound, lookupError }}>
+    <TenantContext.Provider value={{ tenant, tenantSlug, loading, notFound, lookupError, updateTenant }}>
       {children}
     </TenantContext.Provider>
   );
