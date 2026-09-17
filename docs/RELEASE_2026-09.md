@@ -8,7 +8,7 @@
 |---|---|
 | Commits auf `Julius`, nicht auf `main` | 84 |
 | Dateien | 114 geändert, +13.567 / −2.695 Zeilen |
-| Migrationen nur auf DEV | 13 |
+| Migrationen nur auf DEV | 14 |
 | Edge Functions geändert | alle 9 plus `_shared/studio_slug_for_user.ts` |
 | Nicht im Release | Geldkette 1a (`docs/EPIC_GELDKETTE_1A.md`), Stufe 4 der Mehrfachmitgliedschaft |
 
@@ -208,6 +208,25 @@ belegten Plätze (`n/max Plätze`) mehr. Die Zahl steht nur auf der Kursdetailse
 Lange Orts- oder Leitungsnamen in der Meta-Zeile werden nicht mehr mit `…`
 abgeschnitten. Die Zeile bricht um, höchstens zwei Zeilen.
 
+## R — Funktionsrechte (17.09.)
+
+`324c527` · Migration `20260917134259` (Befund B1 vom 17.09.).
+
+`lookup_login_by_email` und `lookup_studio_slug_for_login` (neu mit `20260911185000`)
+waren für `authenticated` ausführbar: Supabase vergibt Default-Privileges `EXECUTE`
+an `anon` und `authenticated`; `REVOKE … FROM PUBLIC` trifft die beiden nicht.
+Damit hätte jedes Login Konten studioübergreifend nachschlagen können.
+
+Zusätzlich schon auf PROD offen und in derselben Migration geschlossen:
+`complete_email_verification` nur noch Edge/`service_role`;
+`cleanup_future_registrations_on_role_upgrade` nur Trigger (kein Client-EXECUTE);
+`admin_(un)register_*` und `close_past_course_registrations` ohne `anon`
+(`authenticated` bleibt, Entfernen von `close_past_course_registrations` ist Geldkette 0.2).
+
+Eingespielt auf DEV; Selbstprüfung und Negativprobe `42501` für `anon`/`authenticated`
+auf den Lookup-RPCs. Funktionstest 17.09. auf `demoalpha.omlify-dev.de` OK
+(Passwort vergessen, Registrierung, Admin ein-/austragen, Role-Upgrade-Trigger).
+
 ---
 
 ## Nachträge bis zum Schnitt
@@ -226,6 +245,7 @@ abgeschnitten. Die Zeile bricht um, höchstens zwei Zeilen.
 | 15.09. | `ca6fe70` | Tooling | Windows-Fix `scripts/db.mjs` auf `main` (PR `fix/db-script-windows-prod`) |
 | 16.09. | siehe P | Design | Teilnehmerzahl nur auf der Kursdetailseite, siehe Gruppe P |
 | 16.09. | siehe Q | Design | Meta-Zeile der Kurszeile umbrechen, siehe Gruppe Q |
+| 17.09. | siehe R | Sicherheit | Funktionsrechte Lookup/Verifizierung/`anon` schließen, siehe Gruppe R |
 | | | Fixes aus Release-Test | |
 
 ---
@@ -266,8 +286,8 @@ abgeschnitten. Die Zeile bricht um, höchstens zwei Zeilen.
 
 ## Vor dem Release-PR zu prüfen
 
-- [ ] `npm run db:status:prod`: welche der 13 Migrationen PROD schon kennt (Erwartung: keine; `134500` und `104222` ja)
-- [ ] Probelauf aller 13 Migrationen auf einer PROD-Kopie, inkl. der PROD-Sonderfälle aus `CLAUDE.md`:
+- [ ] `npm run db:status:prod`: welche der 14 Migrationen PROD schon kennt (Erwartung: keine; `134500` und `104222` ja)
+- [ ] Probelauf aller 14 Migrationen auf einer PROD-Kopie, inkl. der PROD-Sonderfälle aus `CLAUDE.md`:
       2 Logins ohne Profil, 1 Studio ohne Profil, ein Konto mit abweichender `users.email`
 - [ ] Reihenfolge beim Deploy festlegen: Migrationen → alle 9 Edge Functions → Frontend. Die Functions lesen
       `auth_user_id`, das Frontend sendet den Header, beides ohne Migration wirkungslos bzw. fehlerhaft
@@ -279,9 +299,10 @@ abgeschnitten. Die Zeile bricht um, höchstens zwei Zeilen.
       sich verband (`status` ohne Abfrage lief). Fix in `scripts/db.mjs` (`1cc7495`, PR-Merge `ca6fe70` auf `main`; identisch auf `Julius`).
       **Belegt am 15.09.2026:** `npm run db:push:prod` von `main` im cmd-Terminal ohne ausstehende Migration → Liste, PROD-Abfrage,
       `db push --yes`, „Remote database is up to date.", kein Hänger. PowerShell-Weg bleibt als Rückfall.
-- [ ] **PROD kennt `20260911134500` und `20260915104222`**, 12 der 13 Julius-Migrationen sind älter →
-      `supabase db push` verlangt nach Kenntnisstand `--include-all`. `20260915115057` ist jünger und käme
-      als normale ausstehende Datei. Auf einer PROD-Kopie belegen, bevor es live läuft.
+- [ ] **PROD kennt `20260911134500` und `20260915104222`**, 12 der 14 Julius-Migrationen sind älter →
+      `supabase db push` verlangt nach Kenntnisstand `--include-all`. `20260915115057` und
+      `20260917134259` sind jünger und kämen als normale ausstehende Dateien. Auf einer PROD-Kopie
+      belegen, bevor es live läuft.
       `db.mjs` reicht das Flag noch nicht durch — vor dem Release-Push entscheiden (Flag im Skript für `push prod`
       optional machen oder einmalig manuell).
 - [ ] Nach dem Release: `20260915104222` darf nicht erneut angewendet werden (Datei identisch, Version schon remote) —

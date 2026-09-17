@@ -52,6 +52,7 @@ sich in einen Design- oder Refactoring-Durchlauf einschleicht: sagen, nicht ausf
 - Produktionsdaten werden nie verändert.
 - Der Service-Role-Key bleibt serverseitig. Niemals in eine `VITE_`-Variable.
 - Feature-Arbeit und Design-/Aufräumarbeit kommen nie in denselben Commit.
+- Jede neue Funktion in `public` braucht `REVOKE ALL … FROM PUBLIC, anon, authenticated` und danach nur die nötigen `GRANT`s. Die Selbstprüfung testet `anon` **und** `authenticated`. Grund: Supabase-Default-Privileges geben beiden sonst `EXECUTE`.
 
 ---
 
@@ -166,7 +167,10 @@ nur `first_name, last_name, email, phone, street, house_number, postal_code, cit
 - Neue Spalten auf `users` sind automatisch gesperrt. Eine Freigabe braucht einen Beleg aus
   dem Client-Code.
 - `REVOKE … FROM PUBLIC` entzieht auf Supabase `anon` und `authenticated` nichts. Dort immer
-  explizit entziehen.
+  explizit entziehen. Jede neue Funktion in `public` braucht `REVOKE ALL … FROM PUBLIC, anon,
+  authenticated` und danach nur die nötigen `GRANT`s. Die Selbstprüfung testet `anon` **und**
+  `authenticated`. Grund: Supabase-Default-Privileges geben beiden sonst `EXECUTE`
+  (Befund B1, `20260917134259`).
 - `email` ist nur vorläufig freigegeben und wird mit der Mehrfachmitgliedschaft Login-Sache.
 
 **Plattformtabellen `system_settings` und `admin_emails` (Hotfix 15.09.2026)**
@@ -231,7 +235,7 @@ Maßgeblich ist `docs/DESIGNSYSTEM.md`. Das Wichtigste in Kürze:
 
 ## Stand (15.09.2026)
 
-**Release 2026-09 — offen.** `Julius` liegt 84 Commits und 13 Migrationen vor `main`, dazu kommen
+**Release 2026-09 — offen.** `Julius` liegt 84 Commits und 14 Migrationen vor `main`, dazu kommen
 Änderungen an allen 9 Edge Functions. Den Umfang nach Themen beschreibt `docs/RELEASE_2026-09.md`.
 Umfang und Zeitpunkt des Schnitts werden am 15.09. besprochen. Bis zum Schnitt ist `Julius` die
 Release-Linie. Fixes, Landingpage- und Design-Änderungen für das Release gehen dort hinein.
@@ -272,6 +276,10 @@ siehe `docs/RELEASE_2026-09.md` Gruppe K. RPC-Migration `20260915003628` (Rückw
 **Buchungseinstellungen 15.09.:** Standard-Teilnehmerzahl pro Studio, Stornofrist-Feld
 entfernt, Härtung `tenants`/`global_settings` — siehe `docs/RELEASE_2026-09.md` Gruppe O.
 Migration `20260915115057` (`ad0d25a`, `2e30a05`).
+
+**Funktionsrechte 17.09.:** Lookup- und Verifizierungs-RPCs nur `service_role`, Trigger ohne
+Client-EXECUTE, `anon` von Admin-RPCs und `close_past_course_registrations` entfernt —
+siehe `docs/RELEASE_2026-09.md` Gruppe R. Migration `20260917134259` (`324c527`).
 
 **Datenmodell — Kern fertig auf DEV:** Mehrfachmitgliedschaft bis 3c-B2 (letzter Commit
 `ed73a32`, 13.09.). Offen: Stufe 4 — `debug_request_tenant_header()` entfernen und die

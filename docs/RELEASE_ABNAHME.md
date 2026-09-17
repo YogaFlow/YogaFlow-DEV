@@ -31,8 +31,10 @@ Auch wenn die Änderung „damit nichts zu tun hat". Genau diese Fälle brechen 
 - [ ] Owner kann sich anmelden und landet im Dashboard
 - [ ] Falsches Passwort erzeugt eine verständliche Fehlermeldung, keine leere Seite
 - [ ] Abmelden funktioniert, danach ist `/dashboard` nicht mehr erreichbar
-- [ ] Anmeldung mit den Daten von **Demo Alpha** auf `demobeta.omlify-dev.de` wird abgewiesen
-      (Hinweis „falsches Studio") — das ist die Mandantentrennung
+- [ ] Login mit Demo-Alpha-Konto auf `demobeta` zeigt die Beitrittsseite; `/dashboard` und `/courses` zeigen ohne Beitritt keine Beta-Daten
+- [ ] nach „Beitreten“: auf `demobeta` nur Teilnehmerrechte, auf `demoalpha` weiterhin Owner
+- [ ] Kurs-Link aus Alpha auf der Beta-Subdomain: „Kurs nicht gefunden“
+- [ ] bekannt: 400 von `rpc/close_past_course_registrations` in der Konsole (entfällt mit Geldkette Story 0.2)
 - [ ] `https://gibtsnicht.omlify-dev.de` zeigt „Studio nicht gefunden"
 
 ### Registrierung und Bestätigung
