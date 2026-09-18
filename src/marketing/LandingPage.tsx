@@ -1,5 +1,5 @@
 import { ClosingCta } from './sections/ClosingCta';
-import { DemoPlaceholder } from './sections/DemoPlaceholder';
+import { Demo } from './sections/Demo';
 import { Faq } from './sections/Faq';
 import { Footer } from './sections/Footer';
 import { Header } from './sections/Header';
@@ -17,7 +17,7 @@ export default function LandingPage() {
       <main>
         <Hero />
         <Problem />
-        <DemoPlaceholder />
+        <Demo />
         <Promises />
         <Setup />
         <Transparency />
