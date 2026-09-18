@@ -116,6 +116,28 @@ export function isOwnCourse(course: DemoCourse, role: AppRole): boolean {
   return false;
 }
 
+export const DEMO_STUDIO_PEOPLE: readonly string[] = [
+  'Anna Reuter',
+  'Lena Brandt',
+  'Sophie Wald',
+  'Jana Ortmann',
+  'Tim Faber',
+  'Nele Kurz',
+  'Paul Sieber',
+  'Ida Rohde',
+  'Ben Marquardt',
+  'Lisa Thönnes',
+  'Kira Vogt',
+  'Mira Kellner',
+];
+
+export const LIST_ROW_LIMIT = 6;
+
+export function withMore<T>(items: readonly T[], max = LIST_ROW_LIMIT): { shown: T[]; rest: number } {
+  if (items.length <= max) return { shown: items.slice(), rest: 0 };
+  return { shown: items.slice(0, max), rest: items.length - max };
+}
+
 export function initials(name: string): string {
   return name
     .split(' ')

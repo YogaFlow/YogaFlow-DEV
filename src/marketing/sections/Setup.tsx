@@ -8,7 +8,7 @@ const STEPS = [
     body: 'Name, Adresse, Logo. Deine Farbe wählst du aus neun Vorlagen.',
     fields: [
       { label: 'Studioname', value: 'Yoga mit Mila' },
-      { label: 'Adresse', value: 'yomita.omlify.de' },
+      { label: 'Adresse', value: 'deinstudio.omlify.de' },
     ],
     barsOn: 1,
   },
@@ -27,7 +27,7 @@ const STEPS = [
     title: 'Link teilen',
     body: 'In deine Instagram-Bio, in den Newsletter, in die WhatsApp-Gruppe. Fertig.',
     fields: [
-      { label: 'Teilen', value: 'yomita.omlify.de' },
+      { label: 'Teilen', value: 'deinstudio.omlify.de' },
       { label: 'Deine Teilnehmer', value: 'buchen selbst' },
     ],
     barsOn: 3,

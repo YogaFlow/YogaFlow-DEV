@@ -4,7 +4,7 @@ import { AppShell } from '../app/AppShell';
 import { GuestDashboard, StaffHome } from '../app/GuestDashboard';
 import { ParticipantList, type ParticipantRow } from '../app/ParticipantList';
 import type { AppRole } from '../app/navigation';
-import { DEMO_COURSES, DEMO_PARTICIPANTS, DEMO_WAITING } from '../demo/data';
+import { DEMO_COURSES } from '../demo/data';
 import { BrowserWindow } from '../ui/BrowserWindow';
 import { usePrefersReducedMotion } from '../ui/prefersReducedMotion';
 import { Reveal } from '../ui/Reveal';
@@ -39,8 +39,6 @@ function brandWindowStyle(swatch: (typeof SWATCHES)[number]): CSSProperties {
 }
 
 const VINYASA = DEMO_COURSES[0];
-const VINYASA_NAMES = DEMO_PARTICIPANTS[1] ?? [];
-const VINYASA_WAITING = DEMO_WAITING[1] ?? [];
 
 const ROLES: readonly { id: AppRole; label: string }[] = [
   { id: 'owner', label: 'Inhaberin' },
@@ -119,28 +117,21 @@ function WaitlistPreview() {
   };
 
   const registered: ParticipantRow[] = after
-    ? VINYASA_NAMES.filter((name) => name !== 'Lena Brandt')
-        .concat(['Mira Kellner'])
-        .map((name) =>
-          name === 'Mira Kellner'
-            ? { name, note: 'Nachgerückt · gerade eben', promoted: true }
-            : { name, note: 'Angemeldet' },
-        )
-    : VINYASA_NAMES.map((name) => ({
-        name,
-        note: 'Angemeldet',
-        leaving: leaving && name === 'Lena Brandt',
-      }));
+    ? [
+        { name: 'Mira Kellner', note: 'Nachgerückt · gerade eben', promoted: true },
+        { name: 'Anna Reuter', note: 'Angemeldet' },
+      ]
+    : [
+        { name: 'Lena Brandt', note: 'Angemeldet', leaving },
+        { name: 'Anna Reuter', note: 'Angemeldet' },
+      ];
 
   const waiting: ParticipantRow[] = after
-    ? VINYASA_WAITING.filter((name) => name !== 'Mira Kellner').map((name, index) => ({
-        name,
-        note: `Position ${index + 1}`,
-      }))
-    : VINYASA_WAITING.map((name, index) => ({
-        name,
-        note: `Position ${index + 1}`,
-      }));
+    ? [{ name: 'Ella Sander', note: 'Position 1' }]
+    : [
+        { name: 'Mira Kellner', note: 'Position 1' },
+        { name: 'Ella Sander', note: 'Position 2' },
+      ];
 
   return (
     <div className="mkt-row2 flip">
@@ -164,6 +155,8 @@ function WaitlistPreview() {
             waiting={waiting}
             taken={12}
             showExport={false}
+            compact
+            registeredMore={10}
           />
         </AppShell>
         <div className={`mkt-toast${after ? ' in' : ''}`} role="status">

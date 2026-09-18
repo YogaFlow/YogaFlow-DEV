@@ -32,8 +32,8 @@ export function AppSidebar({ role, path, clickable, onNavigate }: AppSidebarProp
   const items = NAV_BY_ROLE[role];
 
   return (
-    <div className="mkt-ap-side flex shrink-0 flex-col bg-surface shadow-lg">
-      <div className="border-b border-border px-4 pb-4 pt-4">
+    <div className="mkt-ap-side flex shrink-0 flex-col overflow-hidden bg-surface shadow-lg">
+      <div className="mkt-ap-side-head border-b border-border px-4 pb-4 pt-4">
         <div className="flex items-center gap-2.5">
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-onBrand">
             <StudioHeart />
@@ -46,12 +46,12 @@ export function AppSidebar({ role, path, clickable, onNavigate }: AppSidebarProp
         </span>
       </div>
 
-      <nav className="flex-1 overflow-y-auto p-3">
+      <nav className="flex-1 overflow-hidden p-3">
         <ul className="flex flex-col gap-1.5">
           {items.map((item) => {
             const isActive = item.to === active;
-            const canGo = Boolean(onNavigate && clickable?.includes(item.to));
-            const className = `flex w-full items-center rounded-sm px-4 py-3 text-left text-[15px] whitespace-nowrap ${
+            const canGo = Boolean(onNavigate && (clickable == null || clickable.includes(item.to)));
+            const className = `mkt-ap-navitem flex w-full items-center rounded-sm px-4 py-3 text-left text-[15px] whitespace-nowrap ${
               isActive ? 'bg-brand text-onBrand' : 'text-textMuted'
             } ${canGo ? 'cursor-pointer' : 'cursor-default'}`;
             const Icon = item.icon;
@@ -77,7 +77,7 @@ export function AppSidebar({ role, path, clickable, onNavigate }: AppSidebarProp
       </nav>
 
       <div className="border-t border-border p-3">
-        <span className="flex cursor-default items-center rounded-sm px-4 py-3 text-[15px] text-textMuted">
+        <span className="mkt-ap-navitem flex cursor-default items-center rounded-sm px-4 py-3 text-[15px] text-textMuted">
           <LogOut className="mr-3 h-5 w-5 shrink-0" aria-hidden />
           Abmelden
         </span>

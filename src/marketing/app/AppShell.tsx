@@ -27,9 +27,7 @@ export function AppShell({
       <AppSidebar role={role} path={path} clickable={clickable} onNavigate={onNavigate} />
       <div className="mkt-ap-main flex min-w-0 flex-1 flex-col">
         <AppHeader title={pageTitle(path)} unread={unread} />
-        <div className="mkt-ap-body flex-1 overflow-x-hidden overflow-y-auto bg-sand px-4 pb-14 pt-4">
-          {children}
-        </div>
+        <div className="mkt-ap-body flex-1 bg-sand px-4 py-4">{children}</div>
       </div>
     </div>
   );

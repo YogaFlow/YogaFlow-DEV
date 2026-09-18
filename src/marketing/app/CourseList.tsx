@@ -9,12 +9,23 @@ type CourseListProps = {
   booked: DemoState['booked'];
   waitlisted?: DemoState['waitlisted'];
   onOpenCourse?: (id: number) => void;
+  mineOnly?: boolean;
 };
 
-export function CourseList({ role, booked, waitlisted = {}, onOpenCourse }: CourseListProps) {
+export function CourseList({
+  role,
+  booked,
+  waitlisted = {},
+  onOpenCourse,
+  mineOnly = false,
+}: CourseListProps) {
+  const courses = mineOnly
+    ? DEMO_COURSES.filter((course) => isOwnCourse(course, role))
+    : DEMO_COURSES;
+
   return (
     <div className="space-y-5">
-      {DEMO_COURSES.map((course) => {
+      {courses.map((course) => {
         const { remaining } = occupancy(course, booked);
         const status = courseStatus({
           registered: Boolean(booked[course.id]),

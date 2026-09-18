@@ -1,5 +1,5 @@
 import { ArrowLeft } from 'lucide-react';
-import { DEMO_PARTICIPANTS, DEMO_WAITING, initials, occupancy } from '../demo/data';
+import { DEMO_PARTICIPANTS, DEMO_WAITING, initials, occupancy, withMore } from '../demo/data';
 import type { DemoCourse } from '../demo/types';
 
 export type ParticipantRow = {
@@ -18,6 +18,9 @@ type ParticipantListProps = {
   taken?: number;
   onBack?: () => void;
   showExport?: boolean;
+  compact?: boolean;
+  maxRows?: number;
+  registeredMore?: number;
 };
 
 function Avatar({ row }: { row: ParticipantRow }) {
@@ -37,7 +40,7 @@ function Avatar({ row }: { row: ParticipantRow }) {
 function Row({ row }: { row: ParticipantRow }) {
   return (
     <div
-      className={`flex items-center gap-2.5 border-b border-border px-3.5 py-3 last:border-b-0 ${
+      className={`flex items-center gap-2.5 px-3.5 py-3 ${
         row.you || row.promoted ? 'bg-successSoft' : ''
       }${row.leaving ? ' mkt-row-leaving' : ''}`}
     >
@@ -50,6 +53,11 @@ function Row({ row }: { row: ParticipantRow }) {
   );
 }
 
+function MoreLine({ rest }: { rest: number }) {
+  if (rest <= 0) return null;
+  return <div className="mkt-more">und {rest} weitere</div>;
+}
+
 export function ParticipantList({
   course,
   booked = {},
@@ -58,6 +66,9 @@ export function ParticipantList({
   taken,
   onBack,
   showExport = true,
+  compact = false,
+  maxRows = 6,
+  registeredMore,
 }: ParticipantListProps) {
   const showYou = Boolean(booked[course.id]);
   const names = DEMO_PARTICIPANTS[course.id]?.slice(0, course.registered) ?? [];
@@ -77,13 +88,18 @@ export function ParticipantList({
     waiting ??
     waitNames.map((name, index) => ({
       name,
-      note: `Warteliste · Position ${index + 1}`,
+      note: `Position ${index + 1}`,
     }));
 
   const occupied = taken ?? counted;
+  const registeredVisible =
+    registeredMore != null
+      ? { shown: registeredRows, rest: registeredMore }
+      : withMore(registeredRows, maxRows);
+  const waitingVisible = withMore(waitingRows, maxRows);
 
   return (
-    <div className="mkt-detail mx-auto">
+    <div className={compact ? '' : 'mkt-detail mx-auto'}>
       {onBack ? (
         <button
           type="button"
@@ -96,30 +112,38 @@ export function ParticipantList({
         </button>
       ) : null}
 
-      <h2 className={`text-[22px] font-medium leading-snug text-text${onBack ? ' mt-2.5' : ''}`}>
+      <h2
+        className={`font-medium leading-snug text-text ${
+          compact ? 'text-[19px]' : 'text-[22px]'
+        }${onBack ? ' mt-2.5' : ''}`}
+      >
         {course.title}
       </h2>
-      <p className="mt-1.5 text-[13px] text-textMuted tabular-nums">
+      <p className={`text-[13px] text-textMuted tabular-nums ${compact ? 'mt-1' : 'mt-1.5'}`}>
         {course.dayLabel} · {course.time} bis {course.end}
       </p>
 
-      <h3 className="mb-2 mt-5 text-[15px] font-medium text-textMuted">
+      <h3 className={`mb-2 text-[15px] font-medium text-textMuted ${compact ? 'mt-3.5' : 'mt-5'}`}>
         Angemeldet · {occupied} von {course.max}
       </h3>
-      <div className="overflow-hidden rounded-md border border-border bg-surface">
-        {registeredRows.map((row) => (
+      <div className="divide-y divide-border overflow-hidden rounded-md border border-border bg-surface">
+        {registeredVisible.shown.map((row) => (
           <Row key={`${row.name}-${row.note}`} row={row} />
         ))}
+        <MoreLine rest={registeredVisible.rest} />
       </div>
 
-      <h3 className="mb-2 mt-5 text-[15px] font-medium text-textMuted">Warteliste</h3>
-      <div className="overflow-hidden rounded-md border border-border bg-surface">
-        {waitingRows.length > 0 ? (
-          waitingRows.map((row) => <Row key={`${row.name}-${row.note}`} row={row} />)
-        ) : (
-          <div className="px-3.5 py-3 text-[13px] text-textSubtle">Niemand auf der Warteliste</div>
-        )}
-      </div>
+      {waitingRows.length > 0 ? (
+        <>
+          <h3 className="mb-2 mt-5 text-[15px] font-medium text-textMuted">Warteliste</h3>
+          <div className="divide-y divide-border overflow-hidden rounded-md border border-border bg-surface">
+            {waitingVisible.shown.map((row) => (
+              <Row key={`${row.name}-${row.note}`} row={row} />
+            ))}
+            <MoreLine rest={waitingVisible.rest} />
+          </div>
+        </>
+      ) : null}
 
       {showExport ? (
         <div className="mt-4">
