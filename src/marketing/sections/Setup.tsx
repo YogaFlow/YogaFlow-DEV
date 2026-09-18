@@ -36,7 +36,7 @@ const STEPS = [
 
 export function Setup() {
   return (
-    <Section background="bg-surface">
+    <Section background="bg-surface" blendTop="sand" blendBottom="sand">
       <Reveal>
         <div className="mkt-eyebrow">So fängst du an</div>
       </Reveal>

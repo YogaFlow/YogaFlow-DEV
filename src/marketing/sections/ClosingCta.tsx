@@ -2,7 +2,7 @@ import { Section } from '../ui/Section';
 
 export function ClosingCta() {
   return (
-    <Section background="bg-sage-50">
+    <Section background="bg-sage-50" blendTop="sand" blendBottom="sand">
       <div className="max-w-3xl">
         <h2 className="font-display text-[1.75rem] font-semibold leading-tight text-text sm:text-[2rem]">
           Schau es dir an, bevor du dich entscheidest.

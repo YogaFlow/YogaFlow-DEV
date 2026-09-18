@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { BRAND_PRESETS, deriveBrandTokens } from '../../design/brand';
 import { BrowserWindow } from '../ui/BrowserWindow';
-import { prefersReducedMotion } from '../ui/prefersReducedMotion';
+import { usePrefersReducedMotion } from '../ui/prefersReducedMotion';
 import { Reveal } from '../ui/Reveal';
 import { Section } from '../ui/Section';
 
@@ -148,6 +148,7 @@ function WaitlistPreview() {
   const [state, setState] = useState<WaitlistState>('voll');
   const [promoted, setPromoted] = useState(false);
   const promoteTimer = useRef<number | null>(null);
+  const reduceMotion = usePrefersReducedMotion();
 
   useEffect(() => {
     return () => {
@@ -168,7 +169,7 @@ function WaitlistPreview() {
     }
 
     setState('nachgerueckt');
-    const delay = prefersReducedMotion() ? 0 : 520;
+    const delay = reduceMotion ? 0 : 520;
     promoteTimer.current = window.setTimeout(() => {
       setPromoted(true);
       promoteTimer.current = null;

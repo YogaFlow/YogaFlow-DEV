@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { prefersReducedMotion } from '../ui/prefersReducedMotion';
+import { usePrefersReducedMotion } from '../ui/prefersReducedMotion';
 import { Reveal } from '../ui/Reveal';
 import { Section } from '../ui/Section';
 
@@ -42,6 +42,9 @@ function channelDotStyle(channel: Channel): { background: string } | undefined {
 export function Problem() {
   const inboxRef = useRef<HTMLDivElement>(null);
   const [arrived, setArrived] = useState(() => MESSAGES.map(() => false));
+  const reduceMotion = usePrefersReducedMotion();
+  const reduceMotionRef = useRef(reduceMotion);
+  reduceMotionRef.current = reduceMotion;
 
   useEffect(() => {
     const inbox = inboxRef.current;
@@ -52,7 +55,7 @@ export function Problem() {
     const io = new IntersectionObserver(
       (entries) => {
         if (cancelled || !entries.some((entry) => entry.isIntersecting)) return;
-        const reduce = prefersReducedMotion();
+        const reduce = reduceMotionRef.current;
         MESSAGES.forEach((_, index) => {
           const delay = reduce ? 0 : index * 130;
           timers.push(
@@ -81,7 +84,7 @@ export function Problem() {
   }, []);
 
   return (
-    <Section background="bg-sage-50">
+    <Section background="bg-sage-50" blendTop="sand" blendBottom="sand">
       <Reveal>
         <div className="mkt-eyebrow">Das Problem</div>
       </Reveal>
