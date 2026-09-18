@@ -1,9 +1,8 @@
 export type DemoView = 'owner' | 'guest';
-export type DemoScreen = 'list' | 'detail';
 
 export type DemoState = {
   view: DemoView;
-  screen: DemoScreen;
+  path: string;
   courseId: number | null;
   booked: Record<number, boolean>;
   waitlisted: Record<number, boolean>;
@@ -12,12 +11,19 @@ export type DemoState = {
 export type DemoCourse = {
   id: number;
   title: string;
+  dayLabel: string;
+  dateLine: string;
   weekday: string;
   day: string;
   month: string;
   time: string;
+  end: string;
+  duration: string;
   price: string;
-  seats: number;
-  taken: number;
+  max: number;
+  registered: number;
   waitlist: number;
+  teacher: string;
+  location: string;
+  description: string;
 };

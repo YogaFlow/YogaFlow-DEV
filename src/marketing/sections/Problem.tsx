@@ -27,7 +27,7 @@ const CHANNEL_LABEL: Record<Channel, string> = {
   email: 'E-Mail',
 };
 
-const ROTATIONS = [-3.2, 2.4, -1.6, 3.1, -2.2, 1.5] as const;
+const ROTATIONS = [-2.6, 1.9, -1.4, 2.4, -1.8, 1.2] as const;
 
 function channelDotClass(channel: Channel): string {
   return channel === 'email' ? 'mkt-dotlet bg-accent' : 'mkt-dotlet';
@@ -57,7 +57,7 @@ export function Problem() {
         if (cancelled || !entries.some((entry) => entry.isIntersecting)) return;
         const reduce = reduceMotionRef.current;
         MESSAGES.forEach((_, index) => {
-          const delay = reduce ? 0 : index * 130;
+          const delay = reduce ? 0 : index * 120;
           timers.push(
             window.setTimeout(() => {
               if (cancelled) return;

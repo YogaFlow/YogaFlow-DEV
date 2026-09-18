@@ -1,6 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { GuestView } from '../demo/GuestView';
-import { OwnerView } from '../demo/OwnerView';
+import { AppShell } from '../app/AppShell';
+import { CourseDetail } from '../app/CourseDetail';
+import { CourseList } from '../app/CourseList';
+import { GuestDashboard, MyRegistrations } from '../app/GuestDashboard';
+import { ParticipantList } from '../app/ParticipantList';
+import type { AppRole } from '../app/navigation';
+import { courseById } from '../demo/data';
 import type { DemoState, DemoView } from '../demo/types';
 import { BrowserWindow } from '../ui/BrowserWindow';
 import { usePrefersReducedMotion } from '../ui/prefersReducedMotion';
@@ -9,17 +14,21 @@ import { Section } from '../ui/Section';
 
 const INITIAL_STATE: DemoState = {
   view: 'owner',
-  screen: 'list',
+  path: '/courses',
   courseId: null,
   booked: {},
   waitlisted: {},
 };
 
-function windowUrl(state: DemoState): string {
-  if (state.view === 'owner') {
-    return state.screen === 'list' ? 'yomita.omlify.de · Kurse' : 'yomita.omlify.de · Kursdetail';
-  }
-  return state.screen === 'list' ? 'yomita.omlify.de' : `yomita.omlify.de/kurs/${state.courseId}`;
+const OWNER_CLICKABLE = ['/courses', '/participants'] as const;
+const GUEST_CLICKABLE = ['/dashboard', '/courses', '/my-registrations'] as const;
+
+function windowUrl(path: string): string {
+  return `yomita.omlify.de${path}`;
+}
+
+function roleFor(view: DemoView): AppRole {
+  return view === 'owner' ? 'owner' : 'user';
 }
 
 export function Demo() {
@@ -53,7 +62,7 @@ export function Demo() {
           : null;
     el?.focus();
     focusTarget.current = null;
-  }, [state.screen, state.courseId, state.view]);
+  }, [state.path, state.courseId, state.view]);
 
   const say = (text: string) => {
     if (toastTextRef.current) toastTextRef.current.textContent = text;
@@ -68,17 +77,34 @@ export function Demo() {
   };
 
   const setView = (view: DemoView) => {
-    setState((prev) => ({ ...prev, view, screen: 'list' }));
+    setState((prev) => ({
+      ...prev,
+      view,
+      path: view === 'owner' ? '/courses' : '/dashboard',
+      courseId: null,
+    }));
   };
 
   const openCourse = (id: number) => {
     focusTarget.current = 'back';
-    setState((prev) => ({ ...prev, courseId: id, screen: 'detail' }));
+    setState((prev) => ({ ...prev, courseId: id, path: `/course/${id}` }));
   };
 
   const goBack = () => {
     focusTarget.current = 'row';
-    setState((prev) => ({ ...prev, screen: 'list' }));
+    setState((prev) => ({ ...prev, path: '/courses' }));
+  };
+
+  const goParticipants = () => {
+    setState((prev) =>
+      prev.courseId == null
+        ? prev
+        : { ...prev, path: `/course/${prev.courseId}/participants` },
+    );
+  };
+
+  const navigate = (path: string) => {
+    setState((prev) => ({ ...prev, path, courseId: null }));
   };
 
   const book = (id: number) => {
@@ -91,6 +117,55 @@ export function Demo() {
     say('Du stehst auf der Warteliste. Wird ein Platz frei, bekommst du Bescheid.');
   };
 
+  const role = roleFor(state.view);
+  const clickable = state.view === 'owner' ? OWNER_CLICKABLE : GUEST_CLICKABLE;
+  const unread = state.view === 'owner' ? 3 : 0;
+  const course = state.courseId == null ? undefined : courseById(state.courseId);
+  const onCourseParticipants = state.path.match(/^\/course\/\d+\/participants$/);
+
+  let body = null;
+  if (state.path === '/dashboard') {
+    body = (
+      <GuestDashboard
+        booked={state.booked}
+        waitlisted={state.waitlisted}
+        onOpenCourse={openCourse}
+      />
+    );
+  } else if (state.path === '/my-registrations') {
+    body = (
+      <MyRegistrations
+        booked={state.booked}
+        waitlisted={state.waitlisted}
+        onOpenCourse={openCourse}
+      />
+    );
+  } else if (onCourseParticipants && course) {
+    body = <ParticipantList course={course} booked={state.booked} onBack={goBack} />;
+  } else if (state.path.startsWith('/course/') && course) {
+    body = (
+      <CourseDetail
+        course={course}
+        role={role}
+        booked={state.booked}
+        waitlisted={state.waitlisted}
+        onBack={goBack}
+        onBook={book}
+        onWaitlist={waitlist}
+        onParticipants={goParticipants}
+      />
+    );
+  } else {
+    body = (
+      <CourseList
+        role={role}
+        booked={state.booked}
+        waitlisted={state.waitlisted}
+        onOpenCourse={openCourse}
+      />
+    );
+  }
+
   return (
     <Section id="demo" background="bg-sand">
       <Reveal>
@@ -101,8 +176,8 @@ export function Demo() {
       </Reveal>
       <Reveal>
         <p className="mkt-lede">
-          Beispieldaten, echte Oberfläche. Buch unten einen Kurs als Teilnehmerin — und wechsle dann
-          zurück auf „Was du siehst“. Die Anmeldung ist sofort da.
+          Dieselbe Oberfläche wie in Omlify, mit erfundenen Namen. Meld dich als Teilnehmerin für
+          einen Kurs an — und wechsle dann zurück auf „Was du siehst“.
         </p>
       </Reveal>
       <Reveal>
@@ -124,19 +199,17 @@ export function Demo() {
         </div>
       </Reveal>
       <Reveal>
-        <BrowserWindow url={windowUrl(state)} className="dm-window mkt-win-relative">
+        <BrowserWindow url={windowUrl(state.path)} className="dm-window mkt-win-relative">
           <div ref={bodyRef} aria-live="polite">
-            {state.view === 'owner' ? (
-              <OwnerView state={state} onOpenCourse={openCourse} onBack={goBack} />
-            ) : (
-              <GuestView
-                state={state}
-                onOpenCourse={openCourse}
-                onBack={goBack}
-                onBook={book}
-                onWaitlist={waitlist}
-              />
-            )}
+            <AppShell
+              role={role}
+              path={state.path}
+              unread={unread}
+              clickable={clickable}
+              onNavigate={navigate}
+            >
+              {body}
+            </AppShell>
           </div>
           <div
             ref={toastRef}
@@ -148,11 +221,6 @@ export function Demo() {
             <span ref={toastTextRef} />
           </div>
         </BrowserWindow>
-      </Reveal>
-      <Reveal>
-        <p className="dm-hint">
-          Nichts davon ist ein Video. Es ist dieselbe Oberfläche wie in Omlify, mit erfundenen Namen.
-        </p>
       </Reveal>
     </Section>
   );

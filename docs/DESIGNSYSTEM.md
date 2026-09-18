@@ -327,6 +327,28 @@ als Alias beibehalten, dann Bildschirm für Bildschirm umstellen. Reihenfolge na
 
 ---
 
+## Marketing-Nachbau der App-Oberfläche
+
+Demo und Versprechen auf der Landingpage nutzen gemeinsame Bausteine in
+`src/marketing/app/`. Sie sehen aus wie die App, importieren aber keine App-Komponenten
+und kein `src/context/`.
+
+| Marketing | App |
+|---|---|
+| `AppShell` / `AppSidebar` / `AppHeader` | `Layout.tsx`, `Sidebar.tsx`, `Header.tsx` |
+| `CourseList` | `Courses.tsx` (Tagesgruppen, `CourseRow` `leading="time"`) |
+| `CourseRow` | `src/components/courses/CourseRow.tsx` |
+| `CourseDetail` | `src/pages/CourseDetail.tsx` |
+| `ParticipantList` | `src/pages/Participants.tsx` (Ansicht eines Kurses) |
+| `GuestDashboard` | `src/pages/Dashboard.tsx` (Teilnehmer-Übersicht, Hero-Karte) |
+| `navigation.ts` | Menü in `Sidebar.tsx`, Titel in `routeTitles.ts` |
+| `courseStatus.tsx` | Statuslogik in `Courses.tsx` und `CourseDetail.tsx` |
+
+Änderungen an Sidebar, Header, CourseRow, Courses, CourseDetail oder Dashboard müssen in
+`src/marketing/app/` nachgezogen werden.
+
+---
+
 ## Offen / zu entscheiden
 
 - **Geschlossen 09.09.2026:** Palette bestätigt. Seitenhintergrund bleibt warmer Sand

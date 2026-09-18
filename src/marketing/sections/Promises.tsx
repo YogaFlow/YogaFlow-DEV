@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { BRAND_PRESETS, deriveBrandTokens } from '../../design/brand';
+import { AppShell } from '../app/AppShell';
+import { GuestDashboard, StaffHome } from '../app/GuestDashboard';
+import { ParticipantList, type ParticipantRow } from '../app/ParticipantList';
+import type { AppRole } from '../app/navigation';
+import { DEMO_COURSES, DEMO_PARTICIPANTS, DEMO_WAITING } from '../demo/data';
 import { BrowserWindow } from '../ui/BrowserWindow';
 import { usePrefersReducedMotion } from '../ui/prefersReducedMotion';
 import { Reveal } from '../ui/Reveal';
@@ -18,6 +23,7 @@ const SWATCHES = SWATCH_IDS.map((id) => {
     label: preset.label,
     hex: preset.hex,
     brand: tokens.brand,
+    brandPressed: tokens.brandPressed,
     brandSoft: tokens.brandSoft,
     brandOnSoft: tokens.brandOnSoft,
   };
@@ -26,71 +32,36 @@ const SWATCHES = SWATCH_IDS.map((id) => {
 function brandWindowStyle(swatch: (typeof SWATCHES)[number]): CSSProperties {
   return {
     '--color-brand': swatch.brand,
+    '--color-brand-pressed': swatch.brandPressed,
     '--color-brand-soft': swatch.brandSoft,
     '--color-brand-on-soft': swatch.brandOnSoft,
   } as CSSProperties;
 }
 
-const COURSES = [
-  { weekday: 'Do', day: '18', month: 'Sep', title: 'Vinyasa Flow', price: '18 €', meta: '18:30 bis 19:45' },
-  {
-    weekday: 'Sa',
-    day: '20',
-    month: 'Sep',
-    title: 'Hatha für Einsteiger',
-    price: '15 €',
-    meta: '10:00 bis 11:15',
-    pill: 'noch 2 Plätze',
-  },
-] as const;
+const VINYASA = DEMO_COURSES[0];
+const VINYASA_NAMES = DEMO_PARTICIPANTS[1] ?? [];
+const VINYASA_WAITING = DEMO_WAITING[1] ?? [];
 
-type WaitlistState = 'voll' | 'nachgerueckt';
+const ROLES: readonly { id: AppRole; label: string }[] = [
+  { id: 'owner', label: 'Inhaberin' },
+  { id: 'teacher', label: 'Kursleitung' },
+  { id: 'user', label: 'Teilnehmerin' },
+];
 
-const ROLES = [
-  {
-    name: 'Inhaberin',
-    items: [
-      { label: 'Übersicht', on: true },
-      { label: 'Kurse', on: false },
-      { label: 'Teilnehmer', on: false },
-      { label: 'Trainer', on: false },
-      { label: 'Nachrichten', on: false },
-      { label: 'Einstellungen', on: false },
-    ],
-  },
-  {
-    name: 'Trainerin',
-    items: [
-      { label: 'Meine Kurse', on: true },
-      { label: 'Teilnehmerliste', on: false },
-      { label: 'Nachrichten', on: false },
-      { label: 'Profil', on: false },
-    ],
-  },
-  {
-    name: 'Teilnehmerin',
-    items: [
-      { label: 'Kurse buchen', on: true },
-      { label: 'Meine Anmeldungen', on: false },
-      { label: 'Profil', on: false },
-    ],
-  },
-] as const;
-
-function BookingPreview() {
+function BrandPreview() {
   const [selectedId, setSelectedId] = useState<(typeof SWATCHES)[number]['id']>('sage');
   const selected = SWATCHES.find((item) => item.id === selectedId) ?? SWATCHES[0];
 
   return (
     <div className="mkt-row2">
       <div className="mkt-txt">
-        <h3>Deine eigene Buchungsseite</h3>
+        <h3>Dein Studio, deine Farben</h3>
         <p>
-          Unter deiner Adresse, mit deinem Logo und deiner Farbe. Deine Teilnehmer buchen bei dir — nicht
-          auf einem Portal, das ihnen nebenbei drei andere Studios vorschlägt.
+          Eigene Adresse, eigenes Logo, eigene Markenfarbe. Deine Teilnehmer sehen dein Studio — nicht
+          ein Portal, das ihnen nebenbei drei andere vorschlägt.
         </p>
         <div className="mkt-swatches">
-          <span className="mkt-swlab">Farbe wählen</span>
+          <span className="mkt-swlab">Markenfarbe wählen</span>
           {SWATCHES.map((swatch) => (
             <button
               key={swatch.id}
@@ -105,48 +76,18 @@ function BookingPreview() {
           ))}
         </div>
       </div>
-      <BrowserWindow url="yomita.omlify.de" style={brandWindowStyle(selected)}>
-        <div className="mkt-studio" aria-hidden="true">
-          <div className="mkt-studiohead">
-            <span className="mkt-slogo">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21.2l7.8-7.7 1-1.1a5.5 5.5 0 0 0 0-7.8z" />
-              </svg>
-            </span>
-            <div>
-              <div className="mkt-sname">Yoga mit Mila</div>
-              <div className="mkt-ssub">Kurse buchen</div>
-            </div>
-          </div>
-          <div className="mkt-list">
-            {COURSES.map((course) => (
-              <div key={course.title} className="mkt-cr">
-                <div className="mkt-dateblk">
-                  <div className="w">{course.weekday}</div>
-                  <div className="d">{course.day}</div>
-                  <div className="m">{course.month}</div>
-                </div>
-                <div className="mkt-crm">
-                  <div className="mkt-crt">
-                    <h4>{course.title}</h4>
-                    <span className="pr">{course.price}</span>
-                  </div>
-                  <div className="mkt-meta">{course.meta}</div>
-                  {'pill' in course ? <span className="mkt-pill">{course.pill}</span> : null}
-                </div>
-                <div className="mkt-chev">›</div>
-              </div>
-            ))}
-          </div>
-        </div>
+      <BrowserWindow url="yomita.omlify.de/dashboard" style={brandWindowStyle(selected)}>
+        <AppShell role="user" path="/dashboard" unread={2}>
+          <GuestDashboard booked={{ 1: true }} />
+        </AppShell>
       </BrowserWindow>
     </div>
   );
 }
 
 function WaitlistPreview() {
-  const [state, setState] = useState<WaitlistState>('voll');
-  const [promoted, setPromoted] = useState(false);
+  const [after, setAfter] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const promoteTimer = useRef<number | null>(null);
   const reduceMotion = usePrefersReducedMotion();
 
@@ -162,19 +103,44 @@ function WaitlistPreview() {
       promoteTimer.current = null;
     }
 
-    if (state === 'nachgerueckt') {
-      setState('voll');
-      setPromoted(false);
+    if (after) {
+      setAfter(false);
+      setLeaving(false);
       return;
     }
 
-    setState('nachgerueckt');
-    const delay = reduceMotion ? 0 : 520;
+    setLeaving(true);
+    const delay = reduceMotion ? 0 : 480;
     promoteTimer.current = window.setTimeout(() => {
-      setPromoted(true);
+      setAfter(true);
+      setLeaving(false);
       promoteTimer.current = null;
     }, delay);
   };
+
+  const registered: ParticipantRow[] = after
+    ? VINYASA_NAMES.filter((name) => name !== 'Lena Brandt')
+        .concat(['Mira Kellner'])
+        .map((name) =>
+          name === 'Mira Kellner'
+            ? { name, note: 'Nachgerückt · gerade eben', promoted: true }
+            : { name, note: 'Angemeldet' },
+        )
+    : VINYASA_NAMES.map((name) => ({
+        name,
+        note: 'Angemeldet',
+        leaving: leaving && name === 'Lena Brandt',
+      }));
+
+  const waiting: ParticipantRow[] = after
+    ? VINYASA_WAITING.filter((name) => name !== 'Mira Kellner').map((name, index) => ({
+        name,
+        note: `Position ${index + 1}`,
+      }))
+    : VINYASA_WAITING.map((name, index) => ({
+        name,
+        note: `Position ${index + 1}`,
+      }));
 
   return (
     <div className="mkt-row2 flip">
@@ -186,68 +152,22 @@ function WaitlistPreview() {
         </p>
         <p className="mkt-play">
           <button type="button" className="mkt-btn ghost sm" onClick={play}>
-            {state === 'nachgerueckt' ? 'Nochmal abspielen' : 'Lena meldet sich ab'}
+            {after ? 'Nochmal abspielen' : 'Lena meldet sich ab'}
           </button>
         </p>
       </div>
-      <BrowserWindow url="Kurs · Vinyasa Flow, Do 18. Sep" className="mkt-win-relative">
-        <div className="mkt-studio" aria-hidden="true">
-          <div className="mkt-list">
-            <div className="mkt-cr">
-              <div className="mkt-dateblk">
-                <div className="w">Do</div>
-                <div className="d">18</div>
-                <div className="m">Sep</div>
-              </div>
-              <div className="mkt-crm">
-                <div className="mkt-crt">
-                  <h4>Vinyasa Flow · Mittelstufe</h4>
-                  <span className="pr">18 €</span>
-                </div>
-                <div className="mkt-meta">18:30 bis 19:45 · 12 von 12 Plätzen</div>
-                <span className={`mkt-pill${promoted ? ' ok' : ''}`}>
-                  {promoted ? 'Voll besetzt' : 'Ausgebucht'}
-                </span>
-              </div>
-              <div className="mkt-chev">›</div>
-            </div>
-            <div className={`mkt-cr${state === 'nachgerueckt' ? ' is-leaving' : ''}`}>
-              <div className="mkt-dateblk neutral">
-                <div className="w">&nbsp;</div>
-                <div className="d">L</div>
-                <div className="m">&nbsp;</div>
-              </div>
-              <div className="mkt-crm">
-                <div className="mkt-crt">
-                  <h4>Lena Brandt</h4>
-                </div>
-                <div className="mkt-meta">Angemeldet · seit 2. Sep</div>
-              </div>
-            </div>
-            <div className="mkt-cr">
-              <div className="mkt-dateblk neutral">
-                <div className="w">&nbsp;</div>
-                <div className="d">M</div>
-                <div className="m">&nbsp;</div>
-              </div>
-              <div className="mkt-crm">
-                <div className="mkt-crt">
-                  <h4>Mira Kellner</h4>
-                </div>
-                <div className="mkt-meta">
-                  {promoted ? 'Angemeldet · nachgerückt' : 'Warteliste · Position 1'}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className={`mkt-toast${promoted ? ' in' : ''}`} role="status">
-          {promoted ? (
-            <>
-              <span aria-hidden="true">✓</span>
-              <span>Mira ist nachgerückt und wurde benachrichtigt.</span>
-            </>
-          ) : null}
+      <BrowserWindow url="yomita.omlify.de/course/1/participants" className="mkt-win-relative">
+        <AppShell role="owner" path="/course/1/participants" unread={0}>
+          <ParticipantList
+            course={VINYASA}
+            registered={registered}
+            waiting={waiting}
+            taken={12}
+            showExport={false}
+          />
+        </AppShell>
+        <div className={`mkt-toast${after ? ' in' : ''}`} role="status">
+          {after ? <span>Mira ist nachgerückt und wurde benachrichtigt.</span> : null}
         </div>
       </BrowserWindow>
     </div>
@@ -255,42 +175,43 @@ function WaitlistPreview() {
 }
 
 function RolesPreview() {
-  const [roleIndex, setRoleIndex] = useState(0);
-  const role = ROLES[roleIndex];
+  const [role, setRole] = useState<AppRole>('owner');
 
   return (
     <div className="mkt-row2">
       <div className="mkt-txt">
         <h3>Allein oder im Team</h3>
         <p>
-          Als selbstständige Lehrerin brauchst du nichts außer dir. Kommen Trainerinnen dazu, bekommen sie
-          eigene Zugänge — und sehen genau das, was sie brauchen.
+          Als selbstständige Lehrerin brauchst du nichts außer dir. Kommen Trainerinnen dazu, bekommen
+          sie eigene Zugänge — und sehen genau das, was sie brauchen.
         </p>
         <div className="mkt-rolechips">
-          {ROLES.map((item, index) => (
+          {ROLES.map((item) => (
             <button
-              key={item.name}
+              key={item.id}
               type="button"
               className="mkt-chip"
-              aria-pressed={index === roleIndex}
-              onClick={() => setRoleIndex(index)}
+              aria-pressed={item.id === role}
+              onClick={() => setRole(item.id)}
             >
-              {item.name}
+              {item.label}
             </button>
           ))}
         </div>
       </div>
-      <BrowserWindow url={`yomita.omlify.de · ${role.name}`}>
-        <div className="mkt-studio" aria-hidden="true">
-          <div className="mkt-navlist">
-            {role.items.map((item) => (
-              <div key={item.label} className={`mkt-navitem${item.on ? ' on' : ''}`}>
-                <span className="mkt-navdot" />
-                {item.label}
-              </div>
-            ))}
-          </div>
-        </div>
+      <BrowserWindow url="yomita.omlify.de/dashboard">
+        <AppShell
+          role={role}
+          path="/dashboard"
+          unread={role === 'owner' ? 3 : 0}
+          sidebarAsContent
+        >
+          {role === 'user' ? (
+            <GuestDashboard booked={{ 1: true }} />
+          ) : (
+            <StaffHome name={role === 'owner' ? 'Mila Vogt' : 'Jana Ortmann'} />
+          )}
+        </AppShell>
       </BrowserWindow>
     </div>
   );
@@ -306,7 +227,7 @@ export function Promises() {
         <h2 className="mkt-display">Drei Dinge, die den Sonntagabend zurückgeben.</h2>
       </Reveal>
       <Reveal>
-        <BookingPreview />
+        <BrandPreview />
       </Reveal>
       <Reveal>
         <WaitlistPreview />
