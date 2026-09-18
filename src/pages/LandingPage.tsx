@@ -195,7 +195,9 @@ const LandingPage: React.FC = () => {
         <div className="flex items-center justify-center gap-6 mb-3">
           <a href="/legal/agb" className="hover:text-textMuted">AGB</a>
           <a href="/legal/datenschutz" className="hover:text-textMuted">Datenschutz</a>
+          <a href="mailto:support@omlify.de" className="hover:text-textMuted">Kontakt</a>
         </div>
+        <p className="mb-3">support@omlify.de</p>
         <p>© 2026 Omlify – Professionelles Studio-Management</p>
       </footer>
     </div>
