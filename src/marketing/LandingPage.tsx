@@ -7,6 +7,7 @@ import { Hero } from './sections/Hero';
 import { ParticipantEntry } from './sections/ParticipantEntry';
 import { Problem } from './sections/Problem';
 import { Promises } from './sections/Promises';
+import { Setup } from './sections/Setup';
 import { Transparency } from './sections/Transparency';
 
 export default function LandingPage() {
@@ -18,6 +19,7 @@ export default function LandingPage() {
         <Problem />
         <DemoPlaceholder />
         <Promises />
+        <Setup />
         <Transparency />
         <Faq />
         <ClosingCta />

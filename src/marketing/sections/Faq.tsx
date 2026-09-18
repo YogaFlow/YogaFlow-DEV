@@ -1,3 +1,4 @@
+import { Reveal } from '../ui/Reveal';
 import { Section } from '../ui/Section';
 
 const FAQ_ITEMS = [
@@ -51,25 +52,26 @@ const FAQ_ITEMS = [
 export function Faq() {
   return (
     <Section background="bg-sand">
-      <h2 className="font-display text-[1.75rem] font-semibold leading-tight text-text sm:text-[2rem]">
-        Häufige Fragen
-      </h2>
-      <div className="mt-8 divide-y divide-border border-y border-border">
-        {FAQ_ITEMS.map((item) => (
-          <details key={item.question} className="group">
-            <summary className="flex min-h-11 cursor-pointer list-none items-center py-4 text-left text-[17px] font-medium leading-snug text-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand [&::-webkit-details-marker]:hidden">
-              <span className="flex-1 pr-4">{item.question}</span>
-              <span aria-hidden="true" className="shrink-0 text-textMuted group-open:hidden">
+      <Reveal>
+        <div className="mkt-eyebrow">Fragen</div>
+      </Reveal>
+      <Reveal>
+        <h2 className="mkt-display">Was du vermutlich wissen willst.</h2>
+      </Reveal>
+      <Reveal className="mkt-faq">
+        {FAQ_ITEMS.map((item, index) => (
+          <details key={item.question} className="mkt-qa">
+            <summary>
+              <span className="mkt-qn">{String(index + 1).padStart(2, '0')}</span>
+              <span className="mkt-qt">{item.question}</span>
+              <span className="mkt-sign" aria-hidden="true">
                 +
               </span>
-              <span aria-hidden="true" className="hidden shrink-0 text-textMuted group-open:inline">
-                −
-              </span>
             </summary>
-            <p className="max-w-3xl pb-5 text-[17px] leading-[1.45] text-text">{item.answer}</p>
+            <p className="mkt-ans">{item.answer}</p>
           </details>
         ))}
-      </div>
+      </Reveal>
     </Section>
   );
 }

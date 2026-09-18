@@ -1,43 +1,47 @@
+import { Reveal } from '../ui/Reveal';
 import { Section } from '../ui/Section';
 
 const POINTS = [
   {
-    lead: 'Kein Preis, solange Omlify im Aufbau ist.',
-    rest: 'Kommt einer, erfährst du ihn mindestens zwei Monate vorher und entscheidest dann neu.',
+    title: 'Kein Preis, solange Omlify im Aufbau ist',
+    body: 'Kommt einer, erfährst du ihn mindestens zwei Monate vorher und entscheidest dann neu.',
   },
   {
-    lead: 'Ohne Anteil an deinen Buchungen.',
-    rest: 'Wir verdienen später an deinem Zugang zur Software, nicht an dem, was deine Teilnehmer bezahlen.',
+    title: 'Ohne Anteil an deinen Buchungen',
+    body: 'Wir verdienen später an deinem Zugang zur Software, nicht an dem, was deine Teilnehmer bezahlen.',
   },
   {
-    lead: 'Deine Daten liegen in der EU.',
-    rest: 'Server in Irland, nicht in den USA.',
+    title: 'Deine Daten liegen in der EU',
+    body: 'Server in Irland, nicht in den USA. Jedes Studio hat seine eigene, getrennte Umgebung.',
   },
   {
-    lead: 'Du kommst jederzeit wieder raus.',
-    rest: 'Teilnehmer und Anmeldungen lädst du selbst als CSV-Datei herunter.',
+    title: 'Du kommst jederzeit wieder raus',
+    body: 'Teilnehmer und Anmeldungen lädst du selbst als CSV-Datei herunter.',
   },
 ] as const;
 
 export function Transparency() {
   return (
-    <Section background="bg-sage-800">
-      <div className="max-w-3xl text-onBrand">
-        <h2 className="font-display text-[1.75rem] font-semibold leading-tight sm:text-[2rem]">
-          Omlify ist im Aufbau. Deshalb kostet es gerade nichts.
-        </h2>
-        <p className="mt-6 text-[17px] leading-[1.45]">
-          Wir bauen Omlify zusammen mit den ersten Studios. Solange das so ist, zahlst du
-          nichts — kein Testzeitraum, der abläuft, keine Kreditkarte, keine automatische
-          Verlängerung in irgendetwas.
-        </p>
-        <ul className="mt-10 space-y-6 text-[17px] leading-[1.45]">
-          {POINTS.map((point) => (
-            <li key={point.lead}>
-              <span className="font-semibold">{point.lead}</span> {point.rest}
-            </li>
-          ))}
-        </ul>
+    <Section background="mkt-fir bg-sage-800">
+      <Reveal>
+        <div className="mkt-eyebrow">Preis</div>
+      </Reveal>
+      <Reveal>
+        <h2 className="mkt-display">Omlify ist im Aufbau. Deshalb kostet es gerade nichts.</h2>
+      </Reveal>
+      <Reveal className="mkt-zero">
+        <div className="mkt-zero-big">0 €</div>
+        <div className="mkt-zero-cap">
+          pro Monat, für alle Kurse, alle Teilnehmer und so lange, bis wir dir etwas anderes sagen.
+        </div>
+      </Reveal>
+      <div className="mkt-grid4 mkt-on-dark-line">
+        {POINTS.map((point) => (
+          <Reveal key={point.title} className="mkt-f4 mkt-on-dark-line">
+            <b>{point.title}</b>
+            <span>{point.body}</span>
+          </Reveal>
+        ))}
       </div>
     </Section>
   );
