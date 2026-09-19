@@ -17,7 +17,7 @@ type SectionProps = {
 };
 
 const SPACING: Record<SectionSpacing, string> = {
-  header: 'py-3 sm:py-4',
+  header: 'pt-3 sm:pt-4',
   section: 'py-16 sm:py-24',
   footer: 'py-10 sm:py-12',
   hero: '',
@@ -59,7 +59,7 @@ export function Section({
 
   const innerClass = [
     'mkt-sec-inner mx-auto px-4 sm:px-6',
-    wide ? 'max-w-[1440px]' : 'max-w-[1280px]',
+    wide ? 'max-w-[1440px]' : 'max-w-[1360px]',
     SPACING[spacing],
   ]
     .filter(Boolean)
