@@ -1,4 +1,22 @@
-export const APP_BASE_DOMAIN = 'omlify.de';
+/**
+ * Spiegel von `normalizeAppBaseDomain` in src/lib/tenantSlug.ts.
+ * Bewusst lokal: Marketing importiert nichts aus der App.
+ */
+function normalizeAppBaseDomain(raw: string | undefined): string {
+  const fallback = 'omlify.de';
+  if (raw == null || !String(raw).trim()) return fallback;
+  let s = String(raw).trim().toLowerCase();
+  s = s.replace(/^https?:\/\//, '');
+  s = s.split('/')[0].split('?')[0];
+  s = s.split(':')[0];
+  s = s.replace(/\.$/, '');
+  if (s.startsWith('www.')) s = s.slice(4);
+  return s || fallback;
+}
+
+export const APP_BASE_DOMAIN = normalizeAppBaseDomain(
+  import.meta.env.VITE_APP_BASE_DOMAIN as string | undefined,
+);
 
 const SLUG_PATTERN = /^[a-z0-9]{3,30}$/;
 
