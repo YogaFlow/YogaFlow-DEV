@@ -23,7 +23,7 @@ export function AppShell({
   children,
 }: AppShellProps) {
   return (
-    <div className={`mkt-ap flex min-w-0 bg-sand${sidebarAsContent ? ' mkt-ap-role-focus' : ''}`}>
+    <div className={`mkt-ap font-body flex min-w-0 bg-sand${sidebarAsContent ? ' mkt-ap-role-focus' : ''}`}>
       <AppSidebar role={role} path={path} clickable={clickable} onNavigate={onNavigate} />
       <div className="mkt-ap-main flex min-w-0 flex-1 flex-col">
         <AppHeader title={pageTitle(path)} unread={unread} />

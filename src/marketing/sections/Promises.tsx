@@ -53,7 +53,7 @@ function BrandPreview() {
   return (
     <div className="mkt-row2">
       <div className="mkt-txt">
-        <h3>Dein Studio, deine Farben</h3>
+        <h3 className="mkt-row2-title">Dein Studio, deine Farben</h3>
         <p>
           Eigene Adresse, eigenes Logo, eigene Markenfarbe. Deine Teilnehmer sehen dein Studio — nicht
           ein Portal, das ihnen nebenbei drei andere vorschlägt.
@@ -136,7 +136,7 @@ function WaitlistPreview() {
   return (
     <div className="mkt-row2 flip">
       <div className="mkt-txt">
-        <h3>Wartelisten, die sich selbst sortieren</h3>
+        <h3 className="mkt-row2-title">Wartelisten, die sich selbst sortieren</h3>
         <p>
           Ein Kurs ist voll, jemand meldet sich ab — die Warteliste rückt nach und die Nächste wird
           benachrichtigt. Ohne dass du eine Nachricht tippst.
@@ -173,7 +173,7 @@ function RolesPreview() {
   return (
     <div className="mkt-row2">
       <div className="mkt-txt">
-        <h3>Allein oder im Team</h3>
+        <h3 className="mkt-row2-title">Allein oder im Team</h3>
         <p>
           Als selbstständige Lehrerin brauchst du nichts außer dir. Kommen Trainerinnen dazu, bekommen
           sie eigene Zugänge — und sehen genau das, was sie brauchen.
