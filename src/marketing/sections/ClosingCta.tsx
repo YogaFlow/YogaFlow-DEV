@@ -12,10 +12,7 @@ export function ClosingCta() {
           oder schreib uns vorher.
         </p>
         <div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-6">
-          <a
-            href="/onboarding"
-            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-brand px-5 text-[15px] font-medium text-onBrand active:bg-brandPressed focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-          >
+          <a href="/onboarding" className="mkt-btn">
             Studio einrichten
           </a>
           <a

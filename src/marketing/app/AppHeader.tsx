@@ -14,16 +14,16 @@ export function AppHeader({ title, unread = 0 }: AppHeaderProps) {
           className="mkt-ap-burger rounded-sm p-2 text-text"
           aria-label="Menü"
         >
-          <Menu className="h-5 w-5" aria-hidden />
+          <Menu aria-hidden />
         </button>
         <h1 className="truncate text-lg font-medium text-text">{title}</h1>
       </div>
       <button
         type="button"
-        className="relative rounded-full p-2 text-textMuted"
+        className="mkt-ap-bell relative rounded-full p-2 text-textMuted"
         aria-label={unread > 0 ? `Benachrichtigungen, ${unread} ungelesen` : 'Benachrichtigungen'}
       >
-        <Bell className="h-5 w-5" aria-hidden />
+        <Bell aria-hidden />
         {unread > 0 ? (
           <span
             aria-hidden

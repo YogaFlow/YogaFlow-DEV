@@ -101,8 +101,12 @@ export function courseById(id: number): DemoCourse | undefined {
   return DEMO_COURSES.find((course) => course.id === id);
 }
 
-export function occupancy(course: DemoCourse, booked: Record<number, boolean>) {
-  const taken = course.registered + (booked[course.id] ? 1 : 0);
+export function occupancy(
+  course: DemoCourse,
+  booked: Record<number, boolean>,
+  takenOverride?: number,
+) {
+  const taken = takenOverride ?? (course.registered + (booked[course.id] ? 1 : 0));
   return { taken, remaining: course.max - taken };
 }
 

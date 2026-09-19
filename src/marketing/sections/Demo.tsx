@@ -198,7 +198,7 @@ export function Demo() {
   }
 
   return (
-    <Section id="demo" background="bg-sand">
+    <Section id="demo" background="bg-sand" wide>
       <Reveal>
         <div className="mkt-eyebrow">Die Demo</div>
       </Reveal>

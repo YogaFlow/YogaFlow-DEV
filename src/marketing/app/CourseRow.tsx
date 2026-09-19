@@ -7,10 +7,11 @@ type CourseRowProps = {
   course: DemoCourse;
   leading: 'time' | 'date';
   status?: ReactNode;
+  flash?: boolean;
   onOpen?: (id: number) => void;
 };
 
-export function CourseRow({ course, leading, status, onOpen }: CourseRowProps) {
+export function CourseRow({ course, leading, status, flash = false, onOpen }: CourseRowProps) {
   const interactive = typeof onOpen === 'function';
 
   const open = () => onOpen?.(course.id);
@@ -30,6 +31,7 @@ export function CourseRow({ course, leading, status, onOpen }: CourseRowProps) {
         interactive
           ? 'cursor-pointer min-h-11 hover:bg-sage-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset'
           : '',
+        flash ? 'mkt-flash' : '',
       ]
         .filter(Boolean)
         .join(' ')}
