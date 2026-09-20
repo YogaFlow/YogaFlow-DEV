@@ -49,3 +49,6 @@ github-secrets.txt
 
 # Arbeitsnotizen aus Claude/Cursor, nicht Teil des Produkts
 Claude outputs/
+
+# Aus docs/legal/*.md erzeugt, nur im Marketing-Build
+/legal/*.html
