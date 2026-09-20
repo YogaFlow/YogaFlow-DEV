@@ -11,7 +11,7 @@ const mpaInput = {
 /**
  * Rollup erzeugt bei zwei HTML-Entries in einem Durchlauf Shared-Chunks (React).
  * Das würde das App-Bundle (index-*.js) um >100 kB ändern. Deshalb: erst die App
- * allein, danach Marketing allein in dasselbe dist/.
+ * allein, danach Marketing allein in denselben Client-Ausgabeordner.
  */
 function isolatedMarketingBuild(): Plugin {
   let started = false;
@@ -21,6 +21,10 @@ function isolatedMarketingBuild(): Plugin {
     enforce: 'post',
     async closeBundle() {
       if (process.env.OMLIFY_MARKETING_BUILD === '1' || started) return;
+      // Mit Worker-Entry schliesst Vite die Worker-Umgebung vor der Client-Umgebung.
+      // Marketing darf erst nach dem Client-Build laufen, sonst leert emptyOutDir es.
+      const environmentName = this.environment?.name;
+      if (environmentName && environmentName !== 'client') return;
       started = true;
       process.env.OMLIFY_MARKETING_BUILD = '1';
       await viteBuild();
@@ -40,6 +44,23 @@ export default defineConfig(({ mode, command }) => {
       : marketingBuild
         ? { marketing: mpaInput.marketing }
         : { main: mpaInput.main };
+
+  const clientRollupOptions = {
+    input,
+    output: {
+      entryFileNames(chunkInfo: { name: string }) {
+        if (chunkInfo.name === 'main') return 'assets/index-[hash].js';
+        return 'assets/[name]-[hash].js';
+      },
+      assetFileNames(assetInfo: { names?: string[]; name?: string }) {
+        const names = assetInfo.names ?? (assetInfo.name ? [assetInfo.name] : []);
+        if (names.some((name) => name === 'main.css')) {
+          return 'assets/index-[hash][extname]';
+        }
+        return 'assets/[name]-[hash][extname]';
+      },
+    },
+  };
 
   return {
     plugins: [
@@ -64,22 +85,23 @@ export default defineConfig(({ mode, command }) => {
     },
     build: {
       emptyOutDir: !marketingBuild,
-      rollupOptions: {
-        input,
-        output: {
-          entryFileNames(chunkInfo) {
-            if (chunkInfo.name === 'main') return 'assets/index-[hash].js';
-            return 'assets/[name]-[hash].js';
-          },
-          assetFileNames(assetInfo) {
-            const names = assetInfo.names ?? (assetInfo.name ? [assetInfo.name] : []);
-            if (names.some((name) => name === 'main.css')) {
-              return 'assets/index-[hash][extname]';
-            }
-            return 'assets/[name]-[hash][extname]';
-          },
-        },
-      },
+      // Mit Worker-Entry schreibt das Cloudflare-Plugin die Client-Assets nach
+      // dist/client/. Der isolierte Marketing-Build laeuft ohne das Plugin und
+      // muss denselben Ordner treffen, sonst fehlt marketing.html im Deploy.
+      outDir: marketingBuild ? 'dist/client' : 'dist',
+      // Nur der Marketing-Zweitbuild (ohne Cloudflare-Plugin) nutzt die Root-rollupOptions.
+      // Im ersten Durchlauf gehoeren sie in environments.client, sonst erbt die
+      // Worker-Umgebung index.html als Entry und der Build bricht ab.
+      ...(marketingBuild ? { rollupOptions: clientRollupOptions } : {}),
     },
+    ...(!marketingBuild
+      ? {
+          environments: {
+            client: {
+              build: { rollupOptions: clientRollupOptions },
+            },
+          },
+        }
+      : {}),
   };
 });

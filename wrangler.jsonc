@@ -27,8 +27,19 @@
   "observability": {
     "enabled": true
   },
+  "main": "src/worker.ts",
   "assets": {
-    "not_found_handling": "single-page-application"
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    // Ausschlussmuster: Worker fuer Navigationen, nicht fuer hashed Bundles und
+    // die drei statischen Dateien im public/-Ordner. `/*` trifft auch `/`.
+    "run_worker_first": [
+      "/*",
+      "!/assets/*",
+      "!/favicon.svg",
+      "!/og-image.png",
+      "!/hero-app-mobile.jpg"
+    ]
   },
   "compatibility_flags": [
     "nodejs_compat"
