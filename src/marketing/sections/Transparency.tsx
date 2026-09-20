@@ -12,7 +12,7 @@ const POINTS = [
   },
   {
     title: 'Deine Daten liegen in der EU',
-    body: 'Server in Irland, nicht in den USA. Jedes Studio hat seine eigene, getrennte Umgebung.',
+    body: 'Server in Irland. Jedes Studio hat seine eigene, getrennte Umgebung.',
   },
   {
     title: 'Du kommst jederzeit wieder raus',

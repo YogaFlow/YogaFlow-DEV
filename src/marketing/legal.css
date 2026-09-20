@@ -200,13 +200,51 @@ a:active {
 }
 
 @media (max-width: 640px) {
-  .legal-article table {
-    font-size: 13px;
-    min-width: 24rem;
+  .legal-table-wrap {
+    overflow-x: visible;
   }
 
-  .legal-article th,
+  .legal-article table {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    font-size: 15px;
+  }
+
+  .legal-article thead {
+    display: none;
+  }
+
+  .legal-article tbody,
+  .legal-article tr,
   .legal-article td {
-    padding: 0.5rem 0.6rem;
+    display: block;
+    width: 100%;
+  }
+
+  .legal-article tr {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .legal-article tr:last-child {
+    border-bottom: 0;
+  }
+
+  .legal-article td {
+    border-bottom: 0;
+    padding: 0.4rem 0;
+  }
+
+  .legal-article td::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 0.15rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+  }
+
+  .legal-article td[data-label='']::before {
+    display: none;
   }
 }

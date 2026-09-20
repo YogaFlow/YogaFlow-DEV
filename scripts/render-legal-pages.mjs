@@ -87,6 +87,10 @@ function isSeparatorRow(row) {
   return /^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*:?-{3,}:?\s*\|?\s*$/.test(row);
 }
 
+function tableHeaderLabel(text) {
+  return escapeHtml(text.replaceAll('**', '').replaceAll('`', ''));
+}
+
 function renderTable(rows) {
   const bodyRows = [];
   let headerCells = null;
@@ -102,7 +106,15 @@ function renderTable(rows) {
   if (!headerCells) return '';
   const thead = `<thead><tr>${headerCells.map((cell) => `<th>${inlineFormat(cell)}</th>`).join('')}</tr></thead>`;
   const tbody = `<tbody>${bodyRows
-    .map((cells) => `<tr>${cells.map((cell) => `<td>${inlineFormat(cell)}</td>`).join('')}</tr>`)
+    .map(
+      (cells) =>
+        `<tr>${cells
+          .map((cell, index) => {
+            const label = tableHeaderLabel(headerCells[index] ?? '');
+            return `<td data-label="${label}">${inlineFormat(cell)}</td>`;
+          })
+          .join('')}</tr>`,
+    )
     .join('')}</tbody>`;
   return `<div class="legal-table-wrap"><table>${thead}${tbody}</table></div>`;
 }
