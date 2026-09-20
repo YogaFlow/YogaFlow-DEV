@@ -41,7 +41,7 @@ export function Setup() {
         <div className="mkt-eyebrow">So fängst du an</div>
       </Reveal>
       <Reveal>
-        <h2 className="mkt-display">Drei Schritte. Keine Einrichtungsgebühr, kein Termin.</h2>
+        <h2 className="mkt-display">Drei Schritte, und deine Kurse sind online.</h2>
       </Reveal>
       <div className="mkt-steps">
         {STEPS.map((step) => (

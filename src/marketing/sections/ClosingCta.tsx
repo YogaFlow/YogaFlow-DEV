@@ -8,8 +8,7 @@ export function ClosingCta() {
           Schau es dir an, bevor du dich entscheidest.
         </h2>
         <p className="mt-6 text-[17px] leading-[1.45] text-text">
-          Kein Verkaufsgespräch, kein Countdown. Richte dein Studio ein und probier es aus —
-          oder schreib uns vorher.
+          Richte dein Studio ein und probier es aus. Wenn du vorher etwas wissen willst, schreib uns.
         </p>
         <div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-6">
           <a href="/onboarding" className="mkt-btn">

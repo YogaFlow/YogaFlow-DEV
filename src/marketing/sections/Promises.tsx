@@ -53,10 +53,10 @@ function BrandPreview() {
   return (
     <div className="mkt-row2">
       <div className="mkt-txt">
-        <h3 className="mkt-row2-title">Dein Studio, deine Farben</h3>
+        <h3 className="mkt-row2-title">Deine Teilnehmer sehen dich, nicht uns</h3>
         <p>
-          Eigene Adresse, eigenes Logo, eigene Markenfarbe. Deine Teilnehmer sehen dein Studio — nicht
-          ein Portal, das ihnen nebenbei drei andere vorschlägt.
+          Eigene Adresse, dein Logo, deine Farbe. Von der Anmeldung bis zur Kursliste sieht deine
+          Teilnehmerin dein Studio — Omlify steht nirgends im Weg.
         </p>
         <div className="mkt-swatches">
           <span className="mkt-swlab">Markenfarbe wählen</span>
@@ -138,8 +138,8 @@ function WaitlistPreview() {
       <div className="mkt-txt">
         <h3 className="mkt-row2-title">Wartelisten, die sich selbst sortieren</h3>
         <p>
-          Ein Kurs ist voll, jemand meldet sich ab — die Warteliste rückt nach und die Nächste wird
-          benachrichtigt. Ohne dass du eine Nachricht tippst.
+          Ein Kurs ist voll, jemand meldet sich ab. Die Nächste rückt nach und bekommt Bescheid — du
+          musst keine Nachricht tippen.
         </p>
         <p className="mkt-play">
           <button type="button" className="mkt-btn ghost sm" onClick={play}>
@@ -175,8 +175,8 @@ function RolesPreview() {
       <div className="mkt-txt">
         <h3 className="mkt-row2-title">Allein oder im Team</h3>
         <p>
-          Als selbstständige Lehrerin brauchst du nichts außer dir. Kommen Trainerinnen dazu, bekommen
-          sie eigene Zugänge — und sehen genau das, was sie brauchen.
+          Wenn du allein unterrichtest, siehst du nur, was du brauchst. Kommen Trainerinnen dazu,
+          bekommen sie eigene Zugänge — und sehen genau ihren Teil.
         </p>
         <div className="mkt-rolechips">
           {ROLES.map((item) => (
@@ -217,7 +217,7 @@ export function Promises() {
         <div className="mkt-eyebrow">Was du bekommst</div>
       </Reveal>
       <Reveal>
-        <h2 className="mkt-display">Drei Dinge, die den Sonntagabend zurückgeben.</h2>
+        <h2 className="mkt-display">Alles an einem Ort — und der gehört dir.</h2>
       </Reveal>
       <Reveal>
         <BrandPreview />

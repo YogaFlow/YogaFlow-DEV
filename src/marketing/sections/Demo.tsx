@@ -207,8 +207,8 @@ export function Demo() {
       </Reveal>
       <Reveal>
         <p className="mkt-lede">
-          Dieselbe Oberfläche wie in Omlify, mit erfundenen Namen. Meld dich als Teilnehmerin für
-          einen Kurs an — und wechsle dann zurück auf „Was du siehst“.
+          Das ist die echte Oberfläche, nur mit erfundenen Namen. Melde dich unten als Teilnehmerin
+          für einen Kurs an und wechsle dann zurück — die Anmeldung ist sofort da.
         </p>
       </Reveal>
       <Reveal>

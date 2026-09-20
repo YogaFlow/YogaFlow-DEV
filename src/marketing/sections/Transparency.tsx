@@ -33,7 +33,7 @@ export function Transparency() {
         <Reveal className="mkt-zero">
           <div className="mkt-zero-big">0 €</div>
           <div className="mkt-zero-cap">
-            pro Monat, für alle Kurse, alle Teilnehmer und so lange, bis wir dir etwas anderes sagen.
+            pro Monat, für alle Kurse und alle Teilnehmer. Kein Testzeitraum, der irgendwann abläuft.
           </div>
         </Reveal>
         <div className="mkt-grid4 mkt-on-dark-line">

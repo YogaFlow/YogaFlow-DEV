@@ -92,7 +92,7 @@ export function Problem() {
         <div className="mkt-eyebrow">Das Problem</div>
       </Reveal>
       <Reveal>
-        <h2 className="mkt-display">Sonntagabend, und du sortierst Anmeldungen.</h2>
+        <h2 className="mkt-display">Sonntagabend. Und wer morgen kommt, steht in drei verschiedenen Apps.</h2>
       </Reveal>
       <div className="mkt-pile">
         <div ref={pileRef} className="mkt-pile-msgs" aria-hidden="true">
@@ -127,7 +127,7 @@ export function Problem() {
             <p>
               Zehn Nachrichten, drei Kanäle, eine Liste im Kopf.
               <br />
-              <span>Das ist keine Frage von Disziplin. Es ist ein Werkzeugproblem.</span>
+              <span>Nichts davon ist kompliziert. Es liegt nur nicht an einem Ort.</span>
             </p>
           </div>
         </Reveal>

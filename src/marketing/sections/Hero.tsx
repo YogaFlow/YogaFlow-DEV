@@ -128,7 +128,7 @@ export function Hero() {
               href="/onboarding"
               className="inline-flex min-h-11 items-center text-[15px] font-medium text-brand underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             >
-              Oder direkt loslegen: Studio einrichten
+              Oder gleich dein Studio einrichten
             </a>
           </div>
           <p className="mkt-hero-fine">Aktuell kostenlos · Keine Kreditkarte · In 5 Minuten eingerichtet</p>
