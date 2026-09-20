@@ -65,6 +65,9 @@ sich in einen Design- oder Refactoring-Durchlauf einschleicht: sagen, nicht ausf
   für Backoffice und öffentliche Buchungsseite. Deshalb sind Design-Tokens
   plattformneutral gehalten.
 
+**Typprüfung:** Verbindlich ist `npx tsc -p tsconfig.app.json --noEmit`. `npm run build`
+bündelt, ersetzt die Typprüfung nicht. `npm run lint` ist ESLint.
+
 **Wichtige Dateien**
 
 - `src/design/tokens.ts` — einzige Farbquelle, wandert später in ein gemeinsames Paket

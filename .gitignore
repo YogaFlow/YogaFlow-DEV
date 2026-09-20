@@ -46,3 +46,6 @@ cloudflare-dev-werte.txt
 
 # Arbeitsblatt fuer die GitHub-Secrets - ENTHAELT GEHEIMNISSE, nie committen
 github-secrets.txt
+
+# Arbeitsnotizen aus Claude/Cursor, nicht Teil des Produkts
+Claude outputs/

@@ -19,11 +19,37 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Layout from './components/Layout/Layout';
 
-import LandingPage from './pages/LandingPage';
 import OnboardingWizard from './pages/OnboardingWizard';
 import LegalPage from './pages/LegalPage';
 import JoinStudio from './pages/JoinStudio';
 import CourseDetail from './pages/CourseDetail';
+
+const Spinner = () => (
+  <div className="min-h-screen bg-sand flex items-center justify-center">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand" />
+  </div>
+);
+
+/**
+ * Echter Seitenaufruf auf `/`, damit der Worker auf der Apex marketing.html ausliefert.
+ * Client-seitiges Navigate nach `/` würde die SPA auf der alten Landing belassen.
+ *
+ * Auf `localhost` (ein Label) reicht der Worker `/` an die SPA durch. Ein replace('/')
+ * von HomeRoute aus würde dort neu laden und schleifen — dann nur Spinner, kein Reload.
+ */
+const RedirectToApexMarketing: React.FC = () => {
+  useEffect(() => {
+    const labels = window.location.hostname.toLowerCase().split('.').filter((label) => label.length > 0);
+    const workerTreatsAsApex =
+      labels.length === 2 || (labels.length === 3 && labels[0] === 'www');
+    const path = window.location.pathname;
+    if (!workerTreatsAsApex && (path === '/' || path === '/index.html')) {
+      return;
+    }
+    window.location.replace('/');
+  }, []);
+  return <Spinner />;
+};
 
 /** Mandanten-App: Guard → Auth → Layout → Kindroute (`Outlet`). Pathloses Layout, damit RR6/7 `/dashboard` & Co. zuverlässig matched (nicht `path="*"` + Kinder). */
 const TenantAppShell: React.FC = () => (
@@ -119,9 +145,9 @@ const TenantGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     );
   }
 
-  // Kein Tenant-Kontext (Apex-Domain omlify.de): App-Routen sind hier nicht erreichbar
+  // Kein Tenant-Kontext (Apex): App-Routen gehören nicht in die SPA — Worker liefert Marketing.
   if (!tenantSlug) {
-    return <Navigate to="/" replace />;
+    return <RedirectToApexMarketing />;
   }
 
   return <>{children}</>;
@@ -152,16 +178,17 @@ const HomeRouteWithTokenRedirect: React.FC = () => {
   return <HomeRoute />;
 };
 
-const Spinner = () => (
-  <div className="min-h-screen bg-sand flex items-center justify-center">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand" />
-  </div>
-);
+/** Apex ohne Studio: Login gehört auf die Subdomain; `/auth` hier an den Worker. */
+const AuthRoute: React.FC = () => {
+  const { tenantSlug } = useTenant();
+  if (!tenantSlug) return <RedirectToApexMarketing />;
+  return <AuthPage />;
+};
 
 /**
  * Wurzel-Route:
  * - Mit Tenant (Subdomain / DEV-Override): eingeloggt → Dashboard, sonst → Login
- * - Apex / ohne Tenant → Marketing-Landing
+ * - Apex / ohne Tenant → voller Seitenaufruf `/` (Worker: Marketing)
  */
 const HomeRoute: React.FC = () => {
   const { tenantSlug, tenant, loading: tenantLoading, notFound, lookupError } = useTenant();
@@ -239,7 +266,7 @@ const HomeRoute: React.FC = () => {
     return <Navigate to={withDevTenant('/auth')} replace />;
   }
 
-  return <LandingPage />;
+  return <RedirectToApexMarketing />;
 };
 
 function App() {
@@ -253,12 +280,12 @@ function App() {
         <Router>
           <Routes>
             {/* Öffentliche Routen ohne Layout */}
-            <Route path="/auth"            element={<AuthPage />} />
+            <Route path="/auth"            element={<AuthRoute />} />
             <Route path="/reset-password"  element={<ResetPassword />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/verify-email"    element={<VerifyEmail />} />
 
-            {/* Apex: Landing Page / Subdomain: Redirect zu Dashboard */}
+            {/* Apex: Token-Redirect oder Worker-Marketing / Subdomain: Dashboard oder Login */}
             <Route path="/" element={<HomeRouteWithTokenRedirect />} />
 
             {/* Öffentlich: Onboarding (kein Tenant-Kontext erforderlich) */}

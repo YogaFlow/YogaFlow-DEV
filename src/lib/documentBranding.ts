@@ -1,6 +1,6 @@
 import { deriveBrandTokens, isBrandColorAllowed, normalizeHex } from '../design/brand';
 
-export const DEFAULT_DOCUMENT_TITLE = 'Omlify – Yoga-Studio-Management';
+export const DEFAULT_DOCUMENT_TITLE = 'Omlify – Kurse und Buchungen für Yoga-Studios und Yogalehrer';
 
 /** Lucide Heart v0.344, viewBox 0 0 24 24. Identischer Pfad in public/favicon.svg. */
 const LUCIDE_HEART_PATH =

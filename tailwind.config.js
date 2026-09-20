@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}', './src/marketing/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {
@@ -45,6 +45,10 @@ export default {
         md: 'var(--radius-md)',
         lg: 'var(--radius-lg)',
         full: 'var(--radius-full)',
+      },
+      fontFamily: {
+        display: ['Newsreader', 'Georgia', 'serif'],
+        body: ['Inter', 'system-ui', 'sans-serif'],
       },
     },
   },

@@ -1,0 +1,977 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Omlify – Referenz-Prototyp Landingpage-Sektionen</title>
+<!--
+  ============================================================================
+  REFERENZ, NICHT PRODUKTIONSCODE.  Stand: 18.09.2026, Fassung 2.
+
+  Verbindliche visuelle Vorlage fuer die Sektionen Problem, Versprechen,
+  Demo, Einrichtung, Aufbauphase und FAQ der Marketing-Seite (src/marketing/).
+  Wird nicht ausgeliefert und nicht gebaut.
+
+  NEU in Fassung 2: Alle App-Oberflaechen in Demo und Versprechen sind aus dem
+  echten Code nachgebaut:
+    src/components/Layout/Layout.tsx     Grundgeruest, Inhaltsflaeche p-3 sm:p-6 auf sand
+    src/components/Layout/Sidebar.tsx    256px, bg-surface, StudioMark + Name + Rollen-Pille,
+                                         Nav px-4 py-3 rounded-sm, aktiv bg-brand text-onBrand
+    src/components/Layout/Header.tsx     sticky, bg-surface, Hamburger unter lg, Seitentitel, Glocke
+    src/pages/Courses.tsx                Tagesgruppen mit formatDayLabel, CourseRow leading="time"
+    src/components/courses/CourseRow.tsx Zeit-Chip, Titel + Preis, Meta, Status, Pfeil
+    src/pages/CourseDetail.tsx           Zurueck, Titel 22px, Infoliste mit sage-500-Icons,
+                                         Aktionsleiste unten mit Preis links und einer Aktion rechts
+    src/pages/Dashboard.tsx              Begruessung + Hero-Karte in bg-brand rounded-lg p-5
+    src/lib/routeTitles.ts               Seitentitel im Kopfbereich
+
+  Bei der Portierung nach React:
+  - Hex-Werte durch die semantischen Tokens ersetzen. Keine Hex in Komponenten.
+  - Icons NICHT aus diesem Prototyp uebernehmen, sondern aus lucide-react
+    (Home, Calendar, BookOpen, ClipboardCheck, Users, MessageSquare, Settings,
+     UserCog, User, LogOut, Clock, MapPin, ArrowLeft, Bell, Menu, Check, Plus,
+     ChevronRight) — dieselben Icons wie in der App.
+  - Ausnahme fuer Hex: die Tenant-Farben (BRAND_PRESETS) und die Kanalpunkte
+    im Posteingang.
+  ============================================================================
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --sand:#F5F3EF; --surface:#FFFFFF; --sunken:#EAE5DB; --border:#E5DFD4; --border-strong:#D6CDBE;
+  --text:#1F1B16; --muted:#6F6558; --subtle:#9A9083;
+  --s50:#F2F6F3; --s100:#E3EDE7; --s200:#CBDDD3; --s300:#A5C0B2; --s500:#4A7A69; --s600:#2F5A4E; --s800:#23443B;
+  --a100:#F7EEDF; --a500:#B87A2E; --a700:#8A5A1F;
+  --success:#3F7A5E; --successSoft:#E4F0E9; --danger:#A8443A; --dangerSoft:#F6E5E2;
+  --rs:10px; --rm:14px; --rl:20px;
+  --brand:var(--s600); --brandPressed:var(--s800); --brandSoft:var(--s100); --brandOnSoft:var(--s800); --onBrand:#fff;
+}
+*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--sand);color:var(--text);font-family:Inter,system-ui,sans-serif;
+  font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;position:relative}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:60;opacity:.05;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>")}
+
+.sec{padding:96px 24px;position:relative}
+.sec::before,.sec::after{content:"";position:absolute;left:0;right:0;height:140px;pointer-events:none;z-index:0}
+.sec::before{top:0;background:linear-gradient(to bottom,var(--bt,transparent),transparent)}
+.sec::after{bottom:0;background:linear-gradient(to top,var(--bb,transparent),transparent)}
+.sec > .inner{position:relative;z-index:1}
+@media (max-width:720px){ .sec{padding:64px 16px} .sec::before,.sec::after{height:96px} }
+.inner{max-width:1360px;margin:0 auto}
+.inner.wide{max-width:1440px}
+.sec.sand{background:var(--sand)} .sec.mist{background:var(--s50)} .sec.white{background:var(--surface)}
+.slab{background:var(--s800);color:#fff;border-radius:32px;padding:76px 56px}
+@media (max-width:720px){ .slab{border-radius:24px;padding:52px 24px} }
+
+h2.d{font-family:Newsreader,Georgia,serif;font-weight:600;font-size:clamp(30px,4.2vw,46px);
+  line-height:1.12;letter-spacing:-.015em;max-width:24ch}
+.slab h2.d{color:#fff;max-width:22ch}
+.lede{margin-top:14px;font-size:clamp(15px,1.5vw,17.5px);line-height:1.55;color:var(--muted);max-width:56ch}
+.eyebrow{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--a700);font-weight:600;margin-bottom:14px}
+.slab .eyebrow{color:var(--s300)}
+.rv{opacity:0;transform:translateY(16px);transition:opacity .7s cubic-bezier(.22,.61,.36,1),transform .7s cubic-bezier(.22,.61,.36,1)}
+.rv.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.rv{opacity:1!important;transform:none!important;transition:none}.msg{transition:none!important}}
+
+/* ---------- A · Posteingang: dichter Haufen statt verstreuter Karten ---------- */
+.inbox{position:relative;margin-top:40px;height:430px;max-width:700px}
+.msg{position:absolute;background:var(--surface);border:1px solid var(--border);border-radius:16px;
+  padding:12px 15px;box-shadow:0 8px 24px rgba(31,27,22,.07);opacity:0;
+  transition:transform .8s cubic-bezier(.22,.61,.36,1),opacity .8s}
+.msg.in{opacity:1}
+.msg .who{font-size:11.5px;color:var(--subtle);display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.msg .who b{font-weight:500;color:var(--muted)}
+.msg p{font-size:14.5px;line-height:1.4;color:var(--text)}
+.dotlet{width:7px;height:7px;border-radius:99px;flex:0 0 auto}
+.m1{top:0;left:0;width:300px;z-index:6}
+.m2{top:56px;left:252px;width:300px;z-index:5}
+.m3{top:132px;left:36px;width:320px;z-index:4}
+.m4{top:188px;left:308px;width:290px;z-index:3}
+.m5{top:266px;left:0;width:310px;z-index:2}
+.m6{top:316px;left:292px;width:286px;z-index:1}
+@media (max-width:820px){
+  .inbox{height:470px;max-width:100%}
+  .msg{width:auto!important;max-width:280px;left:auto!important}
+  .m1{top:0;left:0!important} .m2{top:62px;right:0} .m3{top:142px;left:14px!important}
+  .m4{top:214px;right:0} .m5{top:300px;left:0!important} .m6{top:364px;right:6px}
+}
+@media (max-width:480px){ .msg{max-width:255px} .m6{display:none} .inbox{height:400px} }
+.punch{margin-top:30px;font-family:Newsreader,Georgia,serif;font-size:clamp(19px,2.3vw,25px);line-height:1.35;max-width:32ch}
+.punch span{color:var(--muted)}
+
+/* ---------- Nachbau der echten App-Oberflaeche ---------- */
+.win{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;
+  box-shadow:0 8px 24px rgba(31,27,22,.10)}
+.win .tb{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--sunken);border-bottom:1px solid var(--border)}
+.tb i{width:9px;height:9px;border-radius:99px;background:var(--border-strong);display:block}
+.tb .url{margin-left:6px;flex:1;min-width:0;background:var(--surface);border:1px solid var(--border);border-radius:99px;
+  padding:5px 12px;font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.ap{display:flex;background:var(--sand);min-height:430px}
+.ap-side{width:232px;flex:0 0 232px;background:var(--surface);display:flex;flex-direction:column;
+  box-shadow:0 8px 24px rgba(31,27,22,.06)}
+.ap-side-head{padding:18px 18px 16px;border-bottom:1px solid var(--border)}
+.ap-mark{display:flex;align-items:center;gap:9px}
+.ap-logo{width:30px;height:30px;border-radius:999px;background:var(--brand);display:flex;align-items:center;
+  justify-content:center;flex:0 0 auto;transition:background .35s}
+.ap-studio{font-size:15.5px;font-weight:600;color:var(--text);line-height:1.2}
+.ap-user{font-size:13px;color:var(--muted);margin-top:5px}
+.ap-role{display:inline-block;margin-top:7px;padding:3px 9px;font-size:11.5px;border-radius:999px;
+  background:var(--brand);color:var(--onBrand);transition:background .35s}
+.ap-role.soft{background:var(--brandSoft);color:var(--brandOnSoft)}
+.ap-role.grey{background:var(--sunken);color:var(--muted)}
+.ap-nav{flex:1;padding:12px;overflow:hidden}
+.ap-nav ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:5px}
+.ap-navitem{display:flex;align-items:center;padding:9px 13px;border-radius:var(--rs);font-size:14.5px;
+  color:var(--muted);cursor:pointer;transition:background .2s,color .2s}
+.ap-navitem svg{width:19px;height:19px;margin-right:11px;flex:0 0 auto}
+.ap-navitem.on{background:var(--brand);color:var(--onBrand)}
+.ap-out{padding:12px;border-top:1px solid var(--border)}
+.ap-out .ap-navitem{cursor:default}
+.ap-main{flex:1;min-width:0;display:flex;flex-direction:column}
+.ap-head{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface);
+  border-bottom:1px solid var(--border);padding:11px 16px}
+.ap-hleft{display:flex;align-items:center;min-width:0;gap:10px}
+.ap-burger{display:none;border:0;background:transparent;padding:8px;border-radius:var(--rs);color:var(--text);cursor:pointer}
+.ap-burger svg,.ap-bell svg{width:22px;height:22px;display:block}
+.ap-title{font-size:18px;font-weight:500;color:var(--text)}
+.ap-bell{position:relative;border:0;background:transparent;padding:8px;border-radius:999px;color:var(--muted);cursor:pointer}
+.ap-badge{position:absolute;top:2px;right:2px;min-width:14px;height:14px;padding:0 3px;border-radius:999px;
+  background:var(--danger);color:#fff;font-size:10px;font-weight:700;line-height:14px;text-align:center}
+.ap-body{flex:1;padding:16px;background:var(--sand);overflow:hidden}
+
+.daylabel{font-size:15px;font-weight:500;color:var(--muted);margin:0 0 8px}
+.daygroup + .daygroup{margin-top:20px}
+.list{border:1px solid var(--border);border-radius:var(--rm);background:var(--surface);overflow:hidden}
+.cr{display:flex;gap:12px;padding:12px 14px;align-items:center;border-bottom:1px solid var(--border);
+  cursor:pointer;transition:background .2s,opacity .45s,transform .45s}
+.cr:last-child{border-bottom:0}
+.cr:hover{background:var(--s50)}
+.timechip{flex:0 0 auto;align-self:flex-start;border-radius:var(--rs);background:var(--brandSoft);color:var(--brandOnSoft);
+  padding:4px 8px;font-size:15px;font-weight:500;line-height:1.15;transition:background .35s,color .35s}
+.dateblk{flex:0 0 auto;align-self:flex-start;width:48px;border-radius:var(--rs);background:var(--brandSoft);
+  color:var(--brandOnSoft);text-align:center;padding:4px 0 5px;line-height:1.15;transition:background .35s,color .35s}
+.dateblk .w{font-size:12px}.dateblk .d{font-size:19px;font-weight:500}.dateblk .m{font-size:12px}
+.crm{min-width:0;flex:1}
+.crt{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.crt h4{font-size:17px;font-weight:500;line-height:1.35;color:var(--text)}
+.crt .pr{font-size:17px;font-weight:500;color:var(--text);flex:0 0 auto}
+.meta{margin-top:2px;font-size:13px;color:var(--muted);line-height:1.35}
+.st{margin-top:5px;display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:500}
+.st.muted{color:var(--muted)}
+.st.ok{color:var(--success)}
+.pill{display:inline-flex;border-radius:999px;background:var(--a100);color:var(--a700);padding:1px 10px;
+  font-size:13px;font-weight:500;white-space:nowrap}
+.chev{flex:0 0 auto;color:var(--subtle);display:flex;align-items:center}
+.chev svg{width:18px;height:18px}
+
+.detail{max-width:560px}
+.backlink{display:inline-flex;align-items:center;gap:8px;border:0;background:transparent;font:inherit;
+  font-size:15px;font-weight:500;color:var(--muted);cursor:pointer;padding:8px 8px 8px 0}
+.backlink svg{width:19px;height:19px}
+.dtitle{margin-top:10px;font-size:22px;font-weight:500;color:var(--text);line-height:1.25}
+.inforow{display:flex;gap:12px;padding:11px 14px;border-bottom:1px solid var(--border);align-items:flex-start}
+.inforow:last-child{border-bottom:0}
+.inforow svg{width:19px;height:19px;color:var(--s500);flex:0 0 auto;margin-top:1px}
+.inforow p{font-size:15px;color:var(--text);line-height:1.4}
+.h3{font-size:17px;font-weight:500;color:var(--text);margin-top:20px}
+.para{margin-top:7px;font-size:15px;color:var(--text);line-height:1.5}
+.actionbar{margin-top:20px;border-top:1px solid var(--border);background:var(--surface);
+  margin-left:-16px;margin-right:-16px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.abprice{font-size:19px;font-weight:500;color:var(--text);line-height:1.15}
+.abnote{font-size:13px;color:var(--muted);margin-top:2px}
+.btn{display:inline-flex;align-items:center;justify-content:center;border:0;font:inherit;font-weight:500;
+  font-size:15px;cursor:pointer;border-radius:999px;min-height:44px;min-width:152px;padding:0 20px;
+  background:var(--brand);color:var(--onBrand);text-decoration:none;transition:background .2s,transform .08s}
+.btn:active{transform:scale(.985)}
+.btn.wl{background:var(--a100);color:var(--a700);box-shadow:inset 0 0 0 1px var(--a500)}
+.btn.off{background:var(--surface);color:var(--danger);box-shadow:inset 0 0 0 1px var(--border-strong)}
+.btn.ghost{background:var(--surface);color:var(--brand);box-shadow:inset 0 0 0 1px var(--border-strong);min-width:0}
+.btn.sm{min-height:44px;min-width:0;font-size:14px;padding:0 16px}
+.btn[disabled]{opacity:1;cursor:default}
+.prow{display:flex;align-items:center;gap:11px;padding:11px 14px;border-bottom:1px solid var(--border)}
+.prow:last-child{border-bottom:0}
+.av{width:32px;height:32px;border-radius:999px;background:var(--sunken);color:var(--muted);flex:0 0 auto;
+  display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:500}
+.pn{font-size:15px;color:var(--text);line-height:1.3}
+.pm{font-size:12.5px;color:var(--subtle);margin-top:1px}
+.you{background:var(--successSoft)} .you .av{background:var(--success);color:#fff}
+.greet{font-size:17px;color:var(--text)}
+.hero{display:block;margin-top:14px;border-radius:var(--rl);background:var(--brand);color:var(--onBrand);padding:18px;
+  transition:background .35s}
+.hero .k{font-size:13px} .hero h3{margin-top:4px;font-size:22px;font-weight:500}
+.hero .t{margin-top:4px;font-size:17px} .hero .p{margin-top:2px;font-size:13px;opacity:.92}
+.subhead{margin-top:20px;font-size:15px;font-weight:500;color:var(--muted);margin-bottom:8px}
+.toast{position:absolute;left:14px;right:14px;bottom:14px;background:var(--s800);color:#fff;border-radius:var(--rm);
+  padding:12px 14px;font-size:13.5px;display:flex;gap:9px;align-items:center;opacity:0;transform:translateY(10px);
+  transition:opacity .45s,transform .45s;pointer-events:none;z-index:9}
+.toast.in{opacity:1;transform:none}
+.row2 .toast{left:auto;right:14px;width:min(330px,72%)}
+@media (max-width:820px){
+  .ap-side{display:none}
+  .ap-burger{display:inline-flex}
+  .ap-body{padding:12px}
+  .actionbar{margin-left:-12px;margin-right:-12px;padding:12px}
+  .actionbar .btn{min-width:0;flex:1}
+}
+
+/* ---------- B · Versprechen ---------- */
+.row2{display:grid;grid-template-columns:0.82fr 1.18fr;gap:48px;align-items:center;margin-top:64px}
+.row2.flip{grid-template-columns:1.18fr 0.82fr}
+.row2.flip .txt{order:2}
+@media (max-width:900px){ .row2,.row2.flip{grid-template-columns:1fr;gap:26px} .row2.flip .txt{order:0} }
+.row2 h3{font-family:Newsreader,Georgia,serif;font-weight:600;font-size:clamp(23px,2.6vw,30px);line-height:1.2}
+.row2 p{margin-top:12px;font-size:15.5px;line-height:1.55;color:var(--muted)}
+.swatches{display:flex;gap:9px;margin-top:18px;flex-wrap:wrap;align-items:center}
+.sw{width:32px;height:32px;min-width:32px;border-radius:999px;border:2px solid transparent;cursor:pointer;padding:0;
+  box-shadow:inset 0 0 0 1px rgba(31,27,22,.10)}
+.sw[aria-pressed="true"]{border-color:var(--text)}
+.swlab{font-size:12px;color:var(--subtle);margin-right:2px;width:100%}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+.chip{border:1px solid var(--border-strong);background:var(--surface);color:var(--muted);font:inherit;font-size:13.5px;
+  padding:0 15px;border-radius:999px;cursor:pointer;min-height:44px}
+.chip[aria-pressed="true"]{background:var(--brand);color:#fff;border-color:var(--brand)}
+
+/* ---------- Demo-Umschalter ---------- */
+.dm-switch{display:inline-flex;align-items:stretch;background:var(--sunken);border-radius:999px;padding:4px;gap:3px;
+  margin-top:26px;max-width:100%;flex-wrap:wrap}
+.dm-switch button{border:0;background:transparent;font:inherit;font-size:14.5px;font-weight:500;color:var(--muted);
+  padding:8px 20px;min-height:44px;border-radius:999px;cursor:pointer;transition:background .25s,color .25s;
+  display:inline-flex;align-items:center;justify-content:center;text-align:center;line-height:1.25}
+.dm-switch button[aria-pressed="true"]{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(31,27,22,.05)}
+@media (max-width:560px){ .dm-switch{width:100%} .dm-switch button{flex:1;padding:8px 10px;font-size:13.5px} }
+
+/* ---------- C · Schritte ---------- */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:48px}
+@media (max-width:820px){ .steps{grid-template-columns:1fr} }
+.step{background:var(--sand);border:1px solid var(--border);border-radius:var(--rm);padding:20px}
+.step .n{font-family:Newsreader,Georgia,serif;font-size:15px;color:var(--a700);font-weight:600;margin-bottom:10px;display:block}
+.step h4{font-size:16.5px;font-weight:500}
+.step p{margin-top:6px;font-size:14px;line-height:1.5;color:var(--muted)}
+.mini{margin-top:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:11px}
+.field{background:var(--sand);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12.5px;
+  color:var(--muted);display:flex;justify-content:space-between;gap:6px}
+.field + .field{margin-top:6px}
+.field b{font-weight:500;color:var(--text)}
+.bars{display:flex;gap:5px;margin-top:9px}
+.bars i{height:5px;border-radius:99px;background:var(--s200);flex:1;display:block}
+.bars i.on{background:var(--s500)}
+
+/* ---------- D · Aufbauphase ---------- */
+.zero{display:flex;align-items:flex-end;gap:18px;margin-top:34px;flex-wrap:wrap}
+.zero .big{font-family:Newsreader,Georgia,serif;font-weight:600;font-size:clamp(88px,15vw,168px);line-height:.82;color:#fff;letter-spacing:-.03em}
+.zero .cap{font-size:15px;color:var(--s200);max-width:26ch;line-height:1.5;padding-bottom:12px}
+.grid4{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:52px;border-top:1px solid rgba(255,255,255,.16)}
+@media (max-width:820px){ .grid4{grid-template-columns:1fr} .f4{padding-right:0!important} }
+.f4{padding:24px 26px 24px 0;border-bottom:1px solid rgba(255,255,255,.16)}
+.f4:nth-child(odd){padding-right:34px}
+.f4 b{display:block;font-size:16.5px;font-weight:600;color:#fff;margin-bottom:6px}
+.f4 span{font-size:14.5px;line-height:1.55;color:var(--s200)}
+
+/* ---------- E · FAQ ---------- */
+.faq{margin-top:44px;max-width:860px;border-top:1px solid var(--border)}
+.qa{border-bottom:1px solid var(--border)}
+.qa summary{list-style:none;cursor:pointer;display:flex;gap:18px;align-items:flex-start;padding:22px 0;min-height:44px}
+.qa summary::-webkit-details-marker{display:none}
+.qa .qn{font-family:Newsreader,Georgia,serif;font-size:14px;font-weight:600;color:var(--a700);flex:0 0 auto;padding-top:5px;width:24px}
+.qa .qt{font-family:Newsreader,Georgia,serif;font-weight:500;font-size:clamp(19px,2.1vw,23px);line-height:1.3;flex:1;min-width:0}
+.qa .sign{flex:0 0 auto;width:26px;height:26px;border-radius:999px;border:1px solid var(--border-strong);
+  display:flex;align-items:center;justify-content:center;color:var(--muted);margin-top:4px;
+  transition:transform .35s cubic-bezier(.22,.61,.36,1),background .25s,color .25s,border-color .25s}
+.qa[open] .sign{transform:rotate(45deg);background:var(--brand);border-color:var(--brand);color:#fff}
+.qa .ans{padding:0 0 26px 42px;font-size:15.5px;line-height:1.6;color:var(--muted);max-width:68ch}
+@media (max-width:720px){ .qa .ans{padding-left:0} .qa summary{gap:12px} }
+@media (prefers-reduced-motion:reduce){ .qa .sign{transition:none} }
+
+/* ---------- Beispielfenster in "Was du bekommst": feste Hoehe, kein Scroll-Fang ---------- */
+.row2 .ap{height:452px;min-height:0}
+.row2 .ap-side{width:196px;flex:0 0 196px}
+.row2 .ap-side-head{padding:15px 15px 14px}
+.row2 .ap-navitem{font-size:14px;padding:8px 11px}
+.row2 .ap-main{overflow:hidden}
+.row2 .ap-body{overflow:hidden;position:relative;padding-bottom:16px}
+.row2 .ap-body::after{content:"";position:absolute;left:0;right:0;bottom:0;height:64px;pointer-events:none;
+  background:linear-gradient(to top,var(--sand),rgba(245,243,239,0));z-index:3}
+@media (max-width:820px){ .row2 .ap{height:404px} }
+/* Demo-Fenster: hoeher, aber ohne Innen-Scroll — die Bildschirme sind kurz gehalten */
+#dmBody .ap-body{min-height:392px}
+.more{padding:10px 14px;font-size:13px;color:var(--subtle);border-top:1px solid var(--border)}
+/* Leerer Bereich, Muster aus Courses.tsx */
+.empty{padding:40px 0 24px;text-align:center}
+.empty .ic{display:inline-flex;color:var(--subtle)}
+.empty .ic svg{width:52px;height:52px}
+.empty h3{margin-top:14px;font-size:18px;font-weight:500;color:var(--text)}
+.empty p{margin-top:6px;font-size:15px;color:var(--muted);max-width:38ch;margin-inline:auto;line-height:1.5}
+/* Kennzahlenzeile: nebeneinander mit senkrechten Trennern (Designsystem, Flaechenregel 2) */
+.stats{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:var(--rm);overflow:hidden;margin-top:14px}
+.stats div{flex:1;padding:12px 14px;border-left:1px solid var(--border)}
+.stats div:first-child{border-left:0}
+.stats .k{font-size:12.5px;color:var(--muted)}
+.stats .v{font-size:22px;font-weight:500;color:var(--text);margin-top:2px}
+.searchbar{display:flex;align-items:center;gap:9px;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--rs);padding:10px 12px;font-size:14px;color:var(--subtle);margin-bottom:12px}
+.topaction{display:flex;justify-content:flex-end;margin-bottom:12px}
+
+/* ---------- HERO ---------- */
+.hero-sec{padding:40px 24px 88px;overflow:hidden;position:relative}
+@media (max-width:1000px){ .hero-sec{padding:28px 16px 72px} }
+.topbar{max-width:1360px;margin:0 auto 72px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brandmark{display:flex;align-items:center;gap:10px}
+.brandmark .bm{width:34px;height:34px;border-radius:999px;background:var(--brand);display:flex;align-items:center;justify-content:center}
+.brandmark span{font-size:19px;font-weight:600}
+.textlink{font-size:15px;color:var(--text);text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--border-strong)}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.04fr) minmax(0,0.96fr);gap:60px;align-items:center}
+@media (max-width:1179px){ .hero-grid{grid-template-columns:1fr;gap:38px} }
+.hero-h1{font-family:Newsreader,Georgia,serif;font-weight:600;font-size:clamp(36px,4.9vw,68px);
+  line-height:1.05;letter-spacing:-.022em}
+/* Die Dreiteilung traegt die Aussage — ab Desktop steht jeder Teil auf einer eigenen Zeile. */
+@media (min-width:1180px){ .hero-h1 span{display:block} }
+.hero-h1 em{font-style:normal;color:var(--brand)}
+.hero-sub{margin-top:22px;font-size:clamp(16px,1.3vw,18.5px);line-height:1.55;color:var(--muted);max-width:50ch}
+.hero-cta{margin-top:30px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.hero-fine{margin-top:16px;font-size:13.5px;color:var(--muted)}
+.hero-vis{position:relative;min-width:0}
+.hero-glow{position:absolute;right:-14%;top:-30%;width:min(860px,120%);aspect-ratio:1;border-radius:999px;z-index:0;
+  background:radial-gradient(circle at 50% 50%, var(--s100) 0%, rgba(227,237,231,.45) 46%, rgba(227,237,231,0) 70%)}
+@media (max-width:1179px){ .hero-glow{display:none} }
+.hero-win{position:relative;z-index:1;box-shadow:0 26px 64px rgba(31,27,22,.13)}
+/* Seitenverhaeltnis eines echten Browserfensters (ca. 16:10), nicht ein Querstreifen.
+   Das Fenster darf ueber die Spalte hinausragen, aber nie breiter als 880px werden —
+   sonst wird es auf grossen Bildschirmen wieder zum Letterbox-Streifen. */
+@media (min-width:1180px){
+  .hero-win{transform:rotate(-1.3deg);width:min(880px,calc(100% + 240px))}
+  .hero-win .ap{height:540px}
+}
+@media (max-width:1179px){ .hero-win .ap{height:420px} }
+.hero-win .toast{left:246px;right:auto;width:min(400px,44%)}
+@media (max-width:820px){ .hero-win .toast{left:14px;width:auto;right:14px} }
+.hero-win .ap-main{overflow:hidden}
+.hero-win .ap-body{overflow:hidden;position:relative}
+.hero-win .ap-body::after{content:"";position:absolute;left:0;right:0;bottom:0;height:56px;pointer-events:none;
+  background:linear-gradient(to top,var(--sand),rgba(245,243,239,0));z-index:3}
+.flash{animation:flash 1.5s cubic-bezier(.22,.61,.36,1)}
+@keyframes flash{0%{background:var(--successSoft)}70%{background:var(--successSoft)}100%{background:transparent}}
+@media (prefers-reduced-motion:reduce){ .flash{animation:none} }
+
+/* ---------- A · Posteingang, Fassung 5: flutet die ganze Breite ---------- */
+.pile{position:relative;margin-top:30px;height:400px}
+.pile .msg{position:absolute;background:var(--surface);border:1px solid var(--border);border-radius:16px;
+  padding:12px 15px;width:min(304px,23vw);opacity:0;
+  transition:transform .85s cubic-bezier(.22,.61,.36,1),opacity .85s}
+.pile .msg.in{opacity:var(--o,1)}
+.pile .d1{box-shadow:0 10px 28px rgba(31,27,22,.09);--o:1;--sc:1;z-index:3}
+.pile .d2{box-shadow:0 8px 20px rgba(31,27,22,.06);--o:.88;--sc:.965;z-index:2}
+.pile .d3{box-shadow:0 6px 16px rgba(31,27,22,.045);--o:.74;--sc:.93;z-index:1}
+.punchbox{position:absolute;right:0;bottom:-6px;z-index:5;background:var(--s50);padding:20px 24px 20px 26px;
+  border-radius:var(--rm);max-width:430px;box-shadow:0 0 0 12px var(--s50)}
+.punchbox p{font-family:Newsreader,Georgia,serif;font-size:clamp(19px,1.9vw,24px);line-height:1.35}
+.punchbox span{color:var(--muted)}
+@media (max-width:900px){
+  .pile{height:auto;display:flex;flex-direction:column;gap:12px;margin-top:26px}
+  .pile .msg{position:static!important;width:100%;max-width:300px;transform:none!important}
+  .pile .msg:nth-child(even){align-self:flex-end}
+  .pile .msg.hide-s{display:none}
+  .punchbox{position:static;max-width:none;margin-top:28px;box-shadow:none;padding:0;background:transparent}
+}
+</style>
+</head>
+<body>
+<!-- ======================= HERO ======================= -->
+<section class="sec hero-sec sand">
+  <div class="topbar">
+    <div class="brandmark"><span class="bm"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21.2l7.8-7.7 1-1.1a5.5 5.5 0 0 0 0-7.8z"/></svg></span><span>Omlify</span></div>
+    <a class="textlink" href="#">Zum Studio-Login</a>
+  </div>
+  <div class="inner hero-grid">
+    <div class="hero-txt rv">
+      <h1 class="hero-h1"><span>Deine Kurse.</span> <span>Deine Buchungsseite.</span> <span><em>Deine Kunden.</em></span></h1>
+      <p class="hero-sub">Omlify ist die Kurs- und Buchungsverwaltung für Yoga-Studios und selbstständige Yogalehrer in Deutschland. Unter deiner eigenen Adresse, mit deinem Logo — und ohne dass wir an deinen Buchungen mitverdienen.</p>
+      <div class="hero-cta">
+        <a class="btn" href="#demo">Omlify ansehen</a>
+        <a class="textlink" href="#">Oder gleich dein Studio einrichten</a>
+      </div>
+      <p class="hero-fine">Aktuell kostenlos · Keine Kreditkarte · In 5 Minuten eingerichtet</p>
+    </div>
+    <div class="hero-vis rv">
+      <div class="hero-glow"></div>
+      <div class="win hero-win" style="position:relative">
+        <div class="tb"><i></i><i></i><i></i><span class="url">yomita.omlify.de/courses</span></div>
+        <div class="ap" id="heroApp"></div>
+        <div class="toast" id="heroToast"><span id="heroToastText"></span></div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- ======================= A · PROBLEM ======================= -->
+<section class="sec mist" style="--bt:var(--sand);--bb:var(--sand);overflow:hidden"><div class="inner">
+  <div class="eyebrow rv">Das Problem</div>
+  <h2 class="d rv">Sonntagabend. Und wer morgen kommt, steht in drei verschiedenen Apps.</h2>
+  <div class="pile" id="pile" aria-hidden="true"></div>
+  <div class="punchbox rv"><p>Zehn Nachrichten, drei Kanäle, eine Liste im Kopf.<br>
+    <span>Nichts davon ist kompliziert. Es liegt nur nicht an einem Ort.</span></p></div>
+</div></section>
+
+<!-- ======================= F · INTERAKTIVE DEMO ======================= -->
+<section class="sec sand" id="demo"><div class="inner">
+  <div class="eyebrow rv">Die Demo</div>
+  <h2 class="d rv">Sieh es dir an. Von beiden Seiten.</h2>
+  <p class="lede rv">Das ist die echte Oberfläche, nur mit erfundenen Namen. Melde dich unten als Teilnehmerin für einen Kurs an und wechsle dann zurück — die Anmeldung ist sofort da.</p>
+  <div class="dm-switch rv" role="group" aria-label="Ansicht wählen">
+    <button id="dmA" aria-pressed="true">Was du siehst</button>
+    <button id="dmB" aria-pressed="false">Was deine Teilnehmerin sieht</button>
+  </div>
+  <div class="win rv" style="position:relative;margin-top:20px">
+    <div class="tb"><i></i><i></i><i></i><span class="url" id="dmUrl">yomita.omlify.de/courses</span></div>
+    <div id="dmBody" aria-live="polite"></div>
+    <div class="toast" id="dmToast"><span id="dmToastText"></span></div>
+  </div>
+</div></section>
+
+<!-- ======================= B · VERSPRECHEN ======================= -->
+<section class="sec sand"><div class="inner">
+  <div class="eyebrow rv">Was du bekommst</div>
+  <h2 class="d rv">Alles an einem Ort — und der gehört dir.</h2>
+
+  <div class="row2 rv">
+    <div class="txt">
+      <h3>Deine Teilnehmer sehen dich, nicht uns</h3>
+      <p>Eigene Adresse, dein Logo, deine Farbe. Von der Anmeldung bis zur Kursliste sieht deine Teilnehmerin dein Studio — Omlify steht nirgends im Weg.</p>
+      <div class="swatches">
+        <span class="swlab">Markenfarbe wählen</span>
+        <button class="sw" data-c="#2F5A4E" data-p="#23443B" data-s="#E3EDE7" data-o="#23443B" aria-pressed="true"  aria-label="Salbei"  style="background:#2F5A4E"></button>
+        <button class="sw" data-c="#6E3B5E" data-p="#532C47" data-s="#ECE6EA" data-o="#532C47" aria-pressed="false" aria-label="Pflaume" style="background:#6E3B5E"></button>
+        <button class="sw" data-c="#1F5F6B" data-p="#174750" data-s="#E4EBED" data-o="#174750" aria-pressed="false" aria-label="Petrol"  style="background:#1F5F6B"></button>
+        <button class="sw" data-c="#5A6B2E" data-p="#445022" data-s="#E9EBE2" data-o="#445022" aria-pressed="false" aria-label="Olive"   style="background:#5A6B2E"></button>
+        <button class="sw" data-c="#A23B62" data-p="#7A2C4A" data-s="#F2E4E9" data-o="#7A2C4A" aria-pressed="false" aria-label="Beere"   style="background:#A23B62"></button>
+      </div>
+    </div>
+    <div class="win" id="brandWin">
+      <div class="tb"><i></i><i></i><i></i><span class="url">yomita.omlify.de/dashboard</span></div>
+      <div class="ap" id="brandApp"></div>
+    </div>
+  </div>
+
+  <div class="row2 flip rv">
+    <div class="txt">
+      <h3>Wartelisten, die sich selbst sortieren</h3>
+      <p>Ein Kurs ist voll, jemand meldet sich ab. Die Nächste rückt nach und bekommt Bescheid — du musst keine Nachricht tippen.</p>
+      <p style="margin-top:18px"><button class="btn ghost sm" id="cancelBtn">Lena meldet sich ab</button></p>
+    </div>
+    <div class="win" style="position:relative">
+      <div class="tb"><i></i><i></i><i></i><span class="url">yomita.omlify.de/course/1/participants</span></div>
+      <div class="ap" id="wlApp"></div>
+      <div class="toast" id="wlToast"><span>Mira ist nachgerückt und wurde benachrichtigt.</span></div>
+    </div>
+  </div>
+
+  <div class="row2 rv">
+    <div class="txt">
+      <h3>Allein oder im Team</h3>
+      <p>Wenn du allein unterrichtest, siehst du nur, was du brauchst. Kommen Trainerinnen dazu, bekommen sie eigene Zugänge — und sehen genau ihren Teil.</p>
+      <div class="chips">
+        <button class="chip" data-r="owner" aria-pressed="true">Inhaberin</button>
+        <button class="chip" data-r="teacher" aria-pressed="false">Kursleitung</button>
+        <button class="chip" data-r="user" aria-pressed="false">Teilnehmerin</button>
+      </div>
+    </div>
+    <div class="win">
+      <div class="tb"><i></i><i></i><i></i><span class="url" id="roleUrl">yomita.omlify.de/dashboard</span></div>
+      <div class="ap" id="roleApp" style="min-height:392px"></div>
+    </div>
+  </div>
+</div></section>
+
+<!-- ======================= C · EINRICHTUNG ======================= -->
+<section class="sec white" style="--bt:var(--sand);--bb:var(--sand)"><div class="inner">
+  <div class="eyebrow rv">So fängst du an</div>
+  <h2 class="d rv">Drei Schritte, und deine Kurse sind online.</h2>
+  <div class="steps">
+    <div class="step rv"><span class="n">Schritt 1</span><h4>Studio anlegen</h4>
+      <p>Name, Adresse, Logo. Deine Farbe wählst du aus neun Vorlagen.</p>
+      <div class="mini"><div class="field"><span>Studioname</span><b>Yoga mit Mila</b></div>
+        <div class="field"><span>Adresse</span><b>deinstudio.omlify.de</b></div>
+        <div class="bars"><i class="on"></i><i></i><i></i></div></div></div>
+    <div class="step rv"><span class="n">Schritt 2</span><h4>Ersten Kurs eintragen</h4>
+      <p>Einzeltermin oder Serie, Plätze, Preis. Der Rest läuft von allein.</p>
+      <div class="mini"><div class="field"><span>Kurs</span><b>Vinyasa Flow</b></div>
+        <div class="field"><span>Donnerstag</span><b>18:30 · 12 Plätze</b></div>
+        <div class="bars"><i class="on"></i><i class="on"></i><i></i></div></div></div>
+    <div class="step rv"><span class="n">Schritt 3</span><h4>Link teilen</h4>
+      <p>In deine Instagram-Bio, in den Newsletter, in die WhatsApp-Gruppe. Fertig.</p>
+      <div class="mini"><div class="field"><span>Teilen</span><b>deinstudio.omlify.de</b></div>
+        <div class="field"><span>Deine Teilnehmer</span><b>melden sich selbst an</b></div>
+        <div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i></div></div></div>
+  </div>
+</div></section>
+
+<!-- ======================= D · AUFBAUPHASE ======================= -->
+<section class="sec sand"><div class="inner"><div class="slab">
+  <div class="eyebrow rv">Preis</div>
+  <h2 class="d rv">Omlify ist im Aufbau. Deshalb kostet es gerade nichts.</h2>
+  <div class="zero rv"><div class="big">0 €</div>
+    <div class="cap">pro Monat, für alle Kurse und alle Teilnehmer. Kein Testzeitraum, der irgendwann abläuft.</div></div>
+  <div class="grid4">
+    <div class="f4 rv"><b>Kein Preis, solange Omlify im Aufbau ist</b><span>Kommt einer, erfährst du ihn mindestens zwei Monate vorher und entscheidest dann neu.</span></div>
+    <div class="f4 rv"><b>Ohne Anteil an deinen Buchungen</b><span>Wir verdienen später an deinem Zugang zur Software, nicht an dem, was deine Teilnehmer bezahlen.</span></div>
+    <div class="f4 rv"><b>Deine Daten liegen in der EU</b><span>Server in Irland, nicht in den USA. Jedes Studio hat seine eigene, getrennte Umgebung.</span></div>
+    <div class="f4 rv"><b>Du kommst jederzeit wieder raus</b><span>Teilnehmer und Anmeldungen lädst du selbst als CSV-Datei herunter.</span></div>
+  </div>
+</div></div></section>
+
+<!-- ======================= E · FAQ ======================= -->
+<section class="sec sand"><div class="inner">
+  <div class="eyebrow rv">Fragen</div>
+  <h2 class="d rv">Was du vermutlich wissen willst.</h2>
+  <div class="faq rv">
+    <details class="qa"><summary><span class="qn">01</span><span class="qt">Was kostet Omlify?</span><span class="sign">+</span></summary><p class="ans">Aktuell nichts. Omlify ist im Aufbau, und solange das so ist, zahlst du nichts. Wenn ein Preis kommt, erfährst du ihn mindestens zwei Monate vorher.</p></details>
+    <details class="qa"><summary><span class="qn">02</span><span class="qt">Nimmt Omlify eine Provision auf meine Buchungen?</span><span class="sign">+</span></summary><p class="ans">Nein, es gibt kein Provisionsmodell. Omlify verdient später an deinem Zugang zur Software, nicht an dem, was deine Teilnehmer bezahlen. Sobald es Online-Zahlungen gibt, fallen die Gebühren deines Zahlungsanbieters an — die gehen an ihn, nicht an uns.</p></details>
+    <details class="qa"><summary><span class="qn">03</span><span class="qt">Wo liegen meine Daten, und ist das DSGVO-konform?</span><span class="sign">+</span></summary><p class="ans">Deine Daten liegen in der EU, konkret in Irland. Jedes Studio hat seine eigene, getrennte Umgebung — kein Studio kann die Daten eines anderen sehen.</p></details>
+    <details class="qa"><summary><span class="qn">04</span><span class="qt">Brauche ich technische Kenntnisse?</span><span class="sign">+</span></summary><p class="ans">Nein. Du legst dein Studio an, wählst einen Namen für deine Adresse und lädst dein Logo hoch. Alles Weitere sind Kurse, Termine und Teilnehmer.</p></details>
+    <details class="qa"><summary><span class="qn">05</span><span class="qt">Kann ich von Eversports oder Momoyoga wechseln?</span><span class="sign">+</span></summary><p class="ans">Einen automatischen Import gibt es noch nicht. Schreib uns, wenn du wechseln willst — bei den ersten Studios machen wir den Umzug persönlich mit dir.</p></details>
+    <details class="qa"><summary><span class="qn">06</span><span class="qt">Können meine Teilnehmerinnen online bezahlen?</span><span class="sign">+</span></summary><p class="ans">Noch nicht. Online-Zahlungen sind das, woran wir gerade arbeiten. Heute rechnest du ab wie bisher, Omlify zeigt dir zuverlässig, wer angemeldet ist.</p></details>
+    <details class="qa"><summary><span class="qn">07</span><span class="qt">Lohnt sich das, wenn ich nur zwei Kurse pro Woche gebe?</span><span class="sign">+</span></summary><p class="ans">Ja. Omlify ist für selbstständige Lehrerinnen genauso gebaut wie für Studios. Du siehst nur das, was du brauchst.</p></details>
+    <details class="qa"><summary><span class="qn">08</span><span class="qt">Was passiert mit meinen Daten, wenn ich aufhöre?</span><span class="sign">+</span></summary><p class="ans">Deine Teilnehmerliste mit allen Anmeldungen lädst du jederzeit selbst als CSV-Datei herunter. Für alles Weitere schreib uns — du bekommst deine Daten und wir löschen sie.</p></details>
+    <details class="qa"><summary><span class="qn">09</span><span class="qt">Wer steckt hinter Omlify?</span><span class="sign">+</span></summary><p class="ans">Hinter Omlify stehen zwei Leute: Julius entwickelt das Produkt, André begleitet es beratend. Wir bauen Omlify mit den Studios, die es benutzen — bei jeder Frage erreichst du uns direkt unter support@omlify.de, kein Ticketsystem.</p></details>
+  </div>
+</div></section>
+<style>
+/* Rollen-Widget: dort ist die Seitenleiste der Inhalt, also auch mobil sichtbar */
+@media (max-width:820px){
+  #roleApp .ap-side{display:flex;width:100%;flex:1 1 auto}
+  #roleApp .ap-main{display:none}
+  #roleApp{min-height:0!important}
+}
+</style>
+<script>
+(function(){
+var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---- Icons: im Prototyp vereinfacht. In React: lucide-react, gleiche Namen. ---- */
+var SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">';
+var I={
+ home:SVG+'<path d="M3 10.6 12 3l9 7.6"/><path d="M5 9.8V21h14V9.8"/></svg>',
+ calendar:SVG+'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18"/></svg>',
+ book:SVG+'<path d="M2 4h5.5A3.5 3.5 0 0 1 11 7.5V21a3 3 0 0 0-3-3H2z"/><path d="M22 4h-5.5A3.5 3.5 0 0 0 13 7.5V21a3 3 0 0 1 3-3h6z"/></svg>',
+ clipboard:SVG+'<rect x="4" y="4" width="16" height="18" rx="2"/><path d="M9 2h6v4H9z"/><path d="M9 14l2 2 4-4"/></svg>',
+ users:SVG+'<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.2 2.8-5 6-5s6 1.8 6 5"/><path d="M16.5 5.2a3.2 3.2 0 0 1 0 6"/><path d="M18 19.6c0-2-.8-3.5-2.2-4.5"/></svg>',
+ message:SVG+'<path d="M21 14.5a2.5 2.5 0 0 1-2.5 2.5H8l-4 4V5.5A2.5 2.5 0 0 1 6.5 3h12A2.5 2.5 0 0 1 21 5.5z"/></svg>',
+ settings:SVG+'<circle cx="12" cy="12" r="3.2"/><path d="M12 2v2.6M12 19.4V22M2 12h2.6M19.4 12H22M4.9 4.9l1.9 1.9M17.2 17.2l1.9 1.9M19.1 4.9l-1.9 1.9M6.8 17.2l-1.9 1.9"/></svg>',
+ usercog:SVG+'<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.2 2.8-5 6-5"/><circle cx="18" cy="17" r="2.6"/><path d="M18 13.2V14M18 20v.8M14.2 17H15M21 17h.8"/></svg>',
+ user:SVG+'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>',
+ logout:SVG+'<path d="M9 21H5.5A2.5 2.5 0 0 1 3 18.5v-13A2.5 2.5 0 0 1 5.5 3H9"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>',
+ clock:SVG+'<circle cx="12" cy="12" r="9"/><path d="M12 7v5.2l3.2 1.9"/></svg>',
+ pin:SVG+'<path d="M12 21.5S19 15.4 19 10.5a7 7 0 1 0-14 0C5 15.4 12 21.5 12 21.5z"/><circle cx="12" cy="10.3" r="2.5"/></svg>',
+ back:SVG+'<path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>',
+ bell:SVG+'<path d="M18 8.5a6 6 0 1 0-12 0c0 6.5-3 8.5-3 8.5h18s-3-2-3-8.5z"/><path d="M13.8 21a2 2 0 0 1-3.6 0"/></svg>',
+ menu:SVG+'<path d="M3 6h18M3 12h18M3 18h18"/></svg>',
+ check:SVG+'<path d="M20 6.5 9.2 17.3 4 12.1"/></svg>',
+ plus:SVG+'<path d="M12 5v14M5 12h14"/></svg>',
+ chev:SVG+'<path d="M9 5l7 7-7 7"/></svg>'
+};
+
+/* ---- Daten ---- */
+var STUDIO='Yoga mit Mila';
+var COURSES=[
+ {id:1,title:'Vinyasa Flow · Mittelstufe',day:'Do, 18. Sep',dateLine:'Donnerstag, 18. September',time:'18:30',end:'19:45',dur:'1 Std. 15 Min.',price:'18 €',max:12,reg:12,wait:2,teacher:'Mila Vogt',loc:'Studio Neuss · Raum 1',
+  desc:'Fließende Übergänge im ruhigen Tempo. Wir arbeiten mit dem Atem und bauen die Sequenz über die Stunde auf.'},
+ {id:2,title:'Hatha für Einsteiger',day:'Sa, 20. Sep',dateLine:'Samstag, 20. September',time:'10:00',end:'11:15',dur:'1 Std. 15 Min.',price:'15 €',max:10,reg:8,wait:0,teacher:'Mila Vogt',loc:'Studio Neuss · Raum 1',
+  desc:'Ruhige Haltungen, lange gehalten. Für alle, die neu anfangen oder nach einer Pause zurückkommen.'},
+ {id:3,title:'Yin Yoga am Abend',day:'Di, 23. Sep',dateLine:'Dienstag, 23. September',time:'19:00',end:'20:15',dur:'1 Std. 15 Min.',price:'18 €',max:14,reg:5,wait:0,teacher:'Jana Ortmann',loc:'Studio Neuss · Raum 2',
+  desc:'Passive Haltungen, drei bis fünf Minuten gehalten. Bring dir gern eine Decke mit.'}
+];
+var NAMES={1:['Anna Reuter','Lena Brandt','Sophie Wald','Jana Ortmann','Tim Faber','Nele Kurz','Paul Sieber','Ida Rohde','Ben Marquardt','Lisa Thönnes','Kira Vogt','Ella Sander'],
+           2:['Anna Reuter','Jana Ortmann','Nele Kurz','Paul Sieber','Ida Rohde','Ben Marquardt','Lisa Thönnes','Kira Vogt'],
+           3:['Lena Brandt','Sophie Wald','Tim Faber','Mira Kellner','Ida Rohde']};
+var WAITING={1:['Mira Kellner','Ella Sander']};
+
+var NAV={
+ owner:[['home','Übersicht','/dashboard'],['calendar','Kurse','/courses'],['book','Kurse verwalten','/my-courses'],['clipboard','Meine Anmeldungen','/my-registrations'],['users','Teilnehmer','/participants'],['message','Nachrichten','/messages'],['settings','Einstellungen','/settings'],['usercog','Nutzerverwaltung','/users'],['user','Profil','/profile']],
+ teacher:[['home','Übersicht','/dashboard'],['calendar','Kurse','/courses'],['book','Kurse verwalten','/my-courses'],['clipboard','Meine Anmeldungen','/my-registrations'],['users','Teilnehmer','/participants'],['message','Nachrichten','/messages'],['usercog','Nutzerverwaltung','/users'],['user','Profil','/profile']],
+ user:[['home','Übersicht','/dashboard'],['calendar','Kurse','/courses'],['clipboard','Meine Anmeldungen','/my-registrations'],['message','Nachrichten','/messages'],['user','Profil','/profile']]
+};
+var ROLE={owner:{n:'Mila Vogt',l:'Inhaberin/Inhaber',c:''},teacher:{n:'Jana Ortmann',l:'Kursleitung',c:'soft'},user:{n:'Anna Reuter',l:'Teilnehmer',c:'grey'}};
+var TITLES={'/dashboard':'Übersicht','/courses':'Kurse','/my-courses':'Kurse verwalten','/my-registrations':'Meine Anmeldungen','/participants':'Teilnehmer','/messages':'Nachrichten','/settings':'Einstellungen','/users':'Nutzerverwaltung','/profile':'Profil'};
+
+function esc(x){return String(x).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function ini(n){return n.split(' ').map(function(w){return w[0];}).join('').slice(0,2);}
+
+/* ---- App-Huelle (Layout.tsx + Sidebar.tsx + Header.tsx) ---- */
+function sidebar(role, activePath, clickable){
+ var r=ROLE[role];
+ return '<div class="ap-side"><div class="ap-side-head">'
+  +'<div class="ap-mark"><span class="ap-logo">'+heart()+'</span><span class="ap-studio">'+STUDIO+'</span></div>'
+  +'<p class="ap-user">'+r.n+'</p><span class="ap-role '+r.c+'">'+r.l+'</span></div>'
+  +'<nav class="ap-nav"><ul>'+NAV[role].map(function(it){
+      var on = it[2]===activePath;
+      var go = (clickable&&clickable.indexOf(it[2])>=0) ? ' data-go="'+it[2]+'"' : '';
+      return '<li><span class="ap-navitem'+(on?' on':'')+'"'+go+'>'+I[it[0]]+it[1]+'</span></li>';
+    }).join('')+'</ul></nav>'
+  +'<div class="ap-out"><span class="ap-navitem">'+I.logout+'Abmelden</span></div></div>';
+}
+function heart(){return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21.2l7.8-7.7 1-1.1a5.5 5.5 0 0 0 0-7.8z"/></svg>';}
+function shell(role, path, inner, clickable, unread){
+ return sidebar(role, path, clickable)
+  +'<div class="ap-main"><div class="ap-head"><div class="ap-hleft">'
+  +'<button class="ap-burger" aria-label="Menü">'+I.menu+'</button>'
+  +'<h1 class="ap-title">'+(TITLES[path]||'Kurs')+'</h1></div>'
+  +'<button class="ap-bell" aria-label="Benachrichtigungen">'+I.bell+(unread?'<span class="ap-badge">'+unread+'</span>':'')+'</button>'
+  +'</div><div class="ap-body">'+inner+'</div></div>';
+}
+
+/* ---- Kursliste (Courses.tsx: Tagesgruppen + CourseRow leading="time") ---- */
+function statusFor(c, reg, ctx){
+ var free=c.max-reg;
+ if(ctx.registered) return '<span class="st ok">'+I.check+'Angemeldet</span>';
+ if(ctx.waitlist) return '<span class="st"><span class="pill">Warteliste Pos. '+ctx.waitlist+'</span></span>';
+ if(free<=0) return '<span class="st muted">Ausgebucht</span>';
+ if(free<=2) return '<span class="st"><span class="pill">'+(free===1?'noch 1 Platz':'noch '+free+' Plätze')+'</span></span>';
+ if(ctx.mine) return '<span class="st muted">Dein Kurs</span>';
+ return '';
+}
+function courseRow(c, reg, ctx, lead){
+ var meta=['bis '+c.end, c.teacher, c.loc.split(' · ')[0]].filter(Boolean).join(' · ');
+ var leadHtml = lead==='date'
+   ? '<div class="dateblk"><div class="w">'+c.day.slice(0,2)+'</div><div class="d">'+c.day.match(/\d+/)[0]+'</div><div class="m">'+c.day.slice(-3)+'</div></div>'
+   : '<div class="timechip">'+c.time+'</div>';
+ return '<div class="cr" role="button" tabindex="0" data-open="'+c.id+'">'+leadHtml
+  +'<div class="crm"><div class="crt"><h4>'+esc(c.title)+'</h4><span class="pr">'+c.price+'</span></div>'
+  +'<div class="meta">'+meta+'</div>'+statusFor(c,reg,ctx)+'</div>'
+  +'<span class="chev">'+I.chev+'</span></div>';
+}
+function courseList(state, role){
+ return COURSES.map(function(c){
+   var reg=c.reg+(state&&state.booked[c.id]?1:0);
+   var ctx={registered:!!(state&&state.booked[c.id]), waitlist:(state&&state.wl[c.id])?c.wait+1:0, mine:(role==='owner'&&c.teacher==='Mila Vogt')};
+   return '<section class="daygroup"><h2 class="daylabel">'+c.day+'</h2><div class="list">'+courseRow(c,reg,ctx,'time')+'</div></section>';
+ }).join('');
+}
+
+/* ---- Kursdetail (CourseDetail.tsx) ---- */
+function courseDetail(c, state, role){
+ var reg=c.reg+(state&&state.booked[c.id]?1:0);
+ var free=c.max-reg, staff=(role==='owner'||role==='teacher');
+ var booked=!!(state&&state.booked[c.id]), wl=!!(state&&state.wl[c.id]);
+ var st = booked?'<span class="st ok">'+I.check+'Angemeldet</span>'
+   : wl?'<span class="pill">Warteliste Pos. '+(c.wait+1)+'</span>'
+   : free<=0?'<span class="st muted">Ausgebucht</span>'
+   : free<=2?'<span class="pill">'+(free===1?'noch 1 Platz':'noch '+free+' Plätze')+'</span>'
+   : (role==='owner'&&c.teacher==='Mila Vogt')?'<span class="st muted">Dein Kurs</span>':'';
+ var action = staff
+   ? '<div style="display:flex;gap:8px"><button class="btn ghost sm" data-go2="participants">Teilnehmer</button><button class="btn ghost sm">Bearbeiten</button></div>'
+   : booked ? '<button class="btn off">Abmelden</button>'
+   : wl ? '<button class="btn wl" disabled>Warteliste Pos. '+(c.wait+1)+'</button>'
+   : free<=0 ? '<button class="btn wl" data-wl="'+c.id+'">Auf die Warteliste</button>'
+   : '<button class="btn" data-book="'+c.id+'">Anmelden</button>';
+ var left = booked ? '<span class="st ok" style="margin-top:2px">'+I.check+'Angemeldet</span>'
+   : wl ? '<span class="pill" style="margin-top:3px">Warteliste Pos. '+(c.wait+1)+'</span>'
+   : '<div class="abnote">pro Termin</div>';
+ return '<div class="detail"><button class="backlink" data-back="1">'+I.back+'Zurück</button>'
+  +'<h2 class="dtitle">'+esc(c.title)+'</h2>'+(st?'<div style="margin-top:8px">'+st+'</div>':'')
+  +'<div class="list" style="margin-top:16px">'
+  +'<div class="inforow">'+I.calendar+'<p>'+c.dateLine+'</p></div>'
+  +'<div class="inforow">'+I.clock+'<p>'+c.time+' bis '+c.end+' · '+c.dur+'</p></div>'
+  +'<div class="inforow">'+I.user+'<p>'+c.teacher+'</p></div>'
+  +'<div class="inforow">'+I.pin+'<p>'+c.loc+'</p></div>'
+  +(staff?'<div class="inforow">'+I.users+'<p>'+reg+' von '+c.max+' Plätzen belegt</p></div>':'')
+  +'</div>'
+  +'<h3 class="h3">Über den Kurs</h3><p class="para">'+c.desc+'</p>'
+  +'<div class="actionbar"><div><div class="abprice">'+c.price+'</div>'+left+'</div>'+action+'</div></div>';
+}
+
+/* ---- Teilnehmerliste (Participants.tsx) — auf 5 Zeilen gekuerzt ---- */
+function prow(n, meta, cls){return '<div class="prow'+(cls?' '+cls:'')+'"><div class="av">'+(n==='Du'?'Du':ini(n))+'</div><div><div class="pn">'+esc(n)+'</div><div class="pm">'+meta+'</div></div></div>';}
+function shortList(names, meta, max){
+ var shown=names.slice(0,max), rest=names.length-shown.length;
+ return shown.map(function(n){return prow(n,meta);}).join('') + (rest>0?'<div class="more">und '+rest+' weitere</div>':'');
+}
+function participants(c, state){
+ var booked=!!(state&&state.booked[c.id]);
+ var you = booked ? prow('Du','Angemeldet · gerade eben','you') : '';
+ var names=NAMES[c.id].slice(0,c.reg);
+ var w=(WAITING[c.id]||[]);
+ return '<div class="detail"><button class="backlink" data-back="1">'+I.back+'Zurück</button>'
+  +'<h2 class="dtitle">'+esc(c.title)+'</h2>'
+  +'<p class="meta" style="margin-top:6px">'+c.day+' · '+c.time+' bis '+c.end+'</p>'
+  +'<div class="subhead">Angemeldet · '+(c.reg+(booked?1:0))+' von '+c.max+'</div>'
+  +'<div class="list">'+you+shortList(names,'Angemeldet',booked?4:5)+'</div>'
+  +(w.length?'<div class="subhead">Warteliste</div><div class="list">'
+     +w.map(function(n,i){return prow(n,'Position '+(i+1));}).join('')+'</div>':'')
+  +'<div style="margin-top:16px"><button class="btn ghost sm">CSV Export</button></div></div>';
+}
+
+/* ---- Uebersicht Teilnehmerin (Dashboard.tsx) ---- */
+function guestDashboard(state){
+ var ids=Object.keys(state.booked).map(Number);
+ var hero = ids.length ? COURSES.filter(function(c){return c.id===ids[0];})[0] : null;
+ if(!hero) return '<p class="greet">Willkommen zurück, Anna!</p>'
+  +'<div class="hero"><h3>Noch nichts gebucht</h3><p class="t">Schau dir an, was diese Woche läuft.</p></div>'
+  +'<div class="subhead">Demnächst im Studio</div><div class="list">'
+  + COURSES.slice(0,2).map(function(c){return courseRow(c,c.reg,{},'date');}).join('')+'</div>';
+ return '<p class="greet">Willkommen zurück, Anna!</p>'
+  +'<div class="hero"><p class="k">Deine nächste Stunde</p><h3>'+esc(hero.title)+'</h3>'
+  +'<p class="t">'+hero.day+' · '+hero.time+' bis '+hero.end+'</p><p class="p">'+hero.loc.split(' · ')[0]+' · '+hero.teacher+'</p></div>'
+  +'<div class="subhead">Danach</div><div class="list">'
+  + COURSES.filter(function(c){return c.id!==hero.id;}).map(function(c){return courseRow(c,c.reg,{},'date');}).join('')+'</div>';
+}
+function registrations(state){
+ var ids=Object.keys(state.booked).map(Number).concat(Object.keys(state.wl).map(Number));
+ if(!ids.length) return '<div class="list"><div class="prow"><div><div class="pn">Noch keine Anmeldungen</div><div class="pm">Melde dich für einen Kurs an, dann steht er hier.</div></div></div></div>';
+ return '<div class="list">'+COURSES.filter(function(c){return ids.indexOf(c.id)>=0;}).map(function(c){
+   return courseRow(c,c.reg+(state.booked[c.id]?1:0),{registered:!!state.booked[c.id],waitlist:state.wl[c.id]?c.wait+1:0},'date');}).join('')+'</div>';
+}
+
+/* ================= Reveal ================= */
+var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.12});
+document.querySelectorAll('.rv').forEach(function(el){io.observe(el);});
+
+
+/* ================= HERO · lebender Kursplan =================
+   Laeuft von allein: eine Anmeldung trifft ein, danach rueckt die Warteliste nach.
+   Kein Klicken noetig. Bei prefers-reduced-motion nur der Endzustand. */
+var heroApp=document.getElementById('heroApp'), heroToast=document.getElementById('heroToast'),
+    heroToastText=document.getElementById('heroToastText');
+if(heroApp){
+  var HS={hatha:8, vinyasaWait:2, unread:2};
+  function heroRow(c,reg,extra){
+    var free=c.max-reg, st='';
+    if(free<=0) st='<span class="st muted">Ausgebucht</span>';
+    else if(free<=2) st='<span class="st"><span class="pill">'+(free===1?'noch 1 Platz':'noch '+free+' Plätze')+'</span></span>';
+    else st='<span class="st muted">Dein Kurs</span>';
+    var meta=['bis '+c.end,c.teacher,c.loc.split(' · ')[0]].join(' · ');
+    return '<div class="cr'+(extra||'')+'"><div class="timechip">'+c.time+'</div>'
+      +'<div class="crm"><div class="crt"><h4>'+c.title+'</h4><span class="pr">'+c.price+'</span></div>'
+      +'<div class="meta">'+meta+'</div>'+st+'</div><span class="chev">'+I.chev+'</span></div>';
+  }
+  function drawHero(flashId){
+    var inner=COURSES.map(function(c){
+      var reg = c.id===2 ? HS.hatha : c.reg;
+      return '<section class="daygroup"><h2 class="daylabel">'+c.day+'</h2><div class="list">'
+        + heroRow(c,reg, flashId===c.id?' flash':'') +'</div></section>';
+    }).join('');
+    heroApp.innerHTML=shell('owner','/courses',inner,null,HS.unread);
+  }
+  function heroSay(t){ heroToastText.textContent='✓  '+t; heroToast.classList.add('in');
+    setTimeout(function(){heroToast.classList.remove('in');},3400); }
+  drawHero(null);
+  if(!reduce){
+    var seen=false;
+    var ioH=new IntersectionObserver(function(es){
+      es.forEach(function(e){ if(e.isIntersecting && !seen){ seen=true; runHero(); } });
+    },{threshold:.25});
+    ioH.observe(heroApp);
+  }
+  function runHero(){
+    setTimeout(function(){
+      HS.hatha=9; HS.unread=3; drawHero(2);
+      heroSay('Neue Anmeldung · Hatha für Einsteiger');
+    },1700);
+    setTimeout(function(){
+      HS.vinyasaWait=1; HS.unread=4; drawHero(1);
+      heroSay('Mira ist von der Warteliste nachgerückt');
+    },6200);
+    setTimeout(function(){
+      HS.hatha=8; HS.vinyasaWait=2; HS.unread=2; drawHero(null); runHero();
+    },13000);
+  }
+}
+
+/* ================= A · Posteingang =================
+   Zehn Nachrichten fluten die volle Breite. Drei Tiefenebenen (d1 vorne bis d3 hinten)
+   ueber Deckkraft, Massstab und Schattenstaerke. Position in Prozent, damit der Haufen
+   mitwaechst. Unter 900px wird daraus eine einfache versetzte Spalte. */
+var PILE=[
+ {ch:'wa', t:'21:14', x:0,   y:0,   r:-2.2, d:1, txt:'Hey! Ist morgen um 18:30 noch ein Platz frei? 🙏'},
+ {ch:'ig', t:'21:22', x:26,  y:16,  r:1.6,  d:2, txt:'Kann ich diese Woche von Di auf Do tauschen?'},
+ {ch:'wa', t:'21:40', x:53,  y:0,   r:-1.3, d:1, txt:'Kommt ihr Sonntag auch? Meine Freundin will mit'},
+ {ch:'ml', t:'22:03', x:78,  y:20,  r:2.1,  d:3, txt:'Ich hatte doch schon überwiesen, oder? Finde die Bestätigung nicht.', s:1},
+ {ch:'wa', t:'22:31', x:12,  y:132, r:1.9,  d:2, txt:'Melde mich für morgen leider ab, mir gehts nicht gut'},
+ {ch:'ig', t:'22:52', x:38,  y:150, r:-1.7, d:3, txt:'Wie viele Plätze sind noch frei für Samstag?', s:1},
+ {ch:'wa', t:'07:48', x:64,  y:132, r:2.4,  d:1, txt:'Steh ich auf der Warteliste noch drauf?'},
+ {ch:'ig', t:'08:02', x:89,  y:154, r:-2.4, d:2, txt:'Gibts die 10er-Karte noch?', s:1},
+ {ch:'wa', t:'09:40', x:4,   y:272, r:-1.5, d:1, txt:'Hab überwiesen — 18 € für Donnerstag ✌️'},
+ {ch:'ml', t:'11:30', x:31,  y:288, r:1.4,  d:2, txt:'Die Rechnung für die Steuer bräuchte ich noch', s:1}
+];
+var CH={wa:['#25D366','WhatsApp'], ig:['#E1306C','Instagram'], ml:['#B87A2E','E-Mail']};
+var pile=document.getElementById('pile');
+if(pile){
+  pile.innerHTML=PILE.map(function(m){
+    var c=CH[m.ch];
+    return '<div class="msg d'+m.d+(m.s?' hide-s':'')+'" data-r="'+m.r+'" style="left:'+m.x+'%;top:'+m.y+'px">'
+     +'<div class="who"><span class="dotlet" style="background:'+c[0]+'"></span><b>'+c[1]+'</b> · '+m.t+'</div>'
+     +'<p>'+m.txt+'</p></div>';
+  }).join('');
+  var pmsgs=[].slice.call(pile.querySelectorAll('.msg'));
+  function setT(m,on){
+    var sc=getComputedStyle(m).getPropertyValue('--sc')||1;
+    m.style.transform='translateY('+(on?0:22)+'px) rotate('+m.dataset.r+'deg) scale('+sc+')';
+  }
+  pmsgs.forEach(function(m){ setT(m,false); });
+  var io2=new IntersectionObserver(function(es){ es.forEach(function(e){ if(!e.isIntersecting) return;
+    pmsgs.forEach(function(m,i){ setTimeout(function(){ m.classList.add('in'); setT(m,true); }, reduce?0:i*95); });
+    io2.disconnect(); }); },{threshold:.15});
+  io2.observe(pile);
+}
+
+/* ================= B1 · Markenfarbe ================= */
+var brandApp=document.getElementById('brandApp'), brandWin=document.getElementById('brandWin');
+if(brandApp){
+  brandApp.innerHTML=shell('user','/dashboard', guestDashboard({booked:{1:true},wl:{}}), null, 2);
+  document.querySelectorAll('.sw').forEach(function(b){
+    b.addEventListener('click',function(){
+      document.querySelectorAll('.sw').forEach(function(o){o.setAttribute('aria-pressed','false');});
+      b.setAttribute('aria-pressed','true');
+      brandWin.style.setProperty('--brand',b.dataset.c);
+      brandWin.style.setProperty('--brandPressed',b.dataset.p);
+      brandWin.style.setProperty('--brandSoft',b.dataset.s);
+      brandWin.style.setProperty('--brandOnSoft',b.dataset.o);
+    });
+  });
+}
+
+/* ================= B2 · Warteliste ================= */
+var wlApp=document.getElementById('wlApp'), wlToast=document.getElementById('wlToast'), wlBtn=document.getElementById('cancelBtn'), wlDone=false;
+function drawWl(after){
+  var c=COURSES[0];
+  var reg = after ? ['Mira Kellner','Anna Reuter'] : ['Lena Brandt','Anna Reuter'];
+  var rest = 10;
+  var waiting = after ? ['Ella Sander'] : ['Mira Kellner','Ella Sander'];
+  var inner='<div class="detail" style="max-width:none"><h2 class="dtitle" style="margin-top:0;font-size:19px">'+c.title+'</h2>'
+   +'<p class="meta" style="margin-top:4px">'+c.day+' · '+c.time+' bis '+c.end+'</p>'
+   +'<div class="subhead" style="margin-top:14px">Angemeldet · 12 von 12</div><div class="list">'
+   + reg.map(function(n,i){ return prow(n, (after&&i===0)?'Nachgerückt · gerade eben':'Angemeldet', (after&&i===0)?'you':''); }).join('')
+   + '<div class="more">und '+rest+' weitere</div></div>'
+   + '<div class="subhead">Warteliste</div><div class="list">'
+   + waiting.map(function(n,i){return prow(n,'Position '+(i+1));}).join('')
+   + '</div></div>';
+  wlApp.innerHTML=shell('owner','/participants',inner,null,0);
+}
+if(wlApp){
+  drawWl(false);
+  wlBtn.addEventListener('click',function(){
+    if(wlDone){wlDone=false;wlBtn.textContent='Lena meldet sich ab';drawWl(false);wlToast.classList.remove('in');return;}
+    wlDone=true;wlBtn.textContent='Nochmal abspielen';
+    var row=[].slice.call(wlApp.querySelectorAll('.prow')).filter(function(r){return /Lena Brandt/.test(r.textContent);})[0];
+    if(row&&!reduce){row.style.opacity='0';row.style.transform='translateX(-14px)';}
+    setTimeout(function(){drawWl(true);wlToast.classList.add('in');},reduce?0:480);
+  });
+}
+
+/* ================= B3 · Rollen ================= */
+var roleApp=document.getElementById('roleApp'), roleUrl=document.getElementById('roleUrl');
+function drawRole(r){
+  roleApp.innerHTML=shell(r,'/dashboard', r==='user'?guestDashboard({booked:{1:true},wl:{}}):'<p class="greet">Willkommen zurück, '+ROLE[r].n.split(' ')[0]+'!</p><div class="subhead">Deine nächsten Kurse</div><div class="list">'+COURSES.slice(0,2).map(function(c){return courseRow(c,c.reg,{mine:r!=='user'},'date');}).join('')+'</div>', null, r==='owner'?3:0);
+  roleUrl.textContent='yomita.omlify.de/dashboard';
+}
+if(roleApp){
+  drawRole('owner');
+  document.querySelectorAll('.chip').forEach(function(c){
+    c.addEventListener('click',function(){
+      document.querySelectorAll('.chip').forEach(function(o){o.setAttribute('aria-pressed','false');});
+      c.setAttribute('aria-pressed','true'); drawRole(c.dataset.r);
+    });
+  });
+}
+
+/* ================= F · Demo =================
+   Jeder Menuepunkt ist anklickbar. Bereiche ohne eigenen Bildschirm zeigen den
+   Leerzustand aus Courses.tsx (Icon, Ueberschrift, Satz) statt ins Leere zu fuehren. */
+var body=document.getElementById('dmBody'), url=document.getElementById('dmUrl'),
+    toast=document.getElementById('dmToast'), toastText=document.getElementById('dmToastText'),
+    bA=document.getElementById('dmA'), bB=document.getElementById('dmB');
+var S={view:'owner',path:'/courses',cid:null,booked:{},wl:{}};
+
+function say(t){toastText.textContent='✓  '+t;toast.classList.add('in');clearTimeout(say._x);
+  say._x=setTimeout(function(){toast.classList.remove('in');},4200);}
+
+function empty(icon,title,text){
+  return '<div class="empty"><span class="ic">'+I[icon]+'</span><h3>'+title+'</h3><p>'+text+'</p></div>';
+}
+var EMPTY={
+ '/messages':['message','Nachrichten','In Omlify schreibst du hier direkt mit deinen Teilnehmern. In dieser Demo ist der Bereich leer.'],
+ '/settings':['settings','Einstellungen','Studioname, Logo, Markenfarbe und Buchungsregeln. In dieser Demo nicht enthalten.'],
+ '/users':['usercog','Nutzerverwaltung','Rollen vergeben und Zugänge verwalten. In dieser Demo nicht enthalten.'],
+ '/profile':['user','Profil','Deine eigenen Daten und Benachrichtigungen. In dieser Demo nicht enthalten.']
+};
+
+/* Kennzahlen: Beschriftungen bitte in Dashboard.tsx (getStatCards) gegenpruefen. */
+function ownerDashboard(){
+  return '<p class="greet">Willkommen zurück, Mila!</p>'
+   +'<div class="stats"><div><div class="k">Kurse diese Woche</div><div class="v">6</div></div>'
+   +'<div><div class="k">Anmeldungen</div><div class="v">41</div></div>'
+   +'<div><div class="k">Auf Warteliste</div><div class="v">3</div></div></div>'
+   +'<div class="subhead">Deine nächsten Kurse</div><div class="list">'
+   + COURSES.slice(0,2).map(function(c){return courseRow(c,c.reg,{mine:true},'date');}).join('')+'</div>';
+}
+function ownerMyCourses(){
+  return '<div class="topaction"><button class="btn ghost sm">'+I.plus+'<span style="margin-left:6px">Neuer Kurs</span></button></div>'
+   + COURSES.filter(function(c){return c.teacher==='Mila Vogt';}).map(function(c){
+       return '<section class="daygroup"><h2 class="daylabel">'+c.day+'</h2><div class="list">'
+         + courseRow(c,c.reg,{mine:true},'time')+'</div></section>';}).join('');
+}
+function allParticipants(){
+  var all=['Anna Reuter','Lena Brandt','Sophie Wald','Jana Ortmann','Tim Faber','Nele Kurz','Paul Sieber','Ida Rohde','Ben Marquardt','Lisa Thönnes','Kira Vogt','Mira Kellner'];
+  return '<div class="searchbar">'+I.users+'<span>Teilnehmer suchen</span></div>'
+   +'<div class="list">'+shortList(all,'Aktiv · seit Mai 2026',6)+'</div>';
+}
+
+function screenFor(path, role){
+  if(path==='/courses') return courseList(S,role);
+  if(path==='/my-courses') return ownerMyCourses();
+  if(path==='/participants') return allParticipants();
+  if(path==='/dashboard') return role==='owner'?ownerDashboard():guestDashboard(S);
+  if(path==='/my-registrations') return role==='owner'
+    ? empty('clipboard','Meine Anmeldungen','Kurse, für die du dich selbst angemeldet hast. In dieser Demo leer.')
+    : registrations(S);
+  if(path.indexOf('/course/')===0 && path.indexOf('/participants')>0)
+    return participants(COURSES.filter(function(c){return c.id===S.cid;})[0],S);
+  if(path.indexOf('/course/')===0)
+    return courseDetail(COURSES.filter(function(c){return c.id===S.cid;})[0],S,role);
+  var e=EMPTY[path]; return e?empty(e[0],e[1],e[2]):courseList(S,role);
+}
+function navPathFor(path){
+  if(path.indexOf('/course/')===0) return path.indexOf('/participants')>0?'/participants':'/courses';
+  return path;
+}
+function titleFor(path){
+  if(path.indexOf('/course/')===0) return path.indexOf('/participants')>0?'Teilnehmer':'Kurs';
+  return TITLES[path]||'Kurse';
+}
+function render(){
+  var owner=S.view==='owner', role=owner?'owner':'user';
+  var clickable=NAV[role].map(function(it){return it[2];});
+  body.className='ap';
+  body.innerHTML = sidebar(role, navPathFor(S.path), clickable)
+    +'<div class="ap-main"><div class="ap-head"><div class="ap-hleft">'
+    +'<button class="ap-burger" aria-label="Menü">'+I.menu+'</button>'
+    +'<h1 class="ap-title">'+titleFor(S.path)+'</h1></div>'
+    +'<button class="ap-bell" aria-label="Benachrichtigungen">'+I.bell+(owner?'<span class="ap-badge">3</span>':'')+'</button>'
+    +'</div><div class="ap-body">'+screenFor(S.path,role)+'</div></div>';
+  url.textContent='yomita.omlify.de'+S.path;
+  bA.setAttribute('aria-pressed',String(owner)); bB.setAttribute('aria-pressed',String(!owner));
+}
+if(body){
+  body.addEventListener('click',function(e){
+    var o=e.target.closest('[data-open]'),b=e.target.closest('[data-back]'),k=e.target.closest('[data-book]'),
+        w=e.target.closest('[data-wl]'),g=e.target.closest('[data-go]'),g2=e.target.closest('[data-go2]');
+    if(o){S.cid=+o.dataset.open;S.path='/course/'+S.cid;render();return;}
+    if(g2){S.path='/course/'+S.cid+'/participants';render();return;}
+    if(b){S.path=(S.path.indexOf('/participants')>0)?'/course/'+S.cid:'/courses';if(S.path==='/courses')S.cid=null;render();return;}
+    if(g){S.path=g.dataset.go;S.cid=null;render();return;}
+    if(k){S.booked[+k.dataset.book]=true;render();say('Du bist angemeldet. Mila sieht das sofort.');return;}
+    if(w){S.wl[+w.dataset.wl]=true;render();say('Du stehst auf der Warteliste. Wird ein Platz frei, bekommst du Bescheid.');return;}
+  });
+  body.addEventListener('keydown',function(e){
+    if((e.key==='Enter'||e.key===' ')&&e.target.dataset&&e.target.dataset.open){
+      e.preventDefault();S.cid=+e.target.dataset.open;S.path='/course/'+S.cid;render();}
+  });
+  bA.addEventListener('click',function(){S.view='owner';S.path='/courses';S.cid=null;render();});
+  bB.addEventListener('click',function(){S.view='guest';S.path='/dashboard';S.cid=null;render();});
+  render();
+}
+})();
+</script>
+</body>
+</html>
