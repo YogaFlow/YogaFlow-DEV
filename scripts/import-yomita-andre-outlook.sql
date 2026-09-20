@@ -1,3 +1,5 @@
+-- Gegen ein älteres Schema geschrieben (enthält gdpr_consent / gdpr_consent_date).
+-- Einmalig gelaufen; nicht gegen das aktuelle Schema ausführen.
 -- Nachimport: andre.thaller@outlook.de → Tenant Yomita (892370b8-49a1-4699-b480-2f722e4f9fe3)
 -- Legacy auth + admin role. No registrations in legacy export for this user.
 

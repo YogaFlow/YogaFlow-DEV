@@ -2,6 +2,9 @@
  * Generate SQL to import legacy Yoga app data into tenant Yomita.
  * Reads CSV exports from the old Supabase project; writes split SQL parts for execution.
  *
+ * Gegen ein älteres Schema geschrieben (enthält gdpr_consent / gdpr_consent_date).
+ * Einmalig gelaufen; nicht gegen das aktuelle Schema ausführen.
+ *
  * Usage:
  *   node scripts/import-yomita-prod.mjs
  *   node scripts/import-yomita-prod.mjs --auth "C:/path/auth.csv" --profiles "..." --courses "..." --registrations "..."

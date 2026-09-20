@@ -1,3 +1,5 @@
+-- Gegen ein älteres Schema geschrieben (enthält gdpr_consent / gdpr_consent_date).
+-- Einmalig gelaufen; nicht gegen das aktuelle Schema ausführen.
 ALTER TABLE auth.users DISABLE TRIGGER on_auth_user_created;
 
 ALTER TABLE auth.users DISABLE TRIGGER on_auth_user_created;

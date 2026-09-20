@@ -29,8 +29,6 @@ export interface User {
   postal_code?: string;
   city?: string;
   phone?: string;
-  gdpr_consent?: boolean;
-  gdpr_consent_date?: string;
   created_at: string;
   updated_at: string;
 }
