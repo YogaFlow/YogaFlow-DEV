@@ -2,8 +2,9 @@
 // einer festen Domain: dieselbe Regel gilt auf DEV und PROD, und VITE_*-Variablen
 // gibt es zur Laufzeit im Worker nicht. run_worker_first ist nötig, weil
 // Navigationsrequests sonst vom Asset-Worker mit index.html beantwortet werden und
-// diesen Worker nie erreichen. Hosts, die kein Apex sind (Studio-Subdomains),
-// werden sofort an ASSETS durchgereicht.
+// diesen Worker nie erreichen. robots.txt gilt für jeden Host und wird vor der
+// Apex-Prüfung beantwortet. Alle anderen Requests auf Nicht-Apex (Studio-Subdomains)
+// gehen an ASSETS.
 
 type AssetsBinding = {
   fetch: (input: Request | URL) => Promise<Response>;
@@ -82,13 +83,21 @@ function hasSpaRootQuery(url: URL): boolean {
 export default {
   async fetch(request: Request, env: WorkerEnv): Promise<Response> {
     const hostname = hostnameOf(request);
+    const url = new URL(request.url);
+    const pathname = url.pathname;
+
+    if (pathname === '/robots.txt') {
+      // Indexierung nur auf dem Produktions-Apex. Tenant-Subdomains (DEV und PROD)
+      // haben heute keine oeffentlichen Inhalte — alles liegt hinter Login.
+      // Deshalb Disallow, auch auf omlify-dev.de. Umkehrbar, falls spaeter
+      // oeffentliche Kurslisten unter der Studio-Subdomain existieren.
+      const allowIndexing = isApexHost(hostname) && isProductionHost(hostname);
+      return robotsResponse(allowIndexing ? ROBOTS_ALLOW : ROBOTS_DISALLOW);
+    }
 
     if (!isApexHost(hostname)) {
       return env.ASSETS.fetch(request);
     }
-
-    const url = new URL(request.url);
-    const pathname = url.pathname;
 
     if (pathname === '/' || pathname === '/index.html') {
       if (hasSpaRootQuery(url)) {
@@ -101,12 +110,6 @@ export default {
 
     if (pathname === '/marketing.html') {
       return env.ASSETS.fetch(new URL('/marketing.html', request.url));
-    }
-
-    if (pathname === '/robots.txt') {
-      return robotsResponse(
-        isProductionHost(hostname) ? ROBOTS_ALLOW : ROBOTS_DISALLOW,
-      );
     }
 
     if (pathname === '/sitemap.xml') {
