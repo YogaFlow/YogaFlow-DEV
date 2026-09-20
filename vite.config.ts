@@ -2,6 +2,7 @@ import { defineConfig, loadEnv, build as viteBuild, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 
 import { cloudflare } from "@cloudflare/vite-plugin";
+import { legalRollupInput, writeLegalHtmlPages } from './scripts/render-legal-pages.mjs';
 
 const mpaInput = {
   main: 'index.html',
@@ -32,17 +33,39 @@ function isolatedMarketingBuild(): Plugin {
   };
 }
 
+/** Legal HTML has no JS entry; strip any script Vite might still inject. */
+function stripLegalScripts(): Plugin {
+  return {
+    name: 'strip-legal-scripts',
+    transformIndexHtml: {
+      order: 'post',
+      handler(html, ctx) {
+        const file = (ctx.filename ?? ctx.path ?? '').replaceAll('\\', '/');
+        if (!file.includes('/legal/')) return html;
+        return html.replace(/<script\b[\s\S]*?<\/script>/gi, '');
+      },
+    },
+  };
+}
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode, command }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const supabaseUrl = env.VITE_SUPABASE_URL || 'https://mufxhtctutfpzklwqnze.supabase.co';
   const marketingBuild = process.env.OMLIFY_MARKETING_BUILD === '1';
+  const includeLegalPages = command === 'serve' || marketingBuild;
+  if (includeLegalPages) {
+    writeLegalHtmlPages();
+  }
 
+  // Legal-HTML nur in Dev und im Marketing-Zweitbuild. Im App-Durchlauf
+  // bleiben sie draussen, sonst entstaenden Shared-Chunks und das App-Bundle
+  // wuerde sich aendern.
   const input =
     command === 'serve'
-      ? mpaInput
+      ? { ...mpaInput, ...legalRollupInput }
       : marketingBuild
-        ? { marketing: mpaInput.marketing }
+        ? { marketing: mpaInput.marketing, ...legalRollupInput }
         : { main: mpaInput.main };
 
   const clientRollupOptions = {
@@ -65,6 +88,7 @@ export default defineConfig(({ mode, command }) => {
   return {
     plugins: [
       react(),
+      ...(includeLegalPages ? [stripLegalScripts()] : []),
       ...(marketingBuild ? [] : [cloudflare(), isolatedMarketingBuild()]),
     ],
     optimizeDeps: {

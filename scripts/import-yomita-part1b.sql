@@ -1,3 +1,5 @@
+-- Gegen ein älteres Schema geschrieben (enthält gdpr_consent / gdpr_consent_date).
+-- Einmalig gelaufen; nicht gegen das aktuelle Schema ausführen.
 -- Yomita legacy import (generated)
 -- tenant_id: 892370b8-49a1-4699-b480-2f722e4f9fe3
 -- auth_csv: C:/Users/49178/Downloads/users_rows (2).csv

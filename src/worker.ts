@@ -25,15 +25,29 @@ const ROBOTS_ALLOW = [
 
 const ROBOTS_DISALLOW = ['User-agent: *', 'Disallow: /', ''].join('\n');
 
+const SITEMAP_PATHS = [
+  '/',
+  '/legal/impressum',
+  '/legal/datenschutz',
+  '/legal/agb',
+  '/legal/auftragsverarbeitung',
+] as const;
+
 const SITEMAP_XML = [
   '<?xml version="1.0" encoding="UTF-8"?>',
   '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
-  '  <url>',
-  '    <loc>https://omlify.de/</loc>',
-  '  </url>',
+  ...SITEMAP_PATHS.flatMap((path) => [
+    '  <url>',
+    `    <loc>https://omlify.de${path}</loc>`,
+    '  </url>',
+  ]),
   '</urlset>',
   '',
 ].join('\n');
+
+function isPlatformLegalPath(pathname: string): boolean {
+  return pathname === '/legal' || pathname.startsWith('/legal/');
+}
 
 function hostnameOf(request: Request): string {
   return new URL(request.url).hostname.toLowerCase();
@@ -96,6 +110,12 @@ export default {
     }
 
     if (!isApexHost(hostname)) {
+      // Auf einer Studio-Subdomain tritt das Studio als Anbieter auf, dort gelten
+      // dessen Rechtsangaben, nicht die der Plattform. html_handling wuerde sonst
+      // legal/*.html aus dem Marketing-Build ausliefern.
+      if (isPlatformLegalPath(pathname)) {
+        return env.ASSETS.fetch(new URL('/', request.url));
+      }
       return env.ASSETS.fetch(request);
     }
 
@@ -110,6 +130,10 @@ export default {
 
     if (pathname === '/marketing.html') {
       return env.ASSETS.fetch(new URL('/marketing.html', request.url));
+    }
+
+    if (isPlatformLegalPath(pathname)) {
+      return env.ASSETS.fetch(request);
     }
 
     if (pathname === '/sitemap.xml') {

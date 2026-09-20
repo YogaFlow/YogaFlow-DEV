@@ -1,0 +1,212 @@
+@font-face {
+  font-family: 'Newsreader';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 800;
+  src: url('@fontsource-variable/newsreader/files/newsreader-latin-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('@fontsource-variable/inter/files/inter-latin-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  --color-bg: #F5F3EF;
+  --color-surface: #FFFFFF;
+  --color-border: #E5DFD4;
+  --color-text: #1F1B16;
+  --color-text-muted: #6F6558;
+  --color-text-subtle: #9A9083;
+  --sage-600: #2F5A4E;
+  --sage-800: #23443B;
+  --color-brand: var(--sage-600);
+  --color-brand-pressed: var(--sage-800);
+  --radius-sm: 10px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+a {
+  color: var(--color-brand);
+  text-underline-offset: 4px;
+}
+
+a:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+a:active {
+  color: var(--color-brand-pressed);
+}
+
+.legal-header,
+.legal-footer,
+.legal-main {
+  width: min(100%, calc(70ch + 2rem));
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+.legal-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  padding-top: 1.25rem;
+  padding-bottom: 1.25rem;
+}
+
+.legal-brand {
+  font-family: Newsreader, Georgia, serif;
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.legal-back,
+.legal-footer a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  color: var(--color-text);
+}
+
+.legal-main {
+  padding-bottom: 3rem;
+}
+
+.legal-article {
+  max-width: 70ch;
+}
+
+.legal-article h1,
+.legal-article h2,
+.legal-article h3 {
+  font-family: Newsreader, Georgia, serif;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+}
+
+.legal-article h1 {
+  font-size: 28px;
+  margin: 0 0 0.75rem;
+}
+
+.legal-article h2 {
+  font-size: 22px;
+  margin: 2rem 0 0.75rem;
+}
+
+.legal-article h3 {
+  font-size: 19px;
+  margin: 1.5rem 0 0.5rem;
+}
+
+.legal-article p,
+.legal-article li {
+  margin: 0 0 0.85rem;
+}
+
+.legal-article ul {
+  margin: 0 0 0.85rem;
+  padding-left: 1.15rem;
+}
+
+.legal-article hr {
+  border: 0;
+  border-top: 1px solid var(--color-border);
+  margin: 1.75rem 0;
+}
+
+.legal-article code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.92em;
+}
+
+.legal-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 1.25rem 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+
+.legal-article table {
+  width: 100%;
+  min-width: 28rem;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+.legal-article th,
+.legal-article td {
+  padding: 0.625rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--color-border);
+  word-break: break-word;
+}
+
+.legal-article th {
+  font-weight: 500;
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+}
+
+.legal-article tr:last-child td {
+  border-bottom: 0;
+}
+
+.legal-footer {
+  border-top: 1px solid var(--color-border);
+  padding-top: 0.5rem;
+  padding-bottom: 2rem;
+}
+
+.legal-footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1.25rem;
+}
+
+@media (max-width: 640px) {
+  .legal-article table {
+    font-size: 13px;
+    min-width: 24rem;
+  }
+
+  .legal-article th,
+  .legal-article td {
+    padding: 0.5rem 0.6rem;
+  }
+}

@@ -4,6 +4,7 @@ const FOOTER_LINKS = [
   { href: '/legal/agb', label: 'AGB' },
   { href: '/legal/datenschutz', label: 'Datenschutz' },
   { href: '/legal/impressum', label: 'Impressum' },
+  { href: '/legal/auftragsverarbeitung', label: 'Auftragsverarbeitung' },
   { href: 'mailto:support@omlify.de', label: 'support@omlify.de' },
 ] as const;
 

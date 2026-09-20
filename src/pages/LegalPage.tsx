@@ -1,16 +1,14 @@
 import React from 'react';
 import { Heart } from 'lucide-react';
 
-interface LegalPageProps {
-  type: 'agb' | 'datenschutz';
-}
+const PLATFORM_LEGAL_LINKS = [
+  { href: 'https://omlify.de/legal/impressum', label: 'Impressum' },
+  { href: 'https://omlify.de/legal/datenschutz', label: 'Datenschutzerklärung' },
+  { href: 'https://omlify.de/legal/agb', label: 'AGB' },
+  { href: 'https://omlify.de/legal/auftragsverarbeitung', label: 'Auftragsverarbeitung' },
+] as const;
 
-const TITLES: Record<LegalPageProps['type'], string> = {
-  agb: 'Allgemeine Geschäftsbedingungen',
-  datenschutz: 'Datenschutzerklärung',
-};
-
-const LegalPage: React.FC<LegalPageProps> = ({ type }) => {
+const LegalPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-sand">
       <header className="bg-surface border-b border-border px-6 py-4">
@@ -23,14 +21,26 @@ const LegalPage: React.FC<LegalPageProps> = ({ type }) => {
       </header>
 
       <main className="max-w-3xl mx-auto px-6 py-12">
-        <h1 className="text-3xl font-bold text-text mb-8">{TITLES[type]}</h1>
+        <h1 className="text-3xl font-bold text-text mb-8">Rechtliche Angaben</h1>
 
-        <div className="bg-accentSoft border border-accent rounded-md p-6 text-text text-sm">
-          <p className="font-semibold mb-1">Platzhalter</p>
+        <div className="space-y-4 text-text text-sm leading-[1.45]">
+          <p>Diese Anwendung wird von Omlify betrieben.</p>
           <p>
-            Die rechtlichen Texte befinden sich in Vorbereitung. Bitte nehme vor dem
-            Produktivbetrieb Kontakt mit einem Rechtsanwalt auf.
+            Rechtliche Angaben zur Plattform findest du auf omlify.de:
           </p>
+          <ul className="space-y-1">
+            {PLATFORM_LEGAL_LINKS.map((link) => (
+              <li key={link.href}>
+                <a
+                  href={link.href}
+                  className="inline-flex min-h-11 items-center text-brand underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                >
+                  {link.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+          <p>Für Angaben zum Studio selbst gelten dessen eigene Angaben.</p>
         </div>
       </main>
     </div>

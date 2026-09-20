@@ -291,9 +291,8 @@ function App() {
             {/* Öffentlich: Onboarding (kein Tenant-Kontext erforderlich) */}
             <Route path="/onboarding" element={<OnboardingWizard />} />
 
-            {/* Rechtliche Seiten */}
-            <Route path="/legal/agb"         element={<LegalPage type="agb" />} />
-            <Route path="/legal/datenschutz" element={<LegalPage type="datenschutz" />} />
+            {/* Rechtliche Seiten: auf Studio-Hosts nur der Verweis auf omlify.de */}
+            <Route path="/legal/*" element={<LegalPage />} />
 
             {/* Mandanten-App (pathloses Layout — zuverlässiges Matching unter RR 6/7) */}
             <Route element={<TenantAppShell />}>

@@ -25,7 +25,13 @@
   "name": "omlify-dev",
   "compatibility_date": "2026-04-21",
   "observability": {
-    "enabled": true
+    "enabled": true,
+    // Bestätigungslinks kommen als /?token=… auf dem Apex an, der Token
+    // stünde sonst im Klartext in den Cloudflare-Logs. Der Worker schreibt
+    // selbst nichts, es geht also nichts verloren.
+    "logs": {
+      "invocation_logs": false
+    }
   },
   "main": "src/worker.ts",
   "assets": {
