@@ -56,6 +56,29 @@ function robotsResponse(body: string): Response {
   });
 }
 
+/**
+ * Query-Keys, mit denen `/` die SPA laden muss statt marketing.html.
+ *
+ * `token`: Mail-Clients oeffnen manchmal nur die Root-URL; EmailTokenFromRootRedirect
+ * in der SPA schickt `/?token=` nach /verify-email (und nimmt `tenant` mit).
+ * `tenant`: DEV-Einstieg `/?tenant={slug}` — OnboardingWizard emailRedirectTo und
+ * buildStudioEntryHref. Confirm-email ist derzeit aus, der Parameter liegt aber
+ * noch im Code und muss die SPA erreichen.
+ *
+ * Nur diese beiden. utm_source, utm_medium, gclid, fbclid und jeder unbekannte
+ * Parameter bleiben Marketing — sonst wuerde jeder Kampagnenlink die App sehen.
+ * Diese Ausnahme nicht entfernen, nur weil `/` "immer Landingpage" sein soll.
+ */
+const SPA_ROOT_QUERY_KEYS = ['token', 'tenant'] as const;
+
+function hasSpaRootQuery(url: URL): boolean {
+  for (const key of SPA_ROOT_QUERY_KEYS) {
+    const value = url.searchParams.get(key);
+    if (value !== null && value.trim() !== '') return true;
+  }
+  return false;
+}
+
 export default {
   async fetch(request: Request, env: WorkerEnv): Promise<Response> {
     const hostname = hostnameOf(request);
@@ -64,15 +87,19 @@ export default {
       return env.ASSETS.fetch(request);
     }
 
-    const pathname = new URL(request.url).pathname;
+    const url = new URL(request.url);
+    const pathname = url.pathname;
 
-    if (
-      pathname === '/' ||
-      pathname === '/index.html' ||
-      pathname === '/marketing.html'
-    ) {
+    if (pathname === '/' || pathname === '/index.html') {
+      if (hasSpaRootQuery(url)) {
+        return env.ASSETS.fetch(request);
+      }
       // Ueber eine neue URL holen, nicht ueber den Original-Request: html_handling
       // wuerde /marketing.html sonst mit 307 nach /marketing schicken.
+      return env.ASSETS.fetch(new URL('/marketing.html', request.url));
+    }
+
+    if (pathname === '/marketing.html') {
       return env.ASSETS.fetch(new URL('/marketing.html', request.url));
     }
 
