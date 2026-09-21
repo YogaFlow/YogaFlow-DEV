@@ -4,7 +4,6 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import EnrollmentCards from '../components/courses/EnrollmentCards';
 import { useAuth } from '../context/AuthContext';
 import { isRegistrationVisible } from '../lib/courseDateTime';
-import { runPastRegistrationCleanup } from '../lib/registrationMaintenance';
 import { supabase } from '../lib/supabase';
 import { canSelfEnrollInCourses } from '../lib/userRoles';
 import type { Registration } from '../types';
@@ -30,7 +29,6 @@ const MyRegistrations: React.FC = () => {
       try {
         setLoading(true);
         setLoadError(false);
-        await runPastRegistrationCleanup();
 
         const { data, error } = await supabase
           .from('registrations')

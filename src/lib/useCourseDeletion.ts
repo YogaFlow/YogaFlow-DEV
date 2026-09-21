@@ -34,6 +34,12 @@ const DELETE_ERROR: FeedbackDialogState = {
   type: 'error',
 };
 
+const REGISTRATIONS_BLOCK_DELETE: FeedbackDialogState = {
+  title: 'Hinweis',
+  message: 'Dieser Kurs hat noch Anmeldungen. Melde erst die Teilnehmenden ab.',
+  type: 'error',
+};
+
 const personSum = (
   counts: Record<string, { registered: number; waitlist: number }>,
   id: string
@@ -129,7 +135,7 @@ export function useCourseDeletion(course: Course | null) {
       const { data, error } = await supabase.from('courses').delete().in('id', ids).select('id');
 
       if (error) {
-        setFeedbackDialog(DELETE_ERROR);
+        setFeedbackDialog(error.code === '23503' ? REGISTRATIONS_BLOCK_DELETE : DELETE_ERROR);
         return;
       }
 

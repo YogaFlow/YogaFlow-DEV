@@ -130,7 +130,7 @@ const CourseDeleteDialog: React.FC<CourseDeleteDialogProps> = ({
               <div className="p-4 bg-accentSoft border border-accent rounded-sm">
                 <p className="text-sm font-medium text-accentText">{personLine}</p>
                 <p className="text-sm text-accentText mt-1">
-                  Die Anmeldungen werden gelöscht. Es wird niemand benachrichtigt.
+                  Melde erst die Teilnehmenden ab. Solange Anmeldungen bestehen, bleibt der Kurs.
                 </p>
               </div>
             ) : null}
