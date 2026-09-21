@@ -1,6 +1,6 @@
 # Vertrag über die Verarbeitung personenbezogener Daten im Auftrag
 
-**nach Art. 28 DSGVO** · **Stand:** 20.09.2026
+**nach Art. 28 DSGVO** · **Stand:** 21.09.2026
 
 ---
 
@@ -181,7 +181,7 @@ betroffen ist.
 
 # Anlage 1 — Technische und organisatorische Maßnahmen
 
-**Stand:** 20.09.2026
+**Stand:** 21.09.2026
 
 ## Vertraulichkeit
 
@@ -248,7 +248,7 @@ Standardvertragsklauseln, soweit eine Übermittlung in Drittländer stattfindet.
 
 # Anlage 2 — Unterauftragsverarbeiter
 
-**Stand:** 20.09.2026
+**Stand:** 21.09.2026
 
 | Unternehmen | Leistung | Ort der Verarbeitung |
 |---|---|---|
@@ -257,6 +257,7 @@ Standardvertragsklauseln, soweit eine Übermittlung in Drittländer stattfindet.
 | Plus Five Five, Inc. (Resend), San Francisco, USA | Versand von System-E-Mails | Versand über Irland; Verarbeitung auch in den USA |
 | Cloudflare, Inc., San Francisco, USA | Auslieferung der Anwendung, Namensauflösung, Schutz vor Angriffen | globales Netz mit europäischen Standorten |
 | Cloudflare, Inc. (R2) | Aufbewahrung verschlüsselter Datensicherungen | Westeuropa |
+| IONOS SE, Montabaur | E-Mail-Postfach für Anfragen an support@omlify.de | Deutschland |
 
 Für Übermittlungen in die USA gelten die Standardvertragsklauseln der
 Europäischen Kommission nach Art. 46 Abs. 2 lit. c DSGVO als Bestandteil der
