@@ -1,6 +1,6 @@
 # Datenschutzerklärung
 
-**Stand:** 20.09.2026
+**Stand:** 21.09.2026
 
 ---
 
@@ -44,7 +44,7 @@ IP-Adresse, Zeitpunkt, aufgerufene Adresse, übertragene Datenmenge, Browsertyp
 und Betriebssystem.
 
 Diese Verarbeitung erfolgt durch unseren Infrastrukturdienstleister Cloudflare
-(siehe Abschnitt 9) und dient der Auslieferung der Seite sowie der Abwehr von
+(siehe Abschnitt 10) und dient der Auslieferung der Seite sowie der Abwehr von
 Angriffen und Überlastung.
 
 **Rechtsgrundlage:** Art. 6 Abs. 1 lit. f DSGVO. Unser berechtigtes Interesse
@@ -116,9 +116,20 @@ Einen Newsletter versenden wir nicht. Werbliche E-Mails versenden wir nicht.
 **Rechtsgrundlage:** Art. 6 Abs. 1 lit. b DSGVO.
 
 Zum eingesetzten Versanddienstleister und zur Übermittlung in die USA siehe
-Abschnitte 9 und 10.
+Abschnitte 10 und 11.
 
-## 8. Speicherung im Browser
+## 8. Kontakt per E-Mail
+
+Wenn Sie uns per E-Mail kontaktieren, verarbeiten wir Ihre E-Mail-Adresse,
+Ihren Namen, sofern angegeben, und den Inhalt Ihrer Nachricht, um Ihr Anliegen
+zu bearbeiten. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO, soweit Ihre
+Anfrage mit einem Vertrag oder dessen Anbahnung zusammenhängt, andernfalls
+Art. 6 Abs. 1 lit. f DSGVO. Unser berechtigtes Interesse liegt in der
+Beantwortung Ihrer Anfrage. Wir löschen die Nachrichten, sobald die Anfrage
+abschließend bearbeitet ist und keine gesetzlichen Aufbewahrungspflichten
+entgegenstehen.
+
+## 9. Speicherung im Browser
 
 Wir setzen **keine Cookies zu Analyse-, Werbe- oder Reichweitenmessungszwecken.**
 Ein Einwilligungsbanner ist deshalb nicht erforderlich.
@@ -141,7 +152,7 @@ gewünschte Dienst bereitgestellt werden kann. Sie erfolgt auf Grundlage von
 Zusätzlich kann unser Infrastrukturdienstleister Cloudflare technisch notwendige
 Cookies zur Angriffserkennung setzen.
 
-## 9. Empfänger und Auftragsverarbeiter
+## 10. Empfänger und Auftragsverarbeiter
 
 Wir geben Ihre Daten nicht an Dritte weiter, außer an die folgenden
 Dienstleister, die für uns weisungsgebunden tätig sind. Mit jedem von ihnen
@@ -154,6 +165,7 @@ besteht ein Vertrag zur Auftragsverarbeitung nach Art. 28 DSGVO.
 | Plus Five Five, Inc. (Resend), USA | Versand der Systemmails | Versandserver in Irland; Verarbeitung auch in den USA |
 | Cloudflare, Inc., USA | Auslieferung der Website, Namensauflösung, Angriffsabwehr | weltweites Netz, Zugriff aus der EU über europäische Standorte |
 | Cloudflare, Inc., USA (R2) | Aufbewahrung verschlüsselter Datensicherungen | Westeuropa |
+| IONOS SE, Montabaur | E-Mail-Postfach für Anfragen an support@omlify.de | Deutschland |
 
 Die Datenbank mit allen Konto-, Kurs-, Buchungs- und Nachrichtendaten liegt in
 einem Rechenzentrum in **Irland**.
@@ -162,13 +174,13 @@ Zur Absicherung gegen Datenverlust erstellen wir täglich eine vollständige
 Sicherung der Datenbank. Diese wird vor der Übertragung verschlüsselt und in
 einem nicht öffentlich zugänglichen Speicher in Westeuropa abgelegt.
 
-## 10. Übermittlung in Drittländer
+## 11. Übermittlung in Drittländer
 
-Die oben genannten Dienstleister sind Unternehmen mit Sitz in den USA
-beziehungsweise Tochtergesellschaften solcher Unternehmen. Auch wenn die
-Speicherung innerhalb der EU erfolgt, ist ein Zugriff aus den USA nicht
-ausgeschlossen. Beim Versand von E-Mails findet eine Verarbeitung in den USA
-ausdrücklich statt.
+Mit Ausnahme von IONOS sind die oben genannten Dienstleister Unternehmen mit
+Sitz in den USA beziehungsweise Tochtergesellschaften solcher Unternehmen.
+Auch wenn die Speicherung innerhalb der EU erfolgt, ist ein Zugriff aus den
+USA nicht ausgeschlossen. Beim Versand von E-Mails findet eine Verarbeitung
+in den USA ausdrücklich statt.
 
 Grundlage dieser Übermittlungen sind die Standardvertragsklauseln der
 Europäischen Kommission nach Art. 46 Abs. 2 lit. c DSGVO, die Bestandteil der
@@ -179,7 +191,7 @@ Wir weisen darauf hin, dass das Schutzniveau in den USA nach Auffassung des
 Europäischen Gerichtshofs nicht in jeder Hinsicht dem europäischen entspricht
 und ein Zugriff durch US-Behörden nicht vollständig ausgeschlossen werden kann.
 
-## 11. Speicherdauer
+## 12. Speicherdauer
 
 - **Konto- und Profildaten:** bis zur Löschung des Kontos.
 - **Buchungsdaten:** solange das Studio sie für die Kursverwaltung benötigt. Die
@@ -194,7 +206,7 @@ und ein Zugriff durch US-Behörden nicht vollständig ausgeschlossen werden kann
 Wird ein Benutzerkonto gelöscht, werden die zugehörigen Buchungen, Nachrichten
 und Benachrichtigungen mitgelöscht.
 
-## 12. Ihre Rechte
+## 13. Ihre Rechte
 
 Sie haben jederzeit das Recht auf
 
@@ -212,7 +224,7 @@ bitte an support@omlify.de** beziehungsweise, wenn Sie Kursteilnehmerin oder
 Kursteilnehmer sind, an Ihr Studio. Wir beantworten Anfragen innerhalb der
 gesetzlichen Frist von einem Monat.
 
-## 13. Beschwerderecht
+## 14. Beschwerderecht
 
 Sie haben das Recht, sich bei einer Datenschutz-Aufsichtsbehörde zu beschweren.
 Für uns zuständig ist:
@@ -223,12 +235,12 @@ Postfach 20 04 44
 Telefon: +49 211 38424-0
 E-Mail: poststelle@ldi.nrw.de
 
-## 14. Keine automatisierte Entscheidungsfindung
+## 15. Keine automatisierte Entscheidungsfindung
 
 Eine automatisierte Entscheidungsfindung einschließlich Profiling nach Art. 22
 DSGVO findet nicht statt.
 
-## 15. Änderungen dieser Erklärung
+## 16. Änderungen dieser Erklärung
 
 Wir passen diese Datenschutzerklärung an, wenn sich die Verarbeitung ändert —
 etwa wenn ein Dienstleister wechselt oder eine neue Funktion hinzukommt. Es gilt
@@ -238,19 +250,19 @@ jeweils die hier veröffentlichte Fassung.
 
 ## Hinweise zur Umsetzung
 
-Diese Erklärung beschreibt den Stand vom 20.09.2026, wie er aus dem Quellcode,
+Diese Erklärung beschreibt den Stand vom 21.09.2026, wie er aus dem Quellcode,
 den Migrationen und der Konfiguration ermittelt wurde. Ändert sich einer der
 folgenden Punkte, ist sie anzupassen:
 
-1. **Abschnitt 9/10 hängt am Mailversand.** Ein Wechsel auf einen europäischen
+1. **Abschnitt 10/11 hängt am Mailversand.** Ein Wechsel auf einen europäischen
    Anbieter würde die Aussage zum Drittlandtransfer deutlich verkürzen.
-2. **Abschnitt 8** setzt voraus, dass kein Analysewerkzeug hinzukommt. Sobald
+2. **Abschnitt 9** setzt voraus, dass kein Analysewerkzeug hinzukommt. Sobald
    Reichweitenmessung, Fehler-Tracking oder Werbepixel eingesetzt werden, ändert
    sich die Rechtsgrundlage und in der Regel ist eine Einwilligung erforderlich.
-3. **Abschnitt 11** setzt voraus, dass die Spalten `gdpr_consent` und
+3. **Abschnitt 12** setzt voraus, dass die Spalten `gdpr_consent` und
    `gdpr_consent_date` entfernt sind. Solange sie mit Vorgabewert `true`
    bestehen, dokumentiert die Datenbank eine Einwilligung, die nie erteilt wurde.
-4. **Abschnitt 12** ist bewusst so formuliert, dass die Löschung per E-Mail
+4. **Abschnitt 13** ist bewusst so formuliert, dass die Löschung per E-Mail
    erfolgt. Das ist zulässig, verpflichtet Sie aber, Anfragen tatsächlich
    innerhalb eines Monats zu bearbeiten. Eine Selbstbedienungs-Löschung im
    Profil wäre die bessere Lösung.
