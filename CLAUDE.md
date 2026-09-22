@@ -291,9 +291,9 @@ siehe `docs/RELEASE_2026-09.md` Gruppe R. Migration `20260917134259` (`324c527`)
 `ed73a32`, 13.09.). Offen: Stufe 4 — `debug_request_tenant_header()` entfernen und die
 befristete Übergangsregel ohne Header entfernen, sobald PROD stabil läuft.
 
-**Geldkette 1a:** Story 0.2 ist auf DEV erledigt (`5ed6664`, `7ac04bb`, `9ff03ee`, `b00c3c7`,
-`1b414fd`). Epic: `docs/EPIC_GELDKETTE_1A.md`. Offen vor PROD: die drei Migrationen
-`20260921233700`, `20260921233800`, `20260922093812`.
+**Geldkette 1a:** Story 0.2 ist live auf PROD seit 22.09.2026 (Release 2026-09b, Merge
+`da19a0d`). Commits `5ed6664`, `7ac04bb`, `9ff03ee`, `b00c3c7`, `1b414fd`. Epic:
+`docs/EPIC_GELDKETTE_1A.md`. Offene PROD-Migrationen: 0. Ablauf: `docs/RELEASE_2026-09b.md`.
 
 **Danach — Paket 4:** destruktive Aktionen entschärfen, Tippziele 44 px, Leerzustände als
 Einladung, Gedrückt-Zustand statt Hover.
