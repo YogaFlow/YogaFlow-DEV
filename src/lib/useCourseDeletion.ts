@@ -45,6 +45,11 @@ const personSum = (
   id: string
 ) => (counts[id]?.registered ?? 0) + (counts[id]?.waitlist ?? 0);
 
+export type BlockedSession = {
+  date: string;
+  time: string;
+};
+
 export function useCourseDeletion(course: Course | null) {
   const navigate = useNavigate();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -53,6 +58,7 @@ export function useCourseDeletion(course: Course | null) {
   const [upcomingSessions, setUpcomingSessions] = useState<SeriesSession[]>([]);
   const [singlePersonCount, setSinglePersonCount] = useState(0);
   const [seriesPersonCount, setSeriesPersonCount] = useState(0);
+  const [blockedSessions, setBlockedSessions] = useState<BlockedSession[]>([]);
   const [feedbackDialog, setFeedbackDialog] = useState<FeedbackDialogState | null>(null);
   const deletingRef = useRef(false);
   const preparingRef = useRef(false);
@@ -114,6 +120,12 @@ export function useCourseDeletion(course: Course | null) {
       setUpcomingSessions(upcoming);
       setSinglePersonCount(personSum(counts, course.id));
       setSeriesPersonCount(upcoming.reduce((sum, row) => sum + personSum(counts, row.id), 0));
+      setBlockedSessions(
+        upcoming
+          .filter((row) => personSum(counts, row.id) > 0)
+          .map((row) => ({ date: row.date, time: row.time }))
+          .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
+      );
       setScope('single');
       setDialogOpen(true);
     } finally {
@@ -123,6 +135,11 @@ export function useCourseDeletion(course: Course | null) {
 
   const confirmDelete = useCallback(async () => {
     if (!course || deletingRef.current) return;
+
+    const deletingSeries = scope === 'series' && upcomingSessions.length > 1;
+    const blocked = deletingSeries ? blockedSessions.length > 0 : singlePersonCount > 0;
+    if (blocked) return;
+
     deletingRef.current = true;
     setDeleting(true);
 
@@ -157,7 +174,7 @@ export function useCourseDeletion(course: Course | null) {
       deletingRef.current = false;
       setDeleting(false);
     }
-  }, [course, scope, upcomingSessions]);
+  }, [blockedSessions, course, scope, singlePersonCount, upcomingSessions]);
 
   const cancelDelete = useCallback(() => {
     if (deletingRef.current) return;
@@ -183,6 +200,8 @@ export function useCourseDeletion(course: Course | null) {
     setScope,
     upcomingCount,
     personCount,
+    singleHasRegistrations: singlePersonCount > 0,
+    blockedSessions,
     courseTitle: course?.title ?? '',
     feedbackDialog,
   };
