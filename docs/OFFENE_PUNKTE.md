@@ -1,6 +1,6 @@
 # Offene Punkte
 
-**Stand:** 21.09.2026
+**Stand:** 22.09.2026
 Ausführliche Begründungen stehen im Claude-Projekt „Omlify" in
 `Landingpage_Neubau_September_2026.md` und
 `Rechtstexte_Datenschutz_und_Betrieb_September_2026.md`.
@@ -35,8 +35,10 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 - [ ] **`tenants`-Policy einschränken.** `anon` darf heute alle Studios lesen;
       nötig ist nur die eine Zeile zum Slug aus dem Header. Entwurf liegt vor.
       Fehler hier = kein Studio lädt mehr. Eigenes Paket mit Testliste.
-- [ ] **`courses.teacher_id ON DELETE CASCADE` entschärfen.** Wird ein
-      Trainerprofil gelöscht, verschwinden alle seine Kurse samt Anmeldungen und Chat.
+- [ ] **Firefox:** „Acquiring an exclusive Navigator LockManager lock … immediately failed“
+      beim Token-Refresh (Teilnehmer, 22.09.). Prüfen, ob die App genau einen Supabase-Client
+      anlegt. Beobachten, ob Nutzer unerwartet abgemeldet werden.
+- [ ] **`console.log("Supabase configured with URL …")` im Produktions-Bundle entfernen.**
 - [ ] **Kündigung eines Studios** gibt es nur von Hand
       (`delete_tenant_complete`, 30 Tage Exportfenster laut AGB § 9).
 - [ ] **Teilnehmerinnen können ihr Konto nicht selbst löschen.** Anfragen per
@@ -83,6 +85,7 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Erledigt
 
+- 22.09.2026 — `courses.teacher_id` ist `RESTRICT` (`20260921233800`), nicht mehr `CASCADE`
 - 21.09.2026 — Support-Postfach `support@omlify.de` bei IONOS
 - 21.09.2026 — Google Search Console eingerichtet, Sitemap eingereicht
 - 20.09.2026 — Impressum, Datenschutzerklärung, AGB, AVV live

@@ -1,7 +1,7 @@
 # Scrum Epic: Geldkette 1a — Kurs online buchen und bezahlen
 
-**Stand:** 14.09.2026 · **Status: ENTWURF, lokal, nicht committet.** E1–E8 am 14.09. entschieden (Abschnitt 4). Offen: E9 (Strategie-Projekt), E10–E12 (Termin mit André am 15.09.).
-**Branch:** `feature/geldkette`. Merge nach `Julius` und damit DEV erst nach Release-Schnitt und Release-Abnahme (entschieden 14.09., siehe `CLAUDE.md`). Story 0.1 braucht keinen Code. · **Basis:** `Omlify_Epic_Geldkette_1a_Cursor_Briefing.md` (14.09.2026), gegen das Repo geprüft
+**Stand:** 14.09.2026 · Story 0.2 am 22.09.2026 auf DEV erledigt. **Status: ENTWURF.** E1–E8 am 14.09. entschieden (Abschnitt 4). Offen: E9 (Strategie-Projekt), E10–E12 (Termin mit André am 15.09.).
+**Branch:** `Julius`. `feature/geldkette` ist nicht der Arbeitsbranch (korrigiert 22.09.2026; die Entscheidung vom 14.09. galt bis zum Release-Schnitt). Story 0.1 braucht keinen Code. · **Basis:** `Omlify_Epic_Geldkette_1a_Cursor_Briefing.md` (14.09.2026), gegen das Repo geprüft
 **Verbindlich daneben:** `CLAUDE.md` (Harte Grenzen), `docs/DESIGNSYSTEM.md`, `docs/SCHEMA_RELEASE_WORKFLOW.md`, `docs/DEV_PROD_SAFETY_WORKFLOW.md`
 
 ---
@@ -220,6 +220,13 @@ eines Kurses mit Buchung schlägt fehl. `anon` bekommt beim Aufruf von `close_pa
   nie aus dem Browser.
 - **0.3 offene Frage:** `audit_log.before/after` würde Personendaten im Klartext speichern und kollidiert mit
   Art. 17 (Story 4.3). Vorschlag: nur IDs und Namen geänderter Felder bei Personendaten. Auch Frage für den Anwalt.
+
+**Erledigt auf DEV, 22.09.2026.** Commits `5ed6664` (Migrationen), `7ac04bb` (Client und `delete-user`),
+`9ff03ee` (Race-Skript), `b00c3c7` (Löschdialog), `1b414fd` (tenant_id der Nachrück-Nachricht).
+Race-Test `scripts/test/overbooking_race.mjs`: vorher 2/20, nachher 0/20 in beiden Fällen.
+Vor PROD: FK-Namen auf der PROD-Kopie prüfen (Generalprobe). Auf der PROD-Kopie zählen: `messages` mit
+`tenant_id` NULL (Umfang des Nachrück-Befunds).
+Offene PROD-Migrationen aus 0.2: `20260921233700`, `20260921233800`, `20260922093812`.
 
 #### 0.3 Fundament: Events, Audit, Service-Gerüst
 *Als Plattform möchte ich einen serverseitigen Ort für Geschäftslogik mit Event- und Audit-Protokoll, damit
