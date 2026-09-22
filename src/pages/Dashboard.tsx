@@ -11,7 +11,6 @@ import {
   formatTimeRange,
   formatTodayOrTomorrow,
 } from '../lib/format';
-import { runPastRegistrationCleanup } from '../lib/registrationMaintenance';
 import { fetchCourseParticipantCounts } from '../lib/courseParticipantCounts';
 import { isParticipantOnlyRole, isTeacherOnly } from '../lib/userRoles';
 import AccentPill from '../components/ui/AccentPill';
@@ -56,8 +55,6 @@ const Dashboard: React.FC = () => {
       }
 
       try {
-        await runPastRegistrationCleanup();
-
         let participantCourseCandidates: Course[] = [];
 
         if (userProfile.role !== 'user') {

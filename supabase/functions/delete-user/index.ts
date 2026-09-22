@@ -116,6 +116,15 @@ Deno.serve(async (req: Request) => {
       .eq("id", userId);
 
     if (deleteProfileError) {
+      if (deleteProfileError.code === "23503") {
+        return new Response(
+          JSON.stringify({
+            error:
+              "Diese Person hat noch Kurse. Übergib oder sage die Kurse ab, bevor du das Profil entfernst.",
+          }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       console.error("Error deleting user profile:", deleteProfileError);
       return new Response(
         JSON.stringify({ error: "Failed to delete user profile", details: deleteProfileError.message }),

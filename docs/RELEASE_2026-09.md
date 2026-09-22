@@ -1,6 +1,6 @@
 # Release 2026-09 — Umfang DEV → PROD
 
-**Stand:** 15.09.2026 · Grundlage für den Termin am 15.09. · **wächst bis zum Schnitt**
+**Stand:** live seit 17.09.2026, Merge `15075d4`.
 **Vergleich:** `origin/main` (`267f87f`, 15.09.) gegen `origin/Julius` (`2e30a05`, 15.09.)
 **Gemeinsamer Vorfahr:** `4d43ad6` (07.09.)
 

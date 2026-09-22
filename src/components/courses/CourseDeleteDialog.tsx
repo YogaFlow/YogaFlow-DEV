@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { AlertCircle, X } from 'lucide-react';
-import type { CourseDeleteScope } from '../../lib/useCourseDeletion';
+import { formatDate, formatTime } from '../../lib/format';
+import type { BlockedSession, CourseDeleteScope } from '../../lib/useCourseDeletion';
 
 interface CourseDeleteDialogProps {
   open: boolean;
@@ -9,9 +10,25 @@ interface CourseDeleteDialogProps {
   scope: CourseDeleteScope;
   onScopeChange: (scope: CourseDeleteScope) => void;
   personCount: number;
+  singleHasRegistrations: boolean;
+  blockedSessions: BlockedSession[];
   deleting: boolean;
   onCancel: () => void;
   onConfirm: () => void;
+}
+
+function sessionLabel(session: BlockedSession, sessions: BlockedSession[]): string {
+  const date = formatDate(session.date);
+  const sameDate = sessions.filter((other) => other.date === session.date).length > 1;
+  return sameDate ? `${date}, ${formatTime(session.time)}` : date;
+}
+
+function blockedSessionsHint(sessions: BlockedSession[]): string {
+  const labels = sessions.map((session) => sessionLabel(session, sessions));
+  if (labels.length === 0) return '';
+  if (labels.length === 1) return `${labels[0]} hat Anmeldungen.`;
+  if (labels.length === 2) return `${labels[0]} und ${labels[1]} haben Anmeldungen.`;
+  return `${labels.slice(0, -1).join(', ')} und ${labels[labels.length - 1]} haben Anmeldungen.`;
 }
 
 const CourseDeleteDialog: React.FC<CourseDeleteDialogProps> = ({
@@ -21,6 +38,8 @@ const CourseDeleteDialog: React.FC<CourseDeleteDialogProps> = ({
   scope,
   onScopeChange,
   personCount,
+  singleHasRegistrations,
+  blockedSessions,
   deleting,
   onCancel,
   onConfirm,
@@ -41,6 +60,16 @@ const CourseDeleteDialog: React.FC<CourseDeleteDialogProps> = ({
   if (!open) return null;
 
   const showSeriesChoice = upcomingCount > 1;
+  const seriesBlocked = blockedSessions.length > 0;
+  const confirmBlocked = showSeriesChoice
+    ? scope === 'series'
+      ? seriesBlocked
+      : singleHasRegistrations
+    : singleHasRegistrations;
+  const nothingDeletable = showSeriesChoice
+    ? singleHasRegistrations && seriesBlocked
+    : singleHasRegistrations;
+  const cancelLabel = nothingDeletable ? 'Schließen' : 'Abbrechen';
   const confirmLabel =
     scope === 'series' && showSeriesChoice
       ? `${upcomingCount} Termine löschen`
@@ -49,6 +78,7 @@ const CourseDeleteDialog: React.FC<CourseDeleteDialogProps> = ({
     personCount === 1
       ? '1 Person ist angemeldet oder auf der Warteliste.'
       : `${personCount} Personen sind angemeldet oder auf der Warteliste.`;
+  const seriesHint = blockedSessionsHint(blockedSessions);
 
   return (
     <div
@@ -78,8 +108,8 @@ const CourseDeleteDialog: React.FC<CourseDeleteDialogProps> = ({
               type="button"
               onClick={onCancel}
               disabled={deleting}
-              className="inline-flex min-h-11 min-w-11 items-center justify-center text-textSubtle hover:text-textMuted focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 disabled:opacity-50"
-              aria-label="Abbrechen"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center text-textSubtle hover:text-textMuted focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              aria-label={cancelLabel}
             >
               <X className="w-5 h-5" aria-hidden />
             </button>
@@ -88,39 +118,71 @@ const CourseDeleteDialog: React.FC<CourseDeleteDialogProps> = ({
           <div className="space-y-4">
             {showSeriesChoice ? (
               <div className="space-y-2">
-                <label className="flex items-start p-3.5 border border-border rounded-md cursor-pointer hover:bg-surfaceSunken transition-colors">
+                <label
+                  className={`flex items-start p-3.5 border border-border rounded-md transition-colors ${
+                    singleHasRegistrations
+                      ? 'bg-surfaceSunken cursor-not-allowed'
+                      : 'cursor-pointer hover:bg-surfaceSunken'
+                  }`}
+                >
                   <input
                     type="radio"
+                    name="course-delete-scope"
                     value="single"
                     checked={scope === 'single'}
-                    disabled={deleting}
+                    disabled={deleting || singleHasRegistrations}
                     onChange={() => onScopeChange('single')}
-                    className="w-4 h-4 text-danger border-border focus:ring-danger mt-0.5"
+                    className="w-4 h-4 text-danger border-border focus:ring-danger mt-0.5 disabled:cursor-not-allowed"
                   />
                   <div className="ml-3">
-                    <span className="block text-sm font-medium text-text">Nur diesen Termin löschen</span>
+                    <span
+                      className={`block text-sm font-medium ${
+                        singleHasRegistrations ? 'text-textSubtle' : 'text-text'
+                      }`}
+                    >
+                      Nur diesen Termin löschen
+                    </span>
                     <span className="block text-sm text-textMuted mt-1">
-                      Die anderen Termine der Serie bleiben bestehen.
+                      {singleHasRegistrations
+                        ? 'Dieser Termin hat Anmeldungen.'
+                        : 'Die anderen Termine der Serie bleiben bestehen.'}
                     </span>
                   </div>
                 </label>
 
-                <label className="flex items-start p-3.5 border border-border rounded-md cursor-pointer hover:bg-surfaceSunken transition-colors">
+                <label
+                  className={`flex items-start p-3.5 border border-border rounded-md transition-colors ${
+                    seriesBlocked
+                      ? 'bg-surfaceSunken cursor-not-allowed'
+                      : 'cursor-pointer hover:bg-surfaceSunken'
+                  }`}
+                >
                   <input
                     type="radio"
+                    name="course-delete-scope"
                     value="series"
                     checked={scope === 'series'}
-                    disabled={deleting}
+                    disabled={deleting || seriesBlocked}
                     onChange={() => onScopeChange('series')}
-                    className="w-4 h-4 text-danger border-border focus:ring-danger mt-0.5"
+                    aria-describedby={seriesBlocked ? 'course-delete-series-block' : undefined}
+                    className="w-4 h-4 text-danger border-border focus:ring-danger mt-0.5 disabled:cursor-not-allowed"
                   />
                   <div className="ml-3">
-                    <span className="block text-sm font-medium text-text">
+                    <span
+                      className={`block text-sm font-medium ${
+                        seriesBlocked ? 'text-textSubtle' : 'text-text'
+                      }`}
+                    >
                       Alle {upcomingCount} kommenden Termine löschen
                     </span>
                     <span className="block text-sm text-textMuted mt-1">
                       Vergangene Termine der Serie bleiben erhalten.
                     </span>
+                    {seriesBlocked ? (
+                      <span id="course-delete-series-block" className="block text-sm text-accentText mt-1">
+                        {seriesHint}
+                      </span>
+                    ) : null}
                   </div>
                 </label>
               </div>
@@ -130,14 +192,16 @@ const CourseDeleteDialog: React.FC<CourseDeleteDialogProps> = ({
               <div className="p-4 bg-accentSoft border border-accent rounded-sm">
                 <p className="text-sm font-medium text-accentText">{personLine}</p>
                 <p className="text-sm text-accentText mt-1">
-                  Die Anmeldungen werden gelöscht. Es wird niemand benachrichtigt.
+                  Melde erst die Teilnehmenden ab. Solange Anmeldungen bestehen, bleibt der Kurs.
                 </p>
               </div>
             ) : null}
 
-            <div className="p-4 bg-dangerSoft border border-danger rounded-sm">
-              <p className="text-sm font-medium text-danger">Das kann nicht rückgängig gemacht werden.</p>
-            </div>
+            {confirmBlocked ? null : (
+              <div className="p-4 bg-dangerSoft border border-danger rounded-sm">
+                <p className="text-sm font-medium text-danger">Das kann nicht rückgängig gemacht werden.</p>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-end space-x-3 mt-6 pt-6 border-t border-border">
@@ -145,15 +209,23 @@ const CourseDeleteDialog: React.FC<CourseDeleteDialogProps> = ({
               type="button"
               onClick={onCancel}
               disabled={deleting}
-              className="inline-flex min-h-11 items-center px-4 text-[15px] font-medium text-textMuted bg-surfaceSunken rounded-sm hover:bg-borderStrong transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 disabled:opacity-50"
+              className="inline-flex min-h-11 items-center px-4 text-[15px] font-medium text-textMuted bg-surfaceSunken rounded-sm hover:bg-borderStrong transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Abbrechen
+              {cancelLabel}
             </button>
             <button
               type="button"
-              onClick={onConfirm}
-              disabled={deleting}
-              className="inline-flex min-h-11 items-center px-4 text-[15px] font-medium bg-danger text-onBrand rounded-sm active:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-danger focus-visible:ring-offset-2 disabled:opacity-50"
+              onClick={() => {
+                if (confirmBlocked || deleting) return;
+                onConfirm();
+              }}
+              disabled={deleting || confirmBlocked}
+              aria-disabled={deleting || confirmBlocked}
+              className={
+                confirmBlocked
+                  ? 'inline-flex min-h-11 items-center px-4 text-[15px] font-medium rounded-sm border border-border bg-surfaceSunken text-textSubtle cursor-not-allowed'
+                  : 'inline-flex min-h-11 items-center px-4 text-[15px] font-medium bg-danger text-onBrand rounded-sm active:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-danger focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50'
+              }
             >
               {deleting ? 'Wird gelöscht …' : confirmLabel}
             </button>

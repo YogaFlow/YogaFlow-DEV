@@ -98,6 +98,8 @@ const CourseDetail: React.FC = () => {
     setScope,
     upcomingCount,
     personCount,
+    singleHasRegistrations,
+    blockedSessions,
     courseTitle,
     feedbackDialog: deleteFeedback,
   } = useCourseDeletion(course);
@@ -215,6 +217,8 @@ const CourseDetail: React.FC = () => {
         scope={scope}
         onScopeChange={setScope}
         personCount={personCount}
+        singleHasRegistrations={singleHasRegistrations}
+        blockedSessions={blockedSessions}
         deleting={deleting}
         onCancel={cancelDelete}
         onConfirm={() => void confirmDelete()}

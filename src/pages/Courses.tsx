@@ -18,7 +18,6 @@ import { Course } from '../types';
 import { isCourseUpcoming } from '../lib/courseDateTime';
 import { formatDayLabel, formatTime } from '../lib/format';
 import { groupCoursesByDay } from '../lib/courseGrouping';
-import { runPastRegistrationCleanup } from '../lib/registrationMaintenance';
 import { canSelfEnrollInCourses } from '../lib/userRoles';
 import { useCourseEnrollment } from '../lib/useCourseEnrollment';
 import AccentPill from '../components/ui/AccentPill';
@@ -37,7 +36,6 @@ const Courses: React.FC = () => {
 
   const fetchCourses = async () => {
     try {
-      await runPastRegistrationCleanup();
       const { data, error } = await supabase
         .from('courses')
         .select(`
@@ -91,7 +89,6 @@ const Courses: React.FC = () => {
 
     const loadData = async () => {
       try {
-        await runPastRegistrationCleanup();
         const { data, error } = await supabase
           .from('courses')
           .select(`

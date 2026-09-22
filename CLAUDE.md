@@ -119,6 +119,15 @@ bündelt, ersetzt die Typprüfung nicht. `npm run lint` ist ESLint.
   scheitert nicht daran.
 - Rollen: `owner`, `admin`, `teacher`, `user`. Die Rolle hängt am Profil, nicht am Login —
   dieselbe Person kann in Studio A `owner` und in Studio B `user` sein.
+- `registrations.course_id` und `courses.teacher_id` sind `RESTRICT` (seit `20260921233800`).
+  Kurse mit Anmeldungen werden abgesagt, nicht gelöscht. Lehrerprofile mit Kursen werden
+  übergeben oder deaktiviert, nicht gelöscht.
+- Jede tenant-eigene Tabelle hat `tenant_id NOT NULL`. Jeder INSERT in einer
+  SECURITY-DEFINER-Funktion setzt `tenant_id` ausdrücklich. RLS-Policies scheitern bei NULL still.
+- SECURITY-DEFINER-Funktionen setzen `search_path` auf `public, pg_temp` (`pg_temp` zuletzt)
+  oder auf `''` mit voll qualifizierten Namen. Nie `pg_temp` weglassen.
+- `delete_tenant_complete`: Jede neue Tabelle mit `RESTRICT` auf `courses`, `users` oder
+  `tenants` muss dort ergänzt werden.
 - Ein von RLS still verhindertes DELETE/UPDATE liefert keinen Fehler, sondern 0
   Zeilen. Schreibende Aufrufe mit `.select()` ausführen und die Zeilenzahl prüfen.
 - `fetchCourseParticipantCounts` liefert bei Fehler `{}`. Die RPC gibt für jeden
@@ -238,14 +247,8 @@ Maßgeblich ist `docs/DESIGNSYSTEM.md`. Das Wichtigste in Kürze:
 
 ## Stand (15.09.2026)
 
-**Release 2026-09 — offen.** `Julius` liegt 84 Commits und 14 Migrationen vor `main`, dazu kommen
-Änderungen an allen 9 Edge Functions. Den Umfang nach Themen beschreibt `docs/RELEASE_2026-09.md`.
-Umfang und Zeitpunkt des Schnitts werden am 15.09. besprochen. Bis zum Schnitt ist `Julius` die
-Release-Linie. Fixes, Landingpage- und Design-Änderungen für das Release gehen dort hinein.
-**Code aus der Geldkette kommt erst nach dem Schnitt und nach der Release-Abnahme auf DEV nach
-`Julius`**, weil DEV nur eine Datenbank und eine Domain hat. Bis dahin liegt er auf dem eigenen
-Branch `feature/geldkette` (committet und gepusht, aber nicht auf DEV, keine Migration in der
-DEV-Datenbank). Der Branch `release/2026-09` entsteht erst am Tag des Schnitts als Kopie von `Julius`.
+**Release 2026-09 — live seit 17.09.2026,** Merge `15075d4`. Umfang: `docs/RELEASE_2026-09.md`.
+Arbeit läuft auf `Julius`. `feature/geldkette` ist nicht der Arbeitsbranch.
 
 **Design — fertig:** Paket 1 (Tokens, Farbmigration, Grundflächen, Form), Paket 2 (Datum,
 Uhrzeit, Preis, `tabular-nums`, Versalien) und Paket 3 vollständig: Kursliste und
@@ -288,8 +291,9 @@ siehe `docs/RELEASE_2026-09.md` Gruppe R. Migration `20260917134259` (`324c527`)
 `ed73a32`, 13.09.). Offen: Stufe 4 — `debug_request_tenant_header()` entfernen und die
 befristete Übergangsregel ohne Header entfernen, sobald PROD stabil läuft.
 
-**Geldkette 1a — geplant:** `docs/EPIC_GELDKETTE_1A.md` (Entwurf, Entscheidungen E1–E8 vom
-14.09.). Startet mit Story 0.1 (Stripe-Dashboard, kein Code) und 0.2 nach dem Release-Schnitt.
+**Geldkette 1a:** Story 0.2 ist auf DEV erledigt (`5ed6664`, `7ac04bb`, `9ff03ee`, `b00c3c7`,
+`1b414fd`). Epic: `docs/EPIC_GELDKETTE_1A.md`. Offen vor PROD: die drei Migrationen
+`20260921233700`, `20260921233800`, `20260922093812`.
 
 **Danach — Paket 4:** destruktive Aktionen entschärfen, Tippziele 44 px, Leerzustände als
 Einladung, Gedrückt-Zustand statt Hover.
@@ -304,18 +308,11 @@ Einladung, Gedrückt-Zustand statt Hover.
   angekündigter Auftrag.
 - `Dashboard.tsx` `getStatCards`, abschließendes `return []`: Fallback ist für alle vier Rollen unerreichbar, weil
   `teacher` vorher aus der Funktion springt. Toter Code, beim Dashboard-Umbau mitnehmen.
-- `unregister_from_course` hat `pg_temp` im `search_path`, ohne temporäre Tabellen zu nutzen.
-  Die Funktion wurde am 11.09. in `20260911173000` neu geschrieben (`:454`) und am 15.09. in
-  `20260915003628` erneut (`:183`); `pg_temp` steht an beiden Stellen weiterhin drin. Beim
-  nächsten Anfassen entfernen.
+- `cleanup_future_registrations_on_role_upgrade` setzt `search_path` nur auf `public`.
+  Offen: beim nächsten Anfassen auf `public, pg_temp` stellen (`pg_temp` zuletzt).
 - JS-Bundle 1.072 kB, gzip 282 kB (Build vom 15.09.2026 auf diesem Stand: `1,071.56 kB` /
   `282.47 kB`). Relevant, weil die Zielgruppe über Instagram aufs Handy kommt. Nach Paket 3
   angehen, zusammen mit der Frage, ob die Marketingseite aus der SPA gelöst wird.
-- `close_past_course_registrations()` ist ohne jede Prüfung für `anon` aufrufbar, wirkt über
-  alle Tenants und rechnet `date + time` als UTC statt `Europe/Berlin`. **Sie scheitert außerdem bei
-  jedem Aufruf** (`NULLIF(c.time, '')` auf einer `time`-Spalte → `invalid input syntax for type time`,
-  auf DEV belegt am 14.09.), unbemerkt, weil `registrationMaintenance.ts` das Ergebnis nicht auswertet.
-  Geplant: entfernen statt reparieren (Geldkette Story 0.2).
 - `ensure_public_user` weicht DEV/PROD ab: auf PROD schreibt die Funktion noch in die
   entfernte Spalte `roles`. Der Rückfallpfad scheitert immer; der Normalfall kehrt
   vorher zurück. Die DEV-Funktion (`20260911185000`) schreibt nicht mehr in `roles`,

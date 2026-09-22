@@ -6,6 +6,7 @@
 
 - **Alltag / Kurzüberblick:** [WORKFLOW_CHEATSHEET.md](WORKFLOW_CHEATSHEET.md) – tägliche Regeln, Ablauf „Feature bis Live“, Linktabelle zu allen Themen.
 - **Ausführliche Anleitung:** [VOLLSTÄNDIGER_WORKFLOW.md](VOLLSTÄNDIGER_WORKFLOW.md) – von der Einrichtung bis zum Live-Deploy (Teil A: Einrichtung, Teil B: Feature bis Live, Teil C: Wenn etwas schiefgeht).
+- **Was ansteht:** [OFFENE_PUNKTE.md](OFFENE_PUNKTE.md) – offene Aufgaben nach Priorität, mit Begründung.
 
 ## Live-Hosting
 

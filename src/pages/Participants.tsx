@@ -13,7 +13,6 @@ import {
 } from '../lib/format';
 import ConfirmDialog, { ConfirmDialogState } from '../components/ui/ConfirmDialog';
 import { isCourseUpcoming } from '../lib/courseDateTime';
-import { runPastRegistrationCleanup } from '../lib/registrationMaintenance';
 import { formatUserAddress } from '../lib/userAddress';
 import { groupParticipantsByCourse } from '../lib/participantGrouping';
 
@@ -61,7 +60,6 @@ const Participants: React.FC = () => {
       if (!userProfile) return;
 
       try {
-        await runPastRegistrationCleanup();
         const { data: coursesData, error: coursesError } = await supabase
           .from('courses')
           .select('*')
