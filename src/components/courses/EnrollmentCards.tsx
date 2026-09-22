@@ -2,6 +2,7 @@ import React from 'react';
 import { Check } from 'lucide-react';
 import type { Course, Registration } from '../../types';
 import { formatTimeRange, formatTodayOrTomorrow } from '../../lib/format';
+import { formatStaffName } from '../../lib/staffNames';
 import AccentPill from '../ui/AccentPill';
 import CourseRow from './CourseRow';
 
@@ -16,9 +17,7 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({ registrations }) => (
       if (!course) return null;
 
       const isWaitlist = registration.is_waitlist;
-      const teacherName = course.teacher
-        ? `${course.teacher.first_name} ${course.teacher.last_name}`.trim()
-        : '';
+      const teacherName = formatStaffName(course.teacher);
       const meta = [
         formatTodayOrTomorrow(course.date),
         formatTimeRange(course.time, course.end_time),

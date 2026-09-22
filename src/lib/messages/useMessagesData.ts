@@ -4,13 +4,63 @@ import { Message, Course, User } from '../../types';
 import { isCourseUpcoming } from '../courseDateTime';
 import { isStudioAdmin, isTeacherOnly } from '../userRoles';
 import { getMessagesLastSeen } from '../useUnreadMessages';
+import { resolveStaffNames, withCourseTeachers } from '../staffNames';
 
 const MESSAGE_SELECT = `
   *,
-  sender:sender_id(first_name, last_name),
-  recipient:recipient_id(first_name, last_name),
   course:course_id(title)
 `;
+
+type NamePair = { first_name: string; last_name: string };
+
+async function resolveMessagePartyNames(
+  messages: Message[],
+  self: User | null
+): Promise<Map<string, NamePair>> {
+  const ids = new Set<string>();
+  for (const message of messages) {
+    if (message.sender_id) ids.add(message.sender_id);
+    if (message.recipient_id) ids.add(message.recipient_id);
+  }
+
+  const map = new Map<string, NamePair>();
+  if (self?.id) {
+    map.set(self.id, { first_name: self.first_name, last_name: self.last_name });
+    ids.delete(self.id);
+  }
+
+  const staff = await resolveStaffNames([...ids]);
+  for (const [id, row] of staff) {
+    map.set(id, { first_name: row.first_name, last_name: row.last_name });
+    ids.delete(id);
+  }
+
+  // Kursleitung liest Teilnehmernamen weiter über RLS (users_select_teacher_participants).
+  // Ein Batch, keine Einzelaufrufe; für Rolle user liefert RLS 0 Zeilen.
+  if (ids.size > 0) {
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, first_name, last_name')
+      .in('id', [...ids]);
+    if (error) {
+      console.error('resolveMessagePartyNames: users fallback failed', error);
+    } else {
+      for (const row of data ?? []) {
+        map.set(row.id, { first_name: row.first_name, last_name: row.last_name });
+      }
+    }
+  }
+
+  return map;
+}
+
+function attachPartyNames(messages: Message[], names: Map<string, NamePair>): Message[] {
+  return messages.map((message) => ({
+    ...message,
+    sender: message.sender_id ? names.get(message.sender_id) : undefined,
+    recipient: message.recipient_id ? names.get(message.recipient_id) : undefined,
+  })) as Message[];
+}
 
 export function useMessagesData(userProfile: User | null) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -40,7 +90,7 @@ export function useMessagesData(userProfile: User | null) {
       const today = new Date().toISOString().split('T')[0];
       let query = supabase
         .from('courses')
-        .select('*, teacher:users!courses_teacher_id_fkey(first_name, last_name)')
+        .select('*')
         .neq('status', 'canceled')
         .gte('date', today);
 
@@ -69,7 +119,9 @@ export function useMessagesData(userProfile: User | null) {
       const { data, error } = await query.order('date', { ascending: true });
 
       if (error) throw error;
-      const upcomingCourses = (data || []).filter((course) => isCourseUpcoming(course));
+      const upcomingCourses = await withCourseTeachers(
+        (data || []).filter((course) => isCourseUpcoming(course))
+      );
       setCourses(upcomingCourses);
     } catch (error) {
       console.error('Error fetching courses:', error);
@@ -110,13 +162,14 @@ export function useMessagesData(userProfile: User | null) {
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
 
-      setMessages(uniqueMessages);
+      const names = await resolveMessagePartyNames(uniqueMessages, userProfile);
+      setMessages(attachPartyNames(uniqueMessages, names));
     } catch (error) {
       console.error('Error fetching messages:', error);
     } finally {
       setLoading(false);
     }
-  }, [userProfile?.id, getUserCourseIds]);
+  }, [userProfile, getUserCourseIds]);
 
   const fetchParticipants = useCallback(async (courseId: string) => {
     try {

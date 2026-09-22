@@ -23,6 +23,7 @@ import { supabase } from '../lib/supabase';
 import { canSelfEnrollInCourse, canSelfEnrollInCourses } from '../lib/userRoles';
 import { useCourseDeletion } from '../lib/useCourseDeletion';
 import { useCourseEnrollment } from '../lib/useCourseEnrollment';
+import { formatStaffName, withCourseTeachers } from '../lib/staffNames';
 import type { Course } from '../types';
 
 const CourseDetail: React.FC = () => {
@@ -48,12 +49,7 @@ const CourseDetail: React.FC = () => {
 
     const { data, error } = await supabase
       .from('courses')
-      .select(
-        `
-          *,
-          teacher:users!courses_teacher_id_fkey(first_name, last_name)
-        `
-      )
+      .select('*')
       .eq('id', courseId)
       .maybeSingle();
 
@@ -64,7 +60,8 @@ const CourseDetail: React.FC = () => {
       return;
     }
 
-    setCourse(data);
+    const [withTeacher] = await withCourseTeachers([data]);
+    setCourse(withTeacher);
     setNotFound(false);
 
     const counts = await fetchCourseParticipantCounts([courseId]);
@@ -157,9 +154,7 @@ const CourseDetail: React.FC = () => {
   const showStaffLinks =
     isCourseLeader && (isAdmin || course.teacher_id === userProfile?.id);
   const durationMinutes = courseDurationMinutes(course);
-  const teacherName = course.teacher
-    ? `${course.teacher.first_name} ${course.teacher.last_name}`.trim()
-    : '';
+  const teacherName = formatStaffName(course.teacher);
   const locationLine = [course.location, course.room].filter(Boolean).join(' · ');
   const nearDay = formatTodayOrTomorrow(course.date);
   const dateLine = nearDay ? `${nearDay} · ${formatDate(course.date)}` : formatDate(course.date);

@@ -13,6 +13,7 @@ import {
 } from '../lib/format';
 import { fetchCourseParticipantCounts } from '../lib/courseParticipantCounts';
 import { isParticipantOnlyRole, isTeacherOnly } from '../lib/userRoles';
+import { formatStaffName, withCourseTeachers } from '../lib/staffNames';
 import AccentPill from '../components/ui/AccentPill';
 import CourseRow from '../components/courses/CourseRow';
 
@@ -60,10 +61,7 @@ const Dashboard: React.FC = () => {
         if (userProfile.role !== 'user') {
           let coursesQuery = supabase
             .from('courses')
-            .select(`
-              *,
-              teacher:users!courses_teacher_id_fkey(first_name, last_name)
-            `)
+            .select('*')
             .gte('date', new Date().toISOString().split('T')[0])
             .order('date', { ascending: true })
             .order('time', { ascending: true });
@@ -77,22 +75,21 @@ const Dashboard: React.FC = () => {
           if (coursesError) throw coursesError;
           if (!isMounted) return;
 
-          const visibleCourses = (coursesData || []).filter((course) => isCourseUpcoming(course)).slice(0, 5);
+          const visibleCourses = await withCourseTeachers(
+            (coursesData || []).filter((course) => isCourseUpcoming(course)).slice(0, 5)
+          );
           setCourses(await attachCounts(visibleCourses));
         } else if (isMounted) {
           const { data: participantCoursesData, error: participantCoursesError } = await supabase
             .from('courses')
-            .select(`
-              *,
-              teacher:users!courses_teacher_id_fkey(first_name, last_name)
-            `)
+            .select('*')
             .gte('date', new Date().toISOString().split('T')[0])
             .order('date', { ascending: true })
             .order('time', { ascending: true })
             .limit(30);
 
           if (participantCoursesError) throw participantCoursesError;
-          participantCourseCandidates = participantCoursesData || [];
+          participantCourseCandidates = await withCourseTeachers(participantCoursesData || []);
         }
 
         let myRegistrationsFromList = 0;
@@ -102,10 +99,7 @@ const Dashboard: React.FC = () => {
             .from('registrations')
             .select(`
               *,
-              course:courses(
-                *,
-                teacher:users!courses_teacher_id_fkey(first_name, last_name)
-              )
+              course:courses(*)
             `)
             .eq('user_id', userProfile.id)
             .in('status', ['registered', 'waitlist'])
@@ -118,20 +112,28 @@ const Dashboard: React.FC = () => {
             isRegistrationVisible(registration)
           );
 
-          const countedCourses = await attachCounts(
+          const coursesFromRegs = await withCourseTeachers(
             visibleRegistrations
               .map((registration) => registration.course)
               .filter((course): course is Course => Boolean(course))
           );
+          const countedCourses = await attachCounts(coursesFromRegs);
           const countsById = Object.fromEntries(
             countedCourses.map((course) => [course.id, course.registrationCount ?? 0])
+          );
+          const teacherById = Object.fromEntries(
+            countedCourses.map((course) => [course.id, course.teacher])
           );
 
           if (!isMounted) return;
           const registrationsWithCounts = visibleRegistrations.map((registration) => ({
             ...registration,
             course: registration.course
-              ? { ...registration.course, registrationCount: countsById[registration.course.id] ?? 0 }
+              ? {
+                  ...registration.course,
+                  teacher: teacherById[registration.course.id],
+                  registrationCount: countsById[registration.course.id] ?? 0,
+                }
               : registration.course,
           }));
 
@@ -341,9 +343,7 @@ const Dashboard: React.FC = () => {
             isRegistration && (item.status === 'waitlist' || item.is_waitlist)
           );
           const teacherName =
-            course.teacher && course.teacher_id !== userProfile?.id
-              ? `${course.teacher.first_name} ${course.teacher.last_name}`.trim()
-              : '';
+            course.teacher_id !== userProfile?.id ? formatStaffName(course.teacher) : '';
           const running = isCourseRunning(course);
           const meta = [
             formatTodayOrTomorrow(course.date),
@@ -417,9 +417,7 @@ const Dashboard: React.FC = () => {
   const danach = danachAll.slice(0, 3);
   const heroCourse = heroRegistration?.course;
   const heroRunning = heroCourse ? isCourseRunning(heroCourse) : false;
-  const heroTeacherName = heroCourse?.teacher
-    ? `${heroCourse.teacher.first_name} ${heroCourse.teacher.last_name}`.trim()
-    : '';
+  const heroTeacherName = heroCourse ? formatStaffName(heroCourse.teacher) : '';
   const heroPlaceLine = heroCourse
     ? [heroCourse.location, heroTeacherName].filter(Boolean).join(' · ')
     : '';

@@ -11,6 +11,8 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Jetzt
 
+- [ ] **Nachrücken → Glocke** (`user_notifications`) statt Chat-Nachricht, vorgezogen
+      aus A1. Nächster Mini-Release zusammen mit Hotfix E4.
 - [ ] **AVV an die Testkundin schicken** — rückwirkend, per Mail von
       `support@omlify.de`, mit Bitte um Bestätigung in Textform. Sie verarbeitet
       Teilnehmerdaten über Omlify, ohne dass ein Vertrag nach Art. 28 DSGVO besteht.
@@ -18,9 +20,6 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
       Datenschutzerklärung nennen 90 Tage Aufbewahrung; ohne Regel stimmt das nicht.
 - [ ] **Zwei-Faktor-Anmeldung prüfen** bei Supabase, Cloudflare und GitHub.
       Anlage 1 des AVV sagt, dass sie aktiv ist.
-- [ ] **`gdpr_consent`-Migration auf PROD anwenden.** Vorher Backup-Workflow
-      manuell auslösen, danach `npm run db:push:prod`, danach eine Registrierung
-      auf PROD komplett durchlaufen (Formular, Mail, Link, Login).
 - [ ] **Search Console:** „Indexierung beantragen" für `https://omlify.de/`.
       Im Live-Test „Getestete Seite ansehen" → Screenshot prüfen: Ist der
       Fließtext der Landingpage zu sehen? Das entscheidet über das Prerendering.
@@ -29,6 +28,12 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Bald — vor dem dritten Studio oder dem ersten zahlenden Kunden
 
+- [ ] **Passwortfeld auf `/auth`** schreibt die Eingabe als `value`-Attribut ins DOM
+      (sichtbar in Chrome-DevTools-Warnungen). Prüfen und beheben.
+- [ ] **`get_current_member`** liefert beim Laden von `/auth` einmal 406 (vor
+      abgeschlossenem Login). Prüfen, ob der Aufruf dort nötig ist.
+- [ ] **Landingpage:** zwei vorgeladene Schriften werden nicht rechtzeitig genutzt
+      (Preload-Warnung in der Konsole).
 - [ ] **AVV-Checkbox im Onboarding.** Die Checkbox umfasst AGB und Datenschutz,
       nicht den AVV. Braucht Zustimmung mit Zeitstempel als Nachweis. Fasst den
       Registrierungsweg an — eigenes Paket mit Test.
@@ -56,6 +61,8 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Später
 
+- [ ] **Supabase CLI** 2.77.0 → aktuell. Nur zwischen zwei Releases aktualisieren,
+      nie kurz davor.
 - [ ] **Prerendering der Landingpage + echter 404.** Der Fließtext entsteht erst
       im Browser; KI-Crawler sehen nur Titel und Beschreibung. Beides zusammen
       angehen, wenn Suche als Kanal zählt.
@@ -85,7 +92,10 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Erledigt
 
-- 22.09.2026 — `courses.teacher_id` ist `RESTRICT` (`20260921233800`), nicht mehr `CASCADE`
+- 22.09.2026 — `gdpr_consent` und `gdpr_consent_date` auf PROD entfernt
+  (`20260920132143`, Release 2026-09b)
+- 22.09.2026 — `courses.teacher_id` auf PROD nicht mehr `CASCADE`, sondern `RESTRICT`
+  (`20260921233800`, Release 2026-09b)
 - 21.09.2026 — Support-Postfach `support@omlify.de` bei IONOS
 - 21.09.2026 — Google Search Console eingerichtet, Sitemap eingereicht
 - 20.09.2026 — Impressum, Datenschutzerklärung, AGB, AVV live
