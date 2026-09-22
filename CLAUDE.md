@@ -91,6 +91,7 @@ bündelt, ersetzt die Typprüfung nicht. `npm run lint` ist ESLint.
   geprüft, Anzahl gelöschter Zeilen geprüft).
 - `src/pages/CourseDetail.tsx` — `/course/:courseId`, einziger Ort für Anmelden/Abmelden.
 - `canSelfEnrollInCourse` in `src/lib/userRoles.ts` — ob die Detailseite einen Anmeldeknopf zeigt.
+- `src/lib/staffNames.ts` — einziger Client-Weg zu Staff-Namen (`public.staff_names`).
 - `src/lib/tenantSlug.ts` — einzige Quelle für den Studio-Slug (Host, in DEV `?tenant=`
   und `sessionStorage`). `src/lib/supabase.ts` hängt ihn als `x-omlify-tenant` an jeden
   Supabase-Request; die RLS-Policies hängen daran.
@@ -119,6 +120,8 @@ bündelt, ersetzt die Typprüfung nicht. `npm run lint` ist ESLint.
   scheitert nicht daran.
 - Rollen: `owner`, `admin`, `teacher`, `user`. Die Rolle hängt am Profil, nicht am Login —
   dieselbe Person kann in Studio A `owner` und in Studio B `user` sein.
+- Teilnehmende lesen Namen von Staff ausschließlich über `public.staff_names(uuid[])`, nie über
+  Embeds auf `users`. Keine neue Policy, die Teilnehmenden Staff-Zeilen aus `users` freigibt.
 - `registrations.course_id` und `courses.teacher_id` sind `RESTRICT` (seit `20260921233800`).
   Kurse mit Anmeldungen werden abgesagt, nicht gelöscht. Lehrerprofile mit Kursen werden
   übergeben oder deaktiviert, nicht gelöscht.
@@ -294,18 +297,17 @@ befristete Übergangsregel ohne Header entfernen, sobald PROD stabil läuft.
 **Geldkette 1a:** Story 0.2 ist live auf PROD seit 22.09.2026 (Release 2026-09b, Merge
 `da19a0d`). Commits `5ed6664`, `7ac04bb`, `9ff03ee`, `b00c3c7`, `1b414fd`. Epic:
 `docs/EPIC_GELDKETTE_1A.md`. Offene PROD-Migrationen: 0. Ablauf: `docs/RELEASE_2026-09b.md`.
+Vor 0.3: Epic Konto und Zugang (`docs/EPIC_KONTO_ZUGANG.md`).
+
+**Release 2026-09c — live seit 22.09.2026,** Expand-Merge `4cad142`, Contract-Merge
+`89a597c`. E4 (`staff_names`, Policy `users_select_participant_staff` entfernt),
+Glocke beim Nachrücken (`waitlist_promoted`). Ablauf: `docs/RELEASE_2026-09c.md`.
 
 **Danach — Paket 4:** destruktive Aktionen entschärfen, Tippziele 44 px, Leerzustände als
 Einladung, Gedrückt-Zustand statt Hover.
 
 **Notiert, bewusst nicht jetzt:**
 
-- **Sicherheitsbefund `users` (Audit 14.09.):** Policy `users_select_participant_staff`
-  (`20260519153000`; zuerst `20260519120000`) erlaubt Teilnehmenden SELECT auf jede Staff-Zeile
-  im Tenant (`role IN ('teacher', 'admin', 'owner')`) — RLS ist zeilenweise, also E-Mail, Telefon,
-  Adresse inklusive. `is_participant()` wurde in `20260911173000` auf `get_my_member_id()`
-  umgestellt, die Policy selbst nicht. Auf DEV belegt, PROD ungeprüft. Vor PROD klären, eigener
-  angekündigter Auftrag.
 - `Dashboard.tsx` `getStatCards`, abschließendes `return []`: Fallback ist für alle vier Rollen unerreichbar, weil
   `teacher` vorher aus der Funktion springt. Toter Code, beim Dashboard-Umbau mitnehmen.
 - `cleanup_future_registrations_on_role_upgrade` setzt `search_path` nur auf `public`.

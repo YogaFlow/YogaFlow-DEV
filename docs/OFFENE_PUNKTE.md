@@ -11,8 +11,7 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Jetzt
 
-- [ ] **Nachrücken → Glocke** (`user_notifications`) statt Chat-Nachricht, vorgezogen
-      aus A1. Nächster Mini-Release zusammen mit Hotfix E4.
+- [ ] **Epic Konto und Zugang** (`docs/EPIC_KONTO_ZUGANG.md`, K1 und K2), vor Story 0.3.
 - [ ] **AVV an die Testkundin schicken** — rückwirkend, per Mail von
       `support@omlify.de`, mit Bitte um Bestätigung in Textform. Sie verarbeitet
       Teilnehmerdaten über Omlify, ohne dass ein Vertrag nach Art. 28 DSGVO besteht.
@@ -28,6 +27,14 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Bald — vor dem dritten Studio oder dem ersten zahlenden Kunden
 
+- [ ] **Paket „Rollenrechte auf users“**
+      - `users_select_teacher_participants`: Kursleitung sieht volle Zeilen aller
+        Teilnehmenden des Studios (Adresse, Telefon), nicht nur eigener Kurse.
+        Produktfrage: Was braucht eine Kursleitung?
+      - `users_select_teacher_staff`: Kursleitung sieht volle Zeile der Inhaberin.
+      - `anon` hat Tabellen-SELECT auf `users` (nur fehlende Policy schützt).
+      - `Participants.tsx`: Route ohne Rollenprüfung.
+      - `yogaflow_private.is_participant()` wird von keiner Policy mehr genutzt.
 - [ ] **Passwortfeld auf `/auth`** schreibt die Eingabe als `value`-Attribut ins DOM
       (sichtbar in Chrome-DevTools-Warnungen). Prüfen und beheben.
 - [ ] **`get_current_member`** liefert beim Laden von `/auth` einmal 406 (vor
@@ -61,8 +68,8 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Später
 
-- [ ] **Supabase CLI** 2.77.0 → aktuell. Nur zwischen zwei Releases aktualisieren,
-      nie kurz davor.
+- [ ] **Supabase CLI auf 2.117.0 angleichen** (Worktree nutzte sie bereits in
+      Release 2026-09c). Nur zwischen zwei Releases aktualisieren, nie kurz davor.
 - [ ] **Prerendering der Landingpage + echter 404.** Der Fließtext entsteht erst
       im Browser; KI-Crawler sehen nur Titel und Beschreibung. Beides zusammen
       angehen, wenn Suche als Kanal zählt.
@@ -92,6 +99,10 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Erledigt
 
+- 22.09.2026 — E4 Staff-Sichtbarkeit: Policy `users_select_participant_staff`
+  entfernt, Namen über `staff_names` (Release 2026-09c)
+- 22.09.2026 — Glocke beim Nachrücken (`user_notifications`, `type = waitlist_promoted`)
+  (Release 2026-09c)
 - 22.09.2026 — `gdpr_consent` und `gdpr_consent_date` auf PROD entfernt
   (`20260920132143`, Release 2026-09b)
 - 22.09.2026 — `courses.teacher_id` auf PROD nicht mehr `CASCADE`, sondern `RESTRICT`
