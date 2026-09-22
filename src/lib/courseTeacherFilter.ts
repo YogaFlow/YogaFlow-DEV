@@ -8,7 +8,7 @@ export type CourseTeacherOption = {
 
 export function formatTeacherName(teacher: CourseTeacherOption): string {
   const name = `${teacher.first_name} ${teacher.last_name}`.trim();
-  return name || 'Unbekannt';
+  return name || 'Kursleitung';
 }
 
 export function uniqueTeachersFromCourses(courses: Course[]): CourseTeacherOption[] {

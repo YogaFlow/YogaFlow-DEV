@@ -5,8 +5,9 @@ import EnrollmentCards from '../components/courses/EnrollmentCards';
 import { useAuth } from '../context/AuthContext';
 import { isRegistrationVisible } from '../lib/courseDateTime';
 import { supabase } from '../lib/supabase';
+import { withCourseTeachers } from '../lib/staffNames';
 import { canSelfEnrollInCourses } from '../lib/userRoles';
-import type { Registration } from '../types';
+import type { Course, Registration } from '../types';
 
 const MyRegistrations: React.FC = () => {
   const navigate = useNavigate();
@@ -35,10 +36,7 @@ const MyRegistrations: React.FC = () => {
           .select(
             `
             *,
-            course:courses(
-              *,
-              teacher:users!courses_teacher_id_fkey(first_name, last_name)
-            )
+            course:courses(*)
           `
           )
           .eq('user_id', userProfile.id)
@@ -48,8 +46,25 @@ const MyRegistrations: React.FC = () => {
         if (error) throw error;
         if (!isMounted) return;
 
-        const futureRegistrations = (data || [])
-          .filter((registration: Registration) => isRegistrationVisible(registration))
+        const visible = (data || []).filter((registration: Registration) =>
+          isRegistrationVisible(registration)
+        );
+        const coursesWithTeachers = await withCourseTeachers(
+          visible
+            .map((registration) => registration.course)
+            .filter((course): course is Course => Boolean(course))
+        );
+        const teacherByCourseId = Object.fromEntries(
+          coursesWithTeachers.map((course) => [course.id, course.teacher])
+        );
+
+        const futureRegistrations = visible
+          .map((registration) => ({
+            ...registration,
+            course: registration.course
+              ? { ...registration.course, teacher: teacherByCourseId[registration.course.id] }
+              : registration.course,
+          }))
           .sort((a: Registration, b: Registration) => {
             const dateA = `${a.course?.date ?? ''}T${a.course?.time ?? ''}`;
             const dateB = `${b.course?.date ?? ''}T${b.course?.time ?? ''}`;

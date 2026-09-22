@@ -20,6 +20,7 @@ import { formatDayLabel, formatTime } from '../lib/format';
 import { groupCoursesByDay } from '../lib/courseGrouping';
 import { canSelfEnrollInCourses } from '../lib/userRoles';
 import { useCourseEnrollment } from '../lib/useCourseEnrollment';
+import { formatStaffName, withCourseTeachers } from '../lib/staffNames';
 import AccentPill from '../components/ui/AccentPill';
 
 const Courses: React.FC = () => {
@@ -38,16 +39,15 @@ const Courses: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('courses')
-        .select(`
-          *,
-          teacher:users!courses_teacher_id_fkey(first_name, last_name)
-        `)
+        .select('*')
         .gte('date', new Date().toISOString().split('T')[0])
         .order('date', { ascending: true })
         .order('time', { ascending: true });
 
       if (error) throw error;
-      const upcomingCourses = (data || []).filter((course) => isCourseUpcoming(course));
+      const upcomingCourses = await withCourseTeachers(
+        (data || []).filter((course) => isCourseUpcoming(course))
+      );
       setCourses(upcomingCourses);
 
       if (upcomingCourses.length > 0) {
@@ -91,36 +91,36 @@ const Courses: React.FC = () => {
       try {
         const { data, error } = await supabase
           .from('courses')
-          .select(`
-            *,
-            teacher:users!courses_teacher_id_fkey(first_name, last_name)
-          `)
+          .select('*')
           .gte('date', new Date().toISOString().split('T')[0])
           .order('date', { ascending: true })
           .order('time', { ascending: true });
 
         if (error) throw error;
-        if (isMounted) {
-          const upcomingCourses = (data || []).filter((course) => isCourseUpcoming(course));
-          setCourses(upcomingCourses);
+        if (!isMounted) return;
 
-          if (upcomingCourses.length > 0) {
-            const courseIds = upcomingCourses.map(c => c.id);
-            const { data: countsData, error: countsError } = await supabase.rpc(
-              'get_course_participant_counts',
-              { p_course_ids: courseIds }
-            );
+        const upcomingCourses = await withCourseTeachers(
+          (data || []).filter((course) => isCourseUpcoming(course))
+        );
+        if (!isMounted) return;
+        setCourses(upcomingCourses);
 
-            if (!countsError && countsData && isMounted) {
-              const countsMap: Record<string, { registered: number; waitlist: number }> = {};
-              countsData.forEach((c: { course_id: string; registered_count: number; waitlist_count: number }) => {
-                countsMap[c.course_id] = {
-                  registered: c.registered_count,
-                  waitlist: c.waitlist_count
-                };
-              });
-              setParticipantCounts(countsMap);
-            }
+        if (upcomingCourses.length > 0) {
+          const courseIds = upcomingCourses.map(c => c.id);
+          const { data: countsData, error: countsError } = await supabase.rpc(
+            'get_course_participant_counts',
+            { p_course_ids: courseIds }
+          );
+
+          if (!countsError && countsData && isMounted) {
+            const countsMap: Record<string, { registered: number; waitlist: number }> = {};
+            countsData.forEach((c: { course_id: string; registered_count: number; waitlist_count: number }) => {
+              countsMap[c.course_id] = {
+                registered: c.registered_count,
+                waitlist: c.waitlist_count
+              };
+            });
+            setParticipantCounts(countsMap);
           }
         }
 
@@ -224,9 +224,7 @@ const Courses: React.FC = () => {
                   const waitlistPosition = getUserWaitlistPosition(course.id);
                   const isFull = registeredCount >= course.max_participants;
                   const remaining = course.max_participants - registeredCount;
-                  const teacherName = course.teacher
-                    ? `${course.teacher.first_name} ${course.teacher.last_name}`.trim()
-                    : '';
+                  const teacherName = formatStaffName(course.teacher);
                   const until = formatTime(course.end_time);
                   const meta = [until ? `bis ${until}` : '', teacherName, course.location]
                     .filter(Boolean)

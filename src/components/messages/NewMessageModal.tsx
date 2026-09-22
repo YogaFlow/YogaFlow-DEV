@@ -3,6 +3,7 @@ import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react';
 import { Send, Smile, X } from 'lucide-react';
 import { Course, User } from '../../types';
 import { formatDate } from '../../lib/format';
+import { formatStaffName } from '../../lib/staffNames';
 
 interface NewMessageModalProps {
   isOpen: boolean;
@@ -45,8 +46,8 @@ const NewMessageModal: React.FC<NewMessageModalProps> = ({
   const pickerRef = useRef<HTMLDivElement>(null);
 
   const selectedCourseData = courses.find((c) => c.id === selectedCourse);
-  const courseLeaderLabel = selectedCourseData?.teacher
-    ? `Kursleiter – ${selectedCourseData.teacher.first_name} ${selectedCourseData.teacher.last_name}`.trim()
+  const courseLeaderLabel = selectedCourseData
+    ? `Kursleiter – ${formatStaffName(selectedCourseData.teacher)}`
     : 'Kursleiter';
 
   useEffect(() => {
