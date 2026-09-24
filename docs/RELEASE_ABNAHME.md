@@ -3,7 +3,7 @@
 Diese Liste wird **auf DEV** durchgeklickt, bevor ein Pull Request nach `main` gemergt wird.
 Sie ersetzt kein Nachdenken, aber sie fängt die Fälle, die man beim zehnten Release vergisst.
 
-**Wo:** `https://demoalpha.omlify-dev.de` und `https://demobeta.omlify-dev.de`
+**Wo:** `https://demoalpha.omlify-dev.de`, `https://demobeta.omlify-dev.de` und `https://lotusgarten.omlify-dev.de`
 **Vorher:** `npm run seed:dev` — stellt in Sekunden denselben Ausgangspunkt her.
 
 ## Zugangsdaten der Demo-Studios
@@ -16,9 +16,22 @@ Passwort für alle: `DemoPasswort123!`
 | Lehrer | `demoalpha.teacher@example.com` | `demobeta.teacher@example.com` |
 | Teilnehmer | `demoalpha.teilnehmer1@example.com` … `6` | `demobeta.teilnehmer1@example.com` … `4` |
 
-Jedes Studio hat fünf Kurse: drei in der Zukunft, zwei in der Vergangenheit. Der Kurs
+Jedes dieser beiden Studios hat fünf Kurse: drei in der Zukunft, zwei in der Vergangenheit. Der Kurs
 **Vinyasa Flow** hat nur drei Plätze und ist absichtlich überbucht — daran wird die
 Warteliste geprüft.
+
+### Lotusgarten Yoga (Vorführstudio)
+
+Vollständiges Demo-Profil mit realistischen Namen, zwei Lehrerinnen und gemischten Anmeldungen. Nur DEV.
+
+| Rolle | Name | E-Mail |
+|-------|------|--------|
+| Owner | Katharina Berger | `lotusgarten.katharina.berger@example.com` |
+| Lehrerin | Miriam Schäfer | `lotusgarten.miriam.schaefer@example.com` |
+| Lehrerin | Hannah Krüger | `lotusgarten.hannah.krueger@example.com` |
+| Teilnehmerin | Sophie Richter u. a. | `lotusgarten.sophie.richter@example.com` … (12 Frauen) |
+
+`https://lotusgarten.omlify-dev.de/auth` — **Vinyasa Flow am Abend** (6 Plätze) und **Rücken-Yoga** (4 Plätze) sind voll und haben eine Warteliste. Jede Teilnehmerin ist anders angemeldet.
 
 ---
 
