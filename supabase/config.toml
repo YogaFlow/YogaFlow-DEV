@@ -18,3 +18,11 @@ verify_jwt = false
 
 [functions.delete-user]
 verify_jwt = false
+
+# service-ping prüft JWT und Tenant selbst über initService (klare Codes:
+# missing_authorization, invalid_token, missing_tenant, invalid_tenant).
+# Gateway-verify_jwt=true würde fehlende Auth mit einem anderen 401-Body
+# abfangen und unsere Codes untestbar machen — gleiches Muster wie
+# update-user / delete-user.
+[functions.service-ping]
+verify_jwt = false
