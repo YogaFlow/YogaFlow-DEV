@@ -134,6 +134,9 @@ bündelt, ersetzt die Typprüfung nicht. `npm run lint` ist ESLint.
 - Schreiben in `events`/`audit_log` nur über fachliche RPCs, die die Rolle prüfen;
   `insert_event`/`insert_audit` haben kein Client-EXECUTE — Ausnahme `record_service_ping`
   (Testwerkzeug, alle `authenticated`).
+- Neue Edge Functions für Nutzeraufrufe nutzen `initService` aus
+  `supabase/functions/_shared/service.ts` (Nutzer-JWT, Tenant-Header, einheitliche Fehlerform,
+  Logs durch den Maskierer). `SERVICE_ROLE` bleibt Webhooks und internen Abläufen vorbehalten (I12).
 - Ein von RLS still verhindertes DELETE/UPDATE liefert keinen Fehler, sondern 0
   Zeilen. Schreibende Aufrufe mit `.select()` ausführen und die Zeilenzahl prüfen.
 - `fetchCourseParticipantCounts` liefert bei Fehler `{}`. Die RPC gibt für jeden

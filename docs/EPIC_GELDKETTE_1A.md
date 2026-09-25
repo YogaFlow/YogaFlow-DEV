@@ -249,6 +249,16 @@ Zahlungen nicht aus React-Komponenten heraus entstehen.*
 fehl (curl-Ausgabe). Deno-Test für den Log-Maskierer.
 **Schema-Eingriff → Freigabe. STOPP.**
 
+**Erledigt auf DEV, 25.09.2026** (Branch `Julius`, noch nicht auf `main`/PROD):
+
+| Teil | Inhalt | Commits |
+|---|---|---|
+| **0.3a** | Schema `events`/`audit_log`, Append-only, `insert_event`/`insert_audit`, `record_service_ping`, `delete_tenant_complete` | `72509b3` (Migration), `a820089` (CLAUDE-Regel Schreibweg) |
+| **0.3b** | `_shared/service.ts`, Maskierer, Deno-Tests | `207c949` |
+| **0.3c** | `service-ping` (403 `no_tenant_membership` bei fremdem Studio), Laufzeitmessung | `ee235a9` |
+
+Messwerte `service-ping` (DEV, Free-Limits laut [Supabase Docs](https://supabase.com/docs/guides/functions/limits)): warm **234–312 ms**, kalt ~**1860 ms**; Plattform **150 s** Wall-clock / Idle, **2 s** CPU. Folgerung A6 (Kartenverfall): Batch über `pg_cron`, kein einzelner Request über alle Studios — `docs/EDGE_FUNCTION_RUNTIME_0.3.md`.
+
 ### Sprint 1 — Studio wird zahlungsfähig
 
 #### 1.1 Studio-Stammdaten und Steuerstatus

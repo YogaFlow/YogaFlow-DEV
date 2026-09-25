@@ -28,6 +28,9 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Bald — vor dem dritten Studio oder dem ersten zahlenden Kunden
 
+- [ ] **Bestehende Edge Functions reichen teils `error.message` nach außen durch**
+      (`update-user`, `delete-user`, `onboarding-public`). Auf die Fehlerform aus
+      `_shared/service.ts` umstellen, wenn sie ohnehin angefasst werden.
 - [ ] **`send-verification-email` absichern.** Mit Anon-Key und beliebiger `userId`
       ohne Sitzung aufrufbar. Nach K1 kein Datenschaden mehr, aber fremde
       Bestätigungsmails lassen sich auslösen. Sitzung verlangen oder Rate-Limit.
