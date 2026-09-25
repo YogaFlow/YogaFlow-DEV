@@ -92,8 +92,8 @@ abweichen nur mit STOPP.
 
 **Aufgeteilt und auf DEV umgesetzt (25.09.):**
 
-- **K2a** — RPC `studio_member_login_exclusive`: je Profil des Studios `member_id` und ob der Login nur hier liegt. Migration `20260925172848_studio_member_login_exclusive.sql`, auf DEV eingespielt. Quelldatei noch ohne Commit.
-- **K2b** — Edge Function `set-participant-password`, auf DEV deployed. Mindestlänge 8. Erfolg nur `{ success: true }`. Quelldatei und `config.toml` noch ohne Commit.
+- **K2a** — RPC `studio_member_login_exclusive`: je Profil des Studios `member_id` und ob der Login nur hier liegt. Migration `20260925172848_studio_member_login_exclusive.sql`, auf DEV eingespielt. Commit `db8f520`.
+- **K2b** — Edge Function `set-participant-password`, auf DEV deployed. Mindestlänge 8. Erfolg nur `{ success: true }`. Commit `f04c776`.
 - **K2c** — offen: Feld in `Users.tsx`.
 
 **Entscheidung Glocke:** `record_studio_password_notice` hat `EXECUTE` nur für `service_role`. Sonst könnte ein Owner die Meldung „Dein Passwort wurde vom Studio geändert“ auslösen, ohne ein Passwort zu setzen. Die Function ruft die RPC mit dem Service-Role-Client auf, nach erfolgreichem `updateUserById`. Die Prüfungen (Rolle, Tenant, Zielrolle) bleiben: der Service-Role-Aufruf hat kein `auth.uid()` der handelnden Person, deshalb prüft die RPC die übergebene Profil-Id.
