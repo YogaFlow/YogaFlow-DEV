@@ -1,6 +1,6 @@
 # Offene Punkte
 
-**Stand:** 22.09.2026
+**Stand:** 25.09.2026
 Ausführliche Begründungen stehen im Claude-Projekt „Omlify" in
 `Landingpage_Neubau_September_2026.md` und
 `Rechtstexte_Datenschutz_und_Betrieb_September_2026.md`.
@@ -11,7 +11,8 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Jetzt
 
-- [ ] **Epic Konto und Zugang** (`docs/EPIC_KONTO_ZUGANG.md`, K1 und K2), vor Story 0.3.
+- [ ] **K1 wartet auf PROD** (`docs/EPIC_KONTO_ZUGANG.md`): 1 Migration, 2 Functions.
+      Geht mit dem nächsten Release zusammen mit K2. Auf DEV erledigt (`c6df666`, `2f724f0`).
 - [ ] **AVV an die Testkundin schicken** — rückwirkend, per Mail von
       `support@omlify.de`, mit Bitte um Bestätigung in Textform. Sie verarbeitet
       Teilnehmerdaten über Omlify, ohne dass ein Vertrag nach Art. 28 DSGVO besteht.
@@ -27,6 +28,13 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Bald — vor dem dritten Studio oder dem ersten zahlenden Kunden
 
+- [ ] **`send-verification-email` absichern.** Mit Anon-Key und beliebiger `userId`
+      ohne Sitzung aufrufbar. Nach K1 kein Datenschaden mehr, aber fremde
+      Bestätigungsmails lassen sich auslösen. Sitzung verlangen oder Rate-Limit.
+- [ ] **Mindestlänge Passwort auf 8 Zeichen vereinheitlichen.** Registrierung prüft 6,
+      Onboarding und Reset 8. Umsetzung mit K2.
+- [ ] **Teilnehmerliste zeigt für Kursleitungen keine Rollen** — bewusst so, keine
+      Änderung nötig (Beobachtung Julius, 23.09.).
 - [ ] **Paket „Rollenrechte auf users“**
       - `users_select_teacher_participants`: Kursleitung sieht volle Zeilen aller
         Teilnehmenden des Studios (Adresse, Telefon), nicht nur eigener Kurse.

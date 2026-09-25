@@ -1,6 +1,6 @@
 # Scrum Epic: Konto und Zugang
 
-**Stand:** 22.09.2026 · **Status: ENTWURF.** K1 Befund 22.09. (PROD), K2 Entscheidung Julius 22.09.
+**Stand:** 25.09.2026 · **Status: ENTWURF.** K1 erledigt auf DEV (25.09.), K2 Entscheidung Julius 22.09.
 **Branch:** `Julius`.
 **Verbindlich daneben:** `CLAUDE.md` (Harte Grenzen), `docs/DESIGNSYSTEM.md`,
 `docs/SCHEMA_RELEASE_WORKFLOW.md`, `docs/DEV_PROD_SAFETY_WORKFLOW.md`
@@ -10,7 +10,7 @@
 
 ## 1. Epic-Ziel
 
-Ein Login bleibt bestätigt, auch wenn dieselbe Person einem weiteren Studio beitritt.
+Ein Login bleibt bestätigt, auch wenn dieselbe Person eine Bestätigungsmail anfordert oder sich registriert.
 Owner können das Passwort einer Teilnehmerin setzen, die mit E-Mail-Abläufen nicht
 zurechtkommt — nur wenn der Login ausschließlich zu diesem Studio gehört, und die
 Person erfährt davon.
@@ -21,38 +21,38 @@ vor PROD.
 
 ---
 
-## K1 — Beitritt zu einem weiteren Studio setzt Bestätigung nicht zurück
+## K1 — create_verification_token setzt die Bestätigung nicht zurück
 
-*Als Teilnehmerin möchte ich in Studio A eingeloggt bleiben, wenn ich Studio B
-beitrete oder dort eine Bestätigungsmail anfordere.*
+**Erledigt auf DEV** (25.09.2026, Checkliste Julius). Migration `c6df666`,
+Functions `2f724f0`. PROD mit dem nächsten Release, zusammen mit K2.
 
-**Befund 22.09.:** `create_verification_token` (`20260911185000`, Z. 45–49) setzt
-`email_verified = false` auf **allen** Profilen eines Logins (`WHERE auth_user_id = p_user_id`).
-Wer in Studio A bestätigt ist und in Studio B beitritt oder eine Bestätigungsmail
-anfordert, wird in Studio A beim nächsten Login ausgesperrt (`AuthPage.tsx:69–75`).
-Belegt an einem Teilnehmerkonto auf PROD.
+*Als Teilnehmerin möchte ich in Studio A eingeloggt bleiben, wenn ich eine
+Bestätigungsmail anfordere oder mich registriere.*
 
-`join_tenant` übernimmt die Bestätigung bereits (`20260911182000`, Z. 105–118):
-ist irgendein Profil des Logins `email_verified`, bekommt das neue Profil `true`.
-`create_verification_token` macht das hinterher wieder rückgängig.
+**Befund 22.09., präzisiert 25.09.:** Auslöser ist `create_verification_token`
+(„Erneut senden“, Registrierung), nicht der Beitritt zu einem weiteren Studio.
+`join_tenant` war nie beteiligt. Die RPC (`20260911185000`, Z. 45–49) setzte
+`email_verified = false` auf **allen** Profilen eines Logins
+(`WHERE auth_user_id = p_user_id`). Wer in Studio A bestätigt war und danach
+eine Bestätigungsmail anforderte, wurde in Studio A beim nächsten Login
+ausgesperrt (`AuthPage.tsx:69–75`). Belegt an einem Teilnehmerkonto auf PROD.
 
-**Soll:**
+`join_tenant` kopiert die Bestätigung bereits (`20260911182000`, Z. 105–118)
+und bleibt unverändert.
 
-- Ist irgendein Profil des Logins bereits `email_verified = true`, setzt
-  `create_verification_token` nichts zurück. Neue Profile desselben Logins
-  übernehmen `true` (wie `join_tenant` bereits).
-- Ist kein Profil bestätigt: Verhalten wie bisher.
-- Prüfen, ob `send-verification-email` / `request-verification-email` bei bereits
-  bestätigtem Login überhaupt eine Mail senden sollten (sonst Hinweis „bereits bestätigt“).
+**Umgesetzt:**
 
-**Akzeptanz (DEV):** Login in `demoalpha` bestätigt → Beitritt `demobeta` → Mail
-anfordern → Login in `demoalpha` weiterhin möglich. Unbestätigter Login: Sperre wie bisher.
+- `create_verification_token` setzt `email_verified` nicht mehr zurück.
+  Ist kein Profil bestätigt: Verhalten wie bisher.
+- `send-verification-email` antwortet bei bestätigtem Login wie im Normalfall
+  (keine Enumeration), intern ohne RPC und ohne Mail.
+
+**Akzeptanz (DEV, bestanden):** Bestätigter Login fordert eine Mail an und bleibt
+in jedem Studio eingeloggt. Unbestätigter Login: Sperre wie bisher.
 
 **Offen, nicht Teil von K1:** Zwei Yomita-Teilnehmerkonten (PROD) haben die
 App-Bestätigung nie abgeschlossen (seit vor dem 17.09.). Keine Datenkorrektur per Hand.
 Selbsthilfe über „Erneut senden“.
-
-**Schema → Freigabe. STOPP.**
 
 ---
 
