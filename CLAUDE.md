@@ -131,6 +131,9 @@ bündelt, ersetzt die Typprüfung nicht. `npm run lint` ist ESLint.
   oder auf `''` mit voll qualifizierten Namen. Nie `pg_temp` weglassen.
 - `delete_tenant_complete`: Jede neue Tabelle mit `RESTRICT` auf `courses`, `users` oder
   `tenants` muss dort ergänzt werden.
+- Schreiben in `events`/`audit_log` nur über fachliche RPCs, die die Rolle prüfen;
+  `insert_event`/`insert_audit` haben kein Client-EXECUTE — Ausnahme `record_service_ping`
+  (Testwerkzeug, alle `authenticated`).
 - Ein von RLS still verhindertes DELETE/UPDATE liefert keinen Fehler, sondern 0
   Zeilen. Schreibende Aufrufe mit `.select()` ausführen und die Zeilenzahl prüfen.
 - `fetchCourseParticipantCounts` liefert bei Fehler `{}`. Die RPC gibt für jeden
