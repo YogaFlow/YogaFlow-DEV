@@ -114,6 +114,8 @@ bündelt, ersetzt die Typprüfung nicht. `npm run lint` ist ESLint.
   Mitgliedschaft. `users.tenant_id` bleibt `NOT NULL`.
 - **`users.id` ist nicht `auth.uid()`.** Im Client darf ein Profil nie über
   `.eq('id', session.user.id)` geladen werden. Dafür gibt es `get_current_member()`.
+- Der Aufrufer einer Edge Function wird immer über `get_current_member()` aufgelöst
+  (Login plus `x-omlify-tenant`), nie über `users.id = auth.uid()`.
 - `users.email` ist **pro Tenant** eindeutig, nicht global: `users_tenant_email_unique
   UNIQUE (tenant_id, email)`, gesetzt in `20260426110000`, wo `users_email_key` fiel.
   Dieselbe Adresse kann also bei mehreren Studios liegen — die Mehrfachmitgliedschaft

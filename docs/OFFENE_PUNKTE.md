@@ -11,8 +11,9 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Jetzt
 
-- [ ] **K1 wartet auf PROD** (`docs/EPIC_KONTO_ZUGANG.md`): 1 Migration, 2 Functions.
-      Geht mit dem nächsten Release zusammen mit K2. Auf DEV erledigt (`c6df666`, `2f724f0`).
+- [ ] **Wartet auf PROD:** K1 (`c6df666`, `2f724f0`), K2a/K2b (auf DEV, Commit steht aus),
+      K2d (`730e721`), 0.3a (`72509b3`), 0.3b (`207c949`), 0.3c (`ee235a9`).
+      K2c (Feld in `Users.tsx`) ist noch offen. Siehe `docs/EPIC_KONTO_ZUGANG.md`.
 - [ ] **AVV an die Testkundin schicken** — rückwirkend, per Mail von
       `support@omlify.de`, mit Bitte um Bestätigung in Textform. Sie verarbeitet
       Teilnehmerdaten über Omlify, ohne dass ein Vertrag nach Art. 28 DSGVO besteht.

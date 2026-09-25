@@ -1,6 +1,6 @@
 # Scrum Epic: Konto und Zugang
 
-**Stand:** 25.09.2026 · **Status: ENTWURF.** K1 erledigt auf DEV (25.09.), K2 Entscheidung Julius 22.09.
+**Stand:** 25.09.2026 · **Status: ENTWURF.** K1, K2a, K2b und K2d erledigt auf DEV (25.09.). K2c offen.
 **Branch:** `Julius`.
 **Verbindlich daneben:** `CLAUDE.md` (Harte Grenzen), `docs/DESIGNSYSTEM.md`,
 `docs/SCHEMA_RELEASE_WORKFLOW.md`, `docs/DEV_PROD_SAFETY_WORKFLOW.md`
@@ -90,4 +90,18 @@ Owner-Passwort → 403. Aufruf mit fremdem Tenant-Header → 403.
 prüfen 8. Beim Bauen denselben Wert wie die Registrierung nehmen oder bewusst 8 —
 abweichen nur mit STOPP.
 
-**Schema / Edge Function → Freigabe. STOPP.**
+**Aufgeteilt und auf DEV umgesetzt (25.09.):**
+
+- **K2a** — RPC `studio_member_login_exclusive`: je Profil des Studios `member_id` und ob der Login nur hier liegt. Migration `20260925172848_studio_member_login_exclusive.sql`, auf DEV eingespielt. Quelldatei noch ohne Commit.
+- **K2b** — Edge Function `set-participant-password`, auf DEV deployed. Mindestlänge 8. Erfolg nur `{ success: true }`. Quelldatei und `config.toml` noch ohne Commit.
+- **K2c** — offen: Feld in `Users.tsx`.
+
+**Entscheidung Glocke:** `record_studio_password_notice` hat `EXECUTE` nur für `service_role`. Sonst könnte ein Owner die Meldung „Dein Passwort wurde vom Studio geändert“ auslösen, ohne ein Passwort zu setzen. Die Function ruft die RPC mit dem Service-Role-Client auf, nach erfolgreichem `updateUserById`. Die Prüfungen (Rolle, Tenant, Zielrolle) bleiben: der Service-Role-Aufruf hat kein `auth.uid()` der handelnden Person, deshalb prüft die RPC die übergebene Profil-Id.
+
+### K2d — Aufrufer in update-user
+
+**Befund:** `update-user` lud den Aufrufer mit `users.id = auth.uid()`. Seit `20260911182000` ist `users.id` die Profil-Id. Profile danach antworteten 500 „Failed to load requester profile“. Profile davor traf der Lookup weiter, auch im zweiten Studio: gefunden wurde immer die alte Zeile, der Header wurde ignoriert.
+
+**PROD (nur Zahlen, 25.09.):** 4 Profile mit `id <> auth_user_id`, alle Rolle `user` (`omlifytest` 3, `yomita` 1). Owner, Admin, Lehrer: 0. Wer die Function aufruft, ist dort nicht betroffen.
+
+**Fix auf DEV:** Aufrufer über `get_current_member()` (Login plus `x-omlify-tenant`), Schreibweg bleibt Service-Role, weil Lehrer keine Manager sind und RLS ihr Update verbieten würde. Commit `730e721`. Zweistudio-Fall belegt: Header `demoalpha` ändert dort, Header `demobeta` gilt die dortige Rolle (`user` → 403).
