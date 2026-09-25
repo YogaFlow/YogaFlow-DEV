@@ -5,7 +5,7 @@ import { User, UserRole, Course } from '../types';
 import { useAuth } from '../context/AuthContext';
 import {
   Mail, ChevronDown, ChevronUp, Save, Plus,
-  UserCheck,
+  UserCheck, Eye, EyeOff, Lock,
 } from 'lucide-react';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
 
@@ -100,6 +100,144 @@ function canShowCourseSection(role: UserRole): boolean {
   return role === 'user' || role === 'teacher';
 }
 
+const OTHER_STUDIO_HINT =
+  'Diese Person nutzt ihren Zugang auch in einem anderen Studio. Das Passwort kann sie nur selbst ändern.';
+
+const PASSWORD_ERROR_TEXT: Record<string, string> = {
+  password_too_short: 'Das Passwort muss mindestens 8 Zeichen lang sein.',
+  login_not_exclusive: OTHER_STUDIO_HINT,
+  target_not_participant: 'Das Passwort lässt sich nur für Teilnehmende setzen.',
+  not_manager: 'Nur Inhaberinnen, Inhaber und Admins dürfen das Passwort setzen.',
+  cannot_change_own_password: 'Dein eigenes Passwort änderst du im Profil.',
+};
+
+function passwordErrorText(code: string | null): string {
+  if (code && PASSWORD_ERROR_TEXT[code]) return PASSWORD_ERROR_TEXT[code];
+  return 'Das Passwort konnte nicht gesetzt werden.';
+}
+
+async function readFunctionErrorCode(error: unknown): Promise<string | null> {
+  const context = (error as { context?: { clone?: () => { json?: () => Promise<unknown> }; json?: () => Promise<unknown> } }).context;
+  const source = typeof context?.clone === 'function' ? context.clone() : context;
+  if (!source || typeof source.json !== 'function') return null;
+  try {
+    const body = await source.json();
+    if (body && typeof body === 'object' && 'code' in body && typeof body.code === 'string') {
+      return body.code;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+/** null = Spalte fehlt in der Antwort. Dann nicht „kein Login“ behaupten. */
+function memberAuthUserId(user: User): string | null | undefined {
+  if (!Object.prototype.hasOwnProperty.call(user, 'auth_user_id')) return undefined;
+  const value = (user as User & { auth_user_id?: string | null }).auth_user_id;
+  return value ?? null;
+}
+
+type PasswordLock =
+  | { locked: false }
+  | { locked: true; hint: string };
+
+function passwordLock(
+  user: User,
+  flags: Record<string, boolean> | null,
+): PasswordLock {
+  const authId = memberAuthUserId(user);
+  if (authId === null) {
+    return { locked: true, hint: 'Diese Person hat keinen Login.' };
+  }
+  if (flags === null || authId === undefined || flags[user.id] === undefined) {
+    return {
+      locked: true,
+      hint: 'Ob der Zugang nur zu diesem Studio gehört, konnte nicht geprüft werden.',
+    };
+  }
+  if (!flags[user.id]) {
+    return { locked: true, hint: OTHER_STUDIO_HINT };
+  }
+  return { locked: false };
+}
+
+function PasswordSetBlock({
+  lock,
+  inputId,
+  draft,
+  visible,
+  saving,
+  notice,
+  error,
+  onDraft,
+  onToggle,
+  onSubmit,
+}: {
+  lock: PasswordLock;
+  inputId: string;
+  draft: string;
+  visible: boolean;
+  saving: boolean;
+  notice: string | null;
+  error: string | null;
+  onDraft: (value: string) => void;
+  onToggle: () => void;
+  onSubmit: () => void;
+}) {
+  const locked = lock.locked;
+  return (
+    <div className="border-t border-border pt-4 space-y-3">
+      <h3 className="text-xs font-semibold text-textMuted">Passwort setzen</h3>
+      <div>
+        <label htmlFor={inputId} className="block text-xs text-textMuted mb-1">Neues Passwort</label>
+        <div className="relative">
+          <input
+            id={inputId}
+            type={locked || !visible ? 'password' : 'text'}
+            value={locked ? '' : draft}
+            autoComplete="new-password"
+            disabled={locked || saving}
+            onChange={e => onDraft(e.target.value)}
+            className="w-full text-sm border border-border rounded-sm px-3 py-2 pr-12 min-h-11 focus:outline-none focus:ring-2 focus:ring-brand disabled:cursor-not-allowed disabled:text-textMuted disabled:bg-surfaceSunken"
+          />
+          {!locked && (
+            <button
+              type="button"
+              onClick={onToggle}
+              className="absolute inset-y-0 right-0 min-w-11 text-textMuted"
+              aria-label={visible ? 'Passwort verbergen' : 'Passwort anzeigen'}
+            >
+              {visible ? <EyeOff className="h-5 w-5 mx-auto" /> : <Eye className="h-5 w-5 mx-auto" />}
+            </button>
+          )}
+        </div>
+        {locked ? (
+          <p className="mt-1 flex items-start gap-1.5 text-xs text-text">
+            <Lock size={14} className="flex-shrink-0 mt-0.5" aria-hidden />
+            <span>{lock.hint}</span>
+          </p>
+        ) : (
+          <p className="mt-1 text-xs text-textSubtle">Mindestens 8 Zeichen.</p>
+        )}
+      </div>
+      {notice && <p className="text-sm text-text">{notice}</p>}
+      {error && <p className="text-sm text-text">{error}</p>}
+      <button
+        type="button"
+        onClick={onSubmit}
+        disabled={locked || saving}
+        className="inline-flex items-center gap-2 min-h-11 bg-brand text-onBrand px-5 rounded-sm text-sm font-medium hover:bg-brandPressed disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {saving
+          ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-onBrand" />
+          : <Lock size={16} />}
+        Passwort setzen
+      </button>
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -128,6 +266,13 @@ export default function Users() {
   const [addingCourse, setAddingCourse]         = useState(false);
   const [savingRoleId, setSavingRoleId]         = useState<string | null>(null);
   const [feedbackDialog, setFeedbackDialog]     = useState<FeedbackDialogState | null>(null);
+  /** null = Prüfung fehlgeschlagen. Sonst member_id → login_exclusive. */
+  const [loginExclusive, setLoginExclusive]     = useState<Record<string, boolean> | null>(null);
+  const [passwordDraft, setPasswordDraft]       = useState('');
+  const [passwordVisible, setPasswordVisible]   = useState(false);
+  const [savingPassword, setSavingPassword]     = useState(false);
+  const [passwordNotice, setPasswordNotice]     = useState<string | null>(null);
+  const [passwordError, setPasswordError]       = useState<string | null>(null);
 
   // ---------------------------------------------------------------------------
   // Data fetching
@@ -143,7 +288,6 @@ export default function Users() {
     setLoading(true);
     try {
       if (isTeacher) {
-        // Teacher: all participants (role=user) in tenant
         const { data, error } = await supabase
           .from('users')
           .select('*')
@@ -151,14 +295,26 @@ export default function Users() {
           .order('last_name', { ascending: true });
         if (error) throw error;
         setUsers(data || []);
+        setLoginExclusive(null);
       } else {
-        // Admin/Owner: all users in tenant
-        const { data, error } = await supabase
-          .from('users')
-          .select('*')
-          .order('last_name', { ascending: true });
-        if (error) throw error;
-        setUsers(data || []);
+        const [list, flags] = await Promise.all([
+          supabase
+            .from('users')
+            .select('*')
+            .order('last_name', { ascending: true }),
+          supabase.rpc('studio_member_login_exclusive'),
+        ]);
+        if (list.error) throw list.error;
+        setUsers(list.data || []);
+        if (flags.error || !Array.isArray(flags.data)) {
+          setLoginExclusive(null);
+        } else {
+          const map: Record<string, boolean> = {};
+          for (const row of flags.data as { member_id: string; login_exclusive: boolean }[]) {
+            map[row.member_id] = row.login_exclusive === true;
+          }
+          setLoginExclusive(map);
+        }
       }
     } catch (err) {
       console.error('Error fetching users:', err);
@@ -211,14 +367,18 @@ export default function Users() {
 
   const handleToggleExpand = async (user: User) => {
     if (expandedId === user.id) {
-      setExpandedId(null);
-      setEditForm(null);
-      setUserRegistrations([]);
-      setSelectedCourseId('');
-      return;
-    }
-    setExpandedId(user.id);
-    setEditForm({
+    setExpandedId(null);
+    setEditForm(null);
+    setUserRegistrations([]);
+    setSelectedCourseId('');
+    setPasswordDraft('');
+    setPasswordVisible(false);
+    setPasswordNotice(null);
+    setPasswordError(null);
+    return;
+  }
+  setExpandedId(user.id);
+  setEditForm({
       first_name:   user.first_name   || '',
       last_name:    user.last_name    || '',
       email:        user.email        || '',
@@ -229,6 +389,10 @@ export default function Users() {
       city:         user.city         || '',
     });
     setSelectedCourseId('');
+    setPasswordDraft('');
+    setPasswordVisible(false);
+    setPasswordNotice(null);
+    setPasswordError(null);
     if (canShowCourseSection(user.role)) {
       setRegsLoading(true);
       const regs = await fetchUserRegistrations(user.id);
@@ -291,6 +455,33 @@ export default function Users() {
       });
     } finally {
       setSavingProfile(false);
+    }
+  };
+
+  const handleSetPassword = async (userId: string) => {
+    const value = passwordDraft;
+    if (value.length < 8) {
+      setPasswordNotice(null);
+      setPasswordError(passwordErrorText('password_too_short'));
+      return;
+    }
+    setSavingPassword(true);
+    setPasswordNotice(null);
+    setPasswordError(null);
+    try {
+      const { error } = await supabase.functions.invoke('set-participant-password', {
+        body: { userId, password: value },
+      });
+      if (error) {
+        setPasswordError(passwordErrorText(await readFunctionErrorCode(error)));
+        return;
+      }
+      setPasswordNotice('Das Passwort ist gesetzt.');
+    } catch {
+      setPasswordError(passwordErrorText(null));
+    } finally {
+      setPasswordDraft('');
+      setSavingPassword(false);
     }
   };
 
@@ -581,6 +772,21 @@ export default function Users() {
                         : <Save size={16} />}
                       Speichern
                     </button>
+
+                    {isAdmin && user.role === 'user' && (
+                      <PasswordSetBlock
+                        lock={passwordLock(user, loginExclusive)}
+                        inputId={`password-${user.id}-mobile`}
+                        draft={passwordDraft}
+                        visible={passwordVisible}
+                        saving={savingPassword}
+                        notice={passwordNotice}
+                        error={passwordError}
+                        onDraft={setPasswordDraft}
+                        onToggle={() => setPasswordVisible(v => !v)}
+                        onSubmit={() => handleSetPassword(user.id)}
+                      />
+                    )}
 
                     {canShowCourseSection(user.role) && (
                       <div className="border-t border-border pt-4">
@@ -875,6 +1081,21 @@ export default function Users() {
                                 }
                                 Speichern
                               </button>
+
+                              {isAdmin && user.role === 'user' && (
+                                <PasswordSetBlock
+                                  lock={passwordLock(user, loginExclusive)}
+                                  inputId={`password-${user.id}-desktop`}
+                                  draft={passwordDraft}
+                                  visible={passwordVisible}
+                                  saving={savingPassword}
+                                  notice={passwordNotice}
+                                  error={passwordError}
+                                  onDraft={setPasswordDraft}
+                                  onToggle={() => setPasswordVisible(v => !v)}
+                                  onSubmit={() => handleSetPassword(user.id)}
+                                />
+                              )}
                             </div>
 
                             {canShowCourseSection(user.role) && (
