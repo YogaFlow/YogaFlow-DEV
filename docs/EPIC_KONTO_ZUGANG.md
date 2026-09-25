@@ -1,10 +1,10 @@
 # Scrum Epic: Konto und Zugang
 
-**Stand:** 25.09.2026 · **Status: ENTWURF.** K1, K2a, K2b und K2d erledigt auf DEV (25.09.). K2c offen.
+**Stand:** 26.09.2026 · **Status: ENTWURF.** K1 und K2 (a–d) auf DEV abgenommen (Julius, 26.09.). PROD offen.
 **Branch:** `Julius`.
 **Verbindlich daneben:** `CLAUDE.md` (Harte Grenzen), `docs/DESIGNSYSTEM.md`,
 `docs/SCHEMA_RELEASE_WORKFLOW.md`, `docs/DEV_PROD_SAFETY_WORKFLOW.md`
-**Reihenfolge:** vor Geldkette Story 0.3. K2 schreibt ins `audit_log`, sobald 0.3 steht.
+**Reihenfolge:** war vor Geldkette Story 0.3 geplant. 0.3a steht; der `audit_log`-Eintrag zum Passwortsetzen fehlt trotzdem — eigener Punkt unter K2.
 
 ---
 
@@ -58,45 +58,71 @@ Selbsthilfe über „Erneut senden“.
 
 ## K2 — Owner setzt Passwort von Teilnehmenden direkt
 
+**Erledigt auf DEV** (26.09.2026, Abnahme Julius). K2a `db8f520`, K2b `f04c776`,
+K2c `f001222` und `c3dfb3b`, K2d `730e721`. PROD mit dem nächsten Release,
+zusammen mit K1 und 0.3a/b/c.
+
 *Als Owner möchte ich das Passwort einer Teilnehmerin setzen können, die mit
 E-Mail-Abläufen nicht zurechtkommt.*
 
 **Entscheidung Julius 22.09.** Die Funktion war seit `34f0077` / `0e8bf0f` (13.09.)
 bewusst entfernt; die alte Fassung setzte über `users.id` statt `auth_user_id`.
 
-**Leitplanken (alle Pflicht):**
+**Leitplanken (umgesetzt):**
 
 1. **Nur Logins, die ausschließlich zu diesem Studio gehören.** Hat der Login ein
    Profil in einem weiteren Tenant: Feld gesperrt mit Hinweis „Diese Person nutzt
    ihren Zugang auch in einem anderen Studio. Das Passwort kann sie nur selbst ändern.“
    Serverseitig in der Edge Function erneut prüfen.
+   **Umgesetzt.** Client: `Users.tsx` `passwordLock` (Z. 145–163). Function:
+   `set-participant-password/index.ts` Z. 145–159, 403 `login_not_exclusive`. RPC:
+   `studio_member_login_exclusive` in `20260925172848` Z. 31–43.
 2. **Nur owner/admin, nur Zielrolle user**, nur im eigenen Tenant (Header
    `x-omlify-tenant`, Rolle des Aufrufers serverseitig geprüft). Staff-Konten
    ausgeschlossen. Setzen über `users.auth_user_id` der Zielzeile, nie über `users.id`.
+   **Umgesetzt.** Client: Feld nur bei `isAdmin` und Zielrolle `user` (`Users.tsx`
+   Z. 776, Z. 1085). Function: Aufrufer über `get_current_member`, nur `owner`/`admin`
+   (Z. 94–107); Zielrolle `user` (Z. 123–128); `updateUserById` mit
+   `target.auth_user_id` (Z. 174–176). RPC `record_studio_password_notice`: Actor
+   `owner`/`admin`, Ziel `user` im selben Tenant (Z. 65–83).
 3. **Die Person erfährt davon:** `user_notifications`-Eintrag „Dein Passwort wurde
    vom Studio geändert.“ Bei bestätigter E-Mail zusätzlich Mail über `send-email`.
-4. **Passwort nie speichern, loggen oder zurückgeben.** Mindestlänge wie bei der
-   Registrierung. Kein erzwungener Wechsel beim nächsten Login. Protokoll ohne
-   Passwort im Funktions-Log; ins `audit_log`, sobald Story 0.3 steht.
+   **Umgesetzt.** Function ruft die RPC nach `updateUserById` auf (Z. 186–188) und
+   schickt die Mail nur bei `email_verified` (Z. 194–218). RPC schreibt die Glocke,
+   `action_path` `/profile` (Z. 85–93).
+4. **Passwort nie speichern, loggen oder zurückgeben.** Mindestlänge 8, nicht die
+   6 der Registrierung. Kein erzwungener Wechsel beim nächsten Login. Protokoll ohne
+   Passwort im Funktions-Log.
+   **Umgesetzt.** Client: Länge in `Users.tsx` Z. 463. Function: Länge Z. 86–91,
+   Antwort nur `{ success: true }` (Z. 39–43), Log über `safeAuthMessage` (Z. 47–51),
+   Variable im `finally` geleert (Z. 224–226). `updateUserById` setzt nur `{ password }`
+   (Z. 174–177). Der `audit_log`-Eintrag fehlt — eigener Punkt unten.
 
-**Akzeptanz (DEV):** Owner setzt Passwort einer Teilnehmerin → Login mit neuem
+**Glocken-RPC nur `service_role`.** `record_studio_password_notice` hat `EXECUTE`
+nur für `service_role` (`20260925172848` Z. 97–98). Sonst ließe sich die Meldung
+auslösen, ohne ein Passwort zu setzen. Die Function ruft die RPC mit dem
+Service-Role-Client auf, nach erfolgreichem `updateUserById`. Der Aufruf hat kein
+`auth.uid()` der handelnden Person; die RPC prüft die übergebene Profil-Id.
+
+**Offen, nicht vergessen:** Eintrag ins `audit_log` für das Passwortsetzen fehlt.
+0.3a ist da (`72509b3`, `insert_audit`). Eigener kleiner Punkt, nicht Teil der
+K2-Abnahme.
+
+**Akzeptanz (DEV, bestanden):** Owner setzt Passwort einer Teilnehmerin → Login mit neuem
 Passwort klappt, Glocke erscheint. Teilnehmerin mit Profil in `demoalpha` und
 `demobeta` → gesperrt (UI und direkter API-Aufruf → 403). Admin versucht
 Owner-Passwort → 403. Aufruf mit fremdem Tenant-Header → 403.
 
 **Auth-Code:** eigener Auftrag mit Inventur und STOPP, DEV-Test vor PROD.
 
-**Unsicherheit:** `RegisterForm.tsx` prüft 6 Zeichen, Onboarding und Passwort-Reset
-prüfen 8. Beim Bauen denselben Wert wie die Registrierung nehmen oder bewusst 8 —
-abweichen nur mit STOPP.
+**Mindestlänge:** K2 prüft 8 (Client und Function). `RegisterForm.tsx` prüft weiterhin 6.
+Offen in `docs/OFFENE_PUNKTE.md`, einschließlich der Untergrenze im Supabase-Dashboard.
 
-**Aufgeteilt und auf DEV umgesetzt (25.09.):**
+**Aufgeteilt:**
 
-- **K2a** — RPC `studio_member_login_exclusive`: je Profil des Studios `member_id` und ob der Login nur hier liegt. Migration `20260925172848_studio_member_login_exclusive.sql`, auf DEV eingespielt. Commit `db8f520`.
-- **K2b** — Edge Function `set-participant-password`, auf DEV deployed. Mindestlänge 8. Erfolg nur `{ success: true }`. Commit `f04c776`.
-- **K2c** — offen: Feld in `Users.tsx`.
-
-**Entscheidung Glocke:** `record_studio_password_notice` hat `EXECUTE` nur für `service_role`. Sonst könnte ein Owner die Meldung „Dein Passwort wurde vom Studio geändert“ auslösen, ohne ein Passwort zu setzen. Die Function ruft die RPC mit dem Service-Role-Client auf, nach erfolgreichem `updateUserById`. Die Prüfungen (Rolle, Tenant, Zielrolle) bleiben: der Service-Role-Aufruf hat kein `auth.uid()` der handelnden Person, deshalb prüft die RPC die übergebene Profil-Id.
+- **K2a** `db8f520` — RPC `studio_member_login_exclusive`: je Profil des Studios `member_id` und ob der Login nur hier liegt. Migration `20260925172848_studio_member_login_exclusive.sql`, auf DEV eingespielt.
+- **K2b** `f04c776` — Edge Function `set-participant-password`, auf DEV deployed. Mindestlänge 8. Erfolg nur `{ success: true }`.
+- **K2c** `f001222` — Feld in `Users.tsx`. `c3dfb3b` — Beschriftung der Glocke aus `action_path` (`/profile` → „Zum Profil“).
 
 ### K2d — Aufrufer in update-user
 
