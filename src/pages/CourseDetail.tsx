@@ -319,7 +319,7 @@ const CourseDetail: React.FC = () => {
                 <Check className="h-3.5 w-3.5" aria-hidden />
                 Angemeldet
               </span>
-            ) : isRegistered ? (
+            ) : isRegistered && registrationStatus === 'waitlist' ? (
               <span className="mt-0.5 inline-block">
                 <AccentPill>
                   {waitlistPosition ? `Warteliste Pos. ${waitlistPosition}` : 'Warteliste'}

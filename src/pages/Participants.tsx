@@ -15,6 +15,10 @@ import ConfirmDialog, { ConfirmDialogState } from '../components/ui/ConfirmDialo
 import { isCourseUpcoming } from '../lib/courseDateTime';
 import { formatUserAddress } from '../lib/userAddress';
 import { groupParticipantsByCourse } from '../lib/participantGrouping';
+import {
+  labelRegistrationStatus,
+  labelRegistrationStatusShort,
+} from '../lib/registrationStatus';
 
 interface ParticipantWithDetails extends Registration {
   user: User;
@@ -216,11 +220,7 @@ const Participants: React.FC = () => {
         `${p.user?.first_name || ''} ${p.user?.last_name || ''}`.trim(),
         p.user?.email || '',
         p.user?.phone || '',
-        p.status === 'registered'
-          ? 'Angemeldet'
-          : p.waitlist_position
-            ? `Warteliste (Pos. ${p.waitlist_position})`
-            : 'Warteliste',
+        labelRegistrationStatus(p.status, p.waitlist_position),
         formatDateTime(p.registered_at)
       ])
     ];
@@ -399,11 +399,10 @@ const Participants: React.FC = () => {
                             ? 'bg-sage-100 text-sage-800'
                             : 'bg-accentSoft text-accentText'
                         }`}>
-                          {participant.status === 'registered'
-                            ? 'Angemeldet'
-                            : participant.waitlist_position
-                              ? `Warteliste ${participant.waitlist_position}`
-                              : 'Warteliste'}
+                          {labelRegistrationStatusShort(
+                            participant.status,
+                            participant.waitlist_position
+                          )}
                         </span>
                       </div>
 
@@ -517,11 +516,10 @@ const Participants: React.FC = () => {
                               ? 'bg-sage-100 text-sage-800'
                               : 'bg-accentSoft text-accentText'
                           }`}>
-                            {participant.status === 'registered'
-                              ? 'Angemeldet'
-                              : participant.waitlist_position
-                                ? `Warteliste (Pos. ${participant.waitlist_position})`
-                                : 'Warteliste'}
+                            {labelRegistrationStatus(
+                              participant.status,
+                              participant.waitlist_position
+                            )}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-textMuted tabular-nums">

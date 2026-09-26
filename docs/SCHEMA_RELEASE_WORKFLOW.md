@@ -107,3 +107,13 @@ Die Funktion schaltet den Trigger kurz aus, löscht die Zeile in `tenants`, und 
 - [ ] PROD-Backup geprüft / notiert.
 - [ ] **Gleiche** Migration in der richtigen Reihenfolge auf **PROD** angewendet (CLI oder Dashboard).
 - [ ] Live-Seite nach PROD-Migration kurz getestet.
+
+### Regel: zusätzlicher FK und PostgREST-Embeds
+
+Eine Migration, die einen **weiteren FK** auf eine Tabelle anlegt, auf die schon ein FK zeigt,
+macht PostgREST-Embeds ohne Hint mehrdeutig (**PGRST201**). Beispiel A1: `registrations.cancelled_by`
+→ `users` neben dem bestehenden `registrations.user_id` → `users`.
+
+**Vor PROD:** Der Frontend-Fix mit expliziten FK-Hints (`tabelle!fk_name`) muss live sein.
+Hints auf den **bestehenden** FK funktionieren mit altem und neuem Schema — deshalb zuerst
+Frontend, dann Migration.

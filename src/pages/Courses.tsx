@@ -238,7 +238,7 @@ const Courses: React.FC = () => {
                         Angemeldet
                       </span>
                     );
-                  } else if (isRegistered) {
+                  } else if (isRegistered && registrationStatus === 'waitlist') {
                     status = (
                       <AccentPill>
                         {waitlistPosition ? `Warteliste Pos. ${waitlistPosition}` : 'Warteliste'}

@@ -121,6 +121,67 @@ Nachweis per SQL). Erneut anmelden nach Stornierung funktioniert. Platzzählung 
 mit gesetzten Daten). Keine Stelle in `src/` zählt ungefiltert (Inventurliste).
 **Schema → Freigabe. STOPP.**
 
+#### Umsetzung 26.09.
+
+**Entscheidungen D1–D6 und D1a**
+
+| ID | Entscheidung | Begründung |
+|---|---|---|
+| D1 | Enum-Wert `cancelled` auf `registration_status` | Soft-Cancel braucht einen Status, der Platzzählung und Unique von aktiven Zeilen trennt. |
+| D1a | Altzeilen mit `cancellation_timestamp` vor Kursbeginn → `cancelled` / `legacy_closed` | Teilnahme vor Kursstart ist nicht belegbar; Soft-Cancel-Historie ohne Fake-„war da“. |
+| D2 | `is_waitlist` bleibt beim Soft-Cancel unverändert | Historie: war die Person auf der Warteliste oder fest angemeldet. |
+| D3 | Partielle Uniques nur für aktive Zeilen (`cancellation_timestamp IS NULL`) | Erneute Anmeldung nach Storno braucht eine neue Zeile; alte cancelled bleiben. |
+| D4 | CHECK `registrations_cancelled_consistent` | `cancelled` ⇔ `cancellation_timestamp` gesetzt; `cancel_reason` nur mit Storno. |
+| D5 | SELECT-Policy unverändert; Schreiben nur noch über SECURITY DEFINER-RPCs | Client darf Stornierte lesen (Historie), aber nicht mehr direkt schreiben. |
+| D6 | Spalten `cancelled_by`, `cancel_reason`; Zeitstempel bleibt `cancellation_timestamp` | Bestehende Client-Filter nutzen schon `cancellation_timestamp`; kein Rename-Risiko. |
+
+**Migrationen und Commits:** `20260926141500`, `20260926141501`, `20260926144500` · Commits `c6f4e10`, `96f5ff7`, `44b309d`.
+
+**Abweichungen vom Plan**
+
+- **N8 / course_id:** `registrations.course_id` war schon `RESTRICT` (`20260921233800`) — A1 musste das nicht nachziehen.
+- **`messages.tenant_id`:** DEV hatte 0 NULL-Zeilen; `NOT NULL` verschoben. Payload-Helper `buildThreadSendPayload` setzt die Spalte nicht zuverlässig (UI überschreibt). Aufräumen später.
+- **`cancellation_timestamp` statt `cancelled_at`:** bestehende Filter und Trigger nutzen den alten Namen.
+- **Altzeilen → `legacy_closed`:** Zeitstempel vor Kursbeginn, Teilnahme nicht belegbar (D1a).
+- **`cleanup_future_registrations_on_role_upgrade`:** storniert nur Kurse mit `date >= CURRENT_DATE` (wie `prevent_past` / `check_registration_course_not_past`); Vergangenes bleibt Historie.
+- **`unregister_from_course`:** Sperre für vergangene Kurse (`date < CURRENT_DATE`), Meldung wie Admin-Abmeldung.
+- **PGRST201:** zweiter FK `cancelled_by` → `users` machte Embeds mehrdeutig; Fix `users!registrations_user_id_fkey` (`44b309d`).
+
+**Akzeptanz A1 — Belege (26.09., DEV, `scripts/test/a1_soft_cancel.mjs`)**
+
+| Kriterium | Beleg |
+|---|---|
+| Abmelden → Zeile `cancelled`, Platz frei, Nachrücken | Fall 1: A `cancelled`/`participant`, B `registered`, `waitlist_promoted` für B |
+| Erneut anmelden nach Stornierung | Fall 2: A hat `cancelled` + neue `waitlist`-Zeile |
+| Platzzählung ignoriert Stornierte | Fall 5: `registered_count` = aktive `registered` |
+| Keine ungefilterte Zählung in `src/` | Inventur unten; Filter `cancellation_timestamp` und/oder `status` — gleichwertig per CHECK |
+
+**Inventur `src/` (Lesestellen `registrations`, Filter)**
+
+| Stelle | Filter |
+|---|---|
+| `useCourseEnrollment.ts:59` | `.is('cancellation_timestamp', null)` |
+| `Courses.tsx:132` | `.is('cancellation_timestamp', null)` |
+| `Dashboard.tsx:105–106` | `.in('status', ['registered','waitlist'])` + `.is('cancellation_timestamp', null)` |
+| `Dashboard.tsx:214–215` | `.eq('status', 'registered')` + `.is('cancellation_timestamp', null)` |
+| `Users.tsx:353` | `.is('cancellation_timestamp', null)` |
+| `Participants.tsx:94` | TS: `cancellation_timestamp == null` |
+| `MyRegistrations.tsx:43–44` | status IN + `cancellation_timestamp` null |
+| `useMessagesData.ts:81,108,180` | `.is('cancellation_timestamp', null)` |
+| `useUnreadMessages.ts:185` | `.is('cancellation_timestamp', null)` |
+| `MyCourses.tsx:139,142` | TS: `!cancellation_timestamp` (+ Status/`is_waitlist`) |
+
+RPC-Zählung: `get_course_participant_counts` (nur aktive Status). CHECK `registrations_cancelled_consistent` macht Status- und Timestamp-Filter gleichwertig.
+
+### PROD-Gate für Sprint A
+
+Reihenfolge und Bedingungen, bevor Sprint-A-Schema auf PROD darf:
+
+1. **Frontend zuerst:** Commit `44b309d` (FK-Hints) muss auf `main`/Live sein, **bevor** die A1-Migrationen auf PROD laufen. Hints auf `registrations_user_id_fkey` funktionieren mit altem und neuem Schema.
+2. **Dann Migrationen** in Reihenfolge: `20260926141500` → `20260926141501` → `20260926144500`.
+3. **Altzeilen auf PROD:** Inventur vor A1: 8 Zeilen mit `cancellation_timestamp` vor Kursbeginn (5 `registered`, 3 `waitlist`). Nach Datei 2 → alle `cancelled` / `legacy_closed`. Erwartung per `GROUP BY status, cancel_reason` prüfen.
+4. **A1 geht nicht allein auf PROD.** Frühestens zusammen mit **A9** (Kurs absagen): Kurse mit Stornierungen lassen sich sonst weder löschen (`RESTRICT`) noch absagen.
+
 ### A2 — Deckungsstatus
 *Als Lehrerin möchte ich bei jeder Buchung sehen, ob sie beglichen ist und womit.*
 

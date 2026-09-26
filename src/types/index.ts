@@ -36,9 +36,19 @@ export interface User {
 export type CourseStatus = 'active' | 'canceled' | 'not_planned';
 export type CourseFrequency = 'one_time' | 'weekly';
 
+export type RegistrationStatus = 'registered' | 'waitlist' | 'cancelled';
+
+export type CancelReason =
+  | 'participant'
+  | 'studio'
+  | 'course_cancelled'
+  | 'promotion_expired'
+  | 'role_change'
+  | 'legacy_closed';
+
 export type CourseRegistrationSummary = {
   user_id: string;
-  status: 'registered' | 'waitlist';
+  status: RegistrationStatus;
   is_waitlist: boolean;
   cancellation_timestamp?: string | null;
 };
@@ -72,10 +82,12 @@ export interface Registration {
   tenant_id: string;
   course_id: string;
   user_id: string;
-  status: 'registered' | 'waitlist';
+  status: RegistrationStatus;
   registered_at: string;
   signup_timestamp: string;
-  cancellation_timestamp?: string;
+  cancellation_timestamp?: string | null;
+  cancelled_by?: string | null;
+  cancel_reason?: CancelReason | null;
   is_waitlist: boolean;
   waitlist_position?: number;
   course?: Course;
