@@ -51,17 +51,45 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // 2. Load caller profile (role + tenant)
-    const { data: requesterProfile, error: requesterProfileError } = await adminClient
-      .from("users")
-      .select("role, tenant_id")
-      .eq("id", requestingUser.id)
-      .maybeSingle();
-
-    if (requesterProfileError || !requesterProfile) {
+    // 2. Aufrufer über Login + Studio, nie über users.id = auth.uid().
+    // Fehlt x-omlify-tenant, wird der Header nicht gesetzt. get_current_member
+    // fällt dann auf die Übergangsregel zurück (genau ein Profil, sonst leer).
+    // Deshalb hier kein 400: die RPC entscheidet, nicht diese Function.
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+    if (!anonKey) {
       return new Response(
         JSON.stringify({ error: "Failed to load requester profile" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    const userHeaders: Record<string, string> = {
+      Authorization: `Bearer ${token}`,
+    };
+    const rawSlug = req.headers.get("x-omlify-tenant");
+    if (rawSlug !== null && rawSlug.trim() !== "") {
+      userHeaders["x-omlify-tenant"] = rawSlug.trim().toLowerCase();
+    }
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: userHeaders },
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+
+    const { data: requesterProfile, error: requesterProfileError } = await userClient
+      .rpc("get_current_member")
+      .maybeSingle();
+
+    if (requesterProfileError) {
+      console.error("update-user: get_current_member fehlgeschlagen", requesterProfileError);
+      return new Response(
+        JSON.stringify({ error: "Failed to load requester profile" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    if (!requesterProfile) {
+      return new Response(
+        JSON.stringify({ error: "Für diese Anmeldung gibt es in diesem Studio kein Profil." }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
@@ -94,7 +122,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    if (userId === requestingUser.id) {
+    if (userId === requesterProfile.id) {
       return new Response(
         JSON.stringify({ error: "Use the profile page to edit your own account" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -124,7 +152,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // 5b. Owner profiles can only be edited by the owner themselves
-    if (targetProfile.role === "owner" && requestingUser.id !== userId) {
+    if (targetProfile.role === "owner" && requesterProfile.id !== userId) {
       return new Response(
         JSON.stringify({ error: "Owner-Profile können nur vom Owner selbst bearbeitet werden." }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },

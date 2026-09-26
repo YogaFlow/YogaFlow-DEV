@@ -77,6 +77,29 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // K1: bestätigter Login bekommt keinen neuen Token und keine Mail.
+    const { data: verifiedProfile, error: verifiedError } = await supabase
+      .from("users")
+      .select("id")
+      .eq("auth_user_id", userId)
+      .eq("email_verified", true)
+      .limit(1)
+      .maybeSingle();
+    if (verifiedError) {
+      console.error("Verified-profile lookup:", verifiedError);
+      return new Response(
+        JSON.stringify({ error: "Failed to create verification token" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    if (verifiedProfile) {
+      console.log("Verification email: login already verified - no token, no mail");
+      return new Response(
+        JSON.stringify({ success: true, message: "Verification email sent" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { data: tokenData, error: tokenError } = await supabase.rpc(
       "create_verification_token",
       { p_user_id: userId, p_email: email }

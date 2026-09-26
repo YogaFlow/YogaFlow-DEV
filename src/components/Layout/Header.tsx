@@ -8,6 +8,15 @@ interface HeaderProps {
   onMenuClick: () => void;
 }
 
+/** Linktext der Glocke aus dem Zielpfad. Unbekannte Pfade bleiben allgemein. */
+function labelForNotificationPath(path?: string | null): string {
+  if (path === '/profile') return 'Zum Profil';
+  if (path === '/my-courses' || path?.startsWith('/my-courses#anmeldungen')) {
+    return 'Zu meinen Anmeldungen';
+  }
+  return 'Öffnen';
+}
+
 const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -145,7 +154,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                           onClick={() => handleGoToRegistrations(notification.action_path)}
                           className="mt-2 text-sm font-medium text-brand hover:text-brandPressed underline-offset-2 hover:underline"
                         >
-                          Zu meinen Anmeldungen
+                          {labelForNotificationPath(notification.action_path)}
                         </button>
                       </li>
                     ))}

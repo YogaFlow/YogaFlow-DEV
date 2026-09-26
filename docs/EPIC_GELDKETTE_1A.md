@@ -106,7 +106,7 @@ Das Briefing sagt selbst, dass Abschnitt 1 aus der Doku stammt. Geprüft am 14.0
 | **E5** | Wer sieht Zahlungen? | `owner` und `admin` sehen alle. `teacher` sieht nur „bezahlt / offen“ bei den eigenen Kursen, keine Beträge. `user` sieht die eigenen. | entschieden 14.09. |
 | **E6** | Test-Grundlage | **Deno-Tests** für die Edge Functions und **SQL-Selbstprüfungen** als `DO $$`-Blöcke. Kein Vitest in 1a. | entschieden 14.09. |
 | **E7** | Neue Abhängigkeiten | Freigegeben: `@stripe/stripe-js`, `@stripe/react-stripe-js`, `@stripe/connect-js`, `@stripe/react-connect-js` (Frontend), `npm:stripe` (Edge, Import in Deno). Eingebaut wird jede erst in der Story, die sie braucht. | freigegeben 14.09. |
-| **E8** | Reihenfolge | Story 0.2 (Buchungskern härten) **vor** allem anderen. Membership Stufe 4 ist unabhängig. **Nachtrag 14.09.:** Die Commits für Paket 3 (`85b9c44`, `a9991d5`, `b6387cf`, `1ac8b8a`, `a6f25e2`, `468bcb3`) liegen schon auf `Julius`. Die befürchtete Kollision mit der Kursliste gibt es damit nicht. Der Abschnitt „Als Nächstes — Paket 3“ in `CLAUDE.md` ist veraltet. | entschieden 14.09. |
+| **E8** | Reihenfolge | Story 0.2 (Buchungskern härten) **vor** allem anderen. **Nachtrag 22.09.:** Vor Story 0.3 steht Epic Konto und Zugang (`docs/EPIC_KONTO_ZUGANG.md`, K1/K2). Membership Stufe 4 ist unabhängig. **Nachtrag 14.09.:** Die Commits für Paket 3 (`85b9c44`, `a9991d5`, `b6387cf`, `1ac8b8a`, `a6f25e2`, `468bcb3`) liegen schon auf `Julius`. Die befürchtete Kollision mit der Kursliste gibt es damit nicht. Der Abschnitt „Als Nächstes — Paket 3“ in `CLAUDE.md` ist veraltet. | entschieden 14.09., ergänzt 22.09. |
 | **E9** | Nimmt Omlify eine Gebühr je Zahlung (`application_fee_amount`)? | **Offen, gehört ins Strategie-Projekt.** Technisch in 1a: keine Gebühr, der Port lässt das Feld offen. | offen |
 | **E10** | B5–B7 (Stripe, Port, PayPal) | Nach der Besprechung mit André am 15.09. bestätigen. Das Epic hängt davon nur im Adapter ab. | offen bis 15.09. |
 | **E11** | Dashboard der Studios: Express oder vollständig? | **Offen.** *Vollständig:* Das Stripe-Konto gehört dem Studio und bleibt beim Wechsel bestehen. Das Studio kann aber bei Stripe direkt erstatten und eigene Zahlungen anlegen, Webhooks müssen das erkennen, zuordnen oder ignorieren. *Express:* Geld zurück läuft über Omlify, die Buchhaltung bleibt sauber, die Bindung an Omlify ist höher. Voraussetzung: Nachweis, dass Express **ohne Plattformhaftung** möglich ist (Ergebnis 0.1). Bindung und Mitnahme sind eine Positionierungsfrage → André / Strategie-Projekt. Unveränderlich je Konto. | offen bis 15.09. |
@@ -229,6 +229,9 @@ Race-Test `scripts/test/overbooking_race.mjs`: vorher 2/20, nachher 0/20 in beid
 - Vor PROD: FK-Namen prüfen — erledigt. Namen wie DEV.
 - `messages` mit `tenant_id` NULL zählen — erledigt. 0 Zeilen.
 
+**Vor 0.3:** Epic Konto und Zugang (`docs/EPIC_KONTO_ZUGANG.md`). K2 schreibt ins
+`audit_log`, sobald diese Story steht.
+
 #### 0.3 Fundament: Events, Audit, Service-Gerüst
 *Als Plattform möchte ich einen serverseitigen Ort für Geschäftslogik mit Event- und Audit-Protokoll, damit
 Zahlungen nicht aus React-Komponenten heraus entstehen.*
@@ -245,6 +248,16 @@ Zahlungen nicht aus React-Komponenten heraus entstehen.*
 **Akzeptanz:** Aufruf mit Token aus Studio A schreibt in A. Derselbe Token mit Header von Studio B schlägt
 fehl (curl-Ausgabe). Deno-Test für den Log-Maskierer.
 **Schema-Eingriff → Freigabe. STOPP.**
+
+**Erledigt auf DEV, 25.09.2026** (Branch `Julius`, noch nicht auf `main`/PROD):
+
+| Teil | Inhalt | Commits |
+|---|---|---|
+| **0.3a** | Schema `events`/`audit_log`, Append-only, `insert_event`/`insert_audit`, `record_service_ping`, `delete_tenant_complete` | `72509b3` (Migration), `a820089` (CLAUDE-Regel Schreibweg) |
+| **0.3b** | `_shared/service.ts`, Maskierer, Deno-Tests | `207c949` |
+| **0.3c** | `service-ping` (403 `no_tenant_membership` bei fremdem Studio), Laufzeitmessung | `ee235a9` |
+
+Messwerte `service-ping` (DEV, Free-Limits laut [Supabase Docs](https://supabase.com/docs/guides/functions/limits)): warm **234–312 ms**, kalt ~**1860 ms**; Plattform **150 s** Wall-clock / Idle, **2 s** CPU. Folgerung A6 (Kartenverfall): Batch über `pg_cron`, kein einzelner Request über alle Studios — `docs/EDGE_FUNCTION_RUNTIME_0.3.md`.
 
 ### Sprint 1 — Studio wird zahlungsfähig
 

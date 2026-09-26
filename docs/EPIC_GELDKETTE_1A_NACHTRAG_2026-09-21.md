@@ -105,8 +105,10 @@ und die Kurshistorie nie ins Leere zeigen.*
   Dashboard-Zahlen. Wer `registrations` zählt, ohne nach Status zu filtern, zählt ab jetzt Stornierte mit.
   Inventur mit `grep` in `src/` und `supabase/migrations/` (neueste Definition je Funktion), Liste im Bericht
 - Kursserie: Stornierte Zeilen bleiben für die spätere Kursakte („Du warst schon 4× dabei“) auswertbar
-- Nachrücken erzeugt eine Benachrichtigung in `user_notifications` (Glocke) statt einer
-  Chat-Nachricht im Namen der Lehrerin; die Chat-Nachricht entfällt (Julius, 22.09.).
+- **Nachrücken → Glocke — erledigt in Release 2026-09c.** `promote_from_waitlist`
+  (`20260922154530`) schreibt `user_notifications` mit `type = waitlist_promoted`,
+  keine Chat-Nachricht. A1 übernimmt diese Fassung und baut das Nachrücken auf
+  Soft-Cancel um (Trigger nicht mehr `AFTER DELETE`).
   Befund 0.2: Die Chat-Nachricht war seit `20260426120000` (Policy `messages_select_own_tenant`
   verlangt `tenant_id`; der Insert in `promote_from_waitlist` setzte sie nie, Spalte seit
   `20260426110000` nullable) wegen `tenant_id` NULL für niemanden sichtbar, behoben in `1b414fd`.

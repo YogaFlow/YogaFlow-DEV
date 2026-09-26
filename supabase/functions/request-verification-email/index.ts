@@ -54,6 +54,32 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // K1: bestätigter Login — gleiche Antwort wie „kein Konto", sonst Enumeration.
+    const { data: verifiedProfile, error: verifiedError } = await supabase
+      .from("users")
+      .select("id")
+      .eq("auth_user_id", loginId)
+      .eq("email_verified", true)
+      .limit(1)
+      .maybeSingle();
+    if (verifiedError) {
+      console.error("Verified-profile lookup:", verifiedError);
+      return new Response(
+        JSON.stringify({ error: "Token konnte nicht erstellt werden. Bitte versuche es später erneut." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    if (verifiedProfile) {
+      console.log("Verification email: login already verified - no token, no mail");
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: "Falls ein Konto mit dieser E-Mail-Adresse existiert, wurde eine Bestätigungsmail gesendet. Bitte prüfe dein Postfach.",
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { data: tokenData, error: tokenError } = await supabase.rpc(
       "create_verification_token",
       { p_user_id: loginId, p_email: email.trim() }

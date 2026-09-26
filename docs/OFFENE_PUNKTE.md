@@ -1,6 +1,6 @@
 # Offene Punkte
 
-**Stand:** 22.09.2026
+**Stand:** 26.09.2026
 Ausführliche Begründungen stehen im Claude-Projekt „Omlify" in
 `Landingpage_Neubau_September_2026.md` und
 `Rechtstexte_Datenschutz_und_Betrieb_September_2026.md`.
@@ -11,8 +11,9 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Jetzt
 
-- [ ] **Nachrücken → Glocke** (`user_notifications`) statt Chat-Nachricht, vorgezogen
-      aus A1. Nächster Mini-Release zusammen mit Hotfix E4.
+- [ ] **Wartet auf PROD:** K1 (`c6df666`, `2f724f0`), K2a (`db8f520`), K2b (`f04c776`),
+      K2c (`f001222`, `c3dfb3b`), K2d (`730e721`), 0.3a (`72509b3`), 0.3b (`207c949`),
+      0.3c (`ee235a9`). Nächster Release als Paket. Siehe `docs/EPIC_KONTO_ZUGANG.md`.
 - [ ] **AVV an die Testkundin schicken** — rückwirkend, per Mail von
       `support@omlify.de`, mit Bitte um Bestätigung in Textform. Sie verarbeitet
       Teilnehmerdaten über Omlify, ohne dass ein Vertrag nach Art. 28 DSGVO besteht.
@@ -28,6 +29,28 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Bald — vor dem dritten Studio oder dem ersten zahlenden Kunden
 
+- [ ] **Bestehende Edge Functions reichen teils `error.message` nach außen durch**
+      (`update-user`, `delete-user`, `onboarding-public`). Auf die Fehlerform aus
+      `_shared/service.ts` umstellen, wenn sie ohnehin angefasst werden.
+- [ ] **`send-verification-email` absichern.** Mit Anon-Key und beliebiger `userId`
+      ohne Sitzung aufrufbar. Nach K1 kein Datenschaden mehr, aber fremde
+      Bestätigungsmails lassen sich auslösen. Sitzung verlangen oder Rate-Limit.
+- [ ] **Benachrichtigungen füllen `user_notifications.title` nicht.** Die Glocke leitet
+      die Beschriftung aus `action_path` ab (`Header.tsx`, `c3dfb3b`). Wenn einmal
+      mehr Typen dazukommen, `title` befüllen.
+- [ ] **Mindestlänge Passwort.** Registrierung prüft weiterhin 6, überall sonst 8.
+      Außerdem im Supabase-Dashboard (DEV und PROD) die Untergrenze prüfen und auf 8
+      setzen, sonst nimmt die Auth-API kürzere Passwörter an.
+- [ ] **Teilnehmerliste zeigt für Kursleitungen keine Rollen** — bewusst so, keine
+      Änderung nötig (Beobachtung Julius, 23.09.).
+- [ ] **Paket „Rollenrechte auf users“**
+      - `users_select_teacher_participants`: Kursleitung sieht volle Zeilen aller
+        Teilnehmenden des Studios (Adresse, Telefon), nicht nur eigener Kurse.
+        Produktfrage: Was braucht eine Kursleitung?
+      - `users_select_teacher_staff`: Kursleitung sieht volle Zeile der Inhaberin.
+      - `anon` hat Tabellen-SELECT auf `users` (nur fehlende Policy schützt).
+      - `Participants.tsx`: Route ohne Rollenprüfung.
+      - `yogaflow_private.is_participant()` wird von keiner Policy mehr genutzt.
 - [ ] **Passwortfeld auf `/auth`** schreibt die Eingabe als `value`-Attribut ins DOM
       (sichtbar in Chrome-DevTools-Warnungen). Prüfen und beheben.
 - [ ] **`get_current_member`** liefert beim Laden von `/auth` einmal 406 (vor
@@ -61,8 +84,8 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Später
 
-- [ ] **Supabase CLI** 2.77.0 → aktuell. Nur zwischen zwei Releases aktualisieren,
-      nie kurz davor.
+- [ ] **Supabase CLI auf 2.117.0 angleichen** (Worktree nutzte sie bereits in
+      Release 2026-09c). Nur zwischen zwei Releases aktualisieren, nie kurz davor.
 - [ ] **Prerendering der Landingpage + echter 404.** Der Fließtext entsteht erst
       im Browser; KI-Crawler sehen nur Titel und Beschreibung. Beides zusammen
       angehen, wenn Suche als Kanal zählt.
@@ -92,6 +115,13 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Erledigt
 
+- 26.09.2026 — K2 (a–d) auf DEV abgenommen: K2a `db8f520`, K2b `f04c776`,
+  K2c `f001222` und `c3dfb3b`, K2d `730e721`. PROD im nächsten Release.
+- 25.09.2026 — K1 auf DEV abgenommen (`c6df666`, `2f724f0`). PROD im nächsten Release.
+- 22.09.2026 — E4 Staff-Sichtbarkeit: Policy `users_select_participant_staff`
+  entfernt, Namen über `staff_names` (Release 2026-09c)
+- 22.09.2026 — Glocke beim Nachrücken (`user_notifications`, `type = waitlist_promoted`)
+  (Release 2026-09c)
 - 22.09.2026 — `gdpr_consent` und `gdpr_consent_date` auf PROD entfernt
   (`20260920132143`, Release 2026-09b)
 - 22.09.2026 — `courses.teacher_id` auf PROD nicht mehr `CASCADE`, sondern `RESTRICT`
