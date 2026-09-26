@@ -124,6 +124,9 @@ bündelt, ersetzt die Typprüfung nicht. `npm run lint` ist ESLint.
   dieselbe Person kann in Studio A `owner` und in Studio B `user` sein.
 - Teilnehmende lesen Namen von Staff ausschließlich über `public.staff_names(uuid[])`, nie über
   Embeds auf `users`. Keine neue Policy, die Teilnehmenden Staff-Zeilen aus `users` freigibt.
+- Embeds auf `users` immer mit FK-Hint (`tabelle!fk_name`). Grund: `registrations` hat seit
+  A1 zwei FKs auf `users` (`user_id`, `cancelled_by`); weitere Tabellen folgen (`payments`,
+  `pass_movements`). Ohne Hint: PGRST201.
 - `registrations.course_id` und `courses.teacher_id` sind `RESTRICT` (seit `20260921233800`).
   Kurse mit Anmeldungen werden abgesagt, nicht gelöscht. Lehrerprofile mit Kursen werden
   übergeben oder deaktiviert, nicht gelöscht.

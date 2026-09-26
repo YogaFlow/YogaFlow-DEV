@@ -80,7 +80,7 @@ const Participants: React.FC = () => {
           .from('registrations')
           .select(`
             *,
-            user:users(*),
+            user:users!registrations_user_id_fkey(*),
             course:courses(*)
           `)
           .order('registered_at', { ascending: false });

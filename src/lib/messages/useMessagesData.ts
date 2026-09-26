@@ -175,7 +175,7 @@ export function useMessagesData(userProfile: User | null) {
     try {
       const { data, error } = await supabase
         .from('registrations')
-        .select('user:user_id(id, first_name, last_name, email)')
+        .select('user:users!registrations_user_id_fkey(id, first_name, last_name, email)')
         .eq('course_id', courseId)
         .is('cancellation_timestamp', null);
 
