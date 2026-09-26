@@ -11,9 +11,6 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Jetzt
 
-- [ ] **Wartet auf PROD:** K1 (`c6df666`, `2f724f0`), K2a (`db8f520`), K2b (`f04c776`),
-      K2c (`f001222`, `c3dfb3b`), K2d (`730e721`), 0.3a (`72509b3`), 0.3b (`207c949`),
-      0.3c (`ee235a9`). Nächster Release als Paket. Siehe `docs/EPIC_KONTO_ZUGANG.md`.
 - [ ] **AVV an die Testkundin schicken** — rückwirkend, per Mail von
       `support@omlify.de`, mit Bitte um Bestätigung in Textform. Sie verarbeitet
       Teilnehmerdaten über Omlify, ohne dass ein Vertrag nach Art. 28 DSGVO besteht.
@@ -38,9 +35,13 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 - [ ] **Benachrichtigungen füllen `user_notifications.title` nicht.** Die Glocke leitet
       die Beschriftung aus `action_path` ab (`Header.tsx`, `c3dfb3b`). Wenn einmal
       mehr Typen dazukommen, `title` befüllen.
-- [ ] **Mindestlänge Passwort.** Registrierung prüft weiterhin 6, überall sonst 8.
-      Außerdem im Supabase-Dashboard (DEV und PROD) die Untergrenze prüfen und auf 8
-      setzen, sonst nimmt die Auth-API kürzere Passwörter an.
+- [ ] **Mindestlänge Passwort.** Supabase-Dashboard steht in DEV und PROD auf 6, Soll ist 8.
+      Die Registrierung prüft ebenfalls noch 6. K2 prüft 8.
+- [ ] **`audit_log`-Eintrag für das Passwortsetzen fehlt.** 0.3a liegt auf PROD
+      (`insert_audit`). Eigener Punkt, nicht Teil der K2-Abnahme.
+- [ ] **`service-ping`-Nachweis auf PROD nachholen.** Auf DEV belegt. Auf PROD scheiterte
+      der Aufruf mit echtem Owner-Token an einer abgelaufenen Sitzung. Nachholen, wenn
+      die erste fachliche Function über `initService` entsteht (A3).
 - [ ] **Teilnehmerliste zeigt für Kursleitungen keine Rollen** — bewusst so, keine
       Änderung nötig (Beobachtung Julius, 23.09.).
 - [ ] **Paket „Rollenrechte auf users“**
@@ -115,9 +116,10 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Erledigt
 
+- 26.09.2026 — K1, K2 (a–d) und 0.3 (a–c) live auf PROD (Release 2026-09d, Merge `3d41292`).
 - 26.09.2026 — K2 (a–d) auf DEV abgenommen: K2a `db8f520`, K2b `f04c776`,
-  K2c `f001222` und `c3dfb3b`, K2d `730e721`. PROD im nächsten Release.
-- 25.09.2026 — K1 auf DEV abgenommen (`c6df666`, `2f724f0`). PROD im nächsten Release.
+  K2c `f001222` und `c3dfb3b`, K2d `730e721`.
+- 25.09.2026 — K1 auf DEV abgenommen (`c6df666`, `2f724f0`).
 - 22.09.2026 — E4 Staff-Sichtbarkeit: Policy `users_select_participant_staff`
   entfernt, Namen über `staff_names` (Release 2026-09c)
 - 22.09.2026 — Glocke beim Nachrücken (`user_notifications`, `type = waitlist_promoted`)

@@ -1,6 +1,6 @@
 # Scrum Epic: Konto und Zugang
 
-**Stand:** 26.09.2026 · **Status: ENTWURF.** K1 und K2 (a–d) auf DEV abgenommen (Julius, 26.09.). PROD offen.
+**Stand:** 26.09.2026 · **Status: ENTWURF.** K1 und K2 (a–d) live auf PROD seit 26.09.2026 (Release 2026-09d, Merge `3d41292`). Auf DEV abgenommen (Julius, 26.09.).
 **Branch:** `Julius`.
 **Verbindlich daneben:** `CLAUDE.md` (Harte Grenzen), `docs/DESIGNSYSTEM.md`,
 `docs/SCHEMA_RELEASE_WORKFLOW.md`, `docs/DEV_PROD_SAFETY_WORKFLOW.md`
@@ -23,8 +23,8 @@ vor PROD.
 
 ## K1 — create_verification_token setzt die Bestätigung nicht zurück
 
-**Erledigt auf DEV** (25.09.2026, Checkliste Julius). Migration `c6df666`,
-Functions `2f724f0`. PROD mit dem nächsten Release, zusammen mit K2.
+**Live auf PROD seit 26.09.2026** (Release 2026-09d, Merge `3d41292`). Auf DEV erledigt
+(25.09.2026, Checkliste Julius). Migration `c6df666`, Functions `2f724f0`.
 
 *Als Teilnehmerin möchte ich in Studio A eingeloggt bleiben, wenn ich eine
 Bestätigungsmail anfordere oder mich registriere.*
@@ -58,9 +58,9 @@ Selbsthilfe über „Erneut senden“.
 
 ## K2 — Owner setzt Passwort von Teilnehmenden direkt
 
-**Erledigt auf DEV** (26.09.2026, Abnahme Julius). K2a `db8f520`, K2b `f04c776`,
-K2c `f001222` und `c3dfb3b`, K2d `730e721`. PROD mit dem nächsten Release,
-zusammen mit K1 und 0.3a/b/c.
+**Live auf PROD seit 26.09.2026** (Release 2026-09d, Merge `3d41292`). Auf DEV erledigt
+(26.09.2026, Abnahme Julius). K2a `db8f520`, K2b `f04c776`, K2c `f001222` und
+`c3dfb3b`, K2d `730e721`.
 
 *Als Owner möchte ich das Passwort einer Teilnehmerin setzen können, die mit
 E-Mail-Abläufen nicht zurechtkommt.*
