@@ -116,6 +116,7 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Erledigt
 
+- 26.09.2026 — Sicherheits-Hotfix Rolle bei Registrierung live auf PROD (Release 2026-09e, Merge `e5f7b80`, Migration `20260926160500`).
 - 26.09.2026 — K1, K2 (a–d) und 0.3 (a–c) live auf PROD (Release 2026-09d, Merge `3d41292`).
 - 26.09.2026 — K2 (a–d) auf DEV abgenommen: K2a `db8f520`, K2b `f04c776`,
   K2c `f001222` und `c3dfb3b`, K2d `730e721`.

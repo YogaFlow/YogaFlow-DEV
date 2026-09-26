@@ -179,6 +179,7 @@ Reihenfolge und Bedingungen, bevor Sprint-A-Schema auf PROD darf:
 
 1. **Frontend zuerst:** Commit `44b309d` (FK-Hints) muss auf `main`/Live sein, **bevor** die A1-Migrationen auf PROD laufen. Hints auf `registrations_user_id_fkey` funktionieren mit altem und neuem Schema.
 2. **Dann Migrationen** in Reihenfolge: `20260926141500` → `20260926141501` → `20260926144500`.
+   Diese drei liegen zeitlich **vor** dem PROD-Hotfix `20260926160500` (Release 2026-09e, seit 26.09.2026 auf PROD). `db push` sieht sie deshalb als Einfügung vor der letzten Remote-Version und wendet sie nur mit `--include-all` an. `scripts/db.mjs` reicht das Flag heute nicht durch. Erst beim Sprint-A-Release bewusst ergänzen, nicht vorher.
 3. **Altzeilen auf PROD:** Inventur vor A1: 8 Zeilen mit `cancellation_timestamp` vor Kursbeginn (5 `registered`, 3 `waitlist`). Nach Datei 2 → alle `cancelled` / `legacy_closed`. Erwartung per `GROUP BY status, cancel_reason` prüfen.
 4. **A1 geht nicht allein auf PROD.** Frühestens zusammen mit **A9** (Kurs absagen): Kurse mit Stornierungen lassen sich sonst weder löschen (`RESTRICT`) noch absagen.
 

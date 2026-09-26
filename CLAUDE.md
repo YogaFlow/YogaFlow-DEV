@@ -54,6 +54,10 @@ sich in einen Design- oder Refactoring-Durchlauf einschleicht: sagen, nicht ausf
 - Feature-Arbeit und Design-/Aufräumarbeit kommen nie in denselben Commit.
 - Jede neue Funktion in `public` braucht `REVOKE ALL … FROM PUBLIC, anon, authenticated` und danach nur die nötigen `GRANT`s. Die Selbstprüfung testet `anon` **und** `authenticated`. Grund: Supabase-Default-Privileges geben beiden sonst `EXECUTE`.
 
+## Deploy/Sicherheit
+
+- Blockiert eine Sicherheitsabfrage (z. B. getippte Bestätigung in scripts/db.mjs für PROD), wird sie nie umgangen – kein direkter Aufruf des darunterliegenden Befehls, kein `--yes`. Stattdessen STOPP; Julius führt den Befehl selbst im Terminal aus.
+
 ---
 
 ## Stack und Struktur
