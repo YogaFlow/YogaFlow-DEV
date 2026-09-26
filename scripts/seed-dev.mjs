@@ -125,11 +125,14 @@ async function aufraeumen() {
 }
 
 async function nutzerAnlegen({ email, vorname, nachname, rolle, tenantId }) {
+  // Rolle nur in app_metadata. user_metadata.role ignoriert handle_new_user
+  // seit 20260926160500 (dort setzt nur service_role eine erhöhte Rolle).
   const { data, error } = await db.auth.admin.createUser({
     email,
     password: DEMO_PASSWORT,
     email_confirm: true, // Supabase-seitig bestätigt; verschickt keine Mail
-    user_metadata: { tenant_id: tenantId, role: rolle, first_name: vorname, last_name: nachname },
+    user_metadata: { tenant_id: tenantId, first_name: vorname, last_name: nachname },
+    app_metadata: { role: rolle },
   });
   if (error) abbruch('Nutzer ' + email + ' konnte nicht angelegt werden: ' + error.message);
 

@@ -299,7 +299,8 @@ async function nutzerAnlegen({ email, vorname, nachname, rolle, tenantId }) {
     email,
     password: PASSWORT,
     email_confirm: true, // Supabase-seitig bestätigt; verschickt keine Mail
-    user_metadata: { tenant_id: tenantId, role: rolle, first_name: vorname, last_name: nachname },
+    user_metadata: { tenant_id: tenantId, first_name: vorname, last_name: nachname },
+    app_metadata: { role: rolle },
   });
   if (error) abbruch('Nutzer ' + email + ' konnte nicht angelegt werden: ' + error.message);
 
