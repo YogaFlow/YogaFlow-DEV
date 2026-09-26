@@ -2,7 +2,7 @@
 /**
  * A2 Schritt 1 — Sichtbarkeit von registrations für Lehrende (nur DEV).
  *
- * Nicht ausführen, bevor 20260926155000_a2_registrations_select_own_courses.sql
+ * Nicht ausführen, bevor 20260926180000_a2_registrations_select_own_courses.sql
  * auf DEV liegt. Gegen PROD nie.
  *
  * Fälle:

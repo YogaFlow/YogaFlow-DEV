@@ -26,6 +26,13 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Bald — vor dem dritten Studio oder dem ersten zahlenden Kunden
 
+- [ ] **Onboarding-Token statt 10-Minuten-Fenster in `handle_new_user`.** Das Fenster
+      lässt die erste Anmeldung mit `role=owner` gewinnen, solange das Studio
+      jünger als zehn Minuten ist und noch keine Inhaberin hat.
+- [ ] **`sync_profile_role_from_app_metadata` nur bei der ersten Rollenzuweisung.**
+      Heute schreibt der Trigger die Rolle bei jedem Wechsel von `raw_app_meta_data`
+      neu, wenn das Login genau ein Profil hat.
+- [ ] **`tenants` für `anon` auf die nötigen Felder einschränken statt `select *`.**
 - [ ] **Bestehende Edge Functions reichen teils `error.message` nach außen durch**
       (`update-user`, `delete-user`, `onboarding-public`). Auf die Fehlerform aus
       `_shared/service.ts` umstellen, wenn sie ohnehin angefasst werden.
