@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useNavigate, useSearchParams } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { TenantProvider, useTenant, buildApexHref, withDevTenant } from './context/TenantContext';
 import AuthPage from './pages/AuthPage';
@@ -51,13 +51,11 @@ const RedirectToApexMarketing: React.FC = () => {
   return <Spinner />;
 };
 
-/** Mandanten-App: Guard → Auth → Layout → Kindroute (`Outlet`). Pathloses Layout, damit RR6/7 `/dashboard` & Co. zuverlässig matched (nicht `path="*"` + Kinder). */
+/** Mandanten-App: Guard → Auth → Layout. Das Outlet steht in Layout. Pathloses Layout, damit RR6/7 `/dashboard` & Co. zuverlässig matched (nicht `path="*"` + Kinder). */
 const TenantAppShell: React.FC = () => (
   <TenantGuard>
     <ProtectedRoute>
-      <Layout>
-        <Outlet />
-      </Layout>
+      <Layout />
     </ProtectedRoute>
   </TenantGuard>
 );

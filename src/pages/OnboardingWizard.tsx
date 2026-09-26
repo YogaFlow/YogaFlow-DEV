@@ -162,13 +162,13 @@ const OnboardingWizard: React.FC = () => {
       message?: string;
     }>({ action: 'begin', p_name: studioName.trim(), p_slug: slug });
 
-    if (rpcError || !rpcResult?.success) {
+    if (rpcError || !rpcResult?.success || !rpcResult.tenant_id) {
       setSubmitError(rpcResult?.message ?? rpcError?.message ?? 'Studio konnte nicht angelegt werden.');
       setIsSubmitting(false);
       return;
     }
 
-    const tenantId: string = rpcResult.tenant_id;
+    const tenantId = rpcResult.tenant_id;
 
     // 2. Auth-Nutzer anlegen (Trigger liest role aus Metadata und setzt 'owner')
     const emailRedirectTo = import.meta.env.DEV

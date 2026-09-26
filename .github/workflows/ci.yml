@@ -42,7 +42,10 @@ jobs:
         run: npm ci
 
       - name: Typen pruefen
-        run: npx tsc --noEmit
+        # tsconfig.json listet keine Dateien, nur references. tsc --noEmit
+        # folgt den Referenzen nicht, der Schritt war damit bisher leer.
+        # Geprueft wird die App — dieselbe Datei wie lokal verbindlich.
+        run: npx tsc -p tsconfig.app.json --noEmit
 
       - name: Lint
         # Faellt nur bei Fehlern durch. Die verbleibenden Warnungen (any,

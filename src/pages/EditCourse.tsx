@@ -331,7 +331,7 @@ const EditCourse: React.FC = () => {
       };
 
       if (updateScope === 'series' && course.series_id) {
-        const seriesUpdateData = { ...updateData };
+        const seriesUpdateData: Partial<typeof updateData> = { ...updateData };
         delete seriesUpdateData.date;
 
         const { error: updateError } = await supabase

@@ -10,9 +10,15 @@ export type EnrollmentFeedbackDialog = {
   type: 'success' | 'error';
 };
 
+/** Spalten, die die Kursliste für die eigene Anmeldung wirklich lädt. */
+type OwnCourseRegistration = Pick<
+  Registration,
+  'course_id' | 'status' | 'is_waitlist' | 'waitlist_position'
+>;
+
 export function useCourseEnrollment(onAfterSuccess: () => void) {
   const { userProfile } = useAuth();
-  const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [registrations, setRegistrations] = useState<OwnCourseRegistration[]>([]);
   const [feedbackDialog, setFeedbackDialog] = useState<EnrollmentFeedbackDialog | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
   const [pendingUnregisterCourseId, setPendingUnregisterCourseId] = useState<string | null>(null);

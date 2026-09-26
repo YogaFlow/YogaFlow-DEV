@@ -363,7 +363,7 @@ const Dashboard: React.FC = () => {
                 Angemeldet
               </span>
             );
-          } else if (isWaitlist) {
+          } else if (isRegistration && isWaitlist) {
             const waitlistLabel = item.waitlist_position
               ? `Warteliste Pos. ${item.waitlist_position}`
               : 'Warteliste';
