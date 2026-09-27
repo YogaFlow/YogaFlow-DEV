@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
 import RemovePersonDialog, { RemovePersonTarget } from '../components/users/RemovePersonDialog';
+import MemberPassesSection from '../components/passes/MemberPassesSection';
 import { loadRemovalPreview, readInvokeErrorBody, removePerson } from '../lib/removePerson';
 
 // ---------------------------------------------------------------------------
@@ -948,6 +949,13 @@ export default function Users() {
                       </div>
                     )}
 
+                    <MemberPassesSection
+                      memberId={user.id}
+                      personName={`${user.first_name} ${user.last_name}`.trim()}
+                      isStudioAdmin={isAdmin}
+                      canSell={isCourseLeader}
+                    />
+
                     {removePersonZone(user, isSelf)}
                   </div>
                 )}
@@ -1275,6 +1283,13 @@ export default function Users() {
                             )}
 
                           </div>
+
+                          <MemberPassesSection
+                            memberId={user.id}
+                            personName={`${user.first_name} ${user.last_name}`.trim()}
+                            isStudioAdmin={isAdmin}
+                            canSell={isCourseLeader}
+                          />
 
                           {removePersonZone(user, isSelf)}
                         </div>

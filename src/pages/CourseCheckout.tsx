@@ -9,6 +9,7 @@ import { formatDate, formatPrice, formatTime } from '../lib/format';
 import type { CoverageStatus, PaymentMethod, WaivedReason } from '../types';
 import UndoBar from '../components/ui/UndoBar';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
+import SellPassDialog from '../components/passes/SellPassDialog';
 import {
   CASH_HINT,
   WAIVE_NOTE_HINT,
@@ -25,9 +26,18 @@ import {
   waiveReasonLabel,
   type ManualCheckoutMethod,
 } from '../lib/courseCheckout';
+import {
+  fetchMemberPassesForMany,
+  fetchSellablePassProducts,
+  passBadgeLabel,
+  revokePass,
+  sellUndoText,
+  type MemberPassSummary,
+} from '../lib/passes';
 
 type Person = {
   registrationId: string;
+  userId: string;
   firstName: string;
   lastName: string;
   coverage: CoverageStatus;
@@ -56,8 +66,11 @@ type RefundPerson = {
 };
 
 type UndoState = {
+  kind: 'payment' | 'pass';
   registrationId: string;
   paymentId: string;
+  passId?: string;
+  userId?: string;
   text: string;
 };
 
@@ -139,6 +152,9 @@ const CourseCheckout: React.FC = () => {
   const [revertTarget, setRevertTarget] = useState<Person | null>(null);
   const [dialogError, setDialogError] = useState('');
   const [dialogBusy, setDialogBusy] = useState(false);
+  const [passesByUser, setPassesByUser] = useState<Record<string, MemberPassSummary[]>>({});
+  const [hasSellableProducts, setHasSellableProducts] = useState(false);
+  const [sellTarget, setSellTarget] = useState<Person | null>(null);
   const busyIds = useRef(new Set<string>());
 
   const seesMethod = isStudioAdmin(userProfile);
@@ -252,6 +268,7 @@ const CourseCheckout: React.FC = () => {
       .select(
         `
         id,
+        user_id,
         coverage_status,
         coverage_waived_reason,
         coverage_waived_note,
@@ -295,6 +312,7 @@ const CourseCheckout: React.FC = () => {
       const user = Array.isArray(row.user) ? row.user[0] : row.user;
       return {
         registrationId: row.id,
+        userId: row.user_id as string,
         firstName: user?.first_name ?? '',
         lastName: user?.last_name ?? '',
         coverage: (row.coverage_status ?? 'open') as CoverageStatus,
@@ -304,6 +322,13 @@ const CourseCheckout: React.FC = () => {
         method: methodByRegistration.get(row.id) ?? null,
       };
     });
+
+    const [sellable, passesMap] = await Promise.all([
+      fetchSellablePassProducts(),
+      fetchMemberPassesForMany(next.map((p) => p.userId)),
+    ]);
+    setHasSellableProducts(sellable.length > 0);
+    setPassesByUser(passesMap);
 
     setPeople(next);
     setLoading(false);
@@ -393,6 +418,7 @@ const CourseCheckout: React.FC = () => {
     }
 
     setUndo({
+      kind: 'payment',
       registrationId: person.registrationId,
       paymentId: body.payment_id,
       text: `${personName(person)}: ${methodWord(method)} vermerkt`,
@@ -404,9 +430,28 @@ const CourseCheckout: React.FC = () => {
     if (!undo || undoBusy) return;
     setUndoBusy(true);
     const current = undo;
+    setUndo(null);
+
+    if (current.kind === 'pass' && current.passId && current.userId) {
+      const previousPasses = passesByUser[current.userId] ?? [];
+      setPassesByUser((map) => ({
+        ...map,
+        [current.userId!]: previousPasses.filter((p) => p.pass_id !== current.passId),
+      }));
+      const result = await revokePass(current.passId);
+      setUndoBusy(false);
+      if (!result.ok) {
+        setPassesByUser((map) => ({ ...map, [current.userId!]: previousPasses }));
+        setErrorText(result.message);
+        if (result.code === 'ALREADY_USED' || result.code === 'NOT_ACTIVE') {
+          await load();
+        }
+      }
+      return;
+    }
+
     const previous = people.find((person) => person.registrationId === current.registrationId);
     patchPerson(current.registrationId, { coverage: 'open', method: null });
-    setUndo(null);
 
     const { data, error } = await supabase.rpc('reverse_manual_payment', {
       p_payment_id: current.paymentId,
@@ -671,13 +716,16 @@ const CourseCheckout: React.FC = () => {
             const status = statusLabel(person, seesMethod);
             const open = person.coverage === 'open';
             const canRevertWaive = seesMethod && person.coverage === 'waived';
+            const canSellPass = hasSellableProducts;
+            const showMenu = open || canRevertWaive || canSellPass;
             const menuOpen = menuFor === person.registrationId;
+            const passLabel = passBadgeLabel(passesByUser[person.userId] ?? []);
             return (
               <div key={person.registrationId}>
                 <div className="flex items-center gap-2 px-3.5 py-2">
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[17px] font-medium text-text">{name}</p>
-                    <p className="mt-0.5 flex items-center gap-1 text-[13px] text-text">
+                    <p className="mt-0.5 flex flex-wrap items-center gap-x-1 gap-y-0.5 text-[13px] text-text">
                       {person.coverage === 'paid' ? (
                         <Check className="h-4 w-4 shrink-0" aria-hidden />
                       ) : null}
@@ -685,9 +733,12 @@ const CourseCheckout: React.FC = () => {
                       {status.detail ? (
                         <span className="text-textMuted tabular-nums">· {status.detail}</span>
                       ) : null}
+                      {passLabel ? (
+                        <span className="text-textMuted tabular-nums">· {passLabel}</span>
+                      ) : null}
                     </p>
                   </div>
-                  {open || canRevertWaive ? (
+                  {showMenu ? (
                     <div className="flex shrink-0 items-center gap-1">
                       <button
                         type="button"
@@ -714,19 +765,33 @@ const CourseCheckout: React.FC = () => {
                     </div>
                   ) : null}
                 </div>
-                {open && menuOpen ? (
+                {menuOpen ? (
                   <div className="border-t border-border bg-surfaceSunken px-3.5 py-1">
-                    {MENU_METHODS.map((item) => (
+                    {canSellPass ? (
                       <button
-                        key={item.method}
                         type="button"
-                        onClick={() => void record(person, item.method, null, null)}
+                        onClick={() => {
+                          setMenuFor(null);
+                          setSellTarget(person);
+                        }}
                         className="flex min-h-11 w-full items-center text-left text-[15px] text-text"
                       >
-                        {item.label}
+                        Karte verkaufen
                       </button>
-                    ))}
-                    {seesMethod ? (
+                    ) : null}
+                    {open
+                      ? MENU_METHODS.map((item) => (
+                          <button
+                            key={item.method}
+                            type="button"
+                            onClick={() => void record(person, item.method, null, null)}
+                            className="flex min-h-11 w-full items-center text-left text-[15px] text-text"
+                          >
+                            {item.label}
+                          </button>
+                        ))
+                      : null}
+                    {open && seesMethod ? (
                       <>
                         <button
                           type="button"
@@ -768,20 +833,18 @@ const CourseCheckout: React.FC = () => {
                         </button>
                       </>
                     ) : null}
-                  </div>
-                ) : null}
-                {canRevertWaive && menuOpen ? (
-                  <div className="border-t border-border bg-surfaceSunken px-3.5 py-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMenuFor(null);
-                        setRevertTarget(person);
-                      }}
-                      className="flex min-h-11 w-full items-center text-left text-[15px] text-text"
-                    >
-                      Erlass zurücknehmen
-                    </button>
+                    {canRevertWaive ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMenuFor(null);
+                          setRevertTarget(person);
+                        }}
+                        className="flex min-h-11 w-full items-center text-left text-[15px] text-text"
+                      >
+                        Erlass zurücknehmen
+                      </button>
+                    ) : null}
                   </div>
                 ) : null}
               </div>
@@ -794,7 +857,7 @@ const CourseCheckout: React.FC = () => {
 
       {undo ? (
         <UndoBar
-          key={undo.paymentId}
+          key={`${undo.kind}-${undo.paymentId}`}
           text={undo.text}
           actionLabel="Rückgängig"
           onAction={() => void undoPayment()}
@@ -802,6 +865,42 @@ const CourseCheckout: React.FC = () => {
           busy={undoBusy}
         />
       ) : null}
+
+      <SellPassDialog
+        open={sellTarget != null}
+        memberId={sellTarget?.userId ?? ''}
+        personName={sellTarget ? personName(sellTarget) : ''}
+        onClose={() => setSellTarget(null)}
+        onSold={(result) => {
+          const target = sellTarget;
+          setSellTarget(null);
+          if (!target) return;
+          const nextPass: MemberPassSummary = {
+            pass_id: result.passId,
+            name: result.productName,
+            remaining: result.units,
+            units_total: result.units,
+            valid_until: result.validUntil,
+          };
+          setPassesByUser((prev) => ({
+            ...prev,
+            [target.userId]: [...(prev[target.userId] ?? []), nextPass],
+          }));
+          setUndo({
+            kind: 'pass',
+            registrationId: target.registrationId,
+            paymentId: result.paymentId,
+            passId: result.passId,
+            userId: target.userId,
+            text: sellUndoText(
+              result.productName,
+              personName(target),
+              result.method,
+              result.validUntil,
+            ),
+          });
+        }}
+      />
 
       {amountDialog ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-text/45 p-4 sm:items-center">

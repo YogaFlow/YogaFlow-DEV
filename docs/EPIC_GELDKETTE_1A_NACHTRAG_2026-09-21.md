@@ -328,7 +328,7 @@ Karte unverändert. UPDATE auf `pass_movements` schlägt fehl. **Schema → Frei
 
 #### Entscheidungen 27.09. (V1–V6) — Umsetzungsblock A5
 
-Migration `20260927213000_a5_passes.sql` ist geschrieben und nicht angewendet. Test `scripts/test/a5_passes.mjs` ist geschrieben und nicht gelaufen. E13 damit entschieden (V1).
+Migration `20260927213000_a5_passes.sql` und Test `scripts/test/a5_passes.mjs` sind auf DEV grün (Commit `4315116`). E13 damit entschieden (V1).
 
 | ID | Entscheidung |
 |---|---|
@@ -338,6 +338,12 @@ Migration `20260927213000_a5_passes.sql` ist geschrieben und nicht angewendet. T
 | V4 | Zahlarten wie A3: `cash`, `paypal_manual`, `bank_transfer`. Betrag = Produktpreis zum Verkaufszeitpunkt, kein abweichender Betrag in A5. |
 | V5 | Gültigkeit aus A4: `years_to_year_end` n → bis 31.12. des Jahres (Kaufjahr + n). `months` n → bis einschließlich Kaufdatum + n Monate. Kaufdatum in Europe/Berlin. |
 | V6 | Sichtbarkeit: Owner/Admin alle Karten im Studio. Teilnehmende nur eigene (für „Meine Karten“ in A6). Lehrende keine Tabellen-Lesung (Preis = Zahlungsinformation, E5), sondern RPC `get_member_passes` mit Name, Rest und Gültigkeit, ohne Preis. |
+
+**UI-Stand (27.09., Schritt 2):** Migration und Tests auf DEV grün. Oberfläche gebaut (`SellPassDialog`, `MemberPassesSection`, `src/lib/passes.ts`):
+- Kassier-Ansicht: Kennzeichnung „Karte · noch n“ aus `get_member_passes`; bei mehreren die mit frühestem Ablauf und „+n weitere“. Menüpunkt „Karte verkaufen“ wenn `get_sellable_pass_products` nicht leer (Owner/Admin/Lehrende; entfernt bei archivierten Produkten / entfernten Personen). Verkaufsdialog mit Produktflächen und Zahlart-Tipp = Verkauf (wie A3). UndoBar → `revoke_pass` (Lehrende: 15-Min-Grenze serverseitig).
+- Personenverwaltung: Abschnitt „Karten“ über der Gefahrenzone (Owner/Admin mit Preis/Zahlart/Storno unbenutzter Karten; eingeklappt „Abgelaufen oder storniert“). Hinweis ohne Produkte nur für Owner/Admin.
+- Lehrende sehen in der Kasse keinen Kaufpreis verkaufter Karten (E5); den Preis im Verkaufsdialog schon.
+- Kein „mit Karte bezahlen“ (A6). Einlösen ändert die Buchungsdeckung in A5 nicht.
 
 ### A6 — Mit Karte buchen, Einheiten zurückbuchen, Verfall
 *Als Teilnehmerin möchte ich mit meiner Karte buchen und bei rechtzeitiger Abmeldung die Einheit zurückbekommen.*
