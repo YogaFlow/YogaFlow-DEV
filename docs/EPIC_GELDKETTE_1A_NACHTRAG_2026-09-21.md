@@ -370,6 +370,30 @@ mit Rest 1 → genau eine per Karte, die andere ohne Einlösung (Fehlermeldung �
 der Frist → +1, außerhalb → 0. Verfall am Stichtag → Rest 0, Event. Nachrücken mit Zustimmung → eingelöst.
 **Schema → Freigabe. STOPP.**
 
+#### Entscheidungen 27.09. (W1–W9) — Umsetzungsblock A6
+
+| ID | Entscheidung |
+|---|---|
+| W1 | Studio meldet eine Person ab → Einheit **immer** zurück (wie Kursabsage). Behalten nur per `manual_adjustment` mit Grund. |
+| W2 | Stornofrist Standard **24 h**, je Studio **0–72 h** in den bestehenden Buchungseinstellungen (`tenants.cancellation_window_hours`). Bei Buchung als `cancellation_deadline` eingefroren. **Keine** Tabelle `tenant_booking_settings` mit `valid_from` (Abweichung vom Entwurf oben: Einfrieren ersetzt die Historie). |
+| W3 | Warteliste: „Mit Karte bezahlen, falls ich nachrücke“ vorausgewählt, wenn gültige Karte; sichtbar und abwählbar (`coverage_intent`). |
+| W4 | „Meine Karten“: Abschnitt oben in „Meine Anmeldungen“, Verlauf aufklappbar. |
+| W5 | `open` → per Karte: Owner/Admin überall, Lehrende im eigenen Kurs (E15/A3). |
+| W6 | `manual_adjustment`: nur Owner/Admin, Grund Pflicht (≤ 200). |
+| W7 | Absage zurückgenommen, Karte leer/abgelaufen → Buchung wieder `open`, Glocke an Owner/Admin. |
+| W8 | Verfall: `pg_cron`, täglicher SQL-Job (Europe/Berlin), in **A6-3**. |
+| W9 | Karte am Kurstag gültig (`valid_until >=` Kursdatum), aktiv, Rest ≥ 1; frühestes `valid_until`, bei Gleichstand ältester Kauf. |
+
+**Schnitt (verbindlich):**
+
+| Schritt | Inhalt |
+|---|---|
+| **A6-1** | Frist, Spalten (`cancellation_deadline`, `pass_id`, `coverage_intent`), Helfer `pick_pass` / `redeem_pass` / `reverse_redemption`, `remove_member`-Fix. Noch kein öffentlicher Buchungsweg löst ein. Migration `20260927221500_a6_1_pass_booking_foundation.sql`. |
+| **A6-2** | Einlösen beim Anmelden / Studio-Eintrag / Umwandeln open→Karte; Kasse „mit Karte“; Selbstbuchung mit Kartenwahl. |
+| **A6-3** | Zurückbuchen (Abmelden, Studio, Kursabsage, Rücknahme), Nachrücken mit Zustimmung, `manual_adjustment`, Verfall per `pg_cron`, „Meine Karten“. |
+
+**Befund Inventur:** `cancel_reason = promotion_expired` ist reserviert für E2 (Zahlungsfrist nach Nachrücken), nicht Teil von A6 — kein RPC schreibt ihn heute.
+
 ### A7 — Hauptbuch mit logischen Konten (ehemals 4.1)
 *Als Studio möchte ich, dass jeder Geldvorgang eine unveränderliche Buchungszeile erzeugt.*
 

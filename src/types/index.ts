@@ -13,6 +13,8 @@ export interface Tenant {
   logo_on_auth: boolean;
   sidebar_show_name: boolean;
   default_max_participants: number;
+  /** Stunden vor Kursbeginn für kostenlose Storno / Einheitenrückgabe (A6, W2). */
+  cancellation_window_hours?: number;
 }
 
 export interface User {
@@ -207,6 +209,12 @@ export interface Registration {
   coverage_waived_note?: string | null;
   coverage_waived_by?: string | null;
   coverage_waived_at?: string | null;
+  /** Eingefrorene Stornofrist (Kursbeginn Berlin minus Studio-Fenster). */
+  cancellation_deadline?: string | null;
+  /** Karte bei Deckung pass. */
+  pass_id?: string | null;
+  /** Warteliste: 'pass' = beim Nachrücken einlösen (W3). */
+  coverage_intent?: 'pass' | null;
   course?: Course;
   user?: User;
 }

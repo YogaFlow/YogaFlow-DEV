@@ -103,6 +103,15 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
       A2-Inventur. Künftig nur kommende Termine ändern. Die Kursbearbeitung
       soll bei einer Preisänderung anzeigen, dass bestehende Buchungen den
       alten Preis behalten (Nachtrag, L9).
+- [ ] **A8-Feinschliff (Kassier-/Teilnehmerliste)**
+      - `MemberPassesSection` ist in `Users.tsx` doppelt eingebunden (Desktop-
+        und Mobil-Layout, Zeilen ~952 und ~1287) — vor A6-4 / A8 prüfen, ob
+        eine gemeinsame Stelle reicht.
+      - `npm run test:geldkette` braucht Pause bzw. Wiederholung gegen das
+        Auth-Rate-Limit (viele Logins hintereinander).
+      - Sammel-RPC für große Kurse (viele Einzel-`record_manual_payment`-
+        Tipps) — Produktfrage für A8.
+      - Serienbearbeitung schreibt auf vergangene Termine (siehe Punkt oben).
 - [ ] **Veraltete Dokumentation korrigieren:**
       `EMAIL_SYSTEM_DOCUMENTATION.md` und `docs/RELEASE_PR_AND_NEXT_STEPS.md`
       beschreiben Gmail als Mailversand — richtig ist Resend für ausgehende Mails,
