@@ -19,6 +19,7 @@ const SKRIPTE = [
   'a2_waived.mjs',
   'a3_payments.mjs',
   'a4_pass_products.mjs',
+  'a5_passes.mjs',
   'a9_cancel.mjs',
   's4_3_remove_member.mjs',
   's4_3_delete_user_fn.mjs',

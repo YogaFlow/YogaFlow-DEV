@@ -635,6 +635,46 @@ async function main() {
   );
   ok('anonymisierte Zeile bleibt daneben', (await profilLesen(admin, paid.id))?.email === `entfernt-${paid.id}@anonymisiert.invalid`);
 
+  console.log('Geldbezug nur über Karte (A5)');
+  const passHolder = await nutzerAnlegen(admin, {
+    email: SLUG + '.passholder@example.com',
+    vorname: 'Petra',
+    nachname: 'Pass',
+    rolle: 'user',
+    tenantId: tenant.id,
+    password,
+  });
+  const { data: produkt, error: prodErr } = await clientOwner.rpc('create_pass_product', {
+    p_name: '4.3-Testkarte',
+    p_units: 5,
+    p_price_cents: 5000,
+    p_validity_rule: 'months',
+    p_validity_value: 6,
+  });
+  if (prodErr || !produkt?.success) abbruch('Pass-Produkt: ' + (prodErr?.message || JSON.stringify(produkt)));
+  const { data: verkauf, error: verkErr } = await clientOwner.rpc('sell_pass', {
+    p_member_id: passHolder.id,
+    p_product_id: produkt.id,
+    p_method: 'cash',
+  });
+  if (verkErr || !verkauf?.success) abbruch('sell_pass: ' + (verkErr?.message || JSON.stringify(verkauf)));
+  const passWeg = await entfernen(clientOwner, passHolder.id);
+  ok(
+    'nur Karte → anonymized',
+    passWeg?.success === true && passWeg?.mode === 'anonymized',
+    JSON.stringify(passWeg)
+  );
+  const { data: karteBleibt, error: karteErr } = await admin
+    .from('passes')
+    .select('id, member_id, status')
+    .eq('id', verkauf.pass_id)
+    .single();
+  if (karteErr) abbruch(karteErr.message);
+  ok(
+    'Karte bleibt an anonymisiertem Profil',
+    karteBleibt?.member_id === passHolder.id && karteBleibt?.status === 'active'
+  );
+
   console.log('Studio mit anonymisierten Profilen');
   const { error: studioWeg } = await admin.rpc('delete_tenant_complete', { p_tenant_id: tenant.id });
   if (studioWeg) abbruch('delete_tenant_complete: ' + studioWeg.message);

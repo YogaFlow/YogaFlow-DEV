@@ -326,6 +326,19 @@ Client-Helfer: `formatPassValidity` in `src/lib/passProducts.ts`.
 **Akzeptanz:** Verkauf 10er bar → Zahlung, Karte, Bewegung +10, Event, Audit. Produktpreis danach geändert →
 Karte unverändert. UPDATE auf `pass_movements` schlägt fehl. **Schema → Freigabe. STOPP.**
 
+#### Entscheidungen 27.09. (V1–V6) — Umsetzungsblock A5
+
+Migration `20260927213000_a5_passes.sql` ist geschrieben und nicht angewendet. Test `scripts/test/a5_passes.mjs` ist geschrieben und nicht gelaufen. E13 damit entschieden (V1).
+
+| ID | Entscheidung |
+|---|---|
+| V1 | Wer verkauft (E13): Owner, Admin und Lehrende des Studios. Lehrende können den eigenen Verkauf 15 Minuten lang rückgängig machen (wie A3/P4), danach nur Owner/Admin. |
+| V2 | Wo: Kassier-Ansicht (Menü der Person) und Personenverwaltung (Oberfläche Schritt 2). |
+| V3 | Storno: Owner/Admin können eine Karte stornieren, solange keine Einheit eingelöst ist. Gegenzeile zur Zahlung entsteht automatisch. Benutzte Karten nur über Einzelkorrektur mit Grund (A6). |
+| V4 | Zahlarten wie A3: `cash`, `paypal_manual`, `bank_transfer`. Betrag = Produktpreis zum Verkaufszeitpunkt, kein abweichender Betrag in A5. |
+| V5 | Gültigkeit aus A4: `years_to_year_end` n → bis 31.12. des Jahres (Kaufjahr + n). `months` n → bis einschließlich Kaufdatum + n Monate. Kaufdatum in Europe/Berlin. |
+| V6 | Sichtbarkeit: Owner/Admin alle Karten im Studio. Teilnehmende nur eigene (für „Meine Karten“ in A6). Lehrende keine Tabellen-Lesung (Preis = Zahlungsinformation, E5), sondern RPC `get_member_passes` mit Name, Rest und Gültigkeit, ohne Preis. |
+
 ### A6 — Mit Karte buchen, Einheiten zurückbuchen, Verfall
 *Als Teilnehmerin möchte ich mit meiner Karte buchen und bei rechtzeitiger Abmeldung die Einheit zurückbekommen.*
 
@@ -471,7 +484,7 @@ Sprint A darf vor Stripe nach PROD, wenn alles zutrifft:
 
 | # | Frage | Empfehlung / Entscheidung | Stand |
 |---|---|---|---|
-| **E13** | Dürfen Lehrende Karten verkaufen? | **Empfehlung: ja**, zum Listenpreis, ohne Rabatt, nur mit Zahlungsvermerk. In Studios verkauft meist die Lehrerin im Kurs. Bei Solo-Lehrenden ist `owner` = Lehrerin ohnehin | offen, Julius |
+| **E13** | Dürfen Lehrende Karten verkaufen? | **Ja** (V1): Owner, Admin und Lehrende; Listenpreis; Lehrende stornieren eigenen Verkauf 15 Minuten (wie P4) | entschieden 27.09. (V1) |
 | **E14** | Barbeleg aus Omlify? | **Nein, nur Vermerk** (Abschnitt 3) | entschieden 21.09. |
 | **E15** | Rechte der Lehrenden bei Deckung | Vermerk bar/PayPal/Überweisung und Einlösen **nur in eigenen Kursen**, Betrag vom Server, keine Korrektur, kein `waived`, keine Studio-Übersicht der Beträge. **P4 (27.09.):** den eigenen Vermerk innerhalb von 15 Minuten selbst zurücknehmen, auch als Lehrende; danach nur `owner`/`admin` | entschieden 21.09., ergänzt 27.09. |
 | **E16** | Gültigkeit von Karten | Studio setzt sie. Standard „3 Jahre zum Jahresende“, Hinweis unter 12 Monaten. Rechtsprüfung im Rechts-Epic | entschieden 21.09. |

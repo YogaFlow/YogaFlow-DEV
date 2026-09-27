@@ -77,6 +77,47 @@ export interface PassProduct {
   updated_at: string;
 }
 
+export type PassStatus = 'active' | 'expired' | 'revoked';
+
+export type PassMovementKind =
+  | 'purchase'
+  | 'redeem'
+  | 'redeem_reversal'
+  | 'expire'
+  | 'revoke'
+  | 'manual_adjustment';
+
+export interface Pass {
+  id: string;
+  tenant_id: string;
+  member_id: string;
+  product_id: string;
+  name: string;
+  units_total: number;
+  price_cents: number;
+  validity_rule: PassValidityRule;
+  validity_value: number;
+  valid_from: string;
+  valid_until: string;
+  payment_id: string;
+  status: PassStatus;
+  revoked_at: string | null;
+  created_at: string;
+}
+
+export interface PassMovement {
+  id: string;
+  tenant_id: string;
+  pass_id: string;
+  delta: number;
+  kind: PassMovementKind;
+  registration_id: string | null;
+  reason: string | null;
+  actor_member_id: string | null;
+  event_id: string | null;
+  created_at: string;
+}
+
 export interface Payment {
   id: string;
   tenant_id: string;
