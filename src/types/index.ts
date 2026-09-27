@@ -40,6 +40,8 @@ export type RegistrationStatus = 'registered' | 'waitlist' | 'cancelled';
 
 export type CoverageStatus = 'not_required' | 'open' | 'paid' | 'pass' | 'waived';
 
+export type WaivedReason = 'pre_omlify' | 'goodwill' | 'other';
+
 export type CancelReason =
   | 'participant'
   | 'studio'
@@ -95,6 +97,10 @@ export interface Registration {
   coverage_status?: CoverageStatus;
   price_cents_at_booking?: number;
   currency?: string;
+  coverage_waived_reason?: WaivedReason | null;
+  coverage_waived_note?: string | null;
+  coverage_waived_by?: string | null;
+  coverage_waived_at?: string | null;
   course?: Course;
   user?: User;
 }

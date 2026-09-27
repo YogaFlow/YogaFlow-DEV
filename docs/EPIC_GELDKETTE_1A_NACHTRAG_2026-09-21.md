@@ -182,6 +182,7 @@ Reihenfolge und Bedingungen, bevor Sprint-A-Schema auf PROD darf:
    Diese drei liegen zeitlich **vor** dem PROD-Hotfix `20260926160500` (Release 2026-09e, seit 26.09.2026 auf PROD). `db push` sieht sie deshalb als Einfügung vor der letzten Remote-Version und wendet sie nur mit `--include-all` an. `scripts/db.mjs` reicht das Flag heute nicht durch. Erst beim Sprint-A-Release bewusst ergänzen, nicht vorher.
 3. **Altzeilen auf PROD:** Inventur vor A1: 8 Zeilen mit `cancellation_timestamp` vor Kursbeginn (5 `registered`, 3 `waitlist`). Nach Datei 2 → alle `cancelled` / `legacy_closed`. Erwartung per `GROUP BY status, cancel_reason` prüfen.
 4. **A1 geht nicht allein auf PROD.** Frühestens zusammen mit **A9** (Kurs absagen): Kurse mit Stornierungen lassen sich sonst weder löschen (`RESTRICT`) noch absagen.
+5. **A2 Bestand (`20260926190000`).** Inventur PROD 27.09.2026, nur lesend: 317 Buchungen, jede mit `courses.price > 0`, keine ohne Kurs, kein Preis 0. Die Migration setzt alle auf `coverage_status = open` und `price_cents_at_booking = round(courses.price * 100)`. Erwartungswert danach: `count(*) = 317` und `sum(price_cents_at_booking) = 507800` (5.078,00 €), keine Zeile `not_required`. Die A2-Migrationen `20260926180000`, `20260926190000` und `20260927093608` liegen zeitlich nach dem PROD-Hotfix `20260926160500` und brauchen deshalb kein `--include-all` (anders als die drei A1-Dateien in Punkt 2).
 
 ### A2 — Deckungsstatus
 *Als Lehrerin möchte ich bei jeder Buchung sehen, ob sie beglichen ist und womit.*
@@ -199,9 +200,35 @@ Reihenfolge und Bedingungen, bevor Sprint-A-Schema auf PROD darf:
 **Akzeptanz:** Neue Buchung in 15-€-Kurs → `open`, `price_cents_at_booking = 1500`. Preisänderung am Kurs ändert
 bestehende Buchung nicht. `teacher` kann `waived` nicht setzen (Fehler). **Schema → Freigabe. STOPP.**
 
-#### Umsetzung
+#### Umsetzung 27.09.
 
 Preis und Deckung setzt der Trigger `registrations_freeze_price_on_insert`, nicht die Register-RPCs.
+
+**Entscheidungen A2-1 bis A2-5 und W1–W4**
+
+| ID | Entscheidung |
+|---|---|
+| A2-1 | `registrations_select` enger: Lehrende sehen nur Buchungen eigener Kurse, plus eigene Buchungen als Teilnehmerin. owner/admin sehen alles im Studio. Keine Spalten-Grants (`select *` in `Participants.tsx`). |
+| A2-2 | Preis einfrieren beim INSERT, auch auf der Warteliste. `promote_from_waitlist` bleibt unverändert. |
+| A2-3 | Stornierte im Bestand wie aktive: Preis aus dem Kurs, Deckung `open` bzw. `not_required`. „Offene Beträge“ filtert immer auf aktive Buchungen. |
+| A2-4 | `price IS NULL` entfällt, `price_cents_at_booking` ist `NOT NULL`. |
+| A2-5 | `set_coverage_waived` nur über `is_tenant_manager()`. Lehrende bekommen einen Fehler. |
+| W1 | Grund ist ein Code plus Notiz: `pre_omlify`, `goodwill`, `other`. Bei `other` ist die Notiz Pflicht (mindestens 3 Zeichen). |
+| W2 | Rücknahme über `revert_coverage_waived(uuid)`, nur owner/admin, mit Audit, ohne Notiz. |
+| W3 | Nur `coverage_status = open`. Der Buchungsstatus spielt keine Rolle. |
+| W4 | Keine Sammelaktion. Die kommt mit A8. |
+
+**Migrationen und Commits:** `20260926180000` (`46192c6`), `20260926190000` (`4184ba1`), `20260927093608` (Erlass, dieser Commit).
+
+**Notiz.** Der Text bleibt auf `registrations.coverage_waived_note`. Grund ist Art. 17: Freitext gehört nicht in das append-only `audit_log`. Das Event-Payload enthält ihn nicht. `changed_fields` nennt die Spalte. Die Rücknahme hat keine Notiz.
+
+**Akzeptanz A2 — Belege**
+
+| Kriterium | Beleg |
+|---|---|
+| Neue Buchung 15 € → `open`, 1500 | `scripts/test/a2_coverage.mjs` Fall 1 |
+| Preisänderung ändert die bestehende Buchung nicht | `scripts/test/a2_coverage.mjs` Fall 2 |
+| `teacher` kann `waived` nicht setzen | `scripts/test/a2_waived.mjs` Fall 2 (grün auf DEV, 27.09.2026) |
 
 ### A3 — Zahlungsvermerk bar / PayPal / Überweisung (ehemals 3.3)
 *Als Lehrerin möchte ich in der Teilnehmerliste mit einem Tipp vermerken, dass jemand bar oder per PayPal
