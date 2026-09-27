@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Calendar, Check, Clock, MapPin, User, Users } from 'lucide-react';
+import CourseCancelDialog from '../components/courses/CourseCancelDialog';
 import CourseDeleteDialog from '../components/courses/CourseDeleteDialog';
 import CourseEnrollmentDialogs from '../components/courses/CourseEnrollmentDialogs';
 import AccentPill from '../components/ui/AccentPill';
@@ -17,10 +18,12 @@ import {
   formatDuration,
   formatPrice,
   formatTimeRange,
+  formatDateTime,
   formatTodayOrTomorrow,
 } from '../lib/format';
 import { supabase } from '../lib/supabase';
 import { canSelfEnrollInCourse, canSelfEnrollInCourses } from '../lib/userRoles';
+import { useCourseCancellation } from '../lib/useCourseCancellation';
 import { useCourseDeletion } from '../lib/useCourseDeletion';
 import { useCourseEnrollment } from '../lib/useCourseEnrollment';
 import { formatStaffName, withCourseTeachers } from '../lib/staffNames';
@@ -98,8 +101,18 @@ const CourseDetail: React.FC = () => {
     singleHasRegistrations,
     blockedSessions,
     courseTitle,
+    singleRowCount,
+    seriesRowCount,
     feedbackDialog: deleteFeedback,
   } = useCourseDeletion(course);
+
+  const cancellation = useCourseCancellation(course, {
+    isManager: isAdmin,
+    teacherOnlyId: isAdmin ? null : userProfile?.id ?? null,
+    onChanged: () => {
+      void loadCourse();
+    },
+  });
 
   useEffect(() => {
     setLoading(true);
@@ -151,8 +164,12 @@ const CourseDetail: React.FC = () => {
   const cancelled = isCourseCancelled(course.status);
   const upcoming = isCourseUpcoming(course);
   const canAct = canSelfEnrollInCourse(course, userProfile) && upcoming;
-  const showStaffLinks =
-    isCourseLeader && (isAdmin || course.teacher_id === userProfile?.id);
+  const canManageCourse = isAdmin || course.teacher_id === userProfile?.id;
+  const showStaffLinks = isCourseLeader && canManageCourse;
+  const canCancelCourse = canManageCourse && course.status === 'active' && upcoming;
+  const canUncancelCourse = canManageCourse && course.status === 'canceled' && upcoming;
+  const cancelledOn = course.canceled_at ? formatDateTime(course.canceled_at) : '';
+  const cancelNote = course.cancel_note?.trim() ?? '';
   const durationMinutes = courseDurationMinutes(course);
   const teacherName = formatStaffName(course.teacher);
   const locationLine = [course.location, course.room].filter(Boolean).join(' · ');
@@ -213,12 +230,26 @@ const CourseDetail: React.FC = () => {
         onScopeChange={setScope}
         personCount={personCount}
         singleHasRegistrations={singleHasRegistrations}
+        singleRowCount={singleRowCount}
+        seriesRowCount={seriesRowCount}
         blockedSessions={blockedSessions}
         deleting={deleting}
         onCancel={cancelDelete}
         onConfirm={() => void confirmDelete()}
+        onRequestCancel={() => {
+          cancelDelete();
+          cancellation.requestCancel();
+        }}
+      />
+      <CourseCancelDialog
+        dialog={cancellation.dialog}
+        onScopeChange={cancellation.setScope}
+        onNoteChange={cancellation.setNote}
+        onCancel={cancellation.closeDialog}
+        onConfirm={cancellation.confirm}
       />
       <FeedbackDialog dialog={deleteFeedback} onClose={closeFeedback} />
+      <FeedbackDialog dialog={cancellation.feedbackDialog} onClose={cancellation.closeFeedback} />
 
       <button
         type="button"
@@ -232,6 +263,24 @@ const CourseDetail: React.FC = () => {
       <h2 className="mt-4 text-[22px] font-medium text-text">{course.title}</h2>
 
       {courseStatus ? <div className="mt-2">{courseStatus}</div> : null}
+
+      {cancelled ? (
+        <div className="mt-4 rounded-md border border-border bg-surfaceSunken px-3.5 py-3">
+          <p className="text-[15px] font-medium text-text">
+            {cancelledOn ? `Abgesagt am ${cancelledOn}` : 'Abgesagt'}
+            {cancelNote ? ` · Grund: ${cancelNote}` : ''}
+          </p>
+          {canUncancelCourse ? (
+            <button
+              type="button"
+              onClick={cancellation.requestUncancel}
+              className="mt-2 inline-flex min-h-11 items-center text-[15px] font-medium text-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+            >
+              Absage zurücknehmen
+            </button>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="mt-5 divide-y divide-border overflow-hidden rounded-md border border-border bg-surface">
         {dateLine ? (
@@ -296,6 +345,16 @@ const CourseDetail: React.FC = () => {
           <h3 className="text-[17px] font-medium text-text">Voraussetzungen</h3>
           <p className="mt-2 whitespace-pre-line text-[15px] text-text">{prerequisites}</p>
         </section>
+      ) : null}
+
+      {canCancelCourse ? (
+        <button
+          type="button"
+          onClick={cancellation.requestCancel}
+          className="mt-8 inline-flex min-h-11 items-center text-[15px] font-medium text-danger focus:outline-none focus-visible:ring-2 focus-visible:ring-danger focus-visible:ring-offset-2"
+        >
+          Kurs absagen
+        </button>
       ) : null}
 
       {isAdmin && upcoming ? (

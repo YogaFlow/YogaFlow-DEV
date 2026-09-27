@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import { Course, Registration } from '../types';
 import { isCourseCancelled, isCourseRunning, isCourseUpcoming, isRegistrationVisible } from '../lib/courseDateTime';
 import {
+  formatDate,
   formatDayLabel,
   formatTime,
   formatTimeRange,
@@ -14,7 +15,7 @@ import {
 import { fetchCourseParticipantCounts } from '../lib/courseParticipantCounts';
 import { isParticipantOnlyRole, isTeacherOnly } from '../lib/userRoles';
 import { formatStaffName, withCourseTeachers } from '../lib/staffNames';
-import { berlinIsoDate, checkoutDayWord } from '../lib/courseCheckout';
+import { berlinIsoDate, checkoutDayWord, latestUnreversedPayment } from '../lib/courseCheckout';
 import AccentPill from '../components/ui/AccentPill';
 import CourseRow from '../components/courses/CourseRow';
 
@@ -47,6 +48,7 @@ const Dashboard: React.FC = () => {
   });
   const [loading, setLoading] = useState(true);
   const [checkoutLines, setCheckoutLines] = useState<CheckoutLine[]>([]);
+  const [refundLines, setRefundLines] = useState<CheckoutLine[]>([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -183,7 +185,10 @@ const Dashboard: React.FC = () => {
         }
 
         if (userProfile.role === 'user') {
-          if (isMounted) setCheckoutLines([]);
+          if (isMounted) {
+            setCheckoutLines([]);
+            setRefundLines([]);
+          }
         } else {
           const yesterday = berlinIsoDate(-1);
           const todayBerlin = berlinIsoDate(0);
@@ -214,6 +219,56 @@ const Dashboard: React.FC = () => {
             for (const row of openRows ?? []) {
               openByCourse.set(row.course_id, (openByCourse.get(row.course_id) ?? 0) + 1);
             }
+          }
+
+          if (userProfile.role === 'owner' || userProfile.role === 'admin') {
+            const { data: paidRows, error: paidError } = await supabase
+              .from('registrations')
+              .select('id, course:courses(id, title, date, time, status)')
+              .eq('cancel_reason', 'course_cancelled')
+              .eq('coverage_status', 'paid');
+            if (paidError) throw paidError;
+            const paidList = paidRows ?? [];
+            const openPayments = new Map<string, true>();
+            if (paidList.length > 0) {
+              const { data: paymentRows, error: paymentError } = await supabase
+                .from('payments')
+                .select('id, registration_id, method, amount_cents, reverses_payment_id, received_at')
+                .in(
+                  'registration_id',
+                  paidList.map((row) => row.id),
+                );
+              if (paymentError) throw paymentError;
+              for (const id of latestUnreversedPayment(paymentRows ?? []).keys()) {
+                openPayments.set(id, true);
+              }
+            }
+            const grouped = new Map<string, CheckoutLine>();
+            for (const row of paidList) {
+              if (!openPayments.has(row.id)) continue;
+              const course = Array.isArray(row.course) ? row.course[0] : row.course;
+              if (!course || !isCourseCancelled(course.status)) continue;
+              const current = grouped.get(course.id);
+              if (current) {
+                current.open += 1;
+              } else {
+                grouped.set(course.id, {
+                  id: course.id,
+                  title: course.title,
+                  date: course.date,
+                  time: course.time,
+                  open: 1,
+                });
+              }
+            }
+            if (!isMounted) return;
+            setRefundLines(
+              [...grouped.values()].sort(
+                (a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time),
+              ),
+            );
+          } else if (isMounted) {
+            setRefundLines([]);
           }
 
           if (!isMounted) return;
@@ -250,11 +305,11 @@ const Dashboard: React.FC = () => {
         const today = new Date().toISOString().split('T')[0];
         const { data: upcomingCoursesData } = await supabase
           .from('courses')
-          .select('id, date, time, teacher_id')
+          .select('id, date, time, teacher_id, status')
           .gte('date', today);
 
-        const upcomingCourses = (upcomingCoursesData || []).filter((course) =>
-          isCourseUpcoming(course)
+        const upcomingCourses = (upcomingCoursesData || []).filter(
+          (course) => isCourseUpcoming(course) && !isCourseCancelled(course.status),
         );
         const upcomingCourseIds = upcomingCourses.map((course) => course.id);
 
@@ -284,10 +339,12 @@ const Dashboard: React.FC = () => {
         if (userProfile.role !== 'user') {
           const { data } = await supabase
             .from('courses')
-            .select('id, date, time')
+            .select('id, date, time, status')
             .eq('teacher_id', userProfile.id)
             .gte('date', today);
-          myCoursesCount = (data || []).filter((course) => isCourseUpcoming(course)).length;
+          myCoursesCount = (data || []).filter(
+            (course) => isCourseUpcoming(course) && !isCourseCancelled(course.status),
+          ).length;
         }
 
         if (userProfile.role === 'user' || userProfile.role === 'teacher') {
@@ -417,7 +474,9 @@ const Dashboard: React.FC = () => {
             .join(' · ');
 
           let status: React.ReactNode = null;
-          if (isRegistered) {
+          if (isCourseCancelled(course.status)) {
+            status = <span className="text-[13px] font-medium text-text">Abgesagt</span>;
+          } else if (isRegistered) {
             status = (
               <span className="inline-flex items-center gap-1 text-[13px] font-medium text-success">
                 <Check className="h-4 w-4" aria-hidden />
@@ -497,6 +556,30 @@ const Dashboard: React.FC = () => {
             : 'Willkommen zurück!'}
         </p>
       </div>
+
+      {refundLines.length > 0 && isAdmin && (
+        <section className="overflow-hidden rounded-md border border-border bg-surface">
+          <div className="border-b border-border px-3.5 py-3">
+            <h2 className="text-[17px] font-medium text-text">Rückgaben offen</h2>
+          </div>
+          <div className="divide-y divide-border">
+            {refundLines.map((line) => (
+              <Link
+                key={line.id}
+                to={`/course/${line.id}/kassieren`}
+                className="flex min-h-11 items-center gap-3 px-3.5 py-3 text-[17px] font-medium text-text no-underline active:bg-surfaceSunken focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset"
+              >
+                <span className="min-w-0 flex-1">
+                  {`${line.title} ${formatDate(line.date)} – ${
+                    line.open === 1 ? '1 Rückgabe' : `${line.open} Rückgaben`
+                  }`}
+                </span>
+                <ChevronRight className="h-[18px] w-[18px] shrink-0 text-textSubtle" aria-hidden />
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {checkoutLines.length > 0 && !isParticipantOnly && (
         <section className="overflow-hidden rounded-md border border-border bg-surface">

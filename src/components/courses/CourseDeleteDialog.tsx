@@ -11,10 +11,13 @@ interface CourseDeleteDialogProps {
   onScopeChange: (scope: CourseDeleteScope) => void;
   personCount: number;
   singleHasRegistrations: boolean;
+  singleRowCount: number;
+  seriesRowCount: number;
   blockedSessions: BlockedSession[];
   deleting: boolean;
   onCancel: () => void;
   onConfirm: () => void;
+  onRequestCancel: () => void;
 }
 
 function sessionLabel(session: BlockedSession, sessions: BlockedSession[]): string {
@@ -39,10 +42,13 @@ const CourseDeleteDialog: React.FC<CourseDeleteDialogProps> = ({
   onScopeChange,
   personCount,
   singleHasRegistrations,
+  singleRowCount,
+  seriesRowCount,
   blockedSessions,
   deleting,
   onCancel,
   onConfirm,
+  onRequestCancel,
 }) => {
   useEffect(() => {
     if (!open) return;
@@ -60,12 +66,13 @@ const CourseDeleteDialog: React.FC<CourseDeleteDialogProps> = ({
   if (!open) return null;
 
   const showSeriesChoice = upcomingCount > 1;
-  const seriesBlocked = blockedSessions.length > 0;
+  const seriesBlocked = seriesRowCount > 0 || blockedSessions.length > 0;
+  const singleBlocked = singleRowCount > 0 || singleHasRegistrations;
   const confirmBlocked = showSeriesChoice
     ? scope === 'series'
       ? seriesBlocked
-      : singleHasRegistrations
-    : singleHasRegistrations;
+      : singleBlocked
+    : singleBlocked;
   const nothingDeletable = showSeriesChoice
     ? singleHasRegistrations && seriesBlocked
     : singleHasRegistrations;
@@ -188,7 +195,21 @@ const CourseDeleteDialog: React.FC<CourseDeleteDialogProps> = ({
               </div>
             ) : null}
 
-            {personCount > 0 ? (
+            {confirmBlocked ? (
+              <div className="p-4 bg-surfaceSunken border border-border rounded-sm">
+                <p className="text-sm text-text">
+                  Kurse mit Anmeldungen kannst du nicht löschen. Du kannst ihn absagen.
+                </p>
+                <button
+                  type="button"
+                  onClick={onRequestCancel}
+                  disabled={deleting}
+                  className="mt-3 inline-flex min-h-11 items-center text-[15px] font-medium text-danger focus:outline-none focus-visible:ring-2 focus-visible:ring-danger focus-visible:ring-offset-2 disabled:opacity-50"
+                >
+                  Kurs absagen
+                </button>
+              </div>
+            ) : personCount > 0 ? (
               <div className="p-4 bg-accentSoft border border-accent rounded-sm">
                 <p className="text-sm font-medium text-accentText">{personLine}</p>
                 <p className="text-sm text-accentText mt-1">
@@ -213,22 +234,19 @@ const CourseDeleteDialog: React.FC<CourseDeleteDialogProps> = ({
             >
               {cancelLabel}
             </button>
+            {confirmBlocked ? null : (
             <button
               type="button"
               onClick={() => {
-                if (confirmBlocked || deleting) return;
+                if (deleting) return;
                 onConfirm();
               }}
-              disabled={deleting || confirmBlocked}
-              aria-disabled={deleting || confirmBlocked}
-              className={
-                confirmBlocked
-                  ? 'inline-flex min-h-11 items-center px-4 text-[15px] font-medium rounded-sm border border-border bg-surfaceSunken text-textSubtle cursor-not-allowed'
-                  : 'inline-flex min-h-11 items-center px-4 text-[15px] font-medium bg-danger text-onBrand rounded-sm active:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-danger focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50'
-              }
+              disabled={deleting}
+              className="inline-flex min-h-11 items-center px-4 text-[15px] font-medium bg-danger text-onBrand rounded-sm active:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-danger focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {deleting ? 'Wird gelöscht …' : confirmLabel}
             </button>
+            )}
           </div>
         </div>
       </div>

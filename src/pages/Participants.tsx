@@ -12,7 +12,7 @@ import {
   formatTimeRange,
 } from '../lib/format';
 import ConfirmDialog, { ConfirmDialogState } from '../components/ui/ConfirmDialog';
-import { isCourseVisibleThroughBerlinToday } from '../lib/courseDateTime';
+import { isCourseCancelled, isCourseVisibleThroughBerlinToday } from '../lib/courseDateTime';
 import { formatUserAddress } from '../lib/userAddress';
 import { groupParticipantsByCourse } from '../lib/participantGrouping';
 import {
@@ -32,6 +32,7 @@ const courseGroupHeading = (course: Course, count: number) => {
       <div className="text-[15px] font-medium text-text">{course.title}</div>
       <div className="text-[13px] text-textMuted tabular-nums">
         {formatDate(course.date)} · {formatTimeRange(course.time, course.end_time)} · {countLabel}
+        {isCourseCancelled(course.status) ? ' · Abgesagt' : ''}
       </div>
     </>
   );
@@ -44,7 +45,7 @@ const CourseGroupTitle = ({ course, count }: { course: Course; count: number }) 
       to={`/course/${course.id}/kassieren`}
       className="inline-flex h-11 shrink-0 items-center rounded-full border border-border px-4 text-[15px] font-medium text-brand no-underline active:bg-surfaceSunken"
     >
-      Kassieren
+      {isCourseCancelled(course.status) ? 'Rückgaben' : 'Kassieren'}
     </Link>
   </div>
 );
@@ -104,11 +105,15 @@ const Participants: React.FC = () => {
         if (registrationsError) throw registrationsError;
         if (isMounted) {
           const upcomingParticipants = (registrationsData || []).filter(
-            (registration: any) =>
-              registration.course &&
-              isCourseVisibleThroughBerlinToday(registration.course) &&
-              registration.cancellation_timestamp == null &&
-              (!isTeacherOnly(userProfile) || registration.course.teacher_id === userProfile.id)
+            (registration: any) => {
+              if (!registration.course) return false;
+              if (!isCourseVisibleThroughBerlinToday(registration.course)) return false;
+              if (isTeacherOnly(userProfile) && registration.course.teacher_id !== userProfile.id) {
+                return false;
+              }
+              if (registration.cancel_reason === 'course_cancelled') return true;
+              return registration.cancellation_timestamp == null;
+            }
           );
           setParticipants(upcomingParticipants);
         }
@@ -133,6 +138,7 @@ const Participants: React.FC = () => {
 
   const canUnregisterParticipant = (participant: ParticipantWithDetails): boolean => {
     if (!userProfile) return false;
+    if (participant.cancel_reason === 'course_cancelled') return false;
     if (isStudioAdmin(userProfile)) return true;
     if (isTeacherOnly(userProfile)) {
       return (
@@ -406,6 +412,9 @@ const Participants: React.FC = () => {
                             </div>
                           )}
                         </div>
+                        {participant.cancel_reason === 'course_cancelled' ? (
+                          <span className="flex-shrink-0 text-[13px] font-medium text-text">abgesagt</span>
+                        ) : (
                         <span className={`flex-shrink-0 inline-flex px-2 py-1 text-xs font-medium rounded-full ${
                           participant.status === 'registered'
                             ? 'bg-sage-100 text-sage-800'
@@ -416,6 +425,7 @@ const Participants: React.FC = () => {
                             participant.waitlist_position
                           )}
                         </span>
+                        )}
                       </div>
 
                       <div className="mt-2 space-y-1 text-[13px]">
@@ -523,6 +533,9 @@ const Participants: React.FC = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
+                          {participant.cancel_reason === 'course_cancelled' ? (
+                            <span className="text-sm font-medium text-text">abgesagt</span>
+                          ) : (
                           <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
                             participant.status === 'registered'
                               ? 'bg-sage-100 text-sage-800'
@@ -533,6 +546,7 @@ const Participants: React.FC = () => {
                               participant.waitlist_position
                             )}
                           </span>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-textMuted tabular-nums">
                           {formatDateTime(participant.registered_at)}

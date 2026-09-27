@@ -9,7 +9,7 @@ import { formatDayLabel, formatTime } from '../lib/format';
 import { groupCoursesByDay } from '../lib/courseGrouping';
 import CourseRow from '../components/courses/CourseRow';
 import AccentPill from '../components/ui/AccentPill';
-import { isCourseUpcoming } from '../lib/courseDateTime';
+import { isCourseCancelled, isCourseUpcoming } from '../lib/courseDateTime';
 
 const MyCourses: React.FC = () => {
   const navigate = useNavigate();
@@ -149,7 +149,11 @@ const MyCourses: React.FC = () => {
                     .join(' · ');
 
                   let occupancyStatus: React.ReactNode = null;
-                  if (isFull) {
+                  if (isCourseCancelled(course.status)) {
+                    occupancyStatus = (
+                      <span className="text-[13px] font-medium text-text">Abgesagt</span>
+                    );
+                  } else if (isFull) {
                     occupancyStatus = (
                       <span className="text-[13px] font-medium text-textMuted">Ausgebucht</span>
                     );

@@ -14,6 +14,7 @@ function labelForNotificationPath(path?: string | null): string {
   if (path === '/my-courses' || path?.startsWith('/my-courses#anmeldungen')) {
     return 'Zu meinen Anmeldungen';
   }
+  if (path?.endsWith('/kassieren')) return 'Zu den Rückgaben';
   return 'Öffnen';
 }
 

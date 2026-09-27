@@ -1,6 +1,7 @@
 import React from 'react';
 import { Check } from 'lucide-react';
 import type { Course, Registration } from '../../types';
+import { isCourseCancelled } from '../../lib/courseDateTime';
 import { formatTimeRange, formatTodayOrTomorrow } from '../../lib/format';
 import { formatStaffName } from '../../lib/staffNames';
 import AccentPill from '../ui/AccentPill';
@@ -27,7 +28,11 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({ registrations }) => (
         .filter(Boolean)
         .join(' · ');
 
-      const status = isWaitlist ? (
+      const courseCancelled =
+        registration.cancel_reason === 'course_cancelled' || isCourseCancelled(course.status);
+      const status = courseCancelled ? (
+        <span className="text-[13px] font-medium text-text">Kurs fällt aus</span>
+      ) : isWaitlist ? (
         <AccentPill>
           {registration.waitlist_position
             ? `Warteliste (Pos. ${registration.waitlist_position})`

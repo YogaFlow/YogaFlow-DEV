@@ -4,6 +4,7 @@ import { Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { isStudioAdmin, isTeacherOnly } from '../lib/userRoles';
+import { isCourseCancelled } from '../lib/courseDateTime';
 import { formatDate, formatPrice, formatTime } from '../lib/format';
 import type { CoverageStatus, PaymentMethod, WaivedReason } from '../types';
 import UndoBar from '../components/ui/UndoBar';
@@ -42,6 +43,16 @@ type CourseHead = {
   date: string;
   time: string;
   teacher_id: string;
+  status: string | null;
+};
+
+type RefundPerson = {
+  registrationId: string;
+  paymentId: string;
+  firstName: string;
+  lastName: string;
+  method: PaymentMethod | null;
+  amountCents: number;
 };
 
 type UndoState = {
@@ -113,6 +124,9 @@ const CourseCheckout: React.FC = () => {
   const { userProfile } = useAuth();
   const [course, setCourse] = useState<CourseHead | null>(null);
   const [people, setPeople] = useState<Person[]>([]);
+  const [refunds, setRefunds] = useState<RefundPerson[]>([]);
+  const [paidCancelledCount, setPaidCancelledCount] = useState(0);
+  const [refundTarget, setRefundTarget] = useState<RefundPerson | null>(null);
   const [loading, setLoading] = useState(true);
   const [forbidden, setForbidden] = useState(false);
   const [missing, setMissing] = useState(false);
@@ -136,7 +150,7 @@ const CourseCheckout: React.FC = () => {
 
     const { data: courseRow, error: courseError } = await supabase
       .from('courses')
-      .select('id, title, date, time, teacher_id')
+      .select('id, title, date, time, teacher_id, status')
       .eq('id', courseId)
       .maybeSingle();
 
@@ -161,6 +175,77 @@ const CourseCheckout: React.FC = () => {
     }
 
     setCourse(courseRow);
+
+    if (isCourseCancelled(courseRow.status)) {
+      const { data: cancelledRows, error: cancelledError } = await supabase
+        .from('registrations')
+        .select(
+          `
+          id,
+          coverage_status,
+          user:users!registrations_user_id_fkey(first_name, last_name)
+        `,
+        )
+        .eq('course_id', courseId)
+        .eq('cancel_reason', 'course_cancelled');
+      if (cancelledError) {
+        setErrorText(checkoutErrorMessage(undefined));
+        setLoading(false);
+        return;
+      }
+      const cancelled = cancelledRows ?? [];
+      setPaidCancelledCount(cancelled.filter((row) => row.coverage_status === 'paid').length);
+      setPeople([]);
+
+      if (!isStudioAdmin(userProfile)) {
+        setRefunds([]);
+        setLoading(false);
+        return;
+      }
+
+      const paidRows = cancelled.filter((row) => row.coverage_status === 'paid');
+      if (paidRows.length === 0) {
+        setRefunds([]);
+        setLoading(false);
+        return;
+      }
+      const { data: payments, error: payError } = await supabase
+        .from('payments')
+        .select('id, registration_id, method, amount_cents, reverses_payment_id, received_at')
+        .in(
+          'registration_id',
+          paidRows.map((row) => row.id),
+        );
+      if (payError) {
+        setErrorText(checkoutErrorMessage(undefined));
+        setLoading(false);
+        return;
+      }
+      const openPayment = latestUnreversedPayment(payments ?? []);
+      const nextRefunds: RefundPerson[] = [];
+      for (const row of paidRows) {
+        const payment = openPayment.get(row.id);
+        if (!payment) continue;
+        const user = Array.isArray(row.user) ? row.user[0] : row.user;
+        nextRefunds.push({
+          registrationId: row.id,
+          paymentId: payment.id,
+          firstName: user?.first_name ?? '',
+          lastName: user?.last_name ?? '',
+          method: payment.method,
+          amountCents: payment.amount_cents,
+        });
+      }
+      nextRefunds.sort((a, b) =>
+        `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`, 'de'),
+      );
+      setRefunds(nextRefunds);
+      setLoading(false);
+      return;
+    }
+
+    setRefunds([]);
+    setPaidCancelledCount(0);
 
     const { data: registrations, error: regError } = await supabase
       .from('registrations')
@@ -434,6 +519,24 @@ const CourseCheckout: React.FC = () => {
     setRevertTarget(null);
   };
 
+  const confirmRefund = async () => {
+    if (!refundTarget || dialogBusy) return;
+    setDialogBusy(true);
+    const { data, error } = await supabase.rpc('reverse_manual_payment', {
+      p_payment_id: refundTarget.paymentId,
+      p_note: 'Kurs abgesagt',
+    });
+    setDialogBusy(false);
+    const body = (typeof data === 'string' ? JSON.parse(data) : data) as RpcBody | null;
+    if (error || !body?.success) {
+      setErrorText(checkoutErrorMessage(body?.error));
+      setRefundTarget(null);
+      return;
+    }
+    setRefundTarget(null);
+    await load();
+  };
+
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -456,6 +559,85 @@ const CourseCheckout: React.FC = () => {
       <div className="py-12 text-center">
         <h2 className="mb-2 text-xl font-medium text-text">Kurs nicht gefunden</h2>
         <p className="text-textMuted">Dieser Kurs ist hier nicht zu sehen.</p>
+      </div>
+    );
+  }
+
+  if (isCourseCancelled(course.status)) {
+    const paidSentence =
+      paidCancelledCount === 1
+        ? '1 Person hatte bereits bezahlt.'
+        : `${paidCancelledCount} Personen hatten bereits bezahlt.`;
+    return (
+      <div className="mx-auto max-w-lg space-y-4 pb-24">
+        <header>
+          <h2 className="text-[22px] font-medium text-text">{course.title}</h2>
+          <p className="mt-1 text-[15px] tabular-nums text-textMuted">
+            {formatDate(course.date)} · {formatTime(course.time)} · Abgesagt
+          </p>
+        </header>
+        {errorText ? (
+          <p role="alert" className="text-[15px] text-text">
+            {errorText}
+          </p>
+        ) : null}
+        {seesMethod ? (
+          refunds.length === 0 ? (
+            <p className="rounded-md border border-border bg-surface px-3.5 py-8 text-center text-textMuted">
+              Keine offenen Rückgaben.
+            </p>
+          ) : (
+            <section className="overflow-hidden rounded-md border border-border bg-surface">
+              <h3 className="border-b border-border px-3.5 py-3 text-[17px] font-medium text-text">
+                Rückgaben
+              </h3>
+              <ul className="divide-y divide-border">
+                {refunds.map((person) => {
+                  const name = personName(person);
+                  return (
+                    <li key={person.paymentId} className="flex items-center gap-3 px-3.5 py-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[17px] font-medium text-text">{name}</p>
+                        <p className="text-[13px] text-textMuted tabular-nums">
+                          {methodWord(person.method)} · {formatPrice(person.amountCents / 100)}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setRefundTarget(person)}
+                        className="inline-flex min-h-11 shrink-0 items-center rounded-full border border-border px-4 text-[15px] font-medium text-text"
+                      >
+                        Rückgabe vermerkt
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )
+        ) : (
+          <p className="text-[15px] text-text">
+            {paidSentence} Um die Rückgabe kümmert sich die Studioleitung.
+          </p>
+        )}
+        <ConfirmDialog
+          dialog={
+            refundTarget
+              ? {
+                  title: 'Rückgabe vermerken',
+                  message: `Du vermerkst, dass ${personName(refundTarget)} ${formatPrice(refundTarget.amountCents / 100)} ${methodWord(refundTarget.method)} zurückbekommen hat.`,
+                  confirmLabel: 'Rückgabe vermerkt',
+                  cancelLabel: 'Abbrechen',
+                  variant: 'primary',
+                }
+              : null
+          }
+          loading={dialogBusy}
+          onConfirm={() => void confirmRefund()}
+          onCancel={() => {
+            if (!dialogBusy) setRefundTarget(null);
+          }}
+        />
       </div>
     );
   }

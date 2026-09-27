@@ -15,7 +15,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Course } from '../types';
-import { isCourseUpcoming } from '../lib/courseDateTime';
+import { isCourseCancelled, isCourseUpcoming } from '../lib/courseDateTime';
 import { formatDayLabel, formatTime } from '../lib/format';
 import { groupCoursesByDay } from '../lib/courseGrouping';
 import { canSelfEnrollInCourses } from '../lib/userRoles';
@@ -231,7 +231,11 @@ const Courses: React.FC = () => {
                     .join(' · ');
 
                   let status: React.ReactNode = null;
-                  if (isRegistered && registrationStatus === 'registered') {
+                  if (isCourseCancelled(course.status)) {
+                    status = (
+                      <span className="text-[13px] font-medium text-text">Abgesagt</span>
+                    );
+                  } else if (isRegistered && registrationStatus === 'registered') {
                     status = (
                       <span className="inline-flex items-center gap-1 text-[13px] font-medium text-success">
                         <Check className="h-4 w-4" aria-hidden />

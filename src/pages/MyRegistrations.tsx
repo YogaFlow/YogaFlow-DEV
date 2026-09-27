@@ -3,7 +3,7 @@ import { Calendar } from 'lucide-react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import EnrollmentCards from '../components/courses/EnrollmentCards';
 import { useAuth } from '../context/AuthContext';
-import { isRegistrationVisible } from '../lib/courseDateTime';
+import { isCourseUpcoming, isRegistrationVisible } from '../lib/courseDateTime';
 import { supabase } from '../lib/supabase';
 import { withCourseTeachers } from '../lib/staffNames';
 import { canSelfEnrollInCourses } from '../lib/userRoles';
@@ -40,15 +40,20 @@ const MyRegistrations: React.FC = () => {
           `
           )
           .eq('user_id', userProfile.id)
-          .in('status', ['registered', 'waitlist'])
-          .is('cancellation_timestamp', null);
+          .or(
+            'cancel_reason.eq.course_cancelled,and(status.in.(registered,waitlist),cancellation_timestamp.is.null)',
+          );
 
         if (error) throw error;
         if (!isMounted) return;
 
-        const visible = (data || []).filter((registration: Registration) =>
-          isRegistrationVisible(registration)
-        );
+        const visible = (data || []).filter((registration: Registration) => {
+          if (registration.cancel_reason === 'course_cancelled') {
+            const course = registration.course;
+            return course != null && isCourseUpcoming(course);
+          }
+          return isRegistrationVisible(registration);
+        });
         const coursesWithTeachers = await withCourseTeachers(
           visible
             .map((registration) => registration.course)
