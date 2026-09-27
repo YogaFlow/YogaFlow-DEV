@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import type { PassProduct } from '../../types';
 import { formatCents } from '../../lib/format';
 import {
@@ -194,13 +195,15 @@ export default function PassProductsSection() {
           <button
             type="button"
             onClick={() => setArchiveExpanded((v) => !v)}
-            className="inline-flex min-h-11 items-center text-[15px] font-medium text-textMuted"
+            className="inline-flex min-h-11 items-center gap-2 text-[15px] font-medium text-textMuted"
             aria-expanded={archiveExpanded}
           >
             Archiviert ({archived.length})
-            <span className="ml-2 text-textSubtle" aria-hidden>
-              {archiveExpanded ? '▴' : '▾'}
-            </span>
+            {archiveExpanded ? (
+              <ChevronUp className="h-4 w-4 text-textSubtle" aria-hidden />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-textSubtle" aria-hidden />
+            )}
           </button>
           {archiveExpanded ? (
             <ul className="mt-2 divide-y divide-border overflow-hidden rounded-md border border-border">

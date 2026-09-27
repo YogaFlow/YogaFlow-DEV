@@ -234,7 +234,13 @@ const PassProductDialog: React.FC<Props> = ({ open, product, onClose, onSaved })
             <fieldset>
               <legend className="mb-2 text-sm font-medium text-textMuted">Gültigkeit</legend>
               <div className="space-y-3">
-                <label className="flex cursor-pointer items-start gap-3 rounded-md border border-border p-3.5 has-[:checked]:border-brand has-[:checked]:bg-sage-50">
+                <label
+                  className={`flex cursor-pointer items-start gap-3 rounded-md border p-3.5 ${
+                    validityMode === 'years_to_year_end'
+                      ? 'border-brand bg-sage-50'
+                      : 'border-border bg-surface'
+                  }`}
+                >
                   <input
                     type="radio"
                     name="pass-validity"
@@ -270,7 +276,13 @@ const PassProductDialog: React.FC<Props> = ({ open, product, onClose, onSaved })
                   </span>
                 </label>
 
-                <label className="flex cursor-pointer items-start gap-3 rounded-md border border-border p-3.5 has-[:checked]:border-brand has-[:checked]:bg-sage-50">
+                <label
+                  className={`flex cursor-pointer items-start gap-3 rounded-md border p-3.5 ${
+                    validityMode === 'months'
+                      ? 'border-brand bg-sage-50'
+                      : 'border-border bg-surface'
+                  }`}
+                >
                   <input
                     type="radio"
                     name="pass-validity"
