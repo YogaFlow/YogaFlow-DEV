@@ -316,6 +316,11 @@ const CourseDetail: React.FC = () => {
             </p>
           </div>
         ) : null}
+        {isAdmin && course.pass_eligible === false ? (
+          <div className="flex items-start gap-3 px-3.5 py-3">
+            <p className="text-[13px] text-textMuted">Nicht mit Karte buchbar</p>
+          </div>
+        ) : null}
       </div>
 
       {description ? (

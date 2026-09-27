@@ -61,6 +61,22 @@ export type PaymentProvider = 'manual' | 'stripe';
 
 export type PaymentSubjectType = 'registration' | 'pass_purchase';
 
+export type PassValidityRule = 'years_to_year_end' | 'months';
+
+export interface PassProduct {
+  id: string;
+  tenant_id: string;
+  name: string;
+  units: number;
+  price_cents: number;
+  validity_rule: PassValidityRule;
+  validity_value: number;
+  is_scheduled: boolean;
+  archived_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Payment {
   id: string;
   tenant_id: string;
@@ -122,6 +138,8 @@ export interface Course {
   prerequisites?: string;
   frequency: CourseFrequency;
   series_id?: string;
+  /** A6: mit Karte buchbar nur wenn true. DB-Default true. */
+  pass_eligible?: boolean;
   teacher?: User;
   registrations?: CourseRegistrationSummary[];
   created_at: string;

@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTenant } from '../context/TenantContext';
 import { Save } from 'lucide-react';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
+import PassProductsSection from '../components/settings/PassProductsSection';
 import StudioDesignSection from '../components/settings/StudioDesignSection';
 import {
   BOOKING_MAX_PARTICIPANTS_MAX,
@@ -75,6 +76,10 @@ export default function Settings() {
           <StudioDesignSection />
         </div>
       ) : null}
+
+      <div className="mb-6">
+        <PassProductsSection />
+      </div>
 
       <div className="bg-surface rounded-md border border-border p-3.5 space-y-6">
         <div>

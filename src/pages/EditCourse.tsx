@@ -3,8 +3,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { MapPin, Users, FileText, Save, ArrowLeft, AlertCircle, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+import { isCourseUpcoming } from '../lib/courseDateTime';
+import { countActivePassProducts } from '../lib/passProducts';
 import { Course } from '../types';
 import { DatePicker, TimePicker } from '../components/DateTimePicker';
+import PassEligibleToggle from '../components/courses/PassEligibleToggle';
 
 interface CourseLeader {
   id: string;
@@ -25,6 +28,8 @@ const EditCourse: React.FC = () => {
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>('');
   const [seriesCount, setSeriesCount] = useState(0);
   const [updateScope, setUpdateScope] = useState<'single' | 'series'>('single');
+  const [passEligible, setPassEligible] = useState(true);
+  const [showPassEligible, setShowPassEligible] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
   const [selectedEndTime, setSelectedEndTime] = useState<Date | null>(null);
@@ -91,6 +96,20 @@ const EditCourse: React.FC = () => {
   }, [userProfile]);
 
   useEffect(() => {
+    if (!isAdmin) {
+      setShowPassEligible(false);
+      return;
+    }
+    let cancelled = false;
+    void countActivePassProducts().then((n) => {
+      if (!cancelled) setShowPassEligible(n > 0);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdmin]);
+
+  useEffect(() => {
     if (formData.time && formData.duration) {
       const startMinutes = timeToMinutes(formData.time);
       const durationMinutes = parseInt(formData.duration);
@@ -132,6 +151,7 @@ const EditCourse: React.FC = () => {
       setSelectedDate(stringToDate(data.date));
       setSelectedTime(stringToTime(data.time));
       setSelectedEndTime(stringToTime(data.end_time || ''));
+      setPassEligible(data.pass_eligible !== false);
       setFormData({
         title: data.title,
         description: data.description,
@@ -317,7 +337,7 @@ const EditCourse: React.FC = () => {
     }
 
     try {
-      const updateData = {
+      const updateData: Record<string, unknown> = {
         title: formData.title.trim(),
         description: formData.description.trim(),
         date: formData.date,
@@ -331,9 +351,15 @@ const EditCourse: React.FC = () => {
         updated_at: new Date().toISOString()
       };
 
+      if (showPassEligible) {
+        updateData.pass_eligible = passEligible;
+      }
+
       if (updateScope === 'series' && course.series_id) {
-        const seriesUpdateData: Partial<typeof updateData> = { ...updateData };
+        const seriesUpdateData: Record<string, unknown> = { ...updateData };
         delete seriesUpdateData.date;
+        // pass_eligible: only future, not-yet-started sessions (see isCourseUpcoming)
+        delete seriesUpdateData.pass_eligible;
 
         const { error: updateError } = await supabase
           .from('courses')
@@ -341,6 +367,28 @@ const EditCourse: React.FC = () => {
           .eq('series_id', course.series_id);
 
         if (updateError) throw updateError;
+
+        if (showPassEligible) {
+          const { data: seriesRows, error: seriesFetchError } = await supabase
+            .from('courses')
+            .select('id, date, time')
+            .eq('series_id', course.series_id);
+
+          if (seriesFetchError) throw seriesFetchError;
+
+          const upcomingIds = (seriesRows ?? [])
+            .filter((row) => isCourseUpcoming(row))
+            .map((row) => row.id);
+
+          if (upcomingIds.length > 0) {
+            const { error: passError } = await supabase
+              .from('courses')
+              .update({ pass_eligible: passEligible })
+              .in('id', upcomingIds);
+
+            if (passError) throw passError;
+          }
+        }
 
         navigate('/my-courses', {
           state: { message: `Alle ${seriesCount} Kurse der Serie wurden erfolgreich aktualisiert!` }
@@ -645,6 +693,10 @@ const EditCourse: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {showPassEligible ? (
+            <PassEligibleToggle checked={passEligible} onChange={setPassEligible} />
+          ) : null}
 
           {error && (
             <div className="p-3 bg-dangerSoft border border-danger rounded-sm">

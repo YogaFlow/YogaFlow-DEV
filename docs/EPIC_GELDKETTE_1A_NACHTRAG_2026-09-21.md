@@ -282,6 +282,30 @@ Migration `20260927121500_a3_payments.sql` ist geschrieben und nicht angewendet.
 **Akzeptanz:** 5er und 10er angelegt, archiviert, nicht löschbar. Kurs mit `pass_eligible = false` wird in A6
 nicht mit Karte buchbar. **Schema → Freigabe. STOPP.**
 
+#### Entscheidungen 27.09. (K1–K6)
+
+Migration `20260927183209_a4_pass_products.sql` ist geschrieben und nicht angewendet. Test `scripts/test/a4_pass_products.mjs` ist geschrieben und nicht gelaufen.
+
+| ID | Entscheidung |
+|---|---|
+| K1 | Gültigkeit: `years_to_year_end` (Standard, Wert 1–3) oder `months` (1–60). Oberfläche (Schritt 2) empfiehlt den Standard und zeigt unter 12 Monaten den E16-Hinweis. |
+| K2 | Nie löschen, nur archivieren. Archiviertes bleibt in der Verwaltung sichtbar (grau), beim Verkauf (A5) nicht auswählbar. Zurückholen möglich. |
+| K3 | Owner und Admin (`is_tenant_manager()`). Lehrende und Teilnehmende weder lesen noch schreiben (Lesen für A5/A6 dort erweitern). |
+| K4 | `courses.pass_eligible` Default true. Beim Anlegen einer Serie für alle Termine. Serien-Bearbeitung ändert nur künftige, noch nicht begonnene Termine (Schritt 2). |
+| K5 | Navigation: Abschnitt „Karten“ unter Einstellungen (Schritt 2). |
+| K6 | E13 (Lehrende verkaufen) erst in A5. |
+
+#### Gültigkeit als Klartext (UI Schritt 2, auch A5)
+
+Dieselbe Anzeigeregel gilt für Produktliste und später beim Verkauf (A5):
+
+| `validity_rule` | Wert `n` | Bedeutung | Anzeige |
+|---|---|---|---|
+| `years_to_year_end` | 1–3 | gültig bis **31.12. des n-ten Jahres nach dem Kaufjahr** | „bis Jahresende + 3 Jahre (Kauf heute → gültig bis 31.12.2029)“ — Beispieljahr = aktuelles Kalenderjahr (Europe/Berlin) + n |
+| `months` | 1–60 | gültig **n Monate ab Kauf** | „6 Monate ab Kauf“ |
+
+Client-Helfer: `formatPassValidity` in `src/lib/passProducts.ts`.
+
 ### A5 — Karte vor Ort verkaufen
 *Als Studio möchte ich eine vor Ort verkaufte Karte einer Teilnehmerin zuweisen, damit sie damit buchen kann.*
 

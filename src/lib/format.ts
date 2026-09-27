@@ -168,3 +168,14 @@ export function formatPrice(value: number | null | undefined): string {
   }
   return `${rounded.toFixed(2).replace('.', ',')}${NBSP}€`;
 }
+
+/** Always two decimals from integer cents — e.g. 15000 → 150,00 € */
+export function formatCents(cents: number | null | undefined): string {
+  if (cents == null || !Number.isFinite(cents)) return '';
+  const rounded = Math.round(cents);
+  const sign = rounded < 0 ? '−' : '';
+  const abs = Math.abs(rounded);
+  const euros = Math.floor(abs / 100);
+  const rest = String(abs % 100).padStart(2, '0');
+  return `${sign}${euros},${rest}${NBSP}€`;
+}

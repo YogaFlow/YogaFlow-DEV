@@ -4,7 +4,9 @@ import { MapPin, Users, FileText, Save, ArrowLeft, Repeat, User } from 'lucide-r
 import { useAuth } from '../context/AuthContext';
 import { useTenant } from '../context/TenantContext';
 import { supabase } from '../lib/supabase';
+import { countActivePassProducts } from '../lib/passProducts';
 import { DatePicker, TimePicker } from '../components/DateTimePicker';
+import PassEligibleToggle from '../components/courses/PassEligibleToggle';
 
 interface CourseLeader {
   id: string;
@@ -15,7 +17,7 @@ interface CourseLeader {
 
 const CreateCourse: React.FC = () => {
   const navigate = useNavigate();
-  const { userProfile, isCourseLeader } = useAuth();
+  const { userProfile, isCourseLeader, isAdmin } = useAuth();
   const { tenant } = useTenant();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -39,6 +41,8 @@ const CreateCourse: React.FC = () => {
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurringType, setRecurringType] = useState<'daily' | 'weekly'>('weekly');
   const [recurringEndDate, setRecurringEndDate] = useState('');
+  const [passEligible, setPassEligible] = useState(true);
+  const [showPassEligible, setShowPassEligible] = useState(false);
   const maxParticipantsTouchedRef = useRef(false);
 
   const timeToMinutes = (time: string): number => {
@@ -97,6 +101,20 @@ const CreateCourse: React.FC = () => {
   useEffect(() => {
     if (userProfile) fetchCourseLeaders();
   }, [userProfile]);
+
+  useEffect(() => {
+    if (!isAdmin) {
+      setShowPassEligible(false);
+      return;
+    }
+    let cancelled = false;
+    void countActivePassProducts().then((n) => {
+      if (!cancelled) setShowPassEligible(n > 0);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdmin]);
 
   useEffect(() => {
     if (userProfile && courseLeaders.length > 0) {
@@ -364,7 +382,8 @@ const CreateCourse: React.FC = () => {
             max_participants: parseInt(formData.max_participants),
             price: parseFloat(formData.price),
             teacher_id: selectedTeacherId,
-            series_id: seriesId
+            series_id: seriesId,
+            ...(showPassEligible ? { pass_eligible: passEligible } : {}),
           });
         }
       } else {
@@ -379,7 +398,8 @@ const CreateCourse: React.FC = () => {
           location: formData.location.trim(),
           max_participants: parseInt(formData.max_participants),
           price: parseFloat(formData.price),
-          teacher_id: selectedTeacherId
+          teacher_id: selectedTeacherId,
+          ...(showPassEligible ? { pass_eligible: passEligible } : {}),
         });
       }
 
@@ -698,6 +718,10 @@ const CreateCourse: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {showPassEligible ? (
+            <PassEligibleToggle checked={passEligible} onChange={setPassEligible} />
+          ) : null}
 
           {error && (
             <div className="p-3 bg-dangerSoft border border-danger rounded-sm">
