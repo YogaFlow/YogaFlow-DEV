@@ -463,7 +463,7 @@ const CourseDetail: React.FC = () => {
                   Angemeldet
                 </span>
                 {refundInfo ? (
-                  <p className="mt-0.5 text-[12px] leading-snug text-textMuted tabular-nums">
+                  <p className="mt-0.5 text-[13px] leading-snug text-textMuted tabular-nums">
                     {passRefundStatusLine(refundInfo)}
                   </p>
                 ) : null}

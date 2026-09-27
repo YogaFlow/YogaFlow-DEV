@@ -144,7 +144,7 @@ export default function Settings() {
                 max={BOOKING_CANCELLATION_WINDOW_MAX}
                 step="1"
               />
-              <p className="mt-1 text-sm text-textMuted">
+              <p className="mt-1 text-[13px] leading-5 text-textMuted">
                 Gilt für neue Buchungen. Bestehende Buchungen behalten ihre Frist.
               </p>
             </div>

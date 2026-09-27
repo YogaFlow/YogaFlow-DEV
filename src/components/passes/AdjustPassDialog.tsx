@@ -123,7 +123,7 @@ const AdjustPassDialog: React.FC<Props> = ({
           </button>
         </div>
 
-        <p className="mt-3 text-center text-sm tabular-nums text-textMuted">
+        <p className="mt-3 text-center text-[15px] tabular-nums text-textMuted">
           danach: noch {after}
         </p>
 

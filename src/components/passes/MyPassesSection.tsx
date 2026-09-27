@@ -61,7 +61,7 @@ const MyPassesSection: React.FC = () => {
   }
 
   return (
-    <section className="space-y-3">
+    <section className="space-y-3 border-b border-border pb-5">
       <h2 className="text-xs font-semibold uppercase tracking-wide text-textMuted">
         Meine Karten
       </h2>
