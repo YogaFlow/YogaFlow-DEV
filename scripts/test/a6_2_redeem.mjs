@@ -2,8 +2,9 @@
 /**
  * A6-2 — Einlösen beim Buchen / nachträglich / Undo (nur DEV).
  *
- * Nicht ausführen, bevor 20260927233000_a6_2_redeem.sql und
- * 20260927235000_a6_2b_tenant_delete_cycle.sql auf DEV liegen.
+ * Nicht ausführen, bevor 20260927233000_a6_2_redeem.sql,
+ * 20260927235000_a6_2b_tenant_delete_cycle.sql und
+ * 20260927235500_a6_2c_pass_fk_no_action.sql auf DEV liegen.
  * Gegen PROD nie. Eigenes Studio a62redeemtest, am Ende
  * delete_tenant_complete und auth.admin.deleteUser.
  *

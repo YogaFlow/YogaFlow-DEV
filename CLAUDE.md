@@ -143,6 +143,8 @@ bündelt, ersetzt die Typprüfung nicht. `npm run lint` ist ESLint.
   oder auf `''` mit voll qualifizierten Namen. Nie `pg_temp` weglassen.
 - `delete_tenant_complete`: Jede neue Tabelle mit `RESTRICT` auf `courses`, `users` oder
   `tenants` muss dort ergänzt werden.
+- FKs, die beim Studio-Löschen aufgeschoben werden müssen, brauchen `NO ACTION DEFERRABLE`,
+  nicht `RESTRICT`. (`RESTRICT` wird in Postgres nie deferred — Befund A6-2b/A6-2c.)
 - Schreiben in `events`/`audit_log` nur über fachliche RPCs, die die Rolle prüfen;
   `insert_event`/`insert_audit` haben kein Client-EXECUTE — Ausnahme `record_service_ping`
   (Testwerkzeug, alle `authenticated`).
