@@ -40,6 +40,45 @@ export type RegistrationStatus = 'registered' | 'waitlist' | 'cancelled';
 
 export type CoverageStatus = 'not_required' | 'open' | 'paid' | 'pass' | 'waived';
 
+/** Stripe-Schreibweise (ein l). registration_status schreibt cancelled. */
+export type PaymentStatus =
+  | 'initiated'
+  | 'processing'
+  | 'succeeded'
+  | 'failed'
+  | 'canceled'
+  | 'refunded_partial'
+  | 'refunded'
+  | 'disputed';
+
+export type PaymentMethod = 'cash' | 'bank_transfer' | 'paypal_manual' | 'card';
+
+export type PaymentProvider = 'manual' | 'stripe';
+
+export type PaymentSubjectType = 'registration' | 'pass_purchase';
+
+export interface Payment {
+  id: string;
+  tenant_id: string;
+  subject_type: PaymentSubjectType;
+  subject_id: string;
+  registration_id: string | null;
+  provider: PaymentProvider;
+  provider_ref: string | null;
+  method: PaymentMethod;
+  status: PaymentStatus;
+  amount_cents: number;
+  currency: string;
+  reverses_payment_id: string | null;
+  received_at: string;
+  status_changed_at: string;
+  expected_settlement_at: string | null;
+  settled_at: string | null;
+  recorded_by: string | null;
+  note: string | null;
+  created_at: string;
+}
+
 export type WaivedReason = 'pre_omlify' | 'goodwill' | 'other';
 
 export type CancelReason =

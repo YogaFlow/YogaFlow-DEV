@@ -244,12 +244,27 @@ bezahlt hat.*
   Deckung wieder `open`
 - Erlaubt für `owner`/`admin` bei allen Kursen, für `teacher` nur bei eigenen Kursen (E15)
 - Events `payment.recorded`, `payment.reversed`. Jede Aktion im `audit_log`
-- **Kein Beleg für Barzahlungen** (E14). Hinweistext einmal im Studio sichtbar
+- **Kein Beleg für Barzahlungen** (E14). Hinweis „Omlify führt keine Kasse“ ist fester Text in der Kassier-Ansicht, kein Schema (P6)
 - Funktioniert ohne Stripe und ohne aktivierte Online-Zahlung (B2, B3)
 
 **Akzeptanz:** Vermerk bar → Zahlung, Event, Audit, Deckung `paid`. Gegenzeile → Deckung `open`, beide Zeilen
 bleiben. Lehrerin in fremdem Kurs → Fehler. `amount` im Request eines `teacher` wird ignoriert (curl).
 **Schema → Freigabe. STOPP.**
+
+#### Entscheidungen 27.09. (P1–P8)
+
+Migration `20260927121500_a3_payments.sql` ist geschrieben und nicht angewendet. Test `scripts/test/a3_payments.mjs` ist geschrieben und nicht gelaufen.
+
+| ID | Entscheidung |
+|---|---|
+| P1 | `payments.registration_id` ON DELETE RESTRICT. Bis 4.3 kann ein Profil mit Zahlungsvermerk nicht gelöscht werden. Vertretbar, solange die UI keinen Lösch-Knopf hat. 4.3 bleibt PROD-Gate. |
+| P2 | Neuen Vermerk auf eine stornierte Buchung: nein (`CANCELLED`). Bestehender Vermerk überlebt die Stornierung. Rückgabe des Geldes ist die Gegenzeile (A9). Warteliste: `NOT_REGISTERED`. |
+| P3 | `owner`/`admin` in allen Kursen, `teacher` nur über `is_course_teacher`. Betrag bei Lehrenden immer vom Server. |
+| P4 | Ergänzt E15: Wer den Vermerk gesetzt hat, darf ihn innerhalb von 15 Minuten selbst zurücknehmen, auch als Lehrende. Danach nur `owner`/`admin`. |
+| P5 | Gegenzeile: negativer Betrag, gleiche Methode, `reverses_payment_id`. Eine Zahlung nur einmal. |
+| P6 | Hinweis „keine Kasse“: kein Schema. Fester Text in der Kassier-Ansicht. |
+| P7 | Event: `subject_id` = `payments.id`, neue `causation_id` je Aufruf. `registration_id` im Payload, Notiz nicht. |
+| P8 | Doppeltipp: `FOR UPDATE` auf der Buchung und nur bei `coverage_status = open`. Sonst `NOT_OPEN`. |
 
 ### A4 — Kartenprodukte
 *Als Studio möchte ich 5er- und 10er-Karten mit Preis und Gültigkeit anlegen.*
@@ -394,7 +409,7 @@ Sprint A darf vor Stripe nach PROD, wenn alles zutrifft:
 |---|---|---|---|
 | **E13** | Dürfen Lehrende Karten verkaufen? | **Empfehlung: ja**, zum Listenpreis, ohne Rabatt, nur mit Zahlungsvermerk. In Studios verkauft meist die Lehrerin im Kurs. Bei Solo-Lehrenden ist `owner` = Lehrerin ohnehin | offen, Julius |
 | **E14** | Barbeleg aus Omlify? | **Nein, nur Vermerk** (Abschnitt 3) | entschieden 21.09. |
-| **E15** | Rechte der Lehrenden bei Deckung | Vermerk bar/PayPal/Überweisung und Einlösen **nur in eigenen Kursen**, Betrag vom Server, keine Korrektur, kein `waived`, keine Studio-Übersicht der Beträge | entschieden 21.09. |
+| **E15** | Rechte der Lehrenden bei Deckung | Vermerk bar/PayPal/Überweisung und Einlösen **nur in eigenen Kursen**, Betrag vom Server, keine Korrektur, kein `waived`, keine Studio-Übersicht der Beträge. **P4 (27.09.):** den eigenen Vermerk innerhalb von 15 Minuten selbst zurücknehmen, auch als Lehrende; danach nur `owner`/`admin` | entschieden 21.09., ergänzt 27.09. |
 | **E16** | Gültigkeit von Karten | Studio setzt sie. Standard „3 Jahre zum Jahresende“, Hinweis unter 12 Monaten. Rechtsprüfung im Rechts-Epic | entschieden 21.09. |
 | **E17** | Einheit bei Absage auf abgelaufene Karte | Hinweis ans Studio, Studio entscheidet per `manual_adjustment` | entschieden 21.09. |
 | **E17b** | Ist- oder Soll-Versteuerung im Hauptbuch | **Ist** (nur Zahlungseingänge) in 1a, Einstellung je Studio in 1b | entschieden 21.09. |

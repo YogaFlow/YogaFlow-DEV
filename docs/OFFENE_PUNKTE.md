@@ -1,6 +1,6 @@
 # Offene Punkte
 
-**Stand:** 26.09.2026
+**Stand:** 27.09.2026
 Ausführliche Begründungen stehen im Claude-Projekt „Omlify" in
 `Landingpage_Neubau_September_2026.md` und
 `Rechtstexte_Datenschutz_und_Betrieb_September_2026.md`.
@@ -75,6 +75,11 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
       beim Token-Refresh (Teilnehmer, 22.09.). Prüfen, ob die App genau einen Supabase-Client
       anlegt. Beobachten, ob Nutzer unerwartet abgemeldet werden.
 - [ ] **`console.log("Supabase configured with URL …")` im Produktions-Bundle entfernen.**
+- [ ] **`delete-user` und Zahlungsvermerke.** Jeder FK-Fehler `23503` wird mit
+      „hat noch Kurse“ beantwortet, also auch `payments_registration_id_fkey`
+      (RESTRICT, P1, Migration `20260927121500`). Story 4.3 löst das: Profil
+      einschränken statt löschen, Meldung am Constraint unterscheiden. Bis dahin
+      gibt es keinen Lösch-Knopf; die Function bleibt erreichbar. 4.3 ist PROD-Gate.
 - [ ] **Kündigung eines Studios** gibt es nur von Hand
       (`delete_tenant_complete`, 30 Tage Exportfenster laut AGB § 9).
 - [ ] **Teilnehmerinnen können ihr Konto nicht selbst löschen.** Anfragen per
@@ -97,6 +102,10 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Später
 
+- [ ] **`yogaflow_private.is_tenant_manager()` härten.** `search_path` ist nur
+      `public` (`20260911173000`, Zeile 143). Beim nächsten Anfassen auf
+      `public, pg_temp` stellen (`pg_temp` zuletzt) oder auf `''` mit
+      voll qualifizierten Namen.
 - [ ] **Supabase CLI auf 2.117.0 angleichen** (Worktree nutzte sie bereits in
       Release 2026-09c). Nur zwischen zwei Releases aktualisieren, nie kurz davor.
 - [ ] **Prerendering der Landingpage + echter 404.** Der Fließtext entsteht erst
@@ -108,7 +117,6 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
       Datenschutz des Studios; `tenants` hat dafür kein Feld.
 - [ ] **`og:image` auf Studio-Subdomains** zeigt das Omlify-Bild.
 - [ ] **Tab-Titel-Fallback** in `src/lib/documentBranding.ts` ist zu lang.
-- [ ] **`tsc` ist rot** — neun Altlasten in App-Dateien.
 - [ ] **Studio-Subdomains auf DEV** sind nicht durch Cloudflare Access geschützt.
 - [ ] **PROD-Worker umbenennen** (`yogaflow-dev` → sprechender Name); braucht
       kurze Nichterreichbarkeit.
