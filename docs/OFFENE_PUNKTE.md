@@ -75,15 +75,25 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
       beim Token-Refresh (Teilnehmer, 22.09.). Prüfen, ob die App genau einen Supabase-Client
       anlegt. Beobachten, ob Nutzer unerwartet abgemeldet werden.
 - [ ] **`console.log("Supabase configured with URL …")` im Produktions-Bundle entfernen.**
-- [ ] **`delete-user` und Zahlungsvermerke.** Jeder FK-Fehler `23503` wird mit
-      „hat noch Kurse“ beantwortet, also auch `payments_registration_id_fkey`
-      (RESTRICT, P1, Migration `20260927121500`). Story 4.3 löst das: Profil
-      einschränken statt löschen, Meldung am Constraint unterscheiden. Bis dahin
-      gibt es keinen Lösch-Knopf; die Function bleibt erreichbar. 4.3 ist PROD-Gate.
-- [ ] **Kündigung eines Studios** gibt es nur von Hand
-      (`delete_tenant_complete`, 30 Tage Exportfenster laut AGB § 9).
-- [ ] **Teilnehmerinnen können ihr Konto nicht selbst löschen.** Anfragen per
-      Mail müssen binnen eines Monats bearbeitet werden.
+- [ ] **`delete-user` an die RPC `remove_member` anschließen (Schritt 2).**
+      Migration `20260927145006` ist geschrieben und nicht angewendet. Die
+      Function mappt jeden FK-Fehler `23503` weiter auf „hat noch Kurse“.
+      Schritt 2: je Code eine eigene Meldung, Login nur löschen, wenn
+      `remaining_profiles === 0` (Zahl, nicht leer). Kein Lösch-Knopf, bis
+      Schritt 3. 4.3 bleibt PROD-Gate.
+- [ ] **Studio-Export als eigene Story.** Kündigung eines Studios gibt es nur
+      von Hand (`delete_tenant_complete`, nur `service_role`, L5). AGB § 9
+      verspricht 30 Tage Exportfenster. Heute exportiert die Teilnehmerliste
+      nur Kurs, Datum, Name, E-Mail, Telefon, Status, Anmeldedatum — keine
+      Zahlungen, Events oder Audit. Export vor dem Löschen ist nicht gebaut.
+- [ ] **Rechtstexte anpassen (Julius, mit Anwalt).** Datenschutz Abschnitt 12
+      sagt, Buchungen würden mit dem Konto gelöscht. AGB § 9 und AVV § 10
+      löschen nach 30 Tagen „unwiderruflich“, ohne Aufbewahrung von
+      Zahlungsvermerken. Das widerspricht 4.3.
+- [ ] **Endgültige Löschfrist klären (L4).** `anonymized_at` wird gespeichert.
+      Ein Job, der den anonymisierten Rest später löscht, kommt nicht in 4.3.
+- [ ] **Teilnehmerinnen können ihr Konto nicht selbst löschen (L1).** Anfragen
+      laufen weiter über das Studio. Mail binnen eines Monats bearbeiten.
 - [ ] **Ausgehende Systemmails auf europäischen Anbieter** umstellen
       (Empfehlung Scaleway TEM). Keine Codeänderung, nur Secrets und DNS.
       Vorher Zustelltest gegen Gmail, GMX, Web.de, Outlook.

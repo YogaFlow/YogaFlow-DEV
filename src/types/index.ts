@@ -31,6 +31,10 @@ export interface User {
   phone?: string;
   created_at: string;
   updated_at: string;
+  /** Login. NULL, wenn das Profil anonymisiert wurde. */
+  auth_user_id: string | null;
+  /** Gesetzt, wenn die Person eingeschränkt statt gelöscht wurde. */
+  anonymized_at: string | null;
 }
 
 export type CourseStatus = 'active' | 'canceled' | 'not_planned';
@@ -87,7 +91,8 @@ export type CancelReason =
   | 'course_cancelled'
   | 'promotion_expired'
   | 'role_change'
-  | 'legacy_closed';
+  | 'legacy_closed'
+  | 'member_removed';
 
 export type CourseRegistrationSummary = {
   user_id: string;

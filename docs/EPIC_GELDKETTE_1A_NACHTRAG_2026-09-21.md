@@ -399,6 +399,30 @@ Abweichungen vom Entwurf vom 21.09.:
 - **3.2:** Nutzt A9, ergänzt die Online-Erstattung. Bar und PayPal bleiben die Gegenzeile aus A9 (K7), keine automatische Erstattung
 - **4.2:** Belege für Kartenverkauf und Kursbuchung per Überweisung/PayPal/online. **Nicht für bar** (E14)
 - **4.3 (Löschen/Aufbewahren):** FKs von `passes`, `pass_movements` ebenfalls `RESTRICT`
+
+#### Umsetzung 4.3 (27.09.2026, nicht angewendet)
+
+Migration `20260927145006_4_3_member_removal.sql`. Test `scripts/test/s4_3_remove_member.mjs`. Beides geschrieben, nicht auf DEV ausgeführt. `delete-user` und der Knopf kommen in Schritt 2 und 3.
+
+Entscheidungen:
+
+| # | Entscheidung |
+|---|---|
+| L1 | Entfernen darf Owner/Admin im eigenen Studio. Keine Selbstlöschung. Owner bleiben, bis die Rolle gewechselt wurde. |
+| L2 | Ohne Geldbezug löschen wie bisher. Mit Geldbezug anonymisieren und vom Login lösen. Zahlungen, Anmeldungen mit Geldbezug, Events und Audit bleiben. |
+| L3 | Login löschen, wenn danach kein Profil mehr an ihm hängt. Das macht Schritt 2 in `delete-user`, nicht die RPC. Die RPC liefert `remaining_profiles`. |
+| L4 | Jetzt nur `anonymized_at`. Kein Löschjob. |
+| L5 | Studio löschen bleibt `delete_tenant_complete` für `service_role`. Export ist eine eigene Story. |
+
+Geldbezug: Anmeldung mit Zahlungszeile oder Deckung `paid`/`waived`, oder `payments.recorded_by`, oder `audit_log.actor_member_id`, oder `courses.teacher_id` eines Kurses, der nicht aktiv und noch nicht begonnen ist.
+
+Abweichungen aus der Inventur, die diese Migration berücksichtigt:
+
+- **P1.** `payments.registration_id` ist RESTRICT. Ein Profil mit Vermerk lässt sich nicht löschen. Die RPC anonymisiert es, statt an `23503` zu scheitern. Die Meldung „hat noch Kurse“ in `delete-user` ändert Schritt 2.
+- **L3.** `courses.teacher_id` ist schon RESTRICT, nicht mehr CASCADE. Eine Lehrende mit nur vergangenem Kurs wird anonymisiert, `teacher_id` bleibt. Zusätzlich zählt jeder Kurs, der nicht „aktiv und noch nicht begonnen“ ist, als Geldbezug, damit ein abgesagter, noch nicht begonnener Kurs das Löschen nicht mit `23503` abbricht.
+- **L8.** `delete_tenant_complete` löscht Zahlungen, Events und Audit weiter mit (L5, unverändert) und räumt anonymisierte Profile mit ab. „Letztes Profil → Login weg“ ist nicht die Datenbankkaskade. Die Kaskade läuft vom Login auf Profile mit gesetztem `auth_user_id`. Die anonymisierte Zeile hat `auth_user_id` NULL und überlebt `auth.admin.deleteUser`.
+- **Erlass.** Deckung `waived` ohne Zahlungszeile ist Geldbezug. Die Anmeldung inklusive `coverage_waived_note` bleibt. Vorher hätte `registrations.user_id` CASCADE sie mitgelöscht.
+- Künftige Anmeldungen ohne Geldbezug werden storniert (`member_removed`) und behalten, nicht hart gelöscht. Sonst gäbe es kein Nachrücken und keine Stornozeile. Unbezahlte vergangene Anmeldungen ohne Erlass werden gelöscht.
 - **Scope „Nicht in 1a“:** „Guthabenkarten“ streichen. Neu: Selbstkauf von Karten vor Stripe · unbezahlte
   Karten · Barbelege · Soll-Versteuerung · Mitgliedschaften (bleibt 1b)
 
