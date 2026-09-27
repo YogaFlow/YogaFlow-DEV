@@ -1,4 +1,7 @@
 import type { CoverageStatus, PaymentMethod, WaivedReason } from '../types';
+import { berlinIsoDate } from './courseDateTime';
+
+export { berlinIsoDate };
 
 export const CASH_HINT =
   'Omlify vermerkt nur, wer bezahlt hat. Deine Kasse bzw. dein Kassenbuch führst du wie bisher selbst.';
@@ -57,6 +60,8 @@ export function checkoutErrorMessage(code: string | undefined): string {
       return 'Diese Buchung gibt es hier nicht.';
     case 'INVALID_REASON':
       return 'Bitte einen Grund wählen.';
+    case 'NOT_WAIVED':
+      return 'Das ist kein Erlass mehr. Die Liste wird neu geladen.';
     default:
       return 'Das hat nicht geklappt. Bitte versuche es noch einmal.';
   }
@@ -108,21 +113,13 @@ export function countCheckout(rows: { coverage: CoverageStatus | undefined }[]):
   return { open, done: rows.length - open };
 }
 
-/** Heute bzw. gestern als YYYY-MM-DD in Europe/Berlin. Kein Parsen von courses.date. */
-export function berlinIsoDate(dayOffset = 0, now = new Date()): string {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Europe/Berlin',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(now);
-  const read = (type: Intl.DateTimeFormatPartTypes) =>
-    Number(parts.find((part) => part.type === type)?.value);
-  const shifted = new Date(read('year'), read('month') - 1, read('day') + dayOffset);
-  const year = shifted.getFullYear();
-  const month = String(shifted.getMonth() + 1).padStart(2, '0');
-  const day = String(shifted.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+/** Notiz nur, wenn der Betrag vom eingefrorenen Buchungspreis abweicht. */
+export function amountNoteRequired(
+  cents: number | null,
+  priceCents: number | null | undefined
+): boolean {
+  if (cents == null) return false;
+  return cents !== priceCents;
 }
 
 export function checkoutDayWord(date: string, now = new Date()): 'heute' | 'gestern' | '' {

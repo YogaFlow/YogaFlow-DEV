@@ -32,6 +32,36 @@ export const isCourseUpcoming = (course: CourseLike, now = new Date()): boolean 
   return !isCourseInPast(course, now);
 };
 
+/** Heute als YYYY-MM-DD in Europe/Berlin. Offset in Kalendertagen, ohne courses.date zu parsen. */
+export function berlinIsoDate(dayOffset = 0, now = new Date()): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Berlin',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(now);
+  const read = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find((part) => part.type === type)?.value);
+  const shifted = new Date(read('year'), read('month') - 1, read('day') + dayOffset);
+  const year = shifted.getFullYear();
+  const month = String(shifted.getMonth() + 1).padStart(2, '0');
+  const day = String(shifted.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Teilnehmerliste: Kursdatum heute oder später in Europe/Berlin.
+ * Eine Stunde, die heute schon begonnen hat, bleibt bis Tagesende sichtbar.
+ * isCourseUpcoming (Beginn, andere Listen) bleibt unverändert.
+ */
+export const isCourseVisibleThroughBerlinToday = (
+  course: CourseLike,
+  now = new Date()
+): boolean => {
+  if (!course.date) return false;
+  return course.date >= berlinIsoDate(0, now);
+};
+
 const timeToMinutes = (value?: string | null): number | null => {
   if (value == null || value === '') return null;
   const [h, m] = value.split(':').map(Number);

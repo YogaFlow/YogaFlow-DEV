@@ -12,7 +12,7 @@ import {
   formatTimeRange,
 } from '../lib/format';
 import ConfirmDialog, { ConfirmDialogState } from '../components/ui/ConfirmDialog';
-import { isCourseUpcoming } from '../lib/courseDateTime';
+import { isCourseVisibleThroughBerlinToday } from '../lib/courseDateTime';
 import { formatUserAddress } from '../lib/userAddress';
 import { groupParticipantsByCourse } from '../lib/participantGrouping';
 import {
@@ -83,7 +83,7 @@ const Participants: React.FC = () => {
 
         if (coursesError) throw coursesError;
         const upcomingCourses = (coursesData || []).filter((course) => {
-          if (!isCourseUpcoming(course)) return false;
+          if (!isCourseVisibleThroughBerlinToday(course)) return false;
           if (isTeacherOnly(userProfile)) {
             return course.teacher_id === userProfile.id;
           }
@@ -106,7 +106,7 @@ const Participants: React.FC = () => {
           const upcomingParticipants = (registrationsData || []).filter(
             (registration: any) =>
               registration.course &&
-              isCourseUpcoming(registration.course) &&
+              isCourseVisibleThroughBerlinToday(registration.course) &&
               registration.cancellation_timestamp == null &&
               (!isTeacherOnly(userProfile) || registration.course.teacher_id === userProfile.id)
           );

@@ -7,10 +7,12 @@ import { isStudioAdmin, isTeacherOnly } from '../lib/userRoles';
 import { formatDate, formatPrice, formatTime } from '../lib/format';
 import type { CoverageStatus, PaymentMethod, WaivedReason } from '../types';
 import UndoBar from '../components/ui/UndoBar';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 import {
   CASH_HINT,
   WAIVE_NOTE_HINT,
   WAIVE_REASONS,
+  amountNoteRequired,
   centsToEuroInput,
   checkoutErrorMessage,
   compareCheckoutRows,
@@ -54,6 +56,8 @@ type AmountDialog = {
   euros: string;
   note: string;
   priceLabel: string;
+  priceCents: number | null;
+  method: ManualCheckoutMethod;
 };
 
 type WaiveDialog = {
@@ -70,6 +74,12 @@ type RpcBody = {
 };
 
 const MENU_METHODS: { method: ManualCheckoutMethod; label: string }[] = [
+  { method: 'paypal_manual', label: 'PayPal' },
+  { method: 'bank_transfer', label: 'Überweisung' },
+];
+
+const AMOUNT_METHODS: { method: ManualCheckoutMethod; label: string }[] = [
+  { method: 'cash', label: 'Bar' },
   { method: 'paypal_manual', label: 'PayPal' },
   { method: 'bank_transfer', label: 'Überweisung' },
 ];
@@ -93,7 +103,9 @@ function statusLabel(person: Person, seesMethod: boolean): { text: string; detai
   if (person.coverage === 'not_required') {
     return { text: 'kostenlos', detail: '' };
   }
-  return { text: 'offen', detail: '' };
+  const price =
+    person.priceCents != null ? formatPrice(person.priceCents / 100) : '';
+  return { text: 'offen', detail: price };
 }
 
 const CourseCheckout: React.FC = () => {
@@ -110,6 +122,7 @@ const CourseCheckout: React.FC = () => {
   const [undoBusy, setUndoBusy] = useState(false);
   const [amountDialog, setAmountDialog] = useState<AmountDialog | null>(null);
   const [waiveDialog, setWaiveDialog] = useState<WaiveDialog | null>(null);
+  const [revertTarget, setRevertTarget] = useState<Person | null>(null);
   const [dialogError, setDialogError] = useState('');
   const [dialogBusy, setDialogBusy] = useState(false);
   const busyIds = useRef(new Set<string>());
@@ -240,7 +253,13 @@ const CourseCheckout: React.FC = () => {
 
   const failRpc = async (code: string | undefined) => {
     setErrorText(checkoutErrorMessage(code));
-    if (code === 'NOT_OPEN' || code === 'CANCELLED' || code === 'NOT_REGISTERED' || code === 'ALREADY_REVERSED') {
+    if (
+      code === 'NOT_OPEN' ||
+      code === 'CANCELLED' ||
+      code === 'NOT_REGISTERED' ||
+      code === 'ALREADY_REVERSED' ||
+      code === 'NOT_WAIVED'
+    ) {
       await load();
     }
   };
@@ -327,12 +346,12 @@ const CourseCheckout: React.FC = () => {
       setDialogError(checkoutErrorMessage('INVALID_AMOUNT'));
       return;
     }
-    if (note.length < 3) {
+    if (amountNoteRequired(cents, person.priceCents) && note.length < 3) {
       setDialogError(checkoutErrorMessage('NOTE_REQUIRED'));
       return;
     }
     setDialogBusy(true);
-    const ok = await record(person, 'cash', cents, note, 'dialog');
+    const ok = await record(person, amountDialog.method, cents, note || null, 'dialog');
     setDialogBusy(false);
     if (ok) setAmountDialog(null);
   };
@@ -381,6 +400,38 @@ const CourseCheckout: React.FC = () => {
       return;
     }
     setWaiveDialog(null);
+  };
+
+  const confirmRevert = async () => {
+    if (!revertTarget || dialogBusy) return;
+    const person = revertTarget;
+    if (person.coverage !== 'waived') return;
+    if (busyIds.current.has(person.registrationId)) return;
+    busyIds.current.add(person.registrationId);
+    setDialogBusy(true);
+    setErrorText('');
+    const previous = person;
+    patchPerson(person.registrationId, {
+      coverage: 'open',
+      waivedReason: null,
+      waivedNote: null,
+      method: null,
+    });
+
+    const { data, error } = await supabase.rpc('revert_coverage_waived', {
+      p_registration_id: person.registrationId,
+    });
+    busyIds.current.delete(person.registrationId);
+    setDialogBusy(false);
+
+    const body = data as RpcBody | null;
+    if (error || !body?.success) {
+      patchPerson(person.registrationId, previous);
+      setRevertTarget(null);
+      await failRpc(body?.error);
+      return;
+    }
+    setRevertTarget(null);
   };
 
   if (loading) {
@@ -437,6 +488,7 @@ const CourseCheckout: React.FC = () => {
             const name = personName(person);
             const status = statusLabel(person, seesMethod);
             const open = person.coverage === 'open';
+            const canRevertWaive = seesMethod && person.coverage === 'waived';
             const menuOpen = menuFor === person.registrationId;
             return (
               <div key={person.registrationId}>
@@ -451,7 +503,7 @@ const CourseCheckout: React.FC = () => {
                       {status.detail ? <span className="text-textMuted">· {status.detail}</span> : null}
                     </p>
                   </div>
-                  {open ? (
+                  {open || canRevertWaive ? (
                     <div className="flex shrink-0 items-center gap-1">
                       <button
                         type="button"
@@ -466,13 +518,15 @@ const CourseCheckout: React.FC = () => {
                       >
                         Mehr
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => void record(person, 'cash', null, null)}
-                        className="inline-flex h-11 min-w-11 items-center justify-center rounded-full bg-brand px-4 text-[15px] font-medium text-onBrand active:bg-brandPressed"
-                      >
-                        Bar
-                      </button>
+                      {open ? (
+                        <button
+                          type="button"
+                          onClick={() => void record(person, 'cash', null, null)}
+                          className="inline-flex h-11 min-w-11 items-center justify-center rounded-full bg-brand px-4 text-[15px] font-medium text-onBrand active:bg-brandPressed"
+                        >
+                          Bar
+                        </button>
+                      ) : null}
                     </div>
                   ) : null}
                 </div>
@@ -504,6 +558,8 @@ const CourseCheckout: React.FC = () => {
                                 person.priceCents != null
                                   ? formatPrice(person.priceCents / 100)
                                   : '',
+                              priceCents: person.priceCents,
+                              method: 'cash',
                             });
                           }}
                           className="flex min-h-11 w-full items-center text-left text-[15px] text-text"
@@ -528,6 +584,20 @@ const CourseCheckout: React.FC = () => {
                         </button>
                       </>
                     ) : null}
+                  </div>
+                ) : null}
+                {canRevertWaive && menuOpen ? (
+                  <div className="border-t border-border bg-surfaceSunken px-3.5 py-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMenuFor(null);
+                        setRevertTarget(person);
+                      }}
+                      className="flex min-h-11 w-full items-center text-left text-[15px] text-text"
+                    >
+                      Erlass zurücknehmen
+                    </button>
                   </div>
                 ) : null}
               </div>
@@ -559,6 +629,20 @@ const CourseCheckout: React.FC = () => {
                 Kurspreis {amountDialog.priceLabel} ist vorausgefüllt.
               </p>
             ) : null}
+            <fieldset className="mt-3">
+              <legend className="text-[13px] text-text">Zahlart</legend>
+              {AMOUNT_METHODS.map((item) => (
+                <label key={item.method} className="flex min-h-11 items-center gap-2 text-[15px] text-text">
+                  <input
+                    type="radio"
+                    name="checkout-amount-method"
+                    checked={amountDialog.method === item.method}
+                    onChange={() => setAmountDialog({ ...amountDialog, method: item.method })}
+                  />
+                  {item.label}
+                </label>
+              ))}
+            </fieldset>
             <label className="mt-4 block text-[13px] text-text" htmlFor="checkout-amount">
               Betrag in Euro
             </label>
@@ -573,6 +657,9 @@ const CourseCheckout: React.FC = () => {
             />
             <label className="mt-3 block text-[13px] text-text" htmlFor="checkout-amount-note">
               Notiz
+              {amountNoteRequired(eurosToCents(amountDialog.euros), amountDialog.priceCents)
+                ? ''
+                : ' (optional)'}
             </label>
             <textarea
               id="checkout-amount-note"
@@ -583,6 +670,9 @@ const CourseCheckout: React.FC = () => {
               rows={2}
               className="mt-1 w-full rounded-sm border border-border px-3 py-2 text-[15px] text-text"
             />
+            <p className="mt-2 text-[13px] text-textMuted">
+              Pflicht, wenn der Betrag vom Kurspreis abweicht.
+            </p>
             {dialogError ? (
               <p role="alert" className="mt-2 text-[13px] text-text">
                 {dialogError}
@@ -666,6 +756,25 @@ const CourseCheckout: React.FC = () => {
           </div>
         </div>
       ) : null}
+
+      <ConfirmDialog
+        dialog={
+          revertTarget
+            ? {
+                title: 'Erlass zurücknehmen',
+                message: `${personName(revertTarget)} ist danach wieder offen.`,
+                confirmLabel: 'Zurücknehmen',
+                cancelLabel: 'Abbrechen',
+                variant: 'primary',
+              }
+            : null
+        }
+        loading={dialogBusy}
+        onConfirm={() => void confirmRevert()}
+        onCancel={() => {
+          if (!dialogBusy) setRevertTarget(null);
+        }}
+      />
     </div>
   );
 };

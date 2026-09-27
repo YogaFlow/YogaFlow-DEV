@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Calendar, Check, Users, BookOpen, Settings } from 'lucide-react';
+import { Calendar, Check, ChevronRight, Users, BookOpen, Settings } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Course, Registration } from '../types';
@@ -508,11 +508,13 @@ const Dashboard: React.FC = () => {
               <Link
                 key={line.id}
                 to={`/course/${line.id}/kassieren`}
-                className="flex min-h-11 items-center px-3.5 py-3 text-[15px] text-text no-underline active:bg-surfaceSunken"
+                aria-label={`Kassieren: ${line.title}, ${line.open} offen`}
+                className="flex min-h-11 items-center gap-3 px-3.5 py-3 text-[15px] text-text no-underline active:bg-surfaceSunken focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset"
               >
-                <span className="min-w-0 tabular-nums">
+                <span className="min-w-0 flex-1 tabular-nums">
                   {`${line.title}, ${checkoutDayWord(line.date)} ${formatTime(line.time)} – ${line.open} offen`}
                 </span>
+                <ChevronRight className="h-[18px] w-[18px] shrink-0 text-textSubtle" aria-hidden />
               </Link>
             ))}
           </div>
