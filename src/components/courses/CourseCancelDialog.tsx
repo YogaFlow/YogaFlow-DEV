@@ -158,7 +158,7 @@ const CourseCancelDialog: React.FC<CourseCancelDialogProps> = ({
               type="button"
               onClick={onCancel}
               disabled={dialog.busy}
-              className="inline-flex min-h-11 items-center rounded-sm bg-surfaceSunken px-4 text-[15px] font-medium text-textMuted focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 disabled:opacity-50"
+              className="inline-flex min-h-11 items-center rounded-full bg-surfaceSunken px-4 text-[15px] font-medium text-textMuted focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 disabled:opacity-50"
             >
               Abbrechen
             </button>
@@ -168,7 +168,7 @@ const CourseCancelDialog: React.FC<CourseCancelDialogProps> = ({
               disabled={dialog.busy}
               className={
                 cancelling
-                  ? 'inline-flex min-h-11 items-center rounded-sm px-4 text-[15px] font-medium text-danger hover:bg-dangerSoft focus:outline-none focus-visible:ring-2 focus-visible:ring-danger focus-visible:ring-offset-2 disabled:opacity-50'
+                  ? 'inline-flex min-h-11 items-center rounded-full px-4 text-[15px] font-medium text-danger hover:bg-dangerSoft focus:outline-none focus-visible:ring-2 focus-visible:ring-danger focus-visible:ring-offset-2 disabled:opacity-50'
                   : 'inline-flex min-h-11 items-center rounded-full bg-brand px-4 text-[15px] font-medium text-onBrand active:bg-brandPressed focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 disabled:opacity-50'
               }
             >

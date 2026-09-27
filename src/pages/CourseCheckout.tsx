@@ -605,7 +605,7 @@ const CourseCheckout: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setRefundTarget(person)}
-                        className="inline-flex min-h-11 shrink-0 items-center rounded-full border border-border px-4 text-[15px] font-medium text-text"
+                        className="inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-full border border-border px-4 text-[15px] font-medium text-text"
                       >
                         Rückgabe vermerkt
                       </button>

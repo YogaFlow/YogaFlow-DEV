@@ -570,9 +570,10 @@ const Dashboard: React.FC = () => {
                 className="flex min-h-11 items-center gap-3 px-3.5 py-3 text-[17px] font-medium text-text no-underline active:bg-surfaceSunken focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset"
               >
                 <span className="min-w-0 flex-1">
-                  {`${line.title} ${formatDate(line.date)} – ${
-                    line.open === 1 ? '1 Rückgabe' : `${line.open} Rückgaben`
-                  }`}
+                  {line.title}{' '}
+                  <span className="whitespace-nowrap">
+                    {formatDate(line.date)} – {line.open === 1 ? '1 Rückgabe' : `${line.open} Rückgaben`}
+                  </span>
                 </span>
                 <ChevronRight className="h-[18px] w-[18px] shrink-0 text-textSubtle" aria-hidden />
               </Link>
