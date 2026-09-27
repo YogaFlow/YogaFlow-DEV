@@ -47,6 +47,9 @@ sich in einen Design- oder Refactoring-Durchlauf einschleicht: sagen, nicht ausf
 ## Harte Grenzen
 
 - Keine Datenbankmigration und kein Schemaeingriff ohne ausdrückliche Freigabe.
+- Eine Migration wird im selben Schritt committet, in dem sie auf DEV angewendet wird.
+  Das Repo ist die einzige Quelle für den späteren PROD-Push; eine nur auf DEV liegende
+  Migration ohne Commit ist gefährlich.
 - Keine Änderung an Auth, RLS, Rollen oder Tenant-Auflösung ohne eigenen, angekündigten Auftrag.
 - Keine neuen Abhängigkeiten ohne Rückfrage.
 - Produktionsdaten werden nie verändert.
