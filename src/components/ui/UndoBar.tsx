@@ -33,7 +33,7 @@ const UndoBar: React.FC<UndoBarProps> = ({
           type="button"
           onClick={onAction}
           disabled={busy}
-          className="inline-flex h-11 shrink-0 items-center rounded-full px-3 text-[15px] font-medium text-brand disabled:opacity-50"
+          className="inline-flex h-11 shrink-0 items-center rounded-full px-3 text-[15px] font-medium text-brand active:text-brandPressed disabled:opacity-50"
         >
           {actionLabel}
         </button>

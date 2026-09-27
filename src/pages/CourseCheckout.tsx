@@ -469,7 +469,7 @@ const CourseCheckout: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => void record(person, 'cash', null, null)}
-                        className="inline-flex h-11 min-w-11 items-center justify-center rounded-full bg-brand px-4 text-[15px] font-medium text-onBrand"
+                        className="inline-flex h-11 min-w-11 items-center justify-center rounded-full bg-brand px-4 text-[15px] font-medium text-onBrand active:bg-brandPressed"
                       >
                         Bar
                       </button>
@@ -477,7 +477,7 @@ const CourseCheckout: React.FC = () => {
                   ) : null}
                 </div>
                 {open && menuOpen ? (
-                  <div className="border-t border-border bg-sand px-3.5 py-1">
+                  <div className="border-t border-border bg-surfaceSunken px-3.5 py-1">
                     {MENU_METHODS.map((item) => (
                       <button
                         key={item.method}
@@ -551,12 +551,12 @@ const CourseCheckout: React.FC = () => {
 
       {amountDialog ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-text/45 p-4 sm:items-center">
-          <div className="w-full max-w-md rounded-lg border border-border bg-surface p-5">
+          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-lg border border-border bg-surface p-5 shadow-lg">
             <h3 className="text-[19px] font-medium text-text">Anderer Betrag</h3>
             <p className="mt-1 text-[13px] text-textMuted">{amountDialog.name}</p>
             {amountDialog.priceLabel ? (
               <p className="mt-2 text-[13px] text-textMuted">
-                Kurspreis {amountDialog.priceLabel}, vorausgefüllt.
+                Kurspreis {amountDialog.priceLabel} ist vorausgefüllt.
               </p>
             ) : null}
             <label className="mt-4 block text-[13px] text-text" htmlFor="checkout-amount">
@@ -601,7 +601,7 @@ const CourseCheckout: React.FC = () => {
                 type="button"
                 onClick={() => void submitAmount()}
                 disabled={dialogBusy}
-                className="inline-flex h-11 items-center rounded-full bg-brand px-4 text-[15px] font-medium text-onBrand disabled:opacity-50"
+                className="inline-flex h-11 items-center rounded-full bg-brand px-4 text-[15px] font-medium text-onBrand active:bg-brandPressed disabled:opacity-50"
               >
                 Vermerken
               </button>
@@ -612,7 +612,7 @@ const CourseCheckout: React.FC = () => {
 
       {waiveDialog ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-text/45 p-4 sm:items-center">
-          <div className="w-full max-w-md rounded-lg border border-border bg-surface p-5">
+          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-lg border border-border bg-surface p-5 shadow-lg">
             <h3 className="text-[19px] font-medium text-text">Erlassen</h3>
             <p className="mt-1 text-[13px] text-textMuted">{waiveDialog.name}</p>
             <fieldset className="mt-3">
@@ -658,7 +658,7 @@ const CourseCheckout: React.FC = () => {
                 type="button"
                 onClick={() => void submitWaive()}
                 disabled={dialogBusy}
-                className="inline-flex h-11 items-center rounded-full bg-brand px-4 text-[15px] font-medium text-onBrand disabled:opacity-50"
+                className="inline-flex h-11 items-center rounded-full bg-brand px-4 text-[15px] font-medium text-onBrand active:bg-brandPressed disabled:opacity-50"
               >
                 Erlassen
               </button>

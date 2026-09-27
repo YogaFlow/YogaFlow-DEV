@@ -42,7 +42,7 @@ const CourseGroupTitle = ({ course, count }: { course: Course; count: number }) 
     <div className="min-w-0">{courseGroupHeading(course, count)}</div>
     <Link
       to={`/course/${course.id}/kassieren`}
-      className="inline-flex h-11 shrink-0 items-center rounded-full border border-border px-4 text-[15px] font-medium text-brand no-underline"
+      className="inline-flex h-11 shrink-0 items-center rounded-full border border-border px-4 text-[15px] font-medium text-brand no-underline active:bg-surfaceSunken"
     >
       Kassieren
     </Link>
