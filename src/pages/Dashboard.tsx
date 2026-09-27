@@ -509,7 +509,7 @@ const Dashboard: React.FC = () => {
                 key={line.id}
                 to={`/course/${line.id}/kassieren`}
                 aria-label={`Kassieren: ${line.title}, ${line.open} offen`}
-                className="flex min-h-11 items-center gap-3 px-3.5 py-3 text-[15px] text-text no-underline active:bg-surfaceSunken focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset"
+                className="flex min-h-11 items-center gap-3 px-3.5 py-3 text-[17px] font-medium text-text no-underline active:bg-surfaceSunken focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset"
               >
                 <span className="min-w-0 flex-1 tabular-nums">
                   {`${line.title}, ${checkoutDayWord(line.date)} ${formatTime(line.time)} – ${line.open} offen`}

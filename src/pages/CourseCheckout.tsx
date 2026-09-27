@@ -500,7 +500,9 @@ const CourseCheckout: React.FC = () => {
                         <Check className="h-4 w-4 shrink-0" aria-hidden />
                       ) : null}
                       <span>{status.text}</span>
-                      {status.detail ? <span className="text-textMuted">· {status.detail}</span> : null}
+                      {status.detail ? (
+                        <span className="text-textMuted tabular-nums">· {status.detail}</span>
+                      ) : null}
                     </p>
                   </div>
                   {open || canRevertWaive ? (
