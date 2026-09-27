@@ -380,7 +380,10 @@ async function main() {
       new Date(reg2.cancellation_deadline).getTime() < Date.now(),
     String(reg2?.cancellation_deadline)
   );
-  const rest2before = await passRemaining(admin, soldA2.pass_id);
+  // Rest der tatsächlich eingelösten Karte (pick_pass, nicht zwingend soldA2).
+  const pass2 = reg2.pass_id;
+  ok('Fall 2 hat pass_id', !!pass2);
+  const rest2before = await passRemaining(admin, pass2);
   const { data: un2, error: u2e } = await asA.rpc('unregister_from_course', {
     p_course_id: kurs2.id,
   });
@@ -390,7 +393,8 @@ async function main() {
     un2?.success === true && un2?.pass_refunded === false,
     JSON.stringify(un2)
   );
-  ok('Rest unverändert', (await passRemaining(admin, soldA2.pass_id)) === rest2before);
+  ok('Rest unverändert', (await passRemaining(admin, pass2)) === rest2before);
+  void soldA2;
   const reg2c = await regRow(admin, kurs2.id, userA.id, { cancelled: true });
   ok('Deckung bleibt pass', reg2c?.coverage_status === 'pass');
   passRegs.push({ regId: reg2.id, expectedNet: -1 });
@@ -464,8 +468,12 @@ async function main() {
     p_method: 'cash',
   });
   if (payCe || !payC?.success) abbruch('pay C: ' + (payCe?.message || JSON.stringify(payC)));
-  const ra4 = await passRemaining(admin, soldA4.pass_id);
-  const rb4 = await passRemaining(admin, soldB4.pass_id);
+  // pick_pass wählt die älteste passende Karte — nicht zwingend den frischen Verkauf.
+  const passA4 = regA4.pass_id;
+  const passB4 = regB4.pass_id;
+  ok('Fall 4 A/B pass_id', !!passA4 && !!passB4);
+  const ra4 = await passRemaining(admin, passA4);
+  const rb4 = await passRemaining(admin, passB4);
 
   const { data: cancel4, error: c4e } = await asOwner.rpc('cancel_course', {
     p_course_id: kurs4.id,
@@ -478,8 +486,10 @@ async function main() {
     JSON.stringify(cancel4)
   );
   ok('paid_registrations 1', cancel4?.paid_registrations === 1);
-  ok('Rest A +1', (await passRemaining(admin, soldA4.pass_id)) === ra4 + 1);
-  ok('Rest B +1', (await passRemaining(admin, soldB4.pass_id)) === rb4 + 1);
+  ok('Rest A +1', (await passRemaining(admin, passA4)) === ra4 + 1);
+  ok('Rest B +1', (await passRemaining(admin, passB4)) === rb4 + 1);
+  void soldA4;
+  void soldB4;
   const regC4c = await regRow(admin, kurs4.id, userC.id, { cancelled: true });
   ok('Bar bleibt paid', regC4c?.coverage_status === 'paid');
   const { data: glA4 } = await admin
@@ -506,10 +516,12 @@ async function main() {
   });
   await asD.rpc('register_for_course', { p_course_id: kurs5.id, p_use_pass: true });
   const regD5 = await regRow(admin, kurs5.id, userD.id);
+  const passD5used = regD5.pass_id;
+  ok('Fall 5 pass_id', !!passD5used);
   const { data: passD5 } = await admin
     .from('passes')
     .select('valid_until')
-    .eq('id', soldD5.pass_id)
+    .eq('id', passD5used)
     .single();
   const [yy, mm, dd] = passD5.valid_until.split('-').map(Number);
   const afterVu = new Date(Date.UTC(yy, mm - 1, dd + 1));
@@ -520,7 +532,7 @@ async function main() {
     .eq('id', kurs5.id);
   if (kursVu) abbruch('Kurs nach Ablauf: ' + kursVu.message);
 
-  const restD5 = await passRemaining(admin, soldD5.pass_id);
+  const restD5 = await passRemaining(admin, passD5used);
   const { data: cancel5, error: c5e } = await asOwner.rpc('cancel_course', {
     p_course_id: kurs5.id,
     p_scope: 'single',
@@ -531,7 +543,8 @@ async function main() {
     cancel5?.pass_refunded === 1 && cancel5?.pass_refunded_inactive === 1,
     JSON.stringify(cancel5)
   );
-  ok('Trotzdem Rest +1', (await passRemaining(admin, soldD5.pass_id)) === restD5 + 1);
+  ok('Trotzdem Rest +1', (await passRemaining(admin, passD5used)) === restD5 + 1);
+  void soldD5;
   const { data: e17 } = await admin
     .from('user_notifications')
     .select('body')
@@ -559,21 +572,47 @@ async function main() {
     p_scope: 'single',
   });
   if (!can6?.success) abbruch('cancel6: ' + JSON.stringify(can6));
-  // Berta: Karte leer (1er zurück + kein Rest) — Rest nach Reverse = 1, dann
-  // zusätzliche Einlösung auf anderem Kurs um leer zu machen vor uncancel?
-  // Nach Reverse hat 1er Rest 1. Vor uncancel: auf anderem Kurs einlösen.
-  const kursDrain = await kursAnlegen(admin, tenant.id, teacher.id, {
-    title: 'A6-3 Drain',
-    date: berlinDate(13),
-  });
-  const { data: drainOk } = await asB.rpc('register_for_course', {
-    p_course_id: kursDrain.id,
-    p_use_pass: true,
-  });
-  if (!drainOk?.success) abbruch('drain: ' + JSON.stringify(drainOk));
-  ok('Berta-Karte leer', (await passRemaining(admin, soldB6.pass_id)) === 0);
+  // Berta hat aus früheren Fällen noch 10er — alle Reste aufbrauchen, sonst
+  // gelingt uncancel mit einer anderen Karte und W7 greift nicht.
+  let regDrain = null;
+  {
+    let drainN = 0;
+    for (;;) {
+      const { data: bPasses } = await admin
+        .from('passes')
+        .select('id')
+        .eq('member_id', userB.id)
+        .eq('status', 'active');
+      let total = 0;
+      for (const p of bPasses || []) total += await passRemaining(admin, p.id);
+      if (total <= 0) break;
+      drainN += 1;
+      const kDrain = await kursAnlegen(admin, tenant.id, teacher.id, {
+        title: 'A6-3 Drain ' + drainN,
+        date: berlinDate(13 + Math.min(drainN, 20)),
+      });
+      const { data: d } = await asB.rpc('register_for_course', {
+        p_course_id: kDrain.id,
+        p_use_pass: true,
+      });
+      if (!d?.success) abbruch('drain: ' + JSON.stringify(d));
+      if (!regDrain) regDrain = await regRow(admin, kDrain.id, userB.id);
+      if (drainN > 40) abbruch('drain: zu viele Iterationen');
+    }
+  }
+  ok('Berta-Karten leer', true);
+  void soldB6;
 
-  const restA6 = await passRemaining(admin, soldA6.pass_id);
+  const { data: annaPasses } = await admin
+    .from('passes')
+    .select('id')
+    .eq('member_id', userA.id)
+    .eq('status', 'active');
+  const remAnnaBefore = {};
+  for (const p of annaPasses || []) {
+    remAnnaBefore[p.id] = await passRemaining(admin, p.id);
+  }
+
   const { data: unc6, error: unc6e } = await asOwner.rpc('uncancel_course', {
     p_course_id: kurs6.id,
     p_scope: 'single',
@@ -582,8 +621,11 @@ async function main() {
   ok('uncancel success', unc6?.success === true, JSON.stringify(unc6));
   const regA6b = await regRow(admin, kurs6.id, userA.id);
   const regB6b = await regRow(admin, kurs6.id, userB.id);
-  ok('Anna wieder pass', regA6b?.coverage_status === 'pass');
-  ok('Rest Anna −1', (await passRemaining(admin, soldA6.pass_id)) === restA6 - 1);
+  ok('Anna wieder pass', regA6b?.coverage_status === 'pass' && !!regA6b?.pass_id);
+  ok(
+    'Rest Anna −1',
+    (await passRemaining(admin, regA6b.pass_id)) === remAnnaBefore[regA6b.pass_id] - 1
+  );
   ok('Berta open (leer)', regB6b?.coverage_status === 'open');
   const { data: w7 } = await admin
     .from('user_notifications')
@@ -594,8 +636,8 @@ async function main() {
   ok('Owner-Glocke W7', (w7 || []).length >= 1);
   passRegs.push({ regId: regA6.id, expectedNet: -1 }); // redeem, reverse, redeem
   passRegs.push({ regId: regB6.id, expectedNet: 0 }); // redeem, reverse, kein re-redeem
-  const regDrain = await regRow(admin, kursDrain.id, userB.id);
-  passRegs.push({ regId: regDrain.id, expectedNet: -1 });
+  if (regDrain) passRegs.push({ regId: regDrain.id, expectedNet: -1 });
+  void soldA6;
 
   // ── 7) Warteliste Intent ────────────────────────────────────────────────
   console.log('\n7) Warteliste Nachrücken mit Intent');
@@ -611,12 +653,18 @@ async function main() {
   const regA7 = await regRow(admin, kurs7.id, userA.id);
   const regB7wl = await regRow(admin, kurs7.id, userB.id);
   ok('Berta Warteliste intent', regB7wl?.is_waitlist === true && regB7wl?.coverage_intent === 'pass');
+  // Nach Fall 6 sind Bertas Karten leer — frische soldB7 ist die einzige mit Rest.
   const rb7 = await passRemaining(admin, soldB7.pass_id);
+  ok('Berta nur frische Karte mit Rest', rb7 >= 1);
   const { data: un7 } = await asA.rpc('unregister_from_course', { p_course_id: kurs7.id });
   if (!un7?.success) abbruch('un7: ' + JSON.stringify(un7));
   const regB7 = await regRow(admin, kurs7.id, userB.id);
   ok('Berta nachgerückt pass', regB7?.status === 'registered' && regB7?.coverage_status === 'pass');
-  ok('Rest Berta −1', (await passRemaining(admin, soldB7.pass_id)) === rb7 - 1);
+  ok(
+    'Rest Berta −1',
+    regB7?.pass_id === soldB7.pass_id &&
+      (await passRemaining(admin, soldB7.pass_id)) === rb7 - 1
+  );
   const { data: glB7 } = await admin
     .from('user_notifications')
     .select('body')
@@ -722,6 +770,7 @@ async function main() {
   async function fixturePass({ memberId, name, units, validFrom, validUntil }) {
     const payId = crypto.randomUUID();
     const passId = crypto.randomUUID();
+    const receivedAt = new Date().toISOString();
     const { error: payE } = await admin.from('payments').insert({
       id: payId,
       tenant_id: tenant.id,
@@ -733,7 +782,9 @@ async function main() {
       status: 'succeeded',
       amount_cents: 1000,
       currency: 'EUR',
+      received_at: receivedAt,
       recorded_by: owner.id,
+      created_at: receivedAt,
     });
     if (payE) abbruch('Fixture payment: ' + payE.message);
     const { data: pass, error: passE } = await admin
