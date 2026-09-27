@@ -616,6 +616,8 @@ export default function Users() {
     const fullName = `${removeTarget.firstName} ${removeTarget.lastName}`.trim();
     setRemoveTarget(null);
     setRemoveBusy(false);
+    setExpandedId(null);
+    setEditForm(null);
     await fetchUsers();
     setFeedbackDialog({
       title: result.code === 'LOGIN_NOT_DELETED' ? `${fullName} wurde entfernt.` : 'Entfernt',
@@ -626,35 +628,45 @@ export default function Users() {
     });
   };
 
-  const removeButton = (user: User, isSelf: boolean) => {
+  /** Gefahrenzone unten im Bearbeiten-Panel; eigene Person: nichts. */
+  const removePersonZone = (user: User, isSelf: boolean) => {
     if (!isAdmin || isSelf) return null;
-    if (user.role === 'owner') {
-      return (
-        <div className="max-w-xs">
+    const isOwner = user.role === 'owner';
+    return (
+      <div className="border-t border-border pt-4 space-y-2">
+        <h3 className="text-xs font-semibold text-text">Person entfernen</h3>
+        <p className="text-sm text-textMuted">
+          Entfernt die Person aus deinem Studio. Bezahlte oder erlassene Buchungen bleiben ohne Namen erhalten.
+        </p>
+        {isOwner ? (
+          <div className="max-w-md">
+            <button
+              type="button"
+              disabled
+              className="inline-flex min-h-11 cursor-not-allowed items-center text-sm font-medium text-danger opacity-50"
+            >
+              Person entfernen
+            </button>
+            <p className="mt-1 text-xs text-textMuted">
+              Inhaberinnen kannst du nicht entfernen. Ändere zuerst die Rolle.
+            </p>
+          </div>
+        ) : (
           <button
             type="button"
-            disabled
-            className="inline-flex min-h-11 cursor-not-allowed items-center text-sm font-medium text-danger opacity-50"
+            onClick={() => void handlePrepareRemove(user)}
+            disabled={preparingRemoveId === user.id}
+            className="inline-flex min-h-11 items-center text-sm font-medium text-danger disabled:opacity-50"
           >
-            Person entfernen
+            {preparingRemoveId === user.id ? 'Wird geprüft …' : 'Person entfernen'}
           </button>
-          <p className="mt-1 text-xs text-textMuted">
-            Inhaberinnen kannst du nicht entfernen. Ändere zuerst die Rolle.
-          </p>
-        </div>
-      );
-    }
-    return (
-      <button
-        type="button"
-        onClick={() => void handlePrepareRemove(user)}
-        disabled={preparingRemoveId === user.id}
-        className="inline-flex min-h-11 items-center text-sm font-medium text-danger disabled:opacity-50"
-      >
-        {preparingRemoveId === user.id ? 'Wird geprüft …' : 'Person entfernen'}
-      </button>
+        )}
+      </div>
     );
   };
+
+  const canOpenEdit = (user: User, isSelf: boolean) =>
+    user.role !== 'owner' || isSelf || isAdmin;
 
   // ---------------------------------------------------------------------------
   // Access guard
@@ -748,7 +760,7 @@ export default function Users() {
                     </p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    {(user.role !== 'owner' || isSelf) && (
+                    {canOpenEdit(user, isSelf) && (
                       <button
                         onClick={() => handleToggleExpand(user)}
                         className={`flex items-center gap-1 px-3 py-1.5 rounded-sm text-xs font-semibold transition-colors ${
@@ -764,11 +776,6 @@ export default function Users() {
                     )}
                   </div>
                 </div>
-                {isAdmin && !isSelf ? (
-                  <div className="border-t border-border px-3.5 py-2">
-                    {removeButton(user, isSelf)}
-                  </div>
-                ) : null}
 
                 {/* Expanded panel (mobile) */}
                 {isExpanded && editForm && (
@@ -940,6 +947,8 @@ export default function Users() {
                         )}
                       </div>
                     )}
+
+                    {removePersonZone(user, isSelf)}
                   </div>
                 )}
               </div>
@@ -989,7 +998,7 @@ export default function Users() {
                   <tr className={`${isSelf ? 'bg-brandSoft' : ''} ${isExpanded ? 'bg-surfaceSunken' : 'hover:bg-surfaceSunken'} transition-colors`}>
                     {/* Toggle button */}
                     <td className="px-3 py-4 text-center">
-                      {(user.role !== 'owner' || isSelf) && (
+                      {canOpenEdit(user, isSelf) && (
                         <button
                           onClick={() => handleToggleExpand(user)}
                           className="text-textSubtle hover:text-brandPressed transition-colors"
@@ -1061,7 +1070,7 @@ export default function Users() {
                     {/* Actions */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
-                        {(user.role !== 'owner' || isSelf) && (
+                        {canOpenEdit(user, isSelf) && (
                           <button
                             onClick={() => handleToggleExpand(user)}
                             className={`${isSelf ? 'text-brandOnSoft hover:text-brandPressed' : 'text-brand hover:text-brandPressed'} text-sm font-medium`}
@@ -1069,7 +1078,6 @@ export default function Users() {
                             {isExpanded ? 'Schließen' : 'Bearbeiten'}
                           </button>
                         )}
-                        {removeButton(user, isSelf)}
                       </div>
                     </td>
                   </tr>
@@ -1267,6 +1275,8 @@ export default function Users() {
                             )}
 
                           </div>
+
+                          {removePersonZone(user, isSelf)}
                         </div>
                       </td>
                     </tr>
