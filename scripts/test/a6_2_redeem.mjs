@@ -2,9 +2,13 @@
 /**
  * A6-2 — Einlösen beim Buchen / nachträglich / Undo (nur DEV).
  *
- * Nicht ausführen, bevor 20260927233000_a6_2_redeem.sql auf DEV liegt.
+ * Nicht ausführen, bevor 20260927233000_a6_2_redeem.sql und
+ * 20260927235000_a6_2b_tenant_delete_cycle.sql auf DEV liegen.
  * Gegen PROD nie. Eigenes Studio a62redeemtest, am Ende
  * delete_tenant_complete und auth.admin.deleteUser.
+ *
+ * 12) remove_member nach echter Einlösung → anonymized, Buchung+Bewegung bleiben.
+ * 13) delete_tenant_complete mit eingelöster Buchung → Studio weg.
  *
  * Verwendung: node scripts/test/a6_2_redeem.mjs
  */
@@ -196,19 +200,14 @@ async function regRow(admin, courseId, userId) {
 }
 
 async function passRemaining(admin, passId) {
+  // Wie yogaflow_private.pass_remaining: Summe der Bewegungs-deltas
+  // (Purchase +units, redeem −1, …). units_total nicht zusätzlich addieren.
   const { data: moves, error } = await admin
     .from('pass_movements')
     .select('delta')
     .eq('pass_id', passId);
   if (error) abbruch('movements: ' + error.message);
-  const { data: pass, error: pErr } = await admin
-    .from('passes')
-    .select('units_total')
-    .eq('id', passId)
-    .single();
-  if (pErr) abbruch(pErr.message);
-  const sum = (moves || []).reduce((a, m) => a + Number(m.delta), 0);
-  return pass.units_total + sum;
+  return (moves || []).reduce((a, m) => a + Number(m.delta), 0);
 }
 
 let devOk = false;
@@ -870,8 +869,36 @@ async function main() {
     .maybeSingle();
   ok('Bewegung bleibt', movRmAfter?.id === movIdBefore);
 
-  console.log('\nAufräumen');
-  await resteEntfernen(admin);
+  // ── 13) delete_tenant_complete mit eingelöster Buchung ──────────────────
+  console.log('\n13) delete_tenant_complete mit Einlösung');
+  const { data: stillPass, error: spErr } = await admin
+    .from('registrations')
+    .select('id')
+    .eq('tenant_id', tenant.id)
+    .eq('coverage_status', 'pass')
+    .limit(1);
+  if (spErr) abbruch(spErr.message);
+  ok('Studio hat eingelöste Buchung', (stillPass || []).length >= 1);
+
+  const { error: delErr } = await admin.rpc('delete_tenant_complete', {
+    p_tenant_id: tenant.id,
+  });
+  ok('delete_tenant_complete', !delErr, delErr?.message);
+
+  const { data: gone, error: goneErr } = await admin
+    .from('tenants')
+    .select('id')
+    .eq('id', tenant.id);
+  if (goneErr) abbruch(goneErr.message);
+  ok('Studio gelöscht', (gone || []).length === 0);
+
+  console.log('\nAufräumen Auth');
+  for (const u of await authNutzer(admin)) {
+    const { error: e } = await admin.auth.admin.deleteUser(u.id);
+    if (e && !/not found/i.test(e.message)) {
+      abbruch('Auth-Nutzer ' + u.email + ': ' + e.message);
+    }
+  }
   console.log('\nA6-2 Redeem: alle Fälle grün\n');
 }
 
