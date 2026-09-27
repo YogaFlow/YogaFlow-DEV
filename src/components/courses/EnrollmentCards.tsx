@@ -119,7 +119,7 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({
             {pay || usable ? (
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-3.5 py-2.5 sm:px-4">
                 {pay ? (
-                  <p className="text-[13px] text-textMuted">{pay}</p>
+                  <p className="text-[13px] text-textMuted tabular-nums">{pay}</p>
                 ) : (
                   <span />
                 )}

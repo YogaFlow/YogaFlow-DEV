@@ -69,7 +69,11 @@ const PassBookChoiceDialog: React.FC<PassBookChoiceDialogProps> = ({
         {mode === 'seat' ? (
           <fieldset className="mt-4 space-y-2" disabled={busy}>
             <legend className="sr-only">Zahlungsart</legend>
-            <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-md border border-border bg-surface px-3 py-2.5">
+            <label
+              className={`flex min-h-11 cursor-pointer items-start gap-3 rounded-md border bg-surface px-3 py-2.5 ${
+                usePass ? 'border-brand' : 'border-border'
+              }`}
+            >
               <input
                 type="radio"
                 name="pass-book-choice"
@@ -84,7 +88,11 @@ const PassBookChoiceDialog: React.FC<PassBookChoiceDialogProps> = ({
                 </span>
               </span>
             </label>
-            <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-md border border-border bg-surface px-3 py-2.5">
+            <label
+              className={`flex min-h-11 cursor-pointer items-start gap-3 rounded-md border bg-surface px-3 py-2.5 ${
+                !usePass ? 'border-brand' : 'border-border'
+              }`}
+            >
               <input
                 type="radio"
                 name="pass-book-choice"
