@@ -23,6 +23,7 @@ import OnboardingWizard from './pages/OnboardingWizard';
 import LegalPage from './pages/LegalPage';
 import JoinStudio from './pages/JoinStudio';
 import CourseDetail from './pages/CourseDetail';
+import CourseCheckout from './pages/CourseCheckout';
 
 const Spinner = () => (
   <div className="min-h-screen bg-sand flex items-center justify-center">
@@ -299,6 +300,7 @@ function App() {
               <Route path="create-course" element={<CreateCourse />} />
               <Route path="course/:courseId/edit" element={<EditCourse />} />
               <Route path="course/:courseId/participants" element={<Participants />} />
+              <Route path="course/:courseId/kassieren" element={<CourseCheckout />} />
               <Route path="course/:courseId" element={<CourseDetail />} />
               <Route path="my-courses" element={<MyCourses />} />
               <Route path="my-registrations" element={<MyRegistrations />} />

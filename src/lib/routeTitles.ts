@@ -39,6 +39,12 @@ function courseSegmentTitle(pathname: string): string {
     return id.length > 0 && !id.includes('/') ? 'Teilnehmer' : '';
   }
 
+  const checkoutSuffix = '/kassieren';
+  if (rest.endsWith(checkoutSuffix)) {
+    const id = rest.slice(0, rest.length - checkoutSuffix.length);
+    return id.length > 0 && !id.includes('/') ? 'Kassieren' : '';
+  }
+
   if (rest.length > 0 && !rest.includes('/')) {
     return 'Kurs';
   }

@@ -14,6 +14,7 @@ import {
 import { fetchCourseParticipantCounts } from '../lib/courseParticipantCounts';
 import { isParticipantOnlyRole, isTeacherOnly } from '../lib/userRoles';
 import { formatStaffName, withCourseTeachers } from '../lib/staffNames';
+import { berlinIsoDate, checkoutDayWord } from '../lib/courseCheckout';
 import AccentPill from '../components/ui/AccentPill';
 import CourseRow from '../components/courses/CourseRow';
 
@@ -24,6 +25,14 @@ type StatCard = {
 };
 
 type CourseWithCount = Course & { registrationCount?: number };
+
+type CheckoutLine = {
+  id: string;
+  title: string;
+  date: string;
+  time: string;
+  open: number;
+};
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -37,6 +46,7 @@ const Dashboard: React.FC = () => {
     myRegistrations: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [checkoutLines, setCheckoutLines] = useState<CheckoutLine[]>([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -170,6 +180,57 @@ const Dashboard: React.FC = () => {
           }
         } else if (isMounted) {
           setRegistrations([]);
+        }
+
+        if (userProfile.role === 'user') {
+          if (isMounted) setCheckoutLines([]);
+        } else {
+          const yesterday = berlinIsoDate(-1);
+          const todayBerlin = berlinIsoDate(0);
+          let checkoutQuery = supabase
+            .from('courses')
+            .select('id, title, date, time, status')
+            .in('date', [yesterday, todayBerlin])
+            .order('date', { ascending: true })
+            .order('time', { ascending: true });
+
+          if (userProfile.role === 'teacher') {
+            checkoutQuery = checkoutQuery.eq('teacher_id', userProfile.id);
+          }
+
+          const { data: checkoutCourses, error: checkoutError } = await checkoutQuery;
+          if (checkoutError) throw checkoutError;
+
+          const checkoutIds = (checkoutCourses ?? []).map((row) => row.id);
+          const openByCourse = new Map<string, number>();
+          if (checkoutIds.length > 0) {
+            const { data: openRows, error: openError } = await supabase
+              .from('registrations')
+              .select('course_id')
+              .in('course_id', checkoutIds)
+              .eq('status', 'registered')
+              .eq('coverage_status', 'open');
+            if (openError) throw openError;
+            for (const row of openRows ?? []) {
+              openByCourse.set(row.course_id, (openByCourse.get(row.course_id) ?? 0) + 1);
+            }
+          }
+
+          if (!isMounted) return;
+          setCheckoutLines(
+            (checkoutCourses ?? [])
+              .filter(
+                (row) =>
+                  !isCourseCancelled(row.status) && (openByCourse.get(row.id) ?? 0) > 0
+              )
+              .map((row) => ({
+                id: row.id,
+                title: row.title,
+                date: row.date,
+                time: row.time,
+                open: openByCourse.get(row.id) ?? 0,
+              }))
+          );
         }
 
         await fetchStats(myRegistrationsFromList);
@@ -436,6 +497,27 @@ const Dashboard: React.FC = () => {
             : 'Willkommen zurück!'}
         </p>
       </div>
+
+      {checkoutLines.length > 0 && !isParticipantOnly && (
+        <section className="overflow-hidden rounded-md border border-border bg-surface">
+          <div className="border-b border-border px-3.5 py-3">
+            <h2 className="text-[17px] font-medium text-text">Kassieren</h2>
+          </div>
+          <div className="divide-y divide-border">
+            {checkoutLines.map((line) => (
+              <Link
+                key={line.id}
+                to={`/course/${line.id}/kassieren`}
+                className="flex min-h-11 items-center px-3.5 py-3 text-[15px] text-text no-underline active:bg-surfaceSunken"
+              >
+                <span className="min-w-0 tabular-nums">
+                  {`${line.title}, ${checkoutDayWord(line.date)} ${formatTime(line.time)} – ${line.open} offen`}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {isParticipantOnly && heroCourse && (
         <Link

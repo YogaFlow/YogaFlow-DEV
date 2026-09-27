@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Course, Registration, User } from '../types';
@@ -36,6 +36,18 @@ const courseGroupHeading = (course: Course, count: number) => {
     </>
   );
 };
+
+const CourseGroupTitle = ({ course, count }: { course: Course; count: number }) => (
+  <div className="flex flex-wrap items-start gap-3">
+    <div className="min-w-0">{courseGroupHeading(course, count)}</div>
+    <Link
+      to={`/course/${course.id}/kassieren`}
+      className="inline-flex h-11 shrink-0 items-center rounded-full border border-border px-4 text-[15px] font-medium text-brand no-underline"
+    >
+      Kassieren
+    </Link>
+  </div>
+);
 
 const Participants: React.FC = () => {
   const { courseId } = useParams<{ courseId?: string }>();
@@ -378,7 +390,7 @@ const Participants: React.FC = () => {
             {groupedParticipants.map((group) => (
               <section key={group.courseId}>
                 <div className="mb-2">
-                  {courseGroupHeading(group.course, group.participants.length)}
+                  <CourseGroupTitle course={group.course} count={group.participants.length} />
                 </div>
                 <div className="divide-y divide-border overflow-hidden rounded-md border border-border bg-surface">
                   {group.participants.map((participant) => (
@@ -479,7 +491,7 @@ const Participants: React.FC = () => {
                         scope="colgroup"
                         className="bg-surfaceSunken px-6 py-3 text-left font-normal"
                       >
-                        {courseGroupHeading(group.course, group.participants.length)}
+                        <CourseGroupTitle course={group.course} count={group.participants.length} />
                       </th>
                     </tr>
                     {group.participants.map((participant) => (
