@@ -34,8 +34,9 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
       neu, wenn das Login genau ein Profil hat.
 - [ ] **`tenants` für `anon` auf die nötigen Felder einschränken statt `select *`.**
 - [ ] **Bestehende Edge Functions reichen teils `error.message` nach außen durch**
-      (`update-user`, `delete-user`, `onboarding-public`). Auf die Fehlerform aus
+      (`update-user`, `onboarding-public`). Auf die Fehlerform aus
       `_shared/service.ts` umstellen, wenn sie ohnehin angefasst werden.
+      `delete-user` tut das seit 27.09.2026 nicht mehr.
 - [ ] **`send-verification-email` absichern.** Mit Anon-Key und beliebiger `userId`
       ohne Sitzung aufrufbar. Nach K1 kein Datenschaden mehr, aber fremde
       Bestätigungsmails lassen sich auslösen. Sitzung verlangen oder Rate-Limit.
@@ -75,12 +76,10 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
       beim Token-Refresh (Teilnehmer, 22.09.). Prüfen, ob die App genau einen Supabase-Client
       anlegt. Beobachten, ob Nutzer unerwartet abgemeldet werden.
 - [ ] **`console.log("Supabase configured with URL …")` im Produktions-Bundle entfernen.**
-- [ ] **`delete-user` an die RPC `remove_member` anschließen (Schritt 2).**
-      Migration `20260927145006` ist geschrieben und nicht angewendet. Die
-      Function mappt jeden FK-Fehler `23503` weiter auf „hat noch Kurse“.
-      Schritt 2: je Code eine eigene Meldung, Login nur löschen, wenn
-      `remaining_profiles === 0` (Zahl, nicht leer). Kein Lösch-Knopf, bis
-      Schritt 3. 4.3 bleibt PROD-Gate.
+- [ ] **`record_service_ping` schreibt Audit mit Teilnehmenden als Akteur.**
+      Wer die Rolle `user` hat und den Ping aufruft, bekommt einen
+      Audit-Eintrag. Das zählt als Geldbezug: die Person wird anonymisiert
+      statt gelöscht. Vorschlag: Ping ohne Audit oder ohne Akteur.
 - [ ] **Studio-Export als eigene Story.** Kündigung eines Studios gibt es nur
       von Hand (`delete_tenant_complete`, nur `service_role`, L5). AGB § 9
       verspricht 30 Tage Exportfenster. Heute exportiert die Teilnehmerliste
@@ -146,6 +145,10 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Erledigt
 
+- 27.09.2026 — `delete-user` mappt `23503` nicht mehr auf „hat noch Kurse“.
+  Die Function ruft `remove_member` und löscht das Login nur bei
+  `remaining_profiles === 0` (Zahl). Geschrieben, Deploy auf DEV steht aus.
+  Kein Lösch-Knopf, bis Schritt 3. 4.3 bleibt PROD-Gate.
 - 26.09.2026 — Sicherheits-Hotfix Rolle bei Registrierung live auf PROD (Release 2026-09e, Merge `e5f7b80`, Migration `20260926160500`).
 - 26.09.2026 — K1, K2 (a–d) und 0.3 (a–c) live auf PROD (Release 2026-09d, Merge `3d41292`).
 - 26.09.2026 — K2 (a–d) auf DEV abgenommen: K2a `db8f520`, K2b `f04c776`,

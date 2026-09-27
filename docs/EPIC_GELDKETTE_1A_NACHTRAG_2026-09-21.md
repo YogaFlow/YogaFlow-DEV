@@ -400,9 +400,13 @@ Abweichungen vom Entwurf vom 21.09.:
 - **4.2:** Belege für Kartenverkauf und Kursbuchung per Überweisung/PayPal/online. **Nicht für bar** (E14)
 - **4.3 (Löschen/Aufbewahren):** FKs von `passes`, `pass_movements` ebenfalls `RESTRICT`
 
-#### Umsetzung 4.3 (27.09.2026, nicht angewendet)
+#### Umsetzung 4.3, Schritt 1 (27.09.2026, auf DEV)
 
-Migration `20260927145006_4_3_member_removal.sql`. Test `scripts/test/s4_3_remove_member.mjs`. Beides geschrieben, nicht auf DEV ausgeführt. `delete-user` und der Knopf kommen in Schritt 2 und 3.
+Migration `20260927145006_4_3_member_removal.sql`, Commit `4898fbe`. Test `scripts/test/s4_3_remove_member.mjs` auf DEV grün, zusammen mit a1, a3 und a9. Der Knopf kommt in Schritt 3.
+
+#### Umsetzung 4.3, Schritt 2 (27.09.2026, geschrieben, nicht deployed)
+
+`supabase/functions/delete-user/index.ts` ruft `remove_member` mit dem Token der aufrufenden Person auf. Der Studio-Header `x-omlify-tenant` wird wie in `update-user` an diesen Aufruf gehängt, damit `get_my_member_id()` dasselbe Studio sieht wie die App. Das Login löscht nur der Service-Role-Client, und nur wenn `success` wahr ist, `remaining_profiles === 0` eine Zahl ist und `auth_user_id` gesetzt ist. Die Sammelmeldung für `23503` ist weg. Test `scripts/test/s4_3_delete_user_fn.mjs`, nicht ausgeführt. Deploy auf DEV macht Julius.
 
 Entscheidungen:
 
@@ -418,7 +422,7 @@ Geldbezug: Anmeldung mit Zahlungszeile oder Deckung `paid`/`waived`, oder `payme
 
 Abweichungen aus der Inventur, die diese Migration berücksichtigt:
 
-- **P1.** `payments.registration_id` ist RESTRICT. Ein Profil mit Vermerk lässt sich nicht löschen. Die RPC anonymisiert es, statt an `23503` zu scheitern. Die Meldung „hat noch Kurse“ in `delete-user` ändert Schritt 2.
+- **P1.** `payments.registration_id` ist RESTRICT. Ein Profil mit Vermerk lässt sich nicht löschen. Die RPC anonymisiert es, statt an `23503` zu scheitern. `delete-user` gibt diese Sammelmeldung seit Schritt 2 nicht mehr aus.
 - **L3.** `courses.teacher_id` ist schon RESTRICT, nicht mehr CASCADE. Eine Lehrende mit nur vergangenem Kurs wird anonymisiert, `teacher_id` bleibt. Zusätzlich zählt jeder Kurs, der nicht „aktiv und noch nicht begonnen“ ist, als Geldbezug, damit ein abgesagter, noch nicht begonnener Kurs das Löschen nicht mit `23503` abbricht.
 - **L8.** `delete_tenant_complete` löscht Zahlungen, Events und Audit weiter mit (L5, unverändert) und räumt anonymisierte Profile mit ab. „Letztes Profil → Login weg“ ist nicht die Datenbankkaskade. Die Kaskade läuft vom Login auf Profile mit gesetztem `auth_user_id`. Die anonymisierte Zeile hat `auth_user_id` NULL und überlebt `auth.admin.deleteUser`.
 - **Erlass.** Deckung `waived` ohne Zahlungszeile ist Geldbezug. Die Anmeldung inklusive `coverage_waived_note` bleibt. Vorher hätte `registrations.user_id` CASCADE sie mitgelöscht.
