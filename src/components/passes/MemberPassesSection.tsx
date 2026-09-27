@@ -89,7 +89,7 @@ const MemberPassesSection: React.FC<Props> = ({
   return (
     <div className="border-t border-border pt-4 space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-xs font-semibold text-text">Karten</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-textMuted">Karten</h3>
         {canSell && hasProducts ? (
           <button
             type="button"

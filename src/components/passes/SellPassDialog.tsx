@@ -106,12 +106,12 @@ const SellPassDialog: React.FC<SellPassDialogProps> = ({
       onClick={busy ? undefined : onClose}
     >
       <div
-        className={`max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-lg border border-border bg-surface p-5 shadow-lg transition-all duration-200 ${
+        className={`max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-lg border border-border bg-surface p-6 shadow-lg transition-all duration-200 ${
           isVisible ? 'scale-100 translate-y-0 opacity-100' : 'scale-95 translate-y-2 opacity-0'
         }`}
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-[19px] font-medium text-text">Karte für {personName}</h3>
+        <h3 className="text-lg font-semibold text-text">Karte für {personName}</h3>
 
         {loading ? (
           <div className="flex justify-center py-10">
@@ -148,7 +148,7 @@ const SellPassDialog: React.FC<SellPassDialogProps> = ({
                       {formatSellableProductLabel(product)}
                     </span>
                     <span
-                      className={`mt-1 text-[13px] ${
+                      className={`mt-0.5 text-xs leading-5 ${
                         active ? 'text-brandOnSoft' : 'text-textMuted'
                       }`}
                     >
