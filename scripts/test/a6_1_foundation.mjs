@@ -293,7 +293,7 @@ async function main() {
     .insert({
       tenant_id: tenant.id,
       title: 'A6-1 Frist',
-      description: 'test',
+      description: 'A6-1 Foundation Testkurs',
       date: morgen,
       time: kursZeit,
       end_time: '19:00:00',
@@ -434,7 +434,7 @@ async function main() {
       .insert({
         tenant_id: tenant.id,
         title: 'A6-1 Remove',
-        description: 'test',
+        description: 'A6-1 Foundation Testkurs',
         date: berlinDate(2),
         time: '10:00:00',
         end_time: '11:00:00',

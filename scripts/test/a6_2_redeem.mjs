@@ -310,15 +310,6 @@ async function main() {
   });
   if (fErr || !fuenfProd?.success) abbruch('5er: ' + (fErr?.message || JSON.stringify(fuenfProd)));
 
-  const { data: einsProd, error: eErr } = await asOwner.rpc('create_pass_product', {
-    p_name: '1er A6-2',
-    p_units: 1,
-    p_price_cents: 1800,
-    p_validity_rule: 'years_to_year_end',
-    p_validity_value: 1,
-  });
-  if (eErr || !einsProd?.success) abbruch('1er: ' + (eErr?.message || JSON.stringify(einsProd)));
-
   // ── 1) Selbstbuchung mit Karte ──────────────────────────────────────────
   console.log('\n1) Selbstbuchung mit Karte');
   const soldAnna = await verkaufen(asOwner, user.id, zehnProd.id);
@@ -477,7 +468,28 @@ async function main() {
 
   // ── 6) Parallel Rest 1 ──────────────────────────────────────────────────
   console.log('\n6) Parallel Rest 1');
-  const sold1 = await verkaufen(asOwner, user3.id, einsProd.id);
+  const parallelUser = await nutzerAnlegen(admin, {
+    email: SLUG + '.parallel@example.com',
+    vorname: 'Dora',
+    nachname: 'Doppel',
+    rolle: 'user',
+    tenantId: tenant.id,
+    password,
+  });
+  const asParallel = await login(url, anon, parallelUser.email, password);
+
+  const { data: einsProd, error: eErr } = await asOwner.rpc('create_pass_product', {
+    p_name: '1er-Karte',
+    p_units: 1,
+    p_price_cents: 1800,
+    p_validity_rule: 'years_to_year_end',
+    p_validity_value: 1,
+  });
+  if (eErr || !einsProd?.success) abbruch('1er-Karte: ' + (eErr?.message || JSON.stringify(einsProd)));
+
+  const sold1 = await verkaufen(asOwner, parallelUser.id, einsProd.id);
+  ok('Parallel-Rest genau 1', (await passRemaining(admin, sold1.pass_id)) === 1);
+
   const kursP1 = await kursAnlegen(admin, tenant.id, teacher.id, {
     title: 'A6-2 Parallel A',
     date: berlinDate(10),
@@ -487,16 +499,32 @@ async function main() {
     date: berlinDate(11),
   });
   const [rA, rB] = await Promise.all([
-    asUser3.rpc('register_for_course', { p_course_id: kursP1.id, p_use_pass: true }),
-    asUser3.rpc('register_for_course', { p_course_id: kursP2.id, p_use_pass: true }),
+    asParallel.rpc('register_for_course', { p_course_id: kursP1.id, p_use_pass: true }),
+    asParallel.rpc('register_for_course', { p_course_id: kursP2.id, p_use_pass: true }),
   ]);
   if (rA.error) abbruch('parallel A: ' + rA.error.message);
   if (rB.error) abbruch('parallel B: ' + rB.error.message);
-  const successes = [rA.data, rB.data].filter((d) => d?.success === true);
-  const fails = [rA.data, rB.data].filter((d) => d?.success === false && d?.error === 'NO_VALID_PASS');
+  const successes = [rA.data, rB.data].filter(
+    (d) => d?.success === true && d?.coverage === 'pass'
+  );
+  const fails = [rA.data, rB.data].filter(
+    (d) => d?.success === false && d?.error === 'NO_VALID_PASS'
+  );
   ok('Genau eine mit Karte', successes.length === 1, JSON.stringify([rA.data, rB.data]));
   ok('Andere NO_VALID_PASS', fails.length === 1, JSON.stringify([rA.data, rB.data]));
   ok('Rest 0', (await passRemaining(admin, sold1.pass_id)) === 0);
+
+  const { data: redeemMoves, error: redeemMvErr } = await admin
+    .from('pass_movements')
+    .select('id, kind, delta, registration_id')
+    .eq('pass_id', sold1.pass_id)
+    .eq('kind', 'redeem');
+  if (redeemMvErr) abbruch(redeemMvErr.message);
+  ok(
+    'Genau eine redeem-Bewegung',
+    (redeemMoves || []).length === 1 && redeemMoves[0].delta === -1,
+    JSON.stringify(redeemMoves)
+  );
 
   // ── 7) Warteliste mit Karte ─────────────────────────────────────────────
   console.log('\n7) Warteliste mit coverage_intent');
@@ -721,7 +749,7 @@ async function main() {
     title: 'A6-2 Undo',
     date: berlinDate(22),
   });
-  // frische Karte für user3 (Rest war 0)
+  // frische 10er zusätzlich; pick kann ältere 5er aus Fall 4 bevorzugen
   const soldUndo = await verkaufen(asOwner, user3.id, zehnProd.id);
   const { data: admTeacher, error: admTErr } = await asTeacher.rpc('admin_register_user_for_course', {
     p_user_id: user3.id,
@@ -732,7 +760,9 @@ async function main() {
     abbruch('Teacher register: ' + (admTErr?.message || JSON.stringify(admTeacher)));
   }
   const regUndo = await regRow(admin, kursUndo.id, user3.id);
-  const remAfterRedeem = await passRemaining(admin, soldUndo.pass_id);
+  const passUsedForUndo = regUndo.pass_id;
+  const remAfterRedeem = await passRemaining(admin, passUsedForUndo);
+  void soldUndo;
 
   const { data: undoT, error: undoTErr } = await asTeacher.rpc('undo_pass_redemption', {
     p_registration_id: regUndo.id,
@@ -745,7 +775,7 @@ async function main() {
   );
   const regUndoAfter = await regRow(admin, kursUndo.id, user3.id);
   ok('Deckung wieder open', regUndoAfter?.coverage_status === 'open' && regUndoAfter?.pass_id == null);
-  ok('Rest +1', (await passRemaining(admin, soldUndo.pass_id)) === remAfterRedeem + 1);
+  ok('Rest +1', (await passRemaining(admin, passUsedForUndo)) === remAfterRedeem + 1);
 
   const { data: revMov } = await admin
     .from('pass_movements')
