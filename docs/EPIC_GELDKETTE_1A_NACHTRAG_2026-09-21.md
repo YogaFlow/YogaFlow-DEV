@@ -383,13 +383,19 @@ der Frist → +1, außerhalb → 0. Verfall am Stichtag → Rest 0, Event. Nachr
 | W7 | Absage zurückgenommen, Karte leer/abgelaufen → Buchung wieder `open`, Glocke an Owner/Admin. |
 | W8 | Verfall: `pg_cron`, täglicher SQL-Job (Europe/Berlin), in **A6-3**. |
 | W9 | Karte am Kurstag gültig (`valid_until >=` Kursdatum), aktiv, Rest ≥ 1; frühestes `valid_until`, bei Gleichstand ältester Kauf. |
+| W10 | Teilnehmende dürfen eine eigene offene Buchung selbst per Karte begleichen, solange der Kurs nicht begonnen hat. |
+| W11 | Einlösen zurücknehmen: Owner/Admin jederzeit (aktive Buchung); Lehrende nur eigene Einlösung ≤ 15 Minuten; Teilnehmende nicht (sie melden sich ab). |
+| W12 | Kostenloser Kurs: Wunsch „mit Karte“ / `p_coverage` wird ignoriert, Deckung bleibt `not_required`. |
+| W13 | Studio trägt auf die Warteliste ein: nur „offen“ oder „mit Karte beim Nachrücken“ (`coverage_intent`). Bar/PayPal/Überweisung erst, wenn der Platz da ist (`WAITLIST_NO_PAYMENT`). |
+
+**Zwischenstand (nur DEV, bis A6-3):** Eine eingelöste Einheit bleibt bei Abmeldung, Studio-Abmeldung, Kursabsage und Rücknahme verbraucht. Zurückbuchen kommt in A6-3.
 
 **Schnitt (verbindlich):**
 
 | Schritt | Inhalt |
 |---|---|
 | **A6-1** | Frist, Spalten (`cancellation_deadline`, `pass_id`, `coverage_intent`), Helfer `pick_pass` / `redeem_pass` / `reverse_redemption`, `remove_member`-Fix. Noch kein öffentlicher Buchungsweg löst ein. Migration `20260927221500_a6_1_pass_booking_foundation.sql`. |
-| **A6-2** | Einlösen beim Anmelden / Studio-Eintrag / Umwandeln open→Karte; Kasse „mit Karte“; Selbstbuchung mit Kartenwahl. |
+| **A6-2** | Einlösen beim Anmelden / Studio-Eintrag / Umwandeln open→Karte; Undo; RPCs bereit. UI (Kartenwahl, Kasse „Karte“, Studio-Deckungswahl) folgt. Migration `20260927233000_a6_2_redeem.sql`. |
 | **A6-3** | Zurückbuchen (Abmelden, Studio, Kursabsage, Rücknahme), Nachrücken mit Zustimmung, `manual_adjustment`, Verfall per `pg_cron`, „Meine Karten“. |
 
 **Befund Inventur:** `cancel_reason = promotion_expired` ist reserviert für E2 (Zahlungsfrist nach Nachrücken), nicht Teil von A6 — kein RPC schreibt ihn heute.
@@ -514,6 +520,10 @@ Sprint A darf vor Stripe nach PROD, wenn alles zutrifft:
 
 | # | Frage | Empfehlung / Entscheidung | Stand |
 |---|---|---|---|
+| **W10** | Selbst begleichen per Karte? | Ja, eigene offene Buchung vor Kursbeginn | entschieden 27.09. (A6-2) |
+| **W11** | Einlösen zurücknehmen? | Owner/Admin immer; Lehrende eigene ≤ 15 Min; Teilnehmende nicht | entschieden 27.09. (A6-2) |
+| **W12** | Kostenlos + Kartenwunsch? | Ignorieren, `not_required` | entschieden 27.09. (A6-2) |
+| **W13** | Warteliste + Zahlart vom Studio? | Nein — nur open oder `coverage_intent=pass` | entschieden 27.09. (A6-2) |
 | **E13** | Dürfen Lehrende Karten verkaufen? | **Ja** (V1): Owner, Admin und Lehrende; Listenpreis; Lehrende stornieren eigenen Verkauf 15 Minuten (wie P4) | entschieden 27.09. (V1) |
 | **E14** | Barbeleg aus Omlify? | **Nein, nur Vermerk** (Abschnitt 3) | entschieden 21.09. |
 | **E15** | Rechte der Lehrenden bei Deckung | Vermerk bar/PayPal/Überweisung und Einlösen **nur in eigenen Kursen**, Betrag vom Server, keine Korrektur, kein `waived`, keine Studio-Übersicht der Beträge. **P4 (27.09.):** den eigenen Vermerk innerhalb von 15 Minuten selbst zurücknehmen, auch als Lehrende; danach nur `owner`/`admin` | entschieden 21.09., ergänzt 27.09. |

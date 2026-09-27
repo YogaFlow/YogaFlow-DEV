@@ -21,6 +21,7 @@ const SKRIPTE = [
   'a4_pass_products.mjs',
   'a5_passes.mjs',
   'a6_1_foundation.mjs',
+  'a6_2_redeem.mjs',
   'a9_cancel.mjs',
   's4_3_remove_member.mjs',
   's4_3_delete_user_fn.mjs',

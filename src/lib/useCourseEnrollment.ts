@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ConfirmDialogState } from '../components/ui/ConfirmDialog';
 import { useAuth } from '../context/AuthContext';
-import { Course, Registration } from '../types';
+import { Course, RegisterForCourseResult, Registration } from '../types';
 import { supabase } from './supabase';
 
 export type EnrollmentFeedbackDialog = {
@@ -81,10 +81,11 @@ export function useCourseEnrollment(onAfterSuccess: () => void) {
 
       if (error) throw error;
 
-      if (data && !data.success) {
-        const d = data as { message?: string; error?: string };
+      const result = data as RegisterForCourseResult | null;
+
+      if (result && !result.success) {
         showFeedbackDialog(
-          d.message || d.error || 'Fehler bei der Anmeldung.',
+          result.message || result.error || 'Fehler bei der Anmeldung.',
           'error',
           'Anmeldung nicht möglich'
         );
@@ -94,14 +95,14 @@ export function useCourseEnrollment(onAfterSuccess: () => void) {
       onAfterSuccess();
       fetchUserRegistrations();
 
-      if (data.waitlist_position) {
+      if (result?.waitlist_position) {
         showFeedbackDialog(
-          `Du wurdest auf die Warteliste gesetzt (Position ${data.waitlist_position}). Du wirst benachrichtigt, wenn ein Platz frei wird.`,
+          `Du wurdest auf die Warteliste gesetzt (Position ${result.waitlist_position}). Du wirst benachrichtigt, wenn ein Platz frei wird.`,
           'success',
           'Warteliste'
         );
       } else {
-        showFeedbackDialog(data.message || 'Erfolgreich angemeldet.', 'success', 'Anmeldung erfolgreich');
+        showFeedbackDialog(result?.message || 'Erfolgreich angemeldet.', 'success', 'Anmeldung erfolgreich');
       }
     } catch (error) {
       console.error('Error registering for course:', error);

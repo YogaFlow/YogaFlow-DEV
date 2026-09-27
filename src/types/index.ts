@@ -120,6 +120,53 @@ export interface PassMovement {
   created_at: string;
 }
 
+/** A6-2: Deckungswahl beim Studio-Eintrag. */
+export type AdminRegisterCoverage =
+  | 'open'
+  | 'pass'
+  | 'cash'
+  | 'paypal_manual'
+  | 'bank_transfer';
+
+export type BookingCoverageResult = 'pass' | 'open' | 'not_required' | 'paid';
+
+/** Rückgabe von register_for_course (A6-2: coverage / pass_remaining). */
+export interface RegisterForCourseResult {
+  success: boolean;
+  message?: string;
+  error?: string;
+  is_waitlist?: boolean;
+  waitlist_position?: number;
+  coverage?: BookingCoverageResult;
+  pass_remaining?: number;
+}
+
+/** Rückgabe von admin_register_user_for_course. */
+export interface AdminRegisterForCourseResult {
+  success: boolean;
+  error?: string;
+  on_waitlist?: boolean;
+  waitlist_position?: number;
+  coverage?: BookingCoverageResult;
+  pass_remaining?: number | null;
+}
+
+export interface ApplyPassResult {
+  success: boolean;
+  error?: string;
+  pass_id?: string;
+  remaining?: number;
+  movement_id?: string;
+  coverage_status?: CoverageStatus;
+}
+
+export interface UndoPassRedemptionResult {
+  success: boolean;
+  error?: string;
+  movement_id?: string;
+  pass_inactive?: boolean;
+  coverage?: 'open';}
+
 export interface Payment {
   id: string;
   tenant_id: string;

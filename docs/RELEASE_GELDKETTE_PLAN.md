@@ -34,6 +34,7 @@ PROD hat zuletzt `20260926160500` (`security_handle_new_user_role_from_trusted_s
 | `20260927183209` | `a4_pass_products.sql` | Tabelle `pass_products`, RPCs, `courses.pass_eligible` |
 | `20260927213000` | `a5_passes.sql` | Tabellen `passes` / `pass_movements`, `sell_pass` / `revoke_pass` / `get_member_passes` |
 | `20260927221500` | `a6_1_pass_booking_foundation.sql` | Stornofrist, `cancellation_deadline` / `pass_id` / `coverage_intent`, Helfer Einlösen/Zurückbuchen, `remove_member`-Fix |
+| `20260927233000` | `a6_2_redeem.sql` | `register_for_course(p_use_pass)`, `admin_register_user_for_course(p_coverage)`, `apply_pass_to_registration`, `undo_pass_redemption` |
 
 **Release-Hinweis A6:** Ab A6-3 braucht PROD die Erweiterung `pg_cron` (täglicher Verfall Europe/Berlin). Vor dem PROD-Push aktivieren; auf DEV ebenfalls. A6-1/A6-2 brauchen `pg_cron` noch nicht.
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { formatDate } from '../lib/format';
-import { User, UserRole, Course } from '../types';
+import { User, UserRole, Course, AdminRegisterForCourseResult } from '../types';
 import { useAuth } from '../context/AuthContext';
 import {
   Mail, ChevronDown, ChevronUp, Save, Plus,
@@ -499,8 +499,7 @@ export default function Users() {
       });
       if (error) throw error;
 
-      type RpcResult = { success: boolean; error?: string; on_waitlist?: boolean; waitlist_position?: number };
-      const result = data as RpcResult;
+      const result = data as AdminRegisterForCourseResult;
 
       if (!result.success) {
         if (result.error === 'already_registered') {
