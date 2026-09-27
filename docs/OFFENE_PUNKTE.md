@@ -84,6 +84,11 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
       Vorher Zustelltest gegen Gmail, GMX, Web.de, Outlook.
 - [ ] **Systemmails überarbeiten:** siezen heute, Landingpage duzt; altes Design
       (Arial, `#0f766e`).
+- [ ] **`EditCourse` preist bei Serien-Updates auch vergangene Termine um**
+      (`EditCourse.tsx` aktualisiert die Serie ohne Datumsfilter). Befund
+      A2-Inventur. Künftig nur kommende Termine ändern. Die Kursbearbeitung
+      soll bei einer Preisänderung anzeigen, dass bestehende Buchungen den
+      alten Preis behalten (Nachtrag, L9).
 - [ ] **Veraltete Dokumentation korrigieren:**
       `EMAIL_SYSTEM_DOCUMENTATION.md` und `docs/RELEASE_PR_AND_NEXT_STEPS.md`
       beschreiben Gmail als Mailversand — richtig ist Resend für ausgehende Mails,

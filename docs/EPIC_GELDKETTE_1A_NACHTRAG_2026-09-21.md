@@ -199,6 +199,10 @@ Reihenfolge und Bedingungen, bevor Sprint-A-Schema auf PROD darf:
 **Akzeptanz:** Neue Buchung in 15-€-Kurs → `open`, `price_cents_at_booking = 1500`. Preisänderung am Kurs ändert
 bestehende Buchung nicht. `teacher` kann `waived` nicht setzen (Fehler). **Schema → Freigabe. STOPP.**
 
+#### Umsetzung
+
+Preis und Deckung setzt der Trigger `registrations_freeze_price_on_insert`, nicht die Register-RPCs.
+
 ### A3 — Zahlungsvermerk bar / PayPal / Überweisung (ehemals 3.3)
 *Als Lehrerin möchte ich in der Teilnehmerliste mit einem Tipp vermerken, dass jemand bar oder per PayPal
 bezahlt hat.*

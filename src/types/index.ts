@@ -38,6 +38,8 @@ export type CourseFrequency = 'one_time' | 'weekly';
 
 export type RegistrationStatus = 'registered' | 'waitlist' | 'cancelled';
 
+export type CoverageStatus = 'not_required' | 'open' | 'paid' | 'pass' | 'waived';
+
 export type CancelReason =
   | 'participant'
   | 'studio'
@@ -90,6 +92,9 @@ export interface Registration {
   cancel_reason?: CancelReason | null;
   is_waitlist: boolean;
   waitlist_position?: number;
+  coverage_status?: CoverageStatus;
+  price_cents_at_booking?: number;
+  currency?: string;
   course?: Course;
   user?: User;
 }
