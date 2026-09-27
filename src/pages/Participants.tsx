@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Course, Registration, User } from '../types';
+import { Course, CoverageStatus, Registration, User } from '../types';
 import { isCourseManagerRole, isStudioAdmin, isTeacherOnly } from '../lib/userRoles';
 import { Users, Mail, Phone, Search, Filter, Download, UserMinus } from 'lucide-react';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
@@ -19,6 +19,7 @@ import {
   labelRegistrationStatus,
   labelRegistrationStatusShort,
 } from '../lib/registrationStatus';
+import { coverageShortLabel } from '../lib/courseCheckout';
 
 function shownMemberEmail(user: { email?: string | null; anonymized_at?: string | null } | null | undefined): string {
   if (!user || user.anonymized_at) return '';
@@ -237,7 +238,7 @@ const Participants: React.FC = () => {
     const escapeCell = (value: string) => `"${value.replace(/"/g, '""')}"`;
 
     const rows = [
-      ['Kurs', 'Datum', 'Teilnehmer', 'E-Mail', 'Telefon', 'Status', 'Anmeldedatum'],
+      ['Kurs', 'Datum', 'Teilnehmer', 'E-Mail', 'Telefon', 'Status', 'Bezahlung', 'Anmeldedatum'],
       ...filteredParticipants.map(p => [
         p.course?.title || '',
         p.course?.date ? formatDate(p.course.date) : '',
@@ -245,6 +246,7 @@ const Participants: React.FC = () => {
         shownMemberEmail(p.user),
         p.user?.phone || '',
         labelRegistrationStatus(p.status, p.waitlist_position),
+        coverageShortLabel(p.coverage_status as CoverageStatus | undefined),
         formatDateTime(p.registered_at)
       ])
     ];
@@ -304,7 +306,7 @@ const Participants: React.FC = () => {
     );
   }
 
-  const headingColSpan = showActionsColumn ? 5 : 4;
+  const headingColSpan = showActionsColumn ? 6 : 5;
 
   return (
     <div className="space-y-6">
@@ -451,10 +453,15 @@ const Participants: React.FC = () => {
                         )}
                       </div>
 
-                      <div className="mt-2 flex items-center justify-between">
-                        <span className="text-[13px] text-textSubtle tabular-nums">
-                          {formatDateTime(participant.registered_at)}
-                        </span>
+                      <div className="mt-2 flex items-center justify-between gap-2">
+                        <div className="min-w-0 text-[13px] text-textSubtle tabular-nums">
+                          <span>{formatDateTime(participant.registered_at)}</span>
+                          {participant.cancel_reason !== 'course_cancelled' ? (
+                            <span className="before:content-['·'] before:mx-1">
+                              {coverageShortLabel(participant.coverage_status as CoverageStatus | undefined)}
+                            </span>
+                          ) : null}
+                        </div>
                         {canUnregisterParticipant(participant) && (
                           <button
                             type="button"
@@ -492,6 +499,9 @@ const Participants: React.FC = () => {
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-textMuted">
                       Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-textMuted">
+                      Bezahlung
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-textMuted">
                       Angemeldet
@@ -561,6 +571,11 @@ const Participants: React.FC = () => {
                             )}
                           </span>
                           )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-textMuted">
+                          {participant.cancel_reason === 'course_cancelled'
+                            ? '—'
+                            : coverageShortLabel(participant.coverage_status as CoverageStatus | undefined)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-textMuted tabular-nums">
                           {formatDateTime(participant.registered_at)}

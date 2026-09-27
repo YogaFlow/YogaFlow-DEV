@@ -61,6 +61,121 @@ export function passBadgeLabel(passes: MemberPassSummary[]): string | null {
   return `${base} · +${extra} weitere`;
 }
 
+/** Anzeige: hat die Person eine passende Karte? Nur UI — Server entscheidet. */
+export type CoursePassContext = {
+  date: string;
+  price?: number | null;
+  pass_eligible?: boolean | null;
+};
+
+export function findUsablePass(
+  passes: MemberPassSummary[],
+  course: CoursePassContext,
+): MemberPassSummary | null {
+  if (course.pass_eligible === false) return null;
+  if (course.price != null && Number(course.price) <= 0) return null;
+  const courseDate = course.date;
+  if (!courseDate) return null;
+  const candidates = passes.filter(
+    (pass) => pass.remaining >= 1 && pass.valid_until >= courseDate,
+  );
+  if (candidates.length === 0) return null;
+  candidates.sort((a, b) => {
+    if (a.valid_until !== b.valid_until) return a.valid_until < b.valid_until ? -1 : 1;
+    return a.pass_id.localeCompare(b.pass_id);
+  });
+  return candidates[0];
+}
+
+export function usablePassChoiceLabel(pass: MemberPassSummary): string {
+  const after = Math.max(0, pass.remaining - 1);
+  return `${pass.name}, noch ${pass.remaining} → danach ${after}`;
+}
+
+export type ApplyPassClientResult =
+  | { ok: true; pass_id: string; remaining: number; movement_id: string }
+  | { ok: false; code: string; message: string };
+
+export type UndoPassClientResult =
+  | { ok: true; coverage: 'open' }
+  | { ok: false; code: string; message: string };
+
+export function passRedeemErrorMessage(
+  code: string | null | undefined,
+  opts?: { personName?: string },
+): string {
+  const name = opts?.personName?.trim();
+  switch (code) {
+    case 'NO_VALID_PASS':
+      return name
+        ? `${name} hat keine gültige Karte für diesen Kurs.`
+        : 'Du hast keine gültige Karte für diesen Kurs.';
+    case 'NOT_OPEN':
+      return 'Schon erledigt.';
+    case 'WAITLIST_NO_PAYMENT':
+      return 'Der Kurs ist voll. Kassieren geht erst, wenn die Person nachrückt.';
+    case 'FORBIDDEN':
+      return 'Dafür hast du keine Berechtigung.';
+    case 'PASS_EMPTY':
+    case 'PASS_EXPIRED':
+    case 'NOT_PASS_ELIGIBLE':
+      return 'Die Karte ist aufgebraucht bzw. gilt an diesem Tag nicht mehr.';
+    case 'NOT_FOUND':
+      return 'Nicht gefunden. Bitte neu laden.';
+    default:
+      return GENERIC_ERROR;
+  }
+}
+
+export async function applyPassToRegistration(
+  registrationId: string,
+  opts?: { personName?: string },
+): Promise<ApplyPassClientResult> {
+  const { data, error } = await supabase.rpc('apply_pass_to_registration', {
+    p_registration_id: registrationId,
+  });
+  if (error) {
+    console.error(error);
+    return { ok: false, code: 'TRANSPORT', message: GENERIC_ERROR };
+  }
+  const body = data as {
+    success?: boolean;
+    error?: string;
+    pass_id?: string;
+    remaining?: number;
+    movement_id?: string;
+  } | null;
+  if (!body?.success || !body.pass_id || body.remaining == null || !body.movement_id) {
+    const code = body?.error ?? 'UNKNOWN';
+    return { ok: false, code, message: passRedeemErrorMessage(code, opts) };
+  }
+  return {
+    ok: true,
+    pass_id: body.pass_id,
+    remaining: body.remaining,
+    movement_id: body.movement_id,
+  };
+}
+
+export async function undoPassRedemption(
+  registrationId: string,
+  opts?: { personName?: string },
+): Promise<UndoPassClientResult> {
+  const { data, error } = await supabase.rpc('undo_pass_redemption', {
+    p_registration_id: registrationId,
+  });
+  if (error) {
+    console.error(error);
+    return { ok: false, code: 'TRANSPORT', message: GENERIC_ERROR };
+  }
+  const body = data as { success?: boolean; error?: string; coverage?: string } | null;
+  if (!body?.success) {
+    const code = body?.error ?? 'UNKNOWN';
+    return { ok: false, code, message: passRedeemErrorMessage(code, opts) };
+  }
+  return { ok: true, coverage: 'open' };
+}
+
 export function sellPassErrorMessage(code: string | null | undefined): string {
   switch (code) {
     case 'FORBIDDEN':

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ConfirmDialogState } from '../components/ui/ConfirmDialog';
 import { useAuth } from '../context/AuthContext';
 import { Course, RegisterForCourseResult, Registration } from '../types';
+import { passRedeemErrorMessage } from './passes';
 import { supabase } from './supabase';
 
 export type EnrollmentFeedbackDialog = {
@@ -23,6 +24,7 @@ export function useCourseEnrollment(onAfterSuccess: () => void) {
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
   const [pendingUnregisterCourseId, setPendingUnregisterCourseId] = useState<string | null>(null);
   const [unregistering, setUnregistering] = useState(false);
+  const [registering, setRegistering] = useState(false);
 
   const showFeedbackDialog = (
     message: string,
@@ -71,12 +73,14 @@ export function useCourseEnrollment(onAfterSuccess: () => void) {
     }
   };
 
-  const handleRegister = async (courseId: string) => {
-    if (!userProfile) return;
+  const handleRegister = async (courseId: string, usePass = false) => {
+    if (!userProfile || registering) return false;
 
+    setRegistering(true);
     try {
       const { data, error } = await supabase.rpc('register_for_course', {
         p_course_id: courseId,
+        p_use_pass: usePass,
       });
 
       if (error) throw error;
@@ -84,12 +88,16 @@ export function useCourseEnrollment(onAfterSuccess: () => void) {
       const result = data as RegisterForCourseResult | null;
 
       if (result && !result.success) {
-        showFeedbackDialog(
-          result.message || result.error || 'Fehler bei der Anmeldung.',
-          'error',
-          'Anmeldung nicht möglich'
-        );
-        return;
+        const code = result.error;
+        const message =
+          code === 'NO_VALID_PASS' ||
+          code === 'PASS_EMPTY' ||
+          code === 'PASS_EXPIRED' ||
+          code === 'NOT_PASS_ELIGIBLE'
+            ? passRedeemErrorMessage(code)
+            : result.message || result.error || 'Fehler bei der Anmeldung.';
+        showFeedbackDialog(message, 'error', 'Anmeldung nicht möglich');
+        return false;
       }
 
       onAfterSuccess();
@@ -101,9 +109,16 @@ export function useCourseEnrollment(onAfterSuccess: () => void) {
           'success',
           'Warteliste'
         );
+      } else if (result?.coverage === 'pass' && result.pass_remaining != null) {
+        showFeedbackDialog(
+          `Angemeldet · mit Karte bezahlt (noch ${result.pass_remaining})`,
+          'success',
+          'Anmeldung erfolgreich'
+        );
       } else {
         showFeedbackDialog(result?.message || 'Erfolgreich angemeldet.', 'success', 'Anmeldung erfolgreich');
       }
+      return true;
     } catch (error) {
       console.error('Error registering for course:', error);
       try {
@@ -116,6 +131,9 @@ export function useCourseEnrollment(onAfterSuccess: () => void) {
         'error',
         'Anmeldung fehlgeschlagen'
       );
+      return false;
+    } finally {
+      setRegistering(false);
     }
   };
 
@@ -203,6 +221,7 @@ export function useCourseEnrollment(onAfterSuccess: () => void) {
     setFeedbackDialog,
     confirmDialog,
     unregistering,
+    registering,
     handleRegister,
     requestUnregister,
     cancelUnregister,

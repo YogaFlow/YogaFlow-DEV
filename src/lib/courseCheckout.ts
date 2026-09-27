@@ -62,8 +62,50 @@ export function checkoutErrorMessage(code: string | undefined): string {
       return 'Bitte einen Grund wählen.';
     case 'NOT_WAIVED':
       return 'Das ist kein Erlass mehr. Die Liste wird neu geladen.';
+    case 'NO_VALID_PASS':
+      return 'Keine gültige Karte für diesen Kurs.';
+    case 'WAITLIST_NO_PAYMENT':
+      return 'Der Kurs ist voll. Kassieren geht erst, wenn die Person nachrückt.';
+    case 'PASS_EMPTY':
+    case 'PASS_EXPIRED':
+    case 'NOT_PASS_ELIGIBLE':
+      return 'Die Karte ist aufgebraucht bzw. gilt an diesem Tag nicht mehr.';
     default:
       return 'Das hat nicht geklappt. Bitte versuche es noch einmal.';
+  }
+}
+
+/** Kurzlabel für Kasse, Teilnehmerliste, CSV (ohne Beträge). */
+export function coverageShortLabel(status: CoverageStatus | null | undefined): string {
+  switch (status) {
+    case 'pass':
+      return 'Karte';
+    case 'paid':
+      return 'bezahlt';
+    case 'waived':
+      return 'erlassen';
+    case 'not_required':
+      return 'kostenlos';
+    case 'open':
+    default:
+      return 'offen';
+  }
+}
+
+/** Fließtext für Meine Anmeldungen. */
+export function coveragePaymentPhrase(status: CoverageStatus | null | undefined): string {
+  switch (status) {
+    case 'pass':
+      return 'mit Karte bezahlt';
+    case 'paid':
+      return 'bezahlt';
+    case 'waived':
+      return 'erlassen';
+    case 'not_required':
+      return 'kostenlos';
+    case 'open':
+    default:
+      return 'offen · vor Ort bezahlen';
   }
 }
 

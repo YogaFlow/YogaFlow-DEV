@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { formatDate } from '../lib/format';
-import { User, UserRole, Course, AdminRegisterForCourseResult } from '../types';
+import { User, UserRole, Course, AdminRegisterForCourseResult, AdminRegisterCoverage } from '../types';
 import { useAuth } from '../context/AuthContext';
 import {
   Mail, ChevronDown, ChevronUp, Save, Plus,
@@ -11,6 +11,14 @@ import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDi
 import RemovePersonDialog, { RemovePersonTarget } from '../components/users/RemovePersonDialog';
 import MemberPassesSection from '../components/passes/MemberPassesSection';
 import { loadRemovalPreview, readInvokeErrorBody, removePerson } from '../lib/removePerson';
+import { fetchCourseParticipantCounts } from '../lib/courseParticipantCounts';
+import {
+  fetchMemberPasses,
+  findUsablePass,
+  passRedeemErrorMessage,
+  usablePassChoiceLabel,
+  type MemberPassSummary,
+} from '../lib/passes';
 
 // ---------------------------------------------------------------------------
 // Local types
@@ -255,6 +263,9 @@ export default function Users() {
   const [userRegistrations, setUserRegistrations] = useState<RegWithCourse[]>([]);
   const [regsLoading, setRegsLoading]           = useState(false);
   const [selectedCourseId, setSelectedCourseId] = useState('');
+  const [selectedCoverage, setSelectedCoverage] = useState<AdminRegisterCoverage>('open');
+  const [memberPasses, setMemberPasses] = useState<MemberPassSummary[]>([]);
+  const [courseCounts, setCourseCounts] = useState<Record<string, number>>({});
   const [savingProfile, setSavingProfile]       = useState(false);
   const [addingCourse, setAddingCourse]         = useState(false);
   const [savingRoleId, setSavingRoleId]         = useState<string | null>(null);
@@ -328,7 +339,7 @@ export default function Users() {
     try {
       let query = supabase
         .from('courses')
-        .select('id, title, date, status, tenant_id, teacher_id, description, location, max_participants, price, frequency, created_at, updated_at')
+        .select('id, title, date, status, tenant_id, teacher_id, description, location, max_participants, price, frequency, pass_eligible, created_at, updated_at')
         .neq('status', 'canceled')
         .order('date', { ascending: true });
 
@@ -338,7 +349,18 @@ export default function Users() {
 
       const { data, error } = await query;
       if (error) throw error;
-      setCourses((data as unknown as Course[]) || []);
+      const list = (data as unknown as Course[]) || [];
+      setCourses(list);
+      if (list.length > 0) {
+        const counts = await fetchCourseParticipantCounts(list.map((c) => c.id));
+        const map: Record<string, number> = {};
+        for (const id of Object.keys(counts)) {
+          map[id] = counts[id]?.registered ?? 0;
+        }
+        setCourseCounts(map);
+      } else {
+        setCourseCounts({});
+      }
     } catch (err) {
       console.error('Error fetching courses:', err);
     }
@@ -367,18 +389,20 @@ export default function Users() {
 
   const handleToggleExpand = async (user: User) => {
     if (expandedId === user.id) {
-    setExpandedId(null);
-    setEditForm(null);
-    setUserRegistrations([]);
-    setSelectedCourseId('');
-    setPasswordDraft('');
-    setPasswordVisible(false);
-    setPasswordNotice(null);
-    setPasswordError(null);
-    return;
-  }
-  setExpandedId(user.id);
-  setEditForm({
+      setExpandedId(null);
+      setEditForm(null);
+      setUserRegistrations([]);
+      setSelectedCourseId('');
+      setSelectedCoverage('open');
+      setMemberPasses([]);
+      setPasswordDraft('');
+      setPasswordVisible(false);
+      setPasswordNotice(null);
+      setPasswordError(null);
+      return;
+    }
+    setExpandedId(user.id);
+    setEditForm({
       first_name:   user.first_name   || '',
       last_name:    user.last_name    || '',
       email:        user.email        || '',
@@ -389,17 +413,23 @@ export default function Users() {
       city:         user.city         || '',
     });
     setSelectedCourseId('');
+    setSelectedCoverage('open');
     setPasswordDraft('');
     setPasswordVisible(false);
     setPasswordNotice(null);
     setPasswordError(null);
     if (canShowCourseSection(user.role)) {
       setRegsLoading(true);
-      const regs = await fetchUserRegistrations(user.id);
+      const [regs, passes] = await Promise.all([
+        fetchUserRegistrations(user.id),
+        fetchMemberPasses(user.id),
+      ]);
       setUserRegistrations(regs);
+      setMemberPasses(passes);
       setRegsLoading(false);
     } else {
       setUserRegistrations([]);
+      setMemberPasses([]);
       setRegsLoading(false);
     }
   };
@@ -490,12 +520,31 @@ export default function Users() {
   // ---------------------------------------------------------------------------
 
   const handleAddToCourse = async (userId: string) => {
-    if (!selectedCourseId) return;
+    if (!selectedCourseId || addingCourse) return;
+    const course = courses.find((c) => c.id === selectedCourseId);
+    const person = users.find((u) => u.id === userId);
+    const personName = person
+      ? `${person.first_name} ${person.last_name}`.trim()
+      : undefined;
+    const full =
+      course != null &&
+      (courseCounts[course.id] ?? 0) >= (course.max_participants ?? 0);
+    const coverage = selectedCoverage;
+    if (full && coverage !== 'open' && coverage !== 'pass') {
+      setFeedbackDialog({
+        title: 'Hinweis',
+        message: 'Der Kurs ist voll. Kassieren geht erst, wenn die Person nachrückt.',
+        type: 'info',
+      });
+      return;
+    }
+
     setAddingCourse(true);
     try {
       const { data, error } = await supabase.rpc('admin_register_user_for_course', {
         p_user_id:   userId,
         p_course_id: selectedCourseId,
+        p_coverage:  coverage,
       });
       if (error) throw error;
 
@@ -506,21 +555,49 @@ export default function Users() {
           setFeedbackDialog({ title: 'Hinweis', message: 'Der Nutzer ist bereits in diesem Kurs angemeldet.', type: 'info' });
         } else if (result.error === 'Course teachers cannot be added as participants to their own course') {
           setFeedbackDialog({ title: 'Hinweis', message: 'Lehrer können nicht als Teilnehmer in den eigenen Kurs aufgenommen werden.', type: 'info' });
+        } else if (
+          result.error === 'NO_VALID_PASS' ||
+          result.error === 'WAITLIST_NO_PAYMENT' ||
+          result.error === 'INVALID_COVERAGE' ||
+          result.error === 'PASS_EMPTY' ||
+          result.error === 'PASS_EXPIRED' ||
+          result.error === 'NOT_PASS_ELIGIBLE'
+        ) {
+          setFeedbackDialog({
+            title: 'Hinweis',
+            message: passRedeemErrorMessage(result.error, { personName }),
+            type: 'info',
+          });
         } else {
           throw new Error(result.error);
         }
       } else {
         const onWaitlist = !!result.on_waitlist;
+        const coverageNote =
+          result.coverage === 'pass' && result.pass_remaining != null
+            ? ` Mit Karte (noch ${result.pass_remaining}).`
+            : result.coverage === 'paid'
+              ? ' Bezahlt vermerkt.'
+              : '';
         setFeedbackDialog({
           title:   onWaitlist ? 'Auf Warteliste' : 'Hinzugefügt',
           message: onWaitlist
             ? `Der Kurs ist ausgebucht. Der Nutzer wurde auf die Warteliste gesetzt (Platz ${result.waitlist_position}).`
-            : 'Nutzer wurde erfolgreich zum Kurs hinzugefügt.',
+            : `Nutzer wurde erfolgreich zum Kurs hinzugefügt.${coverageNote}`,
           type: onWaitlist ? 'info' : 'success',
         });
         setSelectedCourseId('');
+        setSelectedCoverage('open');
         const regs = await fetchUserRegistrations(userId);
         setUserRegistrations(regs);
+        if (course) {
+          setCourseCounts((prev) => ({
+            ...prev,
+            [course.id]: (prev[course.id] ?? 0) + (onWaitlist ? 0 : 1),
+          }));
+        }
+        const passes = await fetchMemberPasses(userId);
+        setMemberPasses(passes);
       }
     } catch (err: unknown) {
       setFeedbackDialog({
@@ -897,10 +974,13 @@ export default function Users() {
                     {canShowCourseSection(user.role) && (
                       <div className="border-t border-border pt-4">
                         <h3 className="text-xs font-semibold text-textMuted mb-3">Kurs zuweisen</h3>
-                        <div className="flex gap-2 mb-4">
+                        <div className="flex gap-2 mb-3">
                           <select
                             value={selectedCourseId}
-                            onChange={e => setSelectedCourseId(e.target.value)}
+                            onChange={e => {
+                              setSelectedCourseId(e.target.value);
+                              setSelectedCoverage('open');
+                            }}
                             className="flex-1 text-sm border border-border rounded-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
                           >
                             <option value="">Kurs auswählen…</option>
@@ -920,6 +1000,58 @@ export default function Users() {
                               : <Plus size={18} />}
                           </button>
                         </div>
+                        {selectedCourseId ? (() => {
+                          const course = courses.find(c => c.id === selectedCourseId);
+                          if (!course) return null;
+                          const full = (courseCounts[course.id] ?? 0) >= (course.max_participants ?? 0);
+                          const usable = findUsablePass(memberPasses, {
+                            date: course.date,
+                            price: course.price,
+                            pass_eligible: course.pass_eligible,
+                          });
+                          const options: { value: AdminRegisterCoverage; label: string }[] = full
+                            ? [
+                                { value: 'open', label: 'Offen' },
+                                ...(usable
+                                  ? [{ value: 'pass' as const, label: `Mit Karte beim Nachrücken (${usablePassChoiceLabel(usable)})` }]
+                                  : []),
+                              ]
+                            : [
+                                { value: 'open', label: 'Offen' },
+                                ...(usable
+                                  ? [{ value: 'pass' as const, label: `Karte (noch ${usable.remaining})` }]
+                                  : []),
+                                { value: 'cash', label: 'Bar' },
+                                { value: 'paypal_manual', label: 'PayPal' },
+                                { value: 'bank_transfer', label: 'Überweisung' },
+                              ];
+                          return (
+                            <fieldset className="mb-4 space-y-1">
+                              <legend className="text-xs font-medium text-textMuted mb-1">
+                                Wie wird bezahlt?
+                              </legend>
+                              {options.map((opt) => (
+                                <label
+                                  key={opt.value}
+                                  className="flex min-h-11 items-center gap-2 text-sm text-text"
+                                >
+                                  <input
+                                    type="radio"
+                                    name={`coverage-mobile-${user.id}`}
+                                    checked={selectedCoverage === opt.value}
+                                    onChange={() => setSelectedCoverage(opt.value)}
+                                  />
+                                  {opt.label}
+                                </label>
+                              ))}
+                              {full ? (
+                                <p className="text-xs text-textMuted pt-1">
+                                  Der Kurs ist voll. Bar und Überweisung erst nach dem Nachrücken.
+                                </p>
+                              ) : null}
+                            </fieldset>
+                          );
+                        })() : null}
                         <h4 className="text-xs font-medium text-textMuted mb-2">Aktuelle Buchungen</h4>
                         {regsLoading ? (
                           <div className="flex items-center gap-2 text-xs text-textSubtle">
@@ -1221,7 +1353,10 @@ export default function Users() {
                                   <div className="flex gap-2">
                                     <select
                                       value={selectedCourseId}
-                                      onChange={e => setSelectedCourseId(e.target.value)}
+                                      onChange={e => {
+                                        setSelectedCourseId(e.target.value);
+                                        setSelectedCoverage('open');
+                                      }}
                                       className="flex-1 text-sm border border-border rounded-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
                                     >
                                       <option value="">Kurs auswählen…</option>
@@ -1244,6 +1379,58 @@ export default function Users() {
                                       }
                                     </button>
                                   </div>
+                                  {selectedCourseId ? (() => {
+                                    const course = courses.find(c => c.id === selectedCourseId);
+                                    if (!course) return null;
+                                    const full = (courseCounts[course.id] ?? 0) >= (course.max_participants ?? 0);
+                                    const usable = findUsablePass(memberPasses, {
+                                      date: course.date,
+                                      price: course.price,
+                                      pass_eligible: course.pass_eligible,
+                                    });
+                                    const options: { value: AdminRegisterCoverage; label: string }[] = full
+                                      ? [
+                                          { value: 'open', label: 'Offen' },
+                                          ...(usable
+                                            ? [{ value: 'pass' as const, label: `Mit Karte beim Nachrücken (${usablePassChoiceLabel(usable)})` }]
+                                            : []),
+                                        ]
+                                      : [
+                                          { value: 'open', label: 'Offen' },
+                                          ...(usable
+                                            ? [{ value: 'pass' as const, label: `Karte (noch ${usable.remaining})` }]
+                                            : []),
+                                          { value: 'cash', label: 'Bar' },
+                                          { value: 'paypal_manual', label: 'PayPal' },
+                                          { value: 'bank_transfer', label: 'Überweisung' },
+                                        ];
+                                    return (
+                                      <fieldset className="mt-3 space-y-1">
+                                        <legend className="text-xs font-medium text-textMuted mb-1">
+                                          Wie wird bezahlt?
+                                        </legend>
+                                        {options.map((opt) => (
+                                          <label
+                                            key={opt.value}
+                                            className="flex min-h-11 items-center gap-2 text-sm text-text"
+                                          >
+                                            <input
+                                              type="radio"
+                                              name={`coverage-desktop-${user.id}`}
+                                              checked={selectedCoverage === opt.value}
+                                              onChange={() => setSelectedCoverage(opt.value)}
+                                            />
+                                            {opt.label}
+                                          </label>
+                                        ))}
+                                        {full ? (
+                                          <p className="text-xs text-textMuted pt-1">
+                                            Der Kurs ist voll. Bar und Überweisung erst nach dem Nachrücken.
+                                          </p>
+                                        ) : null}
+                                      </fieldset>
+                                    );
+                                  })() : null}
                                 </div>
 
                                 <h4 className="text-xs font-medium text-textMuted mb-2">

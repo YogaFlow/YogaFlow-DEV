@@ -395,7 +395,7 @@ der Frist → +1, außerhalb → 0. Verfall am Stichtag → Rest 0, Event. Nachr
 | Schritt | Inhalt |
 |---|---|
 | **A6-1** | Frist, Spalten (`cancellation_deadline`, `pass_id`, `coverage_intent`), Helfer `pick_pass` / `redeem_pass` / `reverse_redemption`, `remove_member`-Fix. Noch kein öffentlicher Buchungsweg löst ein. Migration `20260927221500_a6_1_pass_booking_foundation.sql`. |
-| **A6-2** | Einlösen beim Anmelden / Studio-Eintrag / Umwandeln open→Karte; Undo; RPCs bereit. UI (Kartenwahl, Kasse „Karte“, Studio-Deckungswahl) folgt. Migration `20260927233000_a6_2_redeem.sql`. |
+| **A6-2** | Einlösen beim Anmelden / Studio-Eintrag / Umwandeln open→Karte; Undo; RPCs + UI. Migration `20260927233000_a6_2_redeem.sql` (+ 2b/2c FK). UI (27.09.): `findUsablePass`, Kursdetail-Auswahl, Meine Anmeldungen W10, Kasse „Karte“, Studio-Deckungswahl, Teilnehmerliste/CSV „Bezahlung“. A6-3 bleibt Rückbuchung / Meine Karten / Nachrücken-Einlösung. |
 | **A6-3** | Zurückbuchen (Abmelden, Studio, Kursabsage, Rücknahme), Nachrücken mit Zustimmung, `manual_adjustment`, Verfall per `pg_cron`, „Meine Karten“. |
 
 **Befund Inventur:** `cancel_reason = promotion_expired` ist reserviert für E2 (Zahlungsfrist nach Nachrücken), nicht Teil von A6 — kein RPC schreibt ihn heute.

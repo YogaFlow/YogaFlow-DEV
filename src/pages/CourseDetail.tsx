@@ -4,6 +4,7 @@ import { ArrowLeft, Calendar, Check, Clock, MapPin, User, Users } from 'lucide-r
 import CourseCancelDialog from '../components/courses/CourseCancelDialog';
 import CourseDeleteDialog from '../components/courses/CourseDeleteDialog';
 import CourseEnrollmentDialogs from '../components/courses/CourseEnrollmentDialogs';
+import PassBookChoiceDialog from '../components/courses/PassBookChoiceDialog';
 import AccentPill from '../components/ui/AccentPill';
 import FeedbackDialog from '../components/ui/FeedbackDialog';
 import { useAuth } from '../context/AuthContext';
@@ -21,6 +22,11 @@ import {
   formatDateTime,
   formatTodayOrTomorrow,
 } from '../lib/format';
+import {
+  fetchMemberPasses,
+  findUsablePass,
+  type MemberPassSummary,
+} from '../lib/passes';
 import { supabase } from '../lib/supabase';
 import { canSelfEnrollInCourse, canSelfEnrollInCourses } from '../lib/userRoles';
 import { useCourseCancellation } from '../lib/useCourseCancellation';
@@ -40,6 +46,8 @@ const CourseDetail: React.FC = () => {
   const [notFound, setNotFound] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [descriptionOverflows, setDescriptionOverflows] = useState(false);
+  const [ownPasses, setOwnPasses] = useState<MemberPassSummary[]>([]);
+  const [passChoice, setPassChoice] = useState<'seat' | 'waitlist' | null>(null);
   const descriptionRef = useRef<HTMLParagraphElement>(null);
 
   const loadCourse = useCallback(async () => {
@@ -78,6 +86,7 @@ const CourseDetail: React.FC = () => {
     setFeedbackDialog,
     confirmDialog,
     unregistering,
+    registering,
     handleRegister,
     requestUnregister,
     cancelUnregister,
@@ -117,6 +126,7 @@ const CourseDetail: React.FC = () => {
   useEffect(() => {
     setLoading(true);
     setDescriptionExpanded(false);
+    setPassChoice(null);
     void loadCourse();
     if (canSelfEnrollInCourses(userProfile)) {
       void fetchUserRegistrations();
@@ -124,6 +134,22 @@ const CourseDetail: React.FC = () => {
     // fetchUserRegistrations is recreated every render; reload on course/profile change only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseId, userProfile?.id, loadCourse]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadPasses = async () => {
+      if (!userProfile?.id || !canSelfEnrollInCourses(userProfile)) {
+        setOwnPasses([]);
+        return;
+      }
+      const passes = await fetchMemberPasses(userProfile.id);
+      if (!cancelled) setOwnPasses(passes);
+    };
+    void loadPasses();
+    return () => {
+      cancelled = true;
+    };
+  }, [userProfile?.id, userProfile?.role, courseId]);
 
   const description = course?.description?.trim() ?? '';
 
@@ -162,6 +188,37 @@ const CourseDetail: React.FC = () => {
   const isFull = registeredCount >= course.max_participants;
   const remaining = course.max_participants - registeredCount;
   const cancelled = isCourseCancelled(course.status);
+  const usablePass = findUsablePass(ownPasses, {
+    date: course.date,
+    price: course.price,
+    pass_eligible: course.pass_eligible,
+  });
+
+  const requestEnroll = (mode: 'seat' | 'waitlist') => {
+    if (registering) return;
+    if (usablePass) {
+      setPassChoice(mode);
+      return;
+    }
+    void handleRegister(course.id, false);
+  };
+
+  const confirmPassChoice = async (usePass: boolean) => {
+    const ok = await handleRegister(course.id, usePass);
+    if (ok) {
+      setPassChoice(null);
+      if (userProfile?.id) {
+        const passes = await fetchMemberPasses(userProfile.id);
+        setOwnPasses(passes);
+      }
+    } else if (usePass) {
+      setPassChoice(null);
+      if (userProfile?.id) {
+        const passes = await fetchMemberPasses(userProfile.id);
+        setOwnPasses(passes);
+      }
+    }
+  };
   const upcoming = isCourseUpcoming(course);
   const canAct = canSelfEnrollInCourse(course, userProfile) && upcoming;
   const canManageCourse = isAdmin || course.teacher_id === userProfile?.id;
@@ -221,6 +278,16 @@ const CourseDetail: React.FC = () => {
         cancelUnregister={cancelUnregister}
         feedbackDialog={feedbackDialog}
         setFeedbackDialog={setFeedbackDialog}
+      />
+      <PassBookChoiceDialog
+        open={passChoice != null && usablePass != null}
+        mode={passChoice ?? 'seat'}
+        pass={usablePass ?? { pass_id: '', name: '', remaining: 0, units_total: 0, valid_until: '' }}
+        busy={registering}
+        onConfirm={(usePass) => void confirmPassChoice(usePass)}
+        onCancel={() => {
+          if (!registering) setPassChoice(null);
+        }}
       />
       <CourseDeleteDialog
         open={dialogOpen}
@@ -406,16 +473,18 @@ const CourseDetail: React.FC = () => {
             ) : isFull ? (
               <button
                 type="button"
-                onClick={() => handleRegister(course.id)}
-                className={`${buttonShape} border border-accent bg-accentSoft text-accentText`}
+                onClick={() => requestEnroll('waitlist')}
+                disabled={registering}
+                className={`${buttonShape} border border-accent bg-accentSoft text-accentText disabled:opacity-50`}
               >
                 Auf die Warteliste
               </button>
             ) : (
               <button
                 type="button"
-                onClick={() => handleRegister(course.id)}
-                className={`${buttonShape} bg-brand text-onBrand active:bg-brandPressed`}
+                onClick={() => requestEnroll('seat')}
+                disabled={registering}
+                className={`${buttonShape} bg-brand text-onBrand active:bg-brandPressed disabled:opacity-50`}
               >
                 Anmelden
               </button>

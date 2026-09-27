@@ -19,6 +19,7 @@ import {
   checkoutErrorMessage,
   compareCheckoutRows,
   countCheckout,
+  coverageShortLabel,
   eurosToCents,
   latestUnreversedPayment,
   methodWord,
@@ -27,11 +28,14 @@ import {
   type ManualCheckoutMethod,
 } from '../lib/courseCheckout';
 import {
+  applyPassToRegistration,
   fetchMemberPassesForMany,
   fetchSellablePassProducts,
+  findUsablePass,
   passBadgeLabel,
   revokePass,
   sellUndoText,
+  undoPassRedemption,
   type MemberPassSummary,
 } from '../lib/passes';
 
@@ -54,6 +58,8 @@ type CourseHead = {
   time: string;
   teacher_id: string;
   status: string | null;
+  price: number | null;
+  pass_eligible: boolean | null;
 };
 
 type RefundPerson = {
@@ -66,12 +72,13 @@ type RefundPerson = {
 };
 
 type UndoState = {
-  kind: 'payment' | 'pass';
+  kind: 'payment' | 'pass' | 'pass_redeem';
   registrationId: string;
   paymentId: string;
   passId?: string;
   userId?: string;
   text: string;
+  remainingAfter?: number;
 };
 
 type AmountDialog = {
@@ -114,6 +121,9 @@ function personName(person: Pick<Person, 'firstName' | 'lastName'>): string {
 }
 
 function statusLabel(person: Person, seesMethod: boolean): { text: string; detail: string } {
+  if (person.coverage === 'pass') {
+    return { text: coverageShortLabel('pass'), detail: '' };
+  }
   if (person.coverage === 'paid') {
     return { text: paidStatusLabel(seesMethod, person.method), detail: '' };
   }
@@ -155,6 +165,7 @@ const CourseCheckout: React.FC = () => {
   const [passesByUser, setPassesByUser] = useState<Record<string, MemberPassSummary[]>>({});
   const [hasSellableProducts, setHasSellableProducts] = useState(false);
   const [sellTarget, setSellTarget] = useState<Person | null>(null);
+  const [undoPassConfirm, setUndoPassConfirm] = useState<Person | null>(null);
   const busyIds = useRef(new Set<string>());
 
   const seesMethod = isStudioAdmin(userProfile);
@@ -166,7 +177,7 @@ const CourseCheckout: React.FC = () => {
 
     const { data: courseRow, error: courseError } = await supabase
       .from('courses')
-      .select('id, title, date, time, teacher_id, status')
+      .select('id, title, date, time, teacher_id, status, price, pass_eligible')
       .eq('id', courseId)
       .maybeSingle();
 
@@ -432,6 +443,25 @@ const CourseCheckout: React.FC = () => {
     const current = undo;
     setUndo(null);
 
+    if (current.kind === 'pass_redeem') {
+      const previous = people.find((person) => person.registrationId === current.registrationId);
+      patchPerson(current.registrationId, { coverage: 'open', method: null });
+      const result = await undoPassRedemption(current.registrationId, {
+        personName: previous ? personName(previous) : undefined,
+      });
+      setUndoBusy(false);
+      if (!result.ok) {
+        if (previous) patchPerson(current.registrationId, previous);
+        setErrorText(result.message);
+        if (result.code === 'NOT_OPEN' || result.code === 'FORBIDDEN') {
+          await load();
+        }
+        return;
+      }
+      await load();
+      return;
+    }
+
     if (current.kind === 'pass' && current.passId && current.userId) {
       const previousPasses = passesByUser[current.userId] ?? [];
       setPassesByUser((map) => ({
@@ -464,6 +494,75 @@ const CourseCheckout: React.FC = () => {
       if (previous) patchPerson(current.registrationId, previous);
       await failRpc(body?.error);
     }
+  };
+
+  const applyPass = async (person: Person) => {
+    if (busyIds.current.has(person.registrationId) || person.coverage !== 'open') return;
+    busyIds.current.add(person.registrationId);
+    setErrorText('');
+    setMenuFor(null);
+    const previous = person;
+    patchPerson(person.registrationId, { coverage: 'pass', method: null });
+
+    const result = await applyPassToRegistration(person.registrationId, {
+      personName: personName(person),
+    });
+    busyIds.current.delete(person.registrationId);
+
+    if (!result.ok) {
+      patchPerson(person.registrationId, previous);
+      setErrorText(result.message);
+      if (
+        result.code === 'NOT_OPEN' ||
+        result.code === 'NO_VALID_PASS' ||
+        result.code === 'PASS_EMPTY' ||
+        result.code === 'PASS_EXPIRED'
+      ) {
+        await load();
+      }
+      return;
+    }
+
+    setPassesByUser((map) => {
+      const list = map[person.userId] ?? [];
+      return {
+        ...map,
+        [person.userId]: list.map((pass) =>
+          pass.pass_id === result.pass_id
+            ? { ...pass, remaining: result.remaining }
+            : pass,
+        ),
+      };
+    });
+    setUndo({
+      kind: 'pass_redeem',
+      registrationId: person.registrationId,
+      paymentId: result.movement_id,
+      userId: person.userId,
+      remainingAfter: result.remaining,
+      text: `Karte eingelöst · noch ${result.remaining}`,
+    });
+  };
+
+  const confirmUndoPassCoverage = async () => {
+    if (!undoPassConfirm || dialogBusy) return;
+    const person = undoPassConfirm;
+    setDialogBusy(true);
+    setErrorText('');
+    const previous = person;
+    patchPerson(person.registrationId, { coverage: 'open', method: null });
+    const result = await undoPassRedemption(person.registrationId, {
+      personName: personName(person),
+    });
+    setDialogBusy(false);
+    setUndoPassConfirm(null);
+    if (!result.ok) {
+      patchPerson(person.registrationId, previous);
+      setErrorText(result.message);
+      await load();
+      return;
+    }
+    await load();
   };
 
   const submitAmount = async () => {
@@ -716,8 +815,17 @@ const CourseCheckout: React.FC = () => {
             const status = statusLabel(person, seesMethod);
             const open = person.coverage === 'open';
             const canRevertWaive = seesMethod && person.coverage === 'waived';
+            const canUndoPass = seesMethod && person.coverage === 'pass';
             const canSellPass = hasSellableProducts;
-            const showMenu = open || canRevertWaive || canSellPass;
+            const usablePass =
+              open && course
+                ? findUsablePass(passesByUser[person.userId] ?? [], {
+                    date: course.date,
+                    price: course.price,
+                    pass_eligible: course.pass_eligible,
+                  })
+                : null;
+            const showMenu = open || canRevertWaive || canSellPass || canUndoPass;
             const menuOpen = menuFor === person.registrationId;
             const passLabel = passBadgeLabel(passesByUser[person.userId] ?? []);
             return (
@@ -726,14 +834,14 @@ const CourseCheckout: React.FC = () => {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[17px] font-medium text-text">{name}</p>
                     <p className="mt-0.5 flex flex-wrap items-center gap-x-1 gap-y-0.5 text-[13px] text-text">
-                      {person.coverage === 'paid' ? (
+                      {person.coverage === 'paid' || person.coverage === 'pass' ? (
                         <Check className="h-4 w-4 shrink-0" aria-hidden />
                       ) : null}
                       <span>{status.text}</span>
                       {status.detail ? (
                         <span className="text-textMuted tabular-nums">· {status.detail}</span>
                       ) : null}
-                      {passLabel ? (
+                      {passLabel && person.coverage !== 'pass' ? (
                         <span className="text-textMuted tabular-nums">· {passLabel}</span>
                       ) : null}
                     </p>
@@ -753,6 +861,15 @@ const CourseCheckout: React.FC = () => {
                       >
                         Mehr
                       </button>
+                      {open && usablePass ? (
+                        <button
+                          type="button"
+                          onClick={() => void applyPass(person)}
+                          className="inline-flex h-11 min-w-11 items-center justify-center rounded-full border border-borderStrong bg-surface px-4 text-[15px] font-medium text-brand active:bg-surfaceSunken"
+                        >
+                          Karte
+                        </button>
+                      ) : null}
                       {open ? (
                         <button
                           type="button"
@@ -777,6 +894,18 @@ const CourseCheckout: React.FC = () => {
                         className="flex min-h-11 w-full items-center text-left text-[15px] text-text"
                       >
                         Karte verkaufen
+                      </button>
+                    ) : null}
+                    {canUndoPass ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMenuFor(null);
+                          setUndoPassConfirm(person);
+                        }}
+                        className="flex min-h-11 w-full items-center text-left text-[15px] text-text"
+                      >
+                        Karte zurücknehmen
                       </button>
                     ) : null}
                     {open
@@ -1056,6 +1185,25 @@ const CourseCheckout: React.FC = () => {
         onConfirm={() => void confirmRevert()}
         onCancel={() => {
           if (!dialogBusy) setRevertTarget(null);
+        }}
+      />
+
+      <ConfirmDialog
+        dialog={
+          undoPassConfirm
+            ? {
+                title: 'Karte zurücknehmen',
+                message: `${personName(undoPassConfirm)} ist danach wieder offen. Die Einheit geht zurück auf die Karte.`,
+                confirmLabel: 'Zurücknehmen',
+                cancelLabel: 'Abbrechen',
+                variant: 'primary',
+              }
+            : null
+        }
+        loading={dialogBusy}
+        onConfirm={() => void confirmUndoPassCoverage()}
+        onCancel={() => {
+          if (!dialogBusy) setUndoPassConfirm(null);
         }}
       />
     </div>
