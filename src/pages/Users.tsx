@@ -634,7 +634,7 @@ export default function Users() {
           <button
             type="button"
             disabled
-            className="inline-flex min-h-11 items-center text-sm font-medium text-danger opacity-50"
+            className="inline-flex min-h-11 cursor-not-allowed items-center text-sm font-medium text-danger opacity-50"
           >
             Person entfernen
           </button>

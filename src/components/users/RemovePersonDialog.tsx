@@ -78,7 +78,7 @@ const RemovePersonDialog: React.FC<RemovePersonDialogProps> = ({
           </p>
           {target.upcoming > 0 ? <p>{upcomingLine(target.upcoming)}</p> : null}
           {target.openBookings > 0 ? (
-            <div className="rounded-md border border-danger bg-dangerSoft p-3 text-text">
+            <div className="rounded-lg border border-danger bg-dangerSoft p-3 text-text">
               <p>{openLine(target.firstName, target.openBookings)}</p>
               <Link
                 to={openHref}
@@ -101,7 +101,7 @@ const RemovePersonDialog: React.FC<RemovePersonDialogProps> = ({
             </Link>
           ) : null}
         </div>
-        <div className="mt-6 flex justify-center gap-3">
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
           <button
             type="button"
             onClick={onCancel}
