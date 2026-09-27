@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Calendar } from 'lucide-react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import EnrollmentCards from '../components/courses/EnrollmentCards';
+import MyPassesSection from '../components/passes/MyPassesSection';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
 import { useAuth } from '../context/AuthContext';
 import { isCourseUpcoming, isRegistrationVisible } from '../lib/courseDateTime';
@@ -109,6 +110,7 @@ const MyRegistrations: React.FC = () => {
   return (
     <div className="space-y-6">
       <FeedbackDialog dialog={feedback} onClose={() => setFeedback(null)} />
+      <MyPassesSection />
       {loadError ? (
         <div className="rounded-sm border border-danger bg-dangerSoft p-4 text-sm text-danger">
           Deine Anmeldungen konnten nicht geladen werden. Bitte lade die Seite erneut.

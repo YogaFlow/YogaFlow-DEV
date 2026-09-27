@@ -5,6 +5,10 @@ import { isCourseCancelled, isCourseUpcoming } from '../../lib/courseDateTime';
 import { coveragePaymentPhrase } from '../../lib/courseCheckout';
 import { formatTimeRange, formatTodayOrTomorrow } from '../../lib/format';
 import {
+  passRefundInfo,
+  passRefundStatusLine,
+} from '../../lib/passRefundInfo';
+import {
   applyPassToRegistration,
   findUsablePass,
   type MemberPassSummary,
@@ -29,6 +33,10 @@ function paymentLine(
       return 'Mit Karte beim Nachrücken';
     }
     return null;
+  }
+  const refund = passRefundInfo(registration);
+  if (refund) {
+    return passRefundStatusLine(refund);
   }
   return coveragePaymentPhrase(registration.coverage_status as CoverageStatus | undefined);
 }

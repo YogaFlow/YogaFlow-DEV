@@ -52,6 +52,14 @@ const CourseCancelDialog: React.FC<CourseCancelDialogProps> = ({
           '1 Person hat bereits bezahlt',
           '%n haben bereits bezahlt',
         )}. Die Rückgaben vermerkst du danach unter Rückgaben.`;
+  const passLine =
+    dialog.withPass == null || dialog.withPass < 1
+      ? null
+      : `${peopleLine(
+          dialog.withPass,
+          '1 Person hat mit Karte gebucht',
+          '%n haben mit Karte gebucht',
+        )}. Die Einheiten werden automatisch zurückgebucht.`;
 
   return (
     <div
@@ -144,6 +152,7 @@ const CourseCancelDialog: React.FC<CourseCancelDialogProps> = ({
                 {enrolled}, {waiting}. Alle bekommen eine Benachrichtigung.
               </p>
               {paidLine ? <p className="mt-2 text-sm text-text">{paidLine}</p> : null}
+              {passLine ? <p className="mt-2 text-sm text-text">{passLine}</p> : null}
             </div>
           ) : null}
 

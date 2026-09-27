@@ -23,6 +23,10 @@ import {
   formatTodayOrTomorrow,
 } from '../lib/format';
 import {
+  passRefundInfo,
+  passRefundStatusLine,
+} from '../lib/passRefundInfo';
+import {
   fetchMemberPasses,
   findUsablePass,
   type MemberPassSummary,
@@ -94,6 +98,7 @@ const CourseDetail: React.FC = () => {
     isUserRegistered,
     getUserRegistrationStatus,
     getUserWaitlistPosition,
+    getOwnRegistration,
   } = useCourseEnrollment(loadCourse);
 
   const {
@@ -185,6 +190,11 @@ const CourseDetail: React.FC = () => {
   const isRegistered = isUserRegistered(course.id);
   const registrationStatus = getUserRegistrationStatus(course.id);
   const waitlistPosition = getUserWaitlistPosition(course.id);
+  const ownRegistration = getOwnRegistration(course.id);
+  const refundInfo =
+    ownRegistration && registrationStatus === 'registered' && !ownRegistration.is_waitlist
+      ? passRefundInfo(ownRegistration)
+      : null;
   const isFull = registeredCount >= course.max_participants;
   const remaining = course.max_participants - registeredCount;
   const cancelled = isCourseCancelled(course.status);
@@ -447,10 +457,17 @@ const CourseDetail: React.FC = () => {
               {formatPrice(course.price)}
             </p>
             {isRegistered && registrationStatus === 'registered' ? (
-              <span className="mt-0.5 inline-flex items-center gap-1 text-[13px] font-medium text-success">
-                <Check className="h-3.5 w-3.5" aria-hidden />
-                Angemeldet
-              </span>
+              <div className="mt-0.5">
+                <span className="inline-flex items-center gap-1 text-[13px] font-medium text-success">
+                  <Check className="h-3.5 w-3.5" aria-hidden />
+                  Angemeldet
+                </span>
+                {refundInfo ? (
+                  <p className="mt-0.5 text-[12px] leading-snug text-textMuted tabular-nums">
+                    {passRefundStatusLine(refundInfo)}
+                  </p>
+                ) : null}
+              </div>
             ) : isRegistered && registrationStatus === 'waitlist' ? (
               <span className="mt-0.5 inline-block">
                 <AccentPill>

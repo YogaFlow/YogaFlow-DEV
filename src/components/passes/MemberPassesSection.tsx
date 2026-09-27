@@ -5,6 +5,7 @@ import { methodWord } from '../../lib/courseCheckout';
 import {
   fetchManagedPasses,
   fetchMemberPasses,
+  fetchPassMovementsForPasses,
   fetchSellablePassProducts,
   formatPassUntil,
   passActiveDetail,
@@ -12,7 +13,10 @@ import {
   revokePass,
   type ManagedPass,
   type MemberPassSummary,
+  type PassMovementView,
 } from '../../lib/passes';
+import AdjustPassDialog from './AdjustPassDialog';
+import PassHistoryList from './PassHistoryList';
 import SellPassDialog from './SellPassDialog';
 
 type Props = {
@@ -32,6 +36,9 @@ const MemberPassesSection: React.FC<Props> = ({
   const [active, setActive] = useState<ManagedPass[]>([]);
   const [inactive, setInactive] = useState<ManagedPass[]>([]);
   const [teacherPasses, setTeacherPasses] = useState<MemberPassSummary[]>([]);
+  const [movementsByPass, setMovementsByPass] = useState<
+    Record<string, PassMovementView[]>
+  >({});
   const [hasProducts, setHasProducts] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -41,6 +48,7 @@ const MemberPassesSection: React.FC<Props> = ({
   const [revokeNote, setRevokeNote] = useState('');
   const [revokeBusy, setRevokeBusy] = useState(false);
   const [revokeError, setRevokeError] = useState('');
+  const [adjustTarget, setAdjustTarget] = useState<ManagedPass | null>(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -53,11 +61,16 @@ const MemberPassesSection: React.FC<Props> = ({
         setActive(managed.active);
         setInactive(managed.inactive);
         setTeacherPasses([]);
+        const allIds = [...managed.active, ...managed.inactive].map((p) => p.id);
+        setMovementsByPass(
+          allIds.length > 0 ? await fetchPassMovementsForPasses(allIds) : {},
+        );
       } else {
         const list = await fetchMemberPasses(memberId);
         setTeacherPasses(list);
         setActive([]);
         setInactive([]);
+        setMovementsByPass({});
       }
     } catch (e) {
       console.error(e);
@@ -131,19 +144,33 @@ const MemberPassesSection: React.FC<Props> = ({
                     <p className="mt-0.5 text-xs tabular-nums text-textMuted">
                       {passActiveDetail(pass)}
                     </p>
-                    {unused ? (
+                    <div className="mt-2 flex flex-wrap gap-3">
                       <button
                         type="button"
-                        onClick={() => {
-                          setRevokeError('');
-                          setRevokeNote('');
-                          setRevokeTarget(pass);
-                        }}
-                        className="mt-2 inline-flex min-h-11 items-center text-sm font-medium text-danger"
+                        onClick={() => setAdjustTarget(pass)}
+                        className="inline-flex min-h-11 items-center text-sm font-medium text-brand"
                       >
-                        Stornieren
+                        Korrigieren
                       </button>
-                    ) : null}
+                      {unused ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRevokeError('');
+                            setRevokeNote('');
+                            setRevokeTarget(pass);
+                          }}
+                          className="inline-flex min-h-11 items-center text-sm font-medium text-danger"
+                        >
+                          Stornieren
+                        </button>
+                      ) : null}
+                    </div>
+                    <PassHistoryList
+                      movements={movementsByPass[pass.id] ?? []}
+                      studioView
+                      method={pass.method}
+                    />
                   </li>
                 );
               })}
@@ -178,6 +205,11 @@ const MemberPassesSection: React.FC<Props> = ({
                           ? ` · ${formatCents(pass.price_cents)} (${methodWord(pass.method)})`
                           : ''}
                       </p>
+                      <PassHistoryList
+                        movements={movementsByPass[pass.id] ?? []}
+                        studioView
+                        method={pass.method}
+                      />
                     </li>
                   ))}
                 </ul>
@@ -215,14 +247,28 @@ const MemberPassesSection: React.FC<Props> = ({
         }}
       />
 
+      <AdjustPassDialog
+        open={adjustTarget != null}
+        passId={adjustTarget?.id ?? ''}
+        passName={adjustTarget?.name ?? ''}
+        remaining={adjustTarget?.remaining ?? 0}
+        onClose={() => setAdjustTarget(null)}
+        onAdjusted={() => {
+          setAdjustTarget(null);
+          void reload();
+        }}
+      />
+
       {revokeTarget ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-text/45 p-4">
           <div className="w-full max-w-md rounded-lg border border-border bg-surface p-6 shadow-lg">
-            <div className="mb-3 flex items-center gap-2">
-              <span className="inline-flex h-2.5 w-2.5 rounded-full bg-danger" aria-hidden />
-              <h3 className="text-lg font-semibold text-text">
-                {revokeTarget.name} von {personName} stornieren?
-              </h3>
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex h-2.5 w-2.5 rounded-full bg-danger" aria-hidden />
+                <h3 className="text-lg font-semibold text-text">
+                  {revokeTarget.name} von {personName} stornieren?
+                </h3>
+              </div>
             </div>
             <p className="text-sm leading-6 text-textMuted">
               Die Zahlung von {formatCents(revokeTarget.price_cents)} (

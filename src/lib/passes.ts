@@ -1,5 +1,11 @@
-import type { Pass, PassValidityRule, PaymentMethod } from '../types';
-import { formatCents, formatDate, formatDateTime } from './format';
+import type {
+  Pass,
+  PassMovement,
+  PassMovementKind,
+  PassValidityRule,
+  PaymentMethod,
+} from '../types';
+import { formatCents, formatDate, formatDateTime, formatTime } from './format';
 import { methodWord, type ManualCheckoutMethod } from './courseCheckout';
 import { formatUnitsLabel } from './passProducts';
 import { supabase } from './supabase';
@@ -430,4 +436,310 @@ export function passInactiveLabel(pass: ManagedPass): string {
 
 export function passActiveDetail(pass: ManagedPass): string {
   return `noch ${pass.remaining} von ${pass.units_total} · gültig bis ${formatPassUntil(pass.valid_until)} · gekauft ${formatDate(pass.valid_from)} · ${passPurchaseLabel(pass)}`;
+}
+
+/** Berlin-Kalender heute als YYYY-MM-DD. */
+export function berlinTodayIso(): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Berlin',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+}
+
+/** Läuft in ≤ 14 Kalendertagen ab (Europe/Berlin). */
+export function passExpiresWithinDays(validUntil: string, days = 14): boolean {
+  const today = berlinTodayIso();
+  if (validUntil < today) return false;
+  const [y, m, d] = today.split('-').map(Number);
+  const limit = new Date(y, m - 1, d + days);
+  const limitIso = `${limit.getFullYear()}-${String(limit.getMonth() + 1).padStart(2, '0')}-${String(limit.getDate()).padStart(2, '0')}`;
+  return validUntil <= limitIso;
+}
+
+export type PassMovementCourse = {
+  title: string;
+  date: string;
+  time: string;
+};
+
+export type PassMovementView = PassMovement & {
+  course: PassMovementCourse | null;
+};
+
+/** Ein Select auf pass_movements, Kurse über registrations in einem zweiten Select. */
+export async function fetchPassMovementsForPasses(
+  passIds: string[],
+): Promise<Record<string, PassMovementView[]>> {
+  const unique = [...new Set(passIds.filter(Boolean))];
+  const empty: Record<string, PassMovementView[]> = {};
+  if (unique.length === 0) return empty;
+
+  const { data: moves, error } = await supabase
+    .from('pass_movements')
+    .select('id, tenant_id, pass_id, delta, kind, registration_id, reason, actor_member_id, event_id, created_at')
+    .in('pass_id', unique)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error(error);
+    throw error;
+  }
+
+  const regIds = [
+    ...new Set(
+      (moves ?? [])
+        .map((m) => m.registration_id as string | null)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+
+  const courseByReg = new Map<string, PassMovementCourse>();
+  if (regIds.length > 0) {
+    const { data: regs, error: regErr } = await supabase
+      .from('registrations')
+      .select(
+        `
+        id,
+        course:courses!registrations_course_id_fkey(title, date, time)
+      `,
+      )
+      .in('id', regIds);
+    if (regErr) {
+      console.error(regErr);
+      throw regErr;
+    }
+    for (const row of regs ?? []) {
+      const courseRaw = row.course;
+      const course = Array.isArray(courseRaw) ? courseRaw[0] : courseRaw;
+      if (course?.title && course.date) {
+        courseByReg.set(row.id as string, {
+          title: course.title as string,
+          date: course.date as string,
+          time: (course.time as string) ?? '',
+        });
+      }
+    }
+  }
+
+  const byPass: Record<string, PassMovementView[]> = {};
+  for (const id of unique) byPass[id] = [];
+  for (const move of moves ?? []) {
+    const passId = move.pass_id as string;
+    const regId = move.registration_id as string | null;
+    const view: PassMovementView = {
+      id: move.id,
+      tenant_id: move.tenant_id,
+      pass_id: passId,
+      delta: move.delta,
+      kind: move.kind as PassMovementKind,
+      registration_id: regId,
+      reason: move.reason,
+      actor_member_id: move.actor_member_id,
+      event_id: move.event_id,
+      created_at: move.created_at,
+      course: regId ? courseByReg.get(regId) ?? null : null,
+    };
+    (byPass[passId] ??= []).push(view);
+  }
+  return byPass;
+}
+
+/** Eigene Karten (RLS) inkl. Rest und Bewegungen — ein Select je Tabelle. */
+export async function fetchOwnPassesWithHistory(): Promise<{
+  active: ManagedPass[];
+  inactive: ManagedPass[];
+  movementsByPass: Record<string, PassMovementView[]>;
+}> {
+  const { data: rows, error } = await supabase
+    .from('passes')
+    .select(
+      `
+      id,
+      tenant_id,
+      member_id,
+      product_id,
+      name,
+      units_total,
+      price_cents,
+      validity_rule,
+      validity_value,
+      valid_from,
+      valid_until,
+      payment_id,
+      status,
+      revoked_at,
+      created_at
+    `,
+    )
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error(error);
+    throw error;
+  }
+
+  const passIds = (rows ?? []).map((row) => row.id as string);
+  const remainingByPass = new Map<string, number>();
+  const movementsByPass =
+    passIds.length > 0 ? await fetchPassMovementsForPasses(passIds) : {};
+
+  for (const [passId, list] of Object.entries(movementsByPass)) {
+    remainingByPass.set(
+      passId,
+      list.reduce((sum, m) => sum + m.delta, 0),
+    );
+  }
+
+  const today = berlinTodayIso();
+  const mapped: ManagedPass[] = (rows ?? []).map((row) => ({
+    id: row.id,
+    tenant_id: row.tenant_id,
+    member_id: row.member_id,
+    product_id: row.product_id,
+    name: row.name,
+    units_total: row.units_total,
+    price_cents: row.price_cents,
+    validity_rule: row.validity_rule,
+    validity_value: row.validity_value,
+    valid_from: row.valid_from,
+    valid_until: row.valid_until,
+    payment_id: row.payment_id,
+    status: row.status,
+    revoked_at: row.revoked_at,
+    created_at: row.created_at,
+    remaining: remainingByPass.get(row.id) ?? 0,
+    method: null,
+  }));
+
+  const active: ManagedPass[] = [];
+  const inactive: ManagedPass[] = [];
+  for (const pass of mapped) {
+    if (pass.status === 'active' && pass.valid_until >= today) {
+      active.push(pass);
+    } else {
+      inactive.push(pass);
+    }
+  }
+  return { active, inactive, movementsByPass };
+}
+
+function formatMovementCourseStamp(course: PassMovementCourse): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(course.date);
+  const weekday = m
+    ? new Intl.DateTimeFormat('de-DE', { weekday: 'short' })
+        .format(new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])))
+        .replace(/\.$/, '')
+    : '';
+  const dayMonth = m ? `${m[3]}.${m[2]}.` : course.date;
+  const time = formatTime(course.time);
+  return `${course.title}, ${weekday} ${dayMonth}${time ? `, ${time}` : ''}`;
+}
+
+export type MovementLabelOptions = {
+  /** Owner/Admin: Zahlart bei Kauf, Korrekturgrund sichtbar */
+  studioView?: boolean;
+  method?: PaymentMethod | null;
+};
+
+/** Feste Übersetzung der Bewegungs-Codes — keine Freitexte für Teilnehmende. */
+export function formatPassMovementLabel(
+  move: PassMovementView,
+  opts?: MovementLabelOptions,
+): string {
+  const when = formatDateTime(move.created_at);
+  const studio = opts?.studioView === true;
+
+  switch (move.kind) {
+    case 'purchase': {
+      const base = `Gekauft am ${when}`;
+      if (studio && opts?.method) {
+        return `${base} (${methodWord(opts.method)})`;
+      }
+      return base;
+    }
+    case 'redeem': {
+      if (move.course) {
+        return `Eingelöst: ${formatMovementCourseStamp(move.course)}`;
+      }
+      return `Eingelöst am ${when}`;
+    }
+    case 'redeem_reversal': {
+      switch (move.reason) {
+        case 'self_in_window':
+          return 'Zurückgebucht: rechtzeitig abgemeldet';
+        case 'studio_unregister':
+          return 'Zurückgebucht: vom Studio abgemeldet';
+        case 'course_cancelled':
+          return 'Zurückgebucht: Kurs abgesagt';
+        default:
+          return 'Zurückgebucht';
+      }
+    }
+    case 'manual_adjustment': {
+      const signed = move.delta > 0 ? `+${move.delta}` : String(move.delta);
+      const base = `Korrektur durch das Studio (${signed})`;
+      if (studio && move.reason) {
+        return `${base}: ${move.reason}`;
+      }
+      return base;
+    }
+    case 'expire':
+      return `Verfallen am ${when}`;
+    case 'revoke':
+      return `Storniert am ${when}`;
+    default:
+      return when;
+  }
+}
+
+export type AdjustPassResult =
+  | { ok: true; remaining: number; movement_id: string }
+  | { ok: false; code: string; message: string };
+
+export function adjustPassErrorMessage(code: string | null | undefined): string {
+  switch (code) {
+    case 'REASON_REQUIRED':
+      return 'Bitte gib einen Grund an.';
+    case 'NEGATIVE_BALANCE':
+      return 'So viele Einheiten hat die Karte nicht.';
+    case 'PASS_EXPIRED':
+      return 'Die Karte ist abgelaufen. Korrigiere auf einer gültigen Karte.';
+    case 'NOT_ACTIVE':
+      return 'Die Karte ist nicht mehr aktiv.';
+    case 'INVALID_DELTA':
+    case 'FORBIDDEN':
+    case 'NOT_FOUND':
+      return GENERIC_ERROR;
+    default:
+      return GENERIC_ERROR;
+  }
+}
+
+export async function adjustPassUnits(
+  passId: string,
+  delta: number,
+  reason: string,
+): Promise<AdjustPassResult> {
+  const { data, error } = await supabase.rpc('adjust_pass_units', {
+    p_pass_id: passId,
+    p_delta: delta,
+    p_reason: reason,
+  });
+  if (error) {
+    console.error(error);
+    return { ok: false, code: 'TRANSPORT', message: GENERIC_ERROR };
+  }
+  const body = data as {
+    success?: boolean;
+    error?: string;
+    remaining?: number;
+    movement_id?: string;
+  } | null;
+  if (!body?.success || body.remaining == null || !body.movement_id) {
+    const code = body?.error ?? 'UNKNOWN';
+    return { ok: false, code, message: adjustPassErrorMessage(code) };
+  }
+  return { ok: true, remaining: body.remaining, movement_id: body.movement_id };
 }

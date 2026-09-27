@@ -6,6 +6,9 @@ import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDi
 import PassProductsSection from '../components/settings/PassProductsSection';
 import StudioDesignSection from '../components/settings/StudioDesignSection';
 import {
+  BOOKING_CANCELLATION_WINDOW_DEFAULT,
+  BOOKING_CANCELLATION_WINDOW_MAX,
+  BOOKING_CANCELLATION_WINDOW_MIN,
   BOOKING_MAX_PARTICIPANTS_MAX,
   BOOKING_MAX_PARTICIPANTS_MIN,
   saveBookingSettings,
@@ -16,28 +19,52 @@ export default function Settings() {
   const { tenant, updateTenant } = useTenant();
   const [saving, setSaving] = useState(false);
   const [defaultMaxParticipants, setDefaultMaxParticipants] = useState('');
+  const [cancellationWindowHours, setCancellationWindowHours] = useState('');
   const [feedbackDialog, setFeedbackDialog] = useState<FeedbackDialogState | null>(null);
 
   const storedDefault = tenant?.default_max_participants;
+  const storedWindow =
+    typeof tenant?.cancellation_window_hours === 'number'
+      ? tenant.cancellation_window_hours
+      : BOOKING_CANCELLATION_WINDOW_DEFAULT;
 
   useEffect(() => {
     if (typeof storedDefault !== 'number') return;
     setDefaultMaxParticipants(String(storedDefault));
   }, [storedDefault]);
 
-  const trimmed = defaultMaxParticipants.trim();
-  const parsed = /^\d+$/.test(trimmed) ? Number(trimmed) : NaN;
-  const isValid = Number.isInteger(parsed)
-    && parsed >= BOOKING_MAX_PARTICIPANTS_MIN
-    && parsed <= BOOKING_MAX_PARTICIPANTS_MAX;
-  const unchanged = tenant != null && parsed === tenant.default_max_participants;
-  const canSave = Boolean(tenant && isValid && !unchanged && !saving);
+  useEffect(() => {
+    setCancellationWindowHours(String(storedWindow));
+  }, [storedWindow]);
+
+  const trimmedMax = defaultMaxParticipants.trim();
+  const parsedMax = /^\d+$/.test(trimmedMax) ? Number(trimmedMax) : NaN;
+  const maxValid =
+    Number.isInteger(parsedMax) &&
+    parsedMax >= BOOKING_MAX_PARTICIPANTS_MIN &&
+    parsedMax <= BOOKING_MAX_PARTICIPANTS_MAX;
+
+  const trimmedWindow = cancellationWindowHours.trim();
+  const parsedWindow = /^\d+$/.test(trimmedWindow) ? Number(trimmedWindow) : NaN;
+  const windowValid =
+    Number.isInteger(parsedWindow) &&
+    parsedWindow >= BOOKING_CANCELLATION_WINDOW_MIN &&
+    parsedWindow <= BOOKING_CANCELLATION_WINDOW_MAX;
+
+  const maxChanged = tenant != null && maxValid && parsedMax !== tenant.default_max_participants;
+  const windowChanged = tenant != null && windowValid && parsedWindow !== storedWindow;
+  const canSave = Boolean(
+    tenant && maxValid && windowValid && (maxChanged || windowChanged) && !saving,
+  );
 
   const handleSaveSettings = async () => {
     if (!canSave) return;
     setSaving(true);
     try {
-      const result = await saveBookingSettings(parsed);
+      const result = await saveBookingSettings({
+        defaultMaxParticipants: maxChanged ? parsedMax : null,
+        cancellationWindowHours: windowChanged ? parsedWindow : null,
+      });
       if (result.ok) {
         updateTenant(result.patch);
         setFeedbackDialog({
@@ -101,6 +128,24 @@ export default function Settings() {
               />
               <p className="mt-1 text-sm text-textMuted">
                 Dieser Wert wird beim Erstellen neuer Kurse verwendet
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-textMuted mb-2">
+                Kostenlos abmelden bis … Stunden vor Kursbeginn
+              </label>
+              <input
+                type="number"
+                value={cancellationWindowHours}
+                onChange={(e) => setCancellationWindowHours(e.target.value)}
+                className="w-full max-w-xs px-4 py-2 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
+                min={BOOKING_CANCELLATION_WINDOW_MIN}
+                max={BOOKING_CANCELLATION_WINDOW_MAX}
+                step="1"
+              />
+              <p className="mt-1 text-sm text-textMuted">
+                Gilt für neue Buchungen. Bestehende Buchungen behalten ihre Frist.
               </p>
             </div>
           </div>

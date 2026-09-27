@@ -14,6 +14,8 @@ type CancelBody = {
   canceled_course_ids?: string[];
   cancelled_registrations?: number;
   paid_registrations?: number;
+  pass_refunded?: number;
+  pass_refunded_inactive?: number;
   uncanceled_course_ids?: string[];
   restored_registrations?: number;
   overflow_to_waitlist?: string[];
@@ -29,6 +31,8 @@ export type CourseCancelDialogModel = {
   registered: number;
   waitlist: number;
   paid: number | null;
+  /** Aktive Buchungen mit coverage_status = pass */
+  withPass: number | null;
   busy: boolean;
   error: string;
 };
@@ -43,6 +47,7 @@ const EMPTY_DIALOG: CourseCancelDialogModel = {
   registered: 0,
   waitlist: 0,
   paid: null,
+  withPass: null,
   busy: false,
   error: '',
 };
@@ -80,6 +85,8 @@ function cancelFeedback(body: CancelBody, showPaid: boolean): string {
   const courses = body.canceled_course_ids?.length ?? 0;
   const regs = body.cancelled_registrations ?? 0;
   const paid = body.paid_registrations ?? 0;
+  const passRefunded = body.pass_refunded ?? 0;
+  const passInactive = body.pass_refunded_inactive ?? 0;
   const courseLine = countLine(courses, '1 Termin ist abgesagt.', '%n Termine sind abgesagt.');
   const regLine = countLine(
     regs,
@@ -90,7 +97,15 @@ function cancelFeedback(body: CancelBody, showPaid: boolean): string {
     showPaid && paid > 0
       ? ` ${countLine(paid, '1 Person hatte bereits bezahlt.', '%n Personen hatten bereits bezahlt.')}`
       : '';
-  return `${courseLine} ${regLine}${paidLine}`;
+  const passLine =
+    passRefunded > 0
+      ? ` ${countLine(passRefunded, '1 Einheit zurückgebucht.', '%n Einheiten zurückgebucht.')}`
+      : '';
+  const e17Line =
+    passInactive > 0
+      ? ` ${passInactive} Einheiten wurden auf abgelaufene Karten zurückgebucht. Prüfe, ob du sie auf eine gültige Karte übertragen willst.`
+      : '';
+  return `${courseLine} ${regLine}${paidLine}${passLine}${e17Line}`;
 }
 
 function uncancelFeedback(body: CancelBody): string {
@@ -189,14 +204,23 @@ export function useCourseCancellation(
       }
 
       let paid: number | null = null;
+      let withPass: number | null = null;
       if (mode === 'cancel' && options.isManager) {
-        const { count, error: paidError } = await supabase
-          .from('registrations')
-          .select('id', { count: 'exact', head: true })
-          .in('course_id', ids)
-          .in('status', ['registered', 'waitlist'])
-          .eq('coverage_status', 'paid');
-        if (paidError) {
+        const [paidRes, passRes] = await Promise.all([
+          supabase
+            .from('registrations')
+            .select('id', { count: 'exact', head: true })
+            .in('course_id', ids)
+            .in('status', ['registered', 'waitlist'])
+            .eq('coverage_status', 'paid'),
+          supabase
+            .from('registrations')
+            .select('id', { count: 'exact', head: true })
+            .in('course_id', ids)
+            .in('status', ['registered', 'waitlist'])
+            .eq('coverage_status', 'pass'),
+        ]);
+        if (paidRes.error || passRes.error) {
           setFeedbackDialog({
             title: 'Hinweis',
             message: 'Die Zahlungen konnten nicht geprüft werden. Bitte die Seite neu laden.',
@@ -204,7 +228,8 @@ export function useCourseCancellation(
           });
           return;
         }
-        paid = count ?? 0;
+        paid = paidRes.count ?? 0;
+        withPass = passRes.count ?? 0;
       }
 
       setDialog({
@@ -217,6 +242,7 @@ export function useCourseCancellation(
         registered,
         waitlist,
         paid,
+        withPass,
         busy: false,
         error: '',
       });

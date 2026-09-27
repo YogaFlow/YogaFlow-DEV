@@ -282,10 +282,22 @@ export default function Users() {
   const [removeError, setRemoveError]           = useState<string | null>(null);
   const [removeErrorCode, setRemoveErrorCode]   = useState<string | null>(null);
   const [preparingRemoveId, setPreparingRemoveId] = useState<string | null>(null);
+  /** Nur ein Layout mountet MemberPassesSection (sonst doppelter Fetch). */
+  const [desktopLayout, setDesktopLayout] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(min-width: 1024px)').matches : false,
+  );
 
   // ---------------------------------------------------------------------------
   // Data fetching
   // ---------------------------------------------------------------------------
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const onChange = () => setDesktopLayout(mq.matches);
+    onChange();
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
 
   useEffect(() => {
     if (!isCourseLeader) return;
@@ -1080,12 +1092,14 @@ export default function Users() {
                       </div>
                     )}
 
-                    <MemberPassesSection
-                      memberId={user.id}
-                      personName={`${user.first_name} ${user.last_name}`.trim()}
-                      isStudioAdmin={isAdmin}
-                      canSell={isCourseLeader}
-                    />
+                    {!desktopLayout ? (
+                      <MemberPassesSection
+                        memberId={user.id}
+                        personName={`${user.first_name} ${user.last_name}`.trim()}
+                        isStudioAdmin={isAdmin}
+                        canSell={isCourseLeader}
+                      />
+                    ) : null}
 
                     {removePersonZone(user, isSelf)}
                   </div>
@@ -1470,12 +1484,14 @@ export default function Users() {
 
                           </div>
 
-                          <MemberPassesSection
-                            memberId={user.id}
-                            personName={`${user.first_name} ${user.last_name}`.trim()}
-                            isStudioAdmin={isAdmin}
-                            canSell={isCourseLeader}
-                          />
+                          {desktopLayout ? (
+                            <MemberPassesSection
+                              memberId={user.id}
+                              personName={`${user.first_name} ${user.last_name}`.trim()}
+                              isStudioAdmin={isAdmin}
+                              canSell={isCourseLeader}
+                            />
+                          ) : null}
 
                           {removePersonZone(user, isSelf)}
                         </div>

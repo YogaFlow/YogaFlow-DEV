@@ -396,7 +396,17 @@ der Frist → +1, außerhalb → 0. Verfall am Stichtag → Rest 0, Event. Nachr
 |---|---|
 | **A6-1** | Frist, Spalten (`cancellation_deadline`, `pass_id`, `coverage_intent`), Helfer `pick_pass` / `redeem_pass` / `reverse_redemption`, `remove_member`-Fix. Noch kein öffentlicher Buchungsweg löst ein. Migration `20260927221500_a6_1_pass_booking_foundation.sql`. |
 | **A6-2** | Einlösen beim Anmelden / Studio-Eintrag / Umwandeln open→Karte; Undo; RPCs + UI. Migration `20260927233000_a6_2_redeem.sql` (+ 2b/2c FK). UI (27.09.): `findUsablePass`, Kursdetail-Auswahl, Meine Anmeldungen W10, Kasse „Karte“, Studio-Deckungswahl, Teilnehmerliste/CSV „Bezahlung“. |
-| **A6-3** | Zurückbuchen (Abmelden, Studio, Kursabsage, Rücknahme), Nachrücken mit Intent, `adjust_pass_units`, Verfall per `pg_cron` (`expire_passes` stündlich). Migration `20260928010000_a6_3_reverse_and_expire.sql` (geschrieben, nicht angewendet). UI offen: Abmelde-Hinweis, „Meine Karten“, Einzelkorrektur in Personenverwaltung. |
+| **A6-3** | Zurückbuchen (Abmelden, Studio, Kursabsage, Rücknahme), Nachrücken mit Intent, `adjust_pass_units`, Verfall per `pg_cron` (`expire_passes` stündlich). Migration `20260928010000_a6_3_reverse_and_expire.sql` (DEV). UI: Abmelde-Hinweis aus `cancellation_deadline`, „Meine Karten“ + Verlauf, Einzelkorrektur, Stornofrist in Buchungseinstellungen. |
+
+**A6 abgeschlossen (28.09.2026).** Bewusste Abweichungen / festgehaltene Entscheidungen:
+
+| ID | Abweichung / Entscheidung |
+|---|---|
+| W2 | Stornofrist eingefroren in `registrations.cancellation_deadline` statt Historientabelle `tenant_booking_settings`. |
+| W10 | Teilnehmende dürfen eigene offene Buchung vor Kursbeginn selbst per Karte begleichen. |
+| W11 | Einlösen zurücknehmen: Owner/Admin immer; Lehrende eigene ≤ 15 Min; Teilnehmende nicht. |
+| W12 | Kostenloser Kurs: Kartenwunsch wird ignoriert, Deckung bleibt `not_required`. |
+| W13 | Studio auf Warteliste: nur open oder `coverage_intent=pass`; Bar/PayPal/Überweisung erst nach Platz. |
 
 **Befund Inventur:** `cancel_reason = promotion_expired` ist reserviert für E2 (Zahlungsfrist nach Nachrücken), nicht Teil von A6 — kein RPC schreibt ihn heute.
 

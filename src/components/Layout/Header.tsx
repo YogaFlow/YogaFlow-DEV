@@ -11,9 +11,14 @@ interface HeaderProps {
 /** Linktext der Glocke aus dem Zielpfad. Unbekannte Pfade bleiben allgemein. */
 function labelForNotificationPath(path?: string | null): string {
   if (path === '/profile') return 'Zum Profil';
-  if (path === '/my-courses' || path?.startsWith('/my-courses#anmeldungen')) {
+  if (
+    path === '/my-courses' ||
+    path === '/my-registrations' ||
+    path?.startsWith('/my-courses#anmeldungen')
+  ) {
     return 'Zu meinen Anmeldungen';
   }
+  if (path?.includes('/users')) return 'Zur Personenverwaltung';
   if (path?.endsWith('/kassieren')) return 'Zu den Rückgaben';
   return 'Öffnen';
 }

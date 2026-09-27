@@ -159,10 +159,14 @@ const Participants: React.FC = () => {
   const requestUnregister = (participant: ParticipantWithDetails) => {
     const name = `${participant.user.first_name} ${participant.user.last_name}`.trim();
     const courseTitle = participant.course.title;
+    const passNote =
+      participant.coverage_status === 'pass'
+        ? ' Die Karteneinheit wird zurückgebucht.'
+        : '';
     setPendingUnregister(participant);
     setConfirmDialog({
       title: 'Teilnehmer abmelden',
-      message: `Möchtest du ${name || 'diesen Teilnehmer'} wirklich vom Kurs „${courseTitle}" abmelden?`,
+      message: `Möchtest du ${name || 'diesen Teilnehmer'} wirklich vom Kurs „${courseTitle}" abmelden?${passNote}`,
       confirmLabel: 'Abmelden',
       cancelLabel: 'Abbrechen',
       variant: 'danger',

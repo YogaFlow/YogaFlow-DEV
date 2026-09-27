@@ -3,6 +3,9 @@ import { supabase } from './supabase';
 
 export const BOOKING_MAX_PARTICIPANTS_MIN = 1;
 export const BOOKING_MAX_PARTICIPANTS_MAX = 50;
+export const BOOKING_CANCELLATION_WINDOW_MIN = 0;
+export const BOOKING_CANCELLATION_WINDOW_MAX = 72;
+export const BOOKING_CANCELLATION_WINDOW_DEFAULT = 24;
 
 type BookingRpcResult = {
   success?: boolean;
@@ -14,11 +17,17 @@ type SaveOk = { ok: true; patch: Partial<Tenant> };
 type SaveFail = { ok: false; message: string };
 export type SaveBookingSettingsResult = SaveOk | SaveFail;
 
-export async function saveBookingSettings(
-  defaultMaxParticipants: number,
-): Promise<SaveBookingSettingsResult> {
+/**
+ * Speichert Buchungseinstellungen. Unveränderte Felder als null übergeben
+ * (RPC: NULL = nicht ändern).
+ */
+export async function saveBookingSettings(opts: {
+  defaultMaxParticipants?: number | null;
+  cancellationWindowHours?: number | null;
+}): Promise<SaveBookingSettingsResult> {
   const { data, error } = await supabase.rpc('update_booking_settings', {
-    p_default_max_participants: defaultMaxParticipants,
+    p_default_max_participants: opts.defaultMaxParticipants ?? null,
+    p_cancellation_window_hours: opts.cancellationWindowHours ?? null,
   });
 
   if (error) {
