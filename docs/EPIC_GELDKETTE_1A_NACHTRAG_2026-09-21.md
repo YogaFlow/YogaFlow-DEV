@@ -360,16 +360,28 @@ einmal. **Schema → Freigabe. STOPP.**
 ### A9 — Kurs absagen (ohne Online-Erstattung)
 *Als Studio möchte ich einen Kurs absagen, statt ihn zu löschen.*
 
-- `courses.status = 'canceled'` über RPC. Alle aktiven Anmeldungen → `cancelled` mit `course_cancelled`
-- Karteneinlösungen → automatisch zurückgebucht
-- Bar/PayPal-Vermerke → **nicht** automatisch erstattet. Das Studio sieht die Liste „diese Personen haben bar
-  bzw. per PayPal bezahlt“ und vermerkt die Rückgabe als Gegenzeile
-- Benachrichtigung über das bestehende `send-email`
-- Online-Erstattung ergänzt später **3.2**
-- Die Übergabe-oder-Absage-Logik beim Entfernen einer Lehrerin (3.2) nutzt dieses RPC
+Entschieden 27.09.2026 (K1–K8). Migration `20260927143000_a9_course_cancel.sql`, auf DEV angewendet, nicht auf PROD.
 
-**Akzeptanz:** Kurs mit je einer Buchung „Karte“, „bar“, „offen“ absagen → Karte +1, Bar-Liste angezeigt, alle
-drei informiert, Kurs in allen Listen als abgesagt. **STOPP.**
+| # | Entscheidung |
+|---|---|
+| K1 | Owner/Admin in allen Kursen, Lehrende im eigenen Kurs (`is_course_teacher`) |
+| K2 | Ein Termin, oder dieser und alle folgenden der Serie (`series_id`, Beginn ≥ dieser Termin, noch nicht begonnen) |
+| K3 | Rücknahme ja, solange der Termin nicht begonnen hat, gleicher Umfang |
+| K4 | Absagen und Zurücknehmen nur, solange der Termin nicht begonnen hat |
+| K5 | Glocke. Keine E-Mail in A9. Optionaler Grund, höchstens 200 Zeichen, steht in der Glocke |
+| K6 | Löschen ohne jede Anmeldungszeile bleibt wie heute |
+| K7 | Keine automatische Gegenzeile. Owner/Admin sehen die Bezahlten und vermerken die Rückgabe mit `reverse_manual_payment` |
+| K8 | Karten (A6) nur vorgesehen: markierte Stelle im RPC, an der A6 später `redeem_reversal` bucht |
+
+Abweichungen vom Entwurf vom 21.09.:
+
+- Keine E-Mail über `send-email`. Die Glocke (`course_canceled` / `course_uncanceled`) ist der Weg.
+- Karteneinheit wird nicht zurückgebucht. `passes` gibt es noch nicht.
+- Story 3.2 erstattet online später. Bar und PayPal bleiben die Gegenzeile aus K7, nicht eine automatische Erstattung.
+
+`courses.status` bleibt die Schreibweise `canceled` (ein l). `register_for_course` lehnt abgesagte Kurse schon ab. `promote_from_waitlist` und `admin_register_user_for_course` werden in derselben Migration geschlossen, damit niemand in einen abgesagten Kurs nachrückt oder nachgebucht wird.
+
+**Akzeptanz:** Kurs mit Warteliste und einer Barzahlung absagen → niemand rückt nach, Glocken, Zahlung bleibt `paid`, bis Owner/Admin die Gegenzeile setzt. Rücknahme stellt nur die durch die Absage stornierten Buchungen wieder her. Serie „ab diesem Termin“ lässt frühere Termine aktiv. **STOPP.**
 
 ---
 
@@ -384,7 +396,7 @@ drei informiert, Kurs in allen Listen als abgesagt. **STOPP.**
   aus, führen Bezahlkurse zwingend in den Checkout
 - **Neue Story 2.4 — Karte online kaufen:** Karte als Produkt im Checkout. Widerrufsbelehrung, Widerrufsbutton
   (§ 356a BGB), Zustimmung zum vorzeitigen Beginn. Abhängig vom Rechts-Epic
-- **3.2:** Nutzt A9, ergänzt die Online-Erstattung
+- **3.2:** Nutzt A9, ergänzt die Online-Erstattung. Bar und PayPal bleiben die Gegenzeile aus A9 (K7), keine automatische Erstattung
 - **4.2:** Belege für Kartenverkauf und Kursbuchung per Überweisung/PayPal/online. **Nicht für bar** (E14)
 - **4.3 (Löschen/Aufbewahren):** FKs von `passes`, `pass_movements` ebenfalls `RESTRICT`
 - **Scope „Nicht in 1a“:** „Guthabenkarten“ streichen. Neu: Selbstkauf von Karten vor Stripe · unbezahlte

@@ -110,6 +110,9 @@ export interface Course {
   price: number;
   teacher_id: string;
   status: CourseStatus;
+  canceled_at?: string | null;
+  canceled_by?: string | null;
+  cancel_note?: string | null;
   duration?: number;
   prerequisites?: string;
   frequency: CourseFrequency;
@@ -163,7 +166,10 @@ export type UserNotificationType =
   | 'course_added'
   | 'course_waitlisted'
   | 'course_removed'
-  | 'waitlist_promoted';
+  | 'waitlist_promoted'
+  | 'course_canceled'
+  | 'course_uncanceled'
+  | 'password_changed';
 
 export interface UserNotification {
   id: string;
