@@ -18,6 +18,7 @@ interface CourseDeleteDialogProps {
   onCancel: () => void;
   onConfirm: () => void;
   onRequestCancel: () => void;
+  alreadyCancelled?: boolean;
 }
 
 function sessionLabel(session: BlockedSession, sessions: BlockedSession[]): string {
@@ -49,6 +50,7 @@ const CourseDeleteDialog: React.FC<CourseDeleteDialogProps> = ({
   onCancel,
   onConfirm,
   onRequestCancel,
+  alreadyCancelled = false,
 }) => {
   useEffect(() => {
     if (!open) return;
@@ -198,8 +200,11 @@ const CourseDeleteDialog: React.FC<CourseDeleteDialogProps> = ({
             {confirmBlocked ? (
               <div className="p-4 bg-surfaceSunken border border-border rounded-sm">
                 <p className="text-sm text-text">
-                  Kurse mit Anmeldungen kannst du nicht löschen. Du kannst ihn absagen.
+                  {alreadyCancelled
+                    ? 'Dieser Kurs ist bereits abgesagt.'
+                    : 'Kurse mit Anmeldungen kannst du nicht löschen. Du kannst ihn absagen.'}
                 </p>
+                {alreadyCancelled ? null : (
                 <button
                   type="button"
                   onClick={onRequestCancel}
@@ -208,6 +213,7 @@ const CourseDeleteDialog: React.FC<CourseDeleteDialogProps> = ({
                 >
                   Kurs absagen
                 </button>
+                )}
               </div>
             ) : personCount > 0 ? (
               <div className="p-4 bg-accentSoft border border-accent rounded-sm">

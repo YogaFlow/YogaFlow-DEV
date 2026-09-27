@@ -20,6 +20,12 @@ import {
   labelRegistrationStatusShort,
 } from '../lib/registrationStatus';
 
+function shownMemberEmail(user: { email?: string | null; anonymized_at?: string | null } | null | undefined): string {
+  if (!user || user.anonymized_at) return '';
+  if (user.email && /^entfernt-.+@anonymisiert\.invalid$/i.test(user.email)) return '';
+  return user.email ?? '';
+}
+
 interface ParticipantWithDetails extends Registration {
   user: User;
   course: Course;
@@ -236,7 +242,7 @@ const Participants: React.FC = () => {
         p.course?.title || '',
         p.course?.date ? formatDate(p.course.date) : '',
         `${p.user?.first_name || ''} ${p.user?.last_name || ''}`.trim(),
-        p.user?.email || '',
+        shownMemberEmail(p.user),
         p.user?.phone || '',
         labelRegistrationStatus(p.status, p.waitlist_position),
         formatDateTime(p.registered_at)
@@ -315,7 +321,7 @@ const Participants: React.FC = () => {
       }`}>
         {userProfile && userProfile.role === 'teacher' && (
           <p className="text-textMuted">
-            Anmeldungen für deine kommenden Kurse
+            Anmeldungen für deine heutigen und kommenden Kurse
           </p>
         )}
 
@@ -429,10 +435,14 @@ const Participants: React.FC = () => {
                       </div>
 
                       <div className="mt-2 space-y-1 text-[13px]">
-                        <a href={`mailto:${participant.user.email}`} className="flex items-center gap-1.5 text-textMuted hover:text-brandPressed">
+                        {shownMemberEmail(participant.user) ? (
+                        <a href={`mailto:${shownMemberEmail(participant.user)}`} className="flex items-center gap-1.5 text-textMuted hover:text-brandPressed">
                           <Mail className="w-3 h-3 flex-shrink-0" />
-                          <span className="truncate">{participant.user.email}</span>
+                          <span className="truncate">{shownMemberEmail(participant.user)}</span>
                         </a>
+                        ) : (
+                        <span className="text-textMuted">–</span>
+                        )}
                         {participant.user.phone && (
                           <a href={`tel:${participant.user.phone}`} className="flex items-center gap-1.5 text-textMuted hover:text-brandPressed">
                             <Phone className="w-3 h-3 flex-shrink-0" />
@@ -521,9 +531,13 @@ const Participants: React.FC = () => {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-text flex items-center">
                             <Mail className="w-3 h-3 mr-1" />
-                            <a href={`mailto:${participant.user.email}`} className="hover:text-brandPressed">
-                              {participant.user.email}
+                            {shownMemberEmail(participant.user) ? (
+                            <a href={`mailto:${shownMemberEmail(participant.user)}`} className="hover:text-brandPressed">
+                              {shownMemberEmail(participant.user)}
                             </a>
+                            ) : (
+                            <span>–</span>
+                            )}
                           </div>
                           <div className="text-sm text-textMuted flex items-center mt-1">
                             <Phone className="w-3 h-3 mr-1" />

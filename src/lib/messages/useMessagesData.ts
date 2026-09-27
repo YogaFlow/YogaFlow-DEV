@@ -175,13 +175,16 @@ export function useMessagesData(userProfile: User | null) {
     try {
       const { data, error } = await supabase
         .from('registrations')
-        .select('user:users!registrations_user_id_fkey(id, first_name, last_name, email)')
+        .select('user:users!registrations_user_id_fkey(id, first_name, last_name, email, anonymized_at)')
         .eq('course_id', courseId)
         .is('cancellation_timestamp', null);
 
       if (error) throw error;
-      const users = data?.map((r) => r.user).filter(Boolean) as unknown as User[];
-      setParticipants(users || []);
+      const users = (data ?? [])
+        .map((row) => row.user)
+        .flat()
+        .filter((user) => user && (user as { anonymized_at?: string | null }).anonymized_at == null) as unknown as User[];
+      setParticipants(users);
     } catch (error) {
       console.error('Error fetching participants:', error);
     }

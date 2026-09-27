@@ -8,6 +8,8 @@ import {
   UserCheck, Eye, EyeOff, Lock,
 } from 'lucide-react';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
+import RemovePersonDialog, { RemovePersonTarget } from '../components/users/RemovePersonDialog';
+import { loadRemovalPreview, readInvokeErrorBody, removePerson } from '../lib/removePerson';
 
 // ---------------------------------------------------------------------------
 // Local types
@@ -117,18 +119,8 @@ function passwordErrorText(code: string | null): string {
 }
 
 async function readFunctionErrorCode(error: unknown): Promise<string | null> {
-  const context = (error as { context?: { clone?: () => { json?: () => Promise<unknown> }; json?: () => Promise<unknown> } }).context;
-  const source = typeof context?.clone === 'function' ? context.clone() : context;
-  if (!source || typeof source.json !== 'function') return null;
-  try {
-    const body = await source.json();
-    if (body && typeof body === 'object' && 'code' in body && typeof body.code === 'string') {
-      return body.code;
-    }
-  } catch {
-    return null;
-  }
-  return null;
+  const body = await readInvokeErrorBody(error);
+  return body.code;
 }
 
 /** null = Spalte fehlt in der Antwort. Dann nicht „kein Login“ behaupten. */
@@ -273,6 +265,11 @@ export default function Users() {
   const [savingPassword, setSavingPassword]     = useState(false);
   const [passwordNotice, setPasswordNotice]     = useState<string | null>(null);
   const [passwordError, setPasswordError]       = useState<string | null>(null);
+  const [removeTarget, setRemoveTarget]         = useState<(RemovePersonTarget & { id: string }) | null>(null);
+  const [removeBusy, setRemoveBusy]             = useState(false);
+  const [removeError, setRemoveError]           = useState<string | null>(null);
+  const [removeErrorCode, setRemoveErrorCode]   = useState<string | null>(null);
+  const [preparingRemoveId, setPreparingRemoveId] = useState<string | null>(null);
 
   // ---------------------------------------------------------------------------
   // Data fetching
@@ -292,6 +289,7 @@ export default function Users() {
           .from('users')
           .select('*')
           .eq('role', 'user')
+          .is('anonymized_at', null)
           .order('last_name', { ascending: true });
         if (error) throw error;
         setUsers(data || []);
@@ -301,6 +299,7 @@ export default function Users() {
           supabase
             .from('users')
             .select('*')
+            .is('anonymized_at', null)
             .order('last_name', { ascending: true }),
           supabase.rpc('studio_member_login_exclusive'),
         ]);
@@ -575,6 +574,88 @@ export default function Users() {
     }
   };
 
+  const handlePrepareRemove = async (user: User) => {
+    if (!isAdmin || user.id === userProfile?.id || user.role === 'owner' || preparingRemoveId) return;
+    setPreparingRemoveId(user.id);
+    try {
+      const preview = await loadRemovalPreview(user.id);
+      setRemoveError(null);
+      setRemoveErrorCode(null);
+      setRemoveTarget({
+        id: user.id,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        upcoming: preview.upcoming,
+        openBookings: preview.openBookings,
+        openCourseId: preview.openCourseId,
+      });
+    } catch (err) {
+      console.error('remove preview failed', err);
+      setFeedbackDialog({
+        title: 'Hinweis',
+        message: 'Die Buchungen konnten nicht geprüft werden. Bitte die Seite neu laden.',
+        type: 'error',
+      });
+    } finally {
+      setPreparingRemoveId(null);
+    }
+  };
+
+  const handleConfirmRemove = async () => {
+    if (!removeTarget || removeBusy) return;
+    setRemoveBusy(true);
+    setRemoveError(null);
+    setRemoveErrorCode(null);
+    const result = await removePerson(removeTarget.id);
+    if (!result.ok) {
+      setRemoveError(result.message);
+      setRemoveErrorCode(result.code);
+      setRemoveBusy(false);
+      return;
+    }
+    const fullName = `${removeTarget.firstName} ${removeTarget.lastName}`.trim();
+    setRemoveTarget(null);
+    setRemoveBusy(false);
+    await fetchUsers();
+    setFeedbackDialog({
+      title: result.code === 'LOGIN_NOT_DELETED' ? `${fullName} wurde entfernt.` : 'Entfernt',
+      message: result.code === 'LOGIN_NOT_DELETED'
+        ? result.message
+        : `${fullName} wurde entfernt.`,
+      type: 'success',
+    });
+  };
+
+  const removeButton = (user: User, isSelf: boolean) => {
+    if (!isAdmin || isSelf) return null;
+    if (user.role === 'owner') {
+      return (
+        <div className="max-w-xs">
+          <button
+            type="button"
+            disabled
+            className="inline-flex min-h-11 items-center text-sm font-medium text-danger opacity-50"
+          >
+            Person entfernen
+          </button>
+          <p className="mt-1 text-xs text-textMuted">
+            Inhaberinnen kannst du nicht entfernen. Ändere zuerst die Rolle.
+          </p>
+        </div>
+      );
+    }
+    return (
+      <button
+        type="button"
+        onClick={() => void handlePrepareRemove(user)}
+        disabled={preparingRemoveId === user.id}
+        className="inline-flex min-h-11 items-center text-sm font-medium text-danger disabled:opacity-50"
+      >
+        {preparingRemoveId === user.id ? 'Wird geprüft …' : 'Person entfernen'}
+      </button>
+    );
+  };
+
   // ---------------------------------------------------------------------------
   // Access guard
   // ---------------------------------------------------------------------------
@@ -604,6 +685,19 @@ export default function Users() {
   return (
     <div className="p-4 sm:p-8">
       <FeedbackDialog dialog={feedbackDialog} onClose={() => setFeedbackDialog(null)} />
+      <RemovePersonDialog
+        target={removeTarget}
+        busy={removeBusy}
+        error={removeError}
+        errorCode={removeErrorCode}
+        onCancel={() => {
+          if (removeBusy) return;
+          setRemoveTarget(null);
+          setRemoveError(null);
+          setRemoveErrorCode(null);
+        }}
+        onConfirm={() => void handleConfirmRemove()}
+      />
 
       <div className="mb-6">
         <p className="text-sm text-textMuted mt-1">
@@ -670,6 +764,11 @@ export default function Users() {
                     )}
                   </div>
                 </div>
+                {isAdmin && !isSelf ? (
+                  <div className="border-t border-border px-3.5 py-2">
+                    {removeButton(user, isSelf)}
+                  </div>
+                ) : null}
 
                 {/* Expanded panel (mobile) */}
                 {isExpanded && editForm && (
@@ -970,6 +1069,7 @@ export default function Users() {
                             {isExpanded ? 'Schließen' : 'Bearbeiten'}
                           </button>
                         )}
+                        {removeButton(user, isSelf)}
                       </div>
                     </td>
                   </tr>

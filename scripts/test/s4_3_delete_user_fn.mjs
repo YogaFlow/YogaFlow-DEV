@@ -191,7 +191,7 @@ async function loginExistiert(admin, authUserId) {
 async function profilLesen(admin, id) {
   const { data, error } = await admin
     .from('users')
-    .select('id, first_name, email, auth_user_id, anonymized_at, tenant_id')
+    .select('id, first_name, email, role, auth_user_id, anonymized_at, tenant_id')
     .eq('id', id)
     .maybeSingle();
   if (error) abbruch('Profil lesen: ' + error.message);
@@ -335,7 +335,8 @@ async function main() {
     fremd.status === 403 && fremd.body?.code === 'FORBIDDEN' && fremd.body?.success === false,
     `status=${fremd.status} code=${fremd.body?.code}`
   );
-  ok('Pia nach fremdem Header unverändert', (await profilLesen(admin, plain.id))?.role === 'user');
+  const pia = await profilLesen(admin, plain.id);
+  ok('Pia nach fremdem Header unverändert', pia?.role === 'user', pia ? `role=${pia.role}` : 'Profil fehlt');
 
   console.log('Owner und kommender Kurs');
   const ownerWeg = await funktion(url, anon, SLUG, tokenOwner, owner2.id);

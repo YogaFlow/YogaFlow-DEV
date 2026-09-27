@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import type { FeedbackDialogState } from '../components/ui/FeedbackDialog';
 import type { Course } from '../types';
+import { isCourseCancelled } from './courseDateTime';
 import { cancelTargets, type CancelTarget } from './courseCancelTargets';
 import { supabase } from './supabase';
 
@@ -153,10 +154,12 @@ export function useCourseCancellation(
       const targets = cancelTargets(anchor, sessions, options.teacherOnlyId, mode);
       const ids = targets.map((row) => row.id);
       if (!ids.includes(course.id)) {
+        const alreadyCancelled = mode === 'cancel' && isCourseCancelled(course.status);
         setFeedbackDialog({
           title: 'Hinweis',
-          message:
-            mode === 'cancel'
+          message: alreadyCancelled
+            ? 'Dieser Kurs ist bereits abgesagt.'
+            : mode === 'cancel'
               ? 'Dieser Kurs lässt sich nicht absagen.'
               : 'Diese Absage lässt sich nicht zurücknehmen.',
           type: 'error',

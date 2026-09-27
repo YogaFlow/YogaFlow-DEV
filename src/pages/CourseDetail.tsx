@@ -240,6 +240,7 @@ const CourseDetail: React.FC = () => {
           cancelDelete();
           cancellation.requestCancel();
         }}
+        alreadyCancelled={cancelled}
       />
       <CourseCancelDialog
         dialog={cancellation.dialog}

@@ -137,6 +137,7 @@ const CreateCourse: React.FC = () => {
         .from('users')
         .select('id, first_name, last_name, email')
         .in('role', ['teacher', 'admin', 'owner'])
+        .is('anonymized_at', null)
         .order('last_name', { ascending: true });
 
       if (error) throw error;

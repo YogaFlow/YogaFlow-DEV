@@ -324,13 +324,16 @@ const Dashboard: React.FC = () => {
 
         let totalParticipantsCount = 0;
         if (participantCourseIds.length > 0) {
-          const { count } = await supabase
+          const { data: seatRows } = await supabase
             .from('registrations')
-            .select('*', { count: 'exact', head: true })
+            .select('id, user:users!registrations_user_id_fkey(anonymized_at)')
             .eq('status', 'registered')
             .is('cancellation_timestamp', null)
             .in('course_id', participantCourseIds);
-          totalParticipantsCount = count || 0;
+          totalParticipantsCount = (seatRows ?? []).filter((row) => {
+            const person = Array.isArray(row.user) ? row.user[0] : row.user;
+            return !person?.anonymized_at;
+          }).length;
         }
 
         let myCoursesCount = 0;
