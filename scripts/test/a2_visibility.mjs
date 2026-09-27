@@ -3,7 +3,8 @@
  * A2 Schritt 1 — Sichtbarkeit von registrations für Lehrende (nur DEV).
  *
  * Nicht ausführen, bevor 20260926180000_a2_registrations_select_own_courses.sql
- * auf DEV liegt. Gegen PROD nie.
+ * auf DEV liegt. Gegen PROD nie. Eigenes Studio `a2vistest`, am Ende
+ * delete_tenant_complete und auth.admin.deleteUser.
  *
  * Fälle:
  *  1) T1 liest die beiden Testkurse → nur Zeilen des eigenen Kurses
@@ -14,10 +15,6 @@
  *     nicht die der anderen Teilnehmerin
  *  6) get_course_participant_counts liefert T1 Zahlen zu beiden Kursen
  *
- * Seed hat nur eine Lehrende je Studio (demoalpha.teacher). T2 wird per
- * service_role angelegt und am Ende entfernt. Testdaten (Kurse, Anmeldungen,
- * T2) räumt das Skript selbst auf, auch wenn eine Prüfung scheitert.
- *
  * Verwendung: node scripts/test/a2_visibility.mjs
  */
 import { readFileSync } from 'node:fs';
@@ -26,12 +23,12 @@ import { fileURLToPath } from 'node:url';
 import { createClient } from '@supabase/supabase-js';
 
 const ERLAUBTE_REF = 'mufxhtctutfpzklwqnze';
-const SLUG = 'demoalpha';
+const SLUG = 'a2vistest';
 const TITLE_T1 = 'A2_VISIBILITY_T1';
 const TITLE_T2 = 'A2_VISIBILITY_T2';
-const EMAIL_T2 = 'demoalpha.a2teacher2@example.com';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+let devOk = false;
 
 function ladeEnv() {
   const out = {};
@@ -77,13 +74,13 @@ function ok(name, cond, detail = '') {
   console.log(`  OK  ${name}${detail ? ' — ' + detail : ''}`);
 }
 
-function clientMitTenant(url, key) {
+function clientMitTenant(url, key, slug = SLUG) {
   return createClient(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },
     global: {
       fetch: (input, init) => {
         const headers = new Headers(init?.headers);
-        headers.set('x-omlify-tenant', SLUG);
+        headers.set('x-omlify-tenant', slug);
         return fetch(input, { ...init, headers });
       },
     },
@@ -97,38 +94,55 @@ async function login(url, anon, email, password) {
   return c;
 }
 
-async function authUserByEmail(admin, email) {
+async function authNutzer(admin) {
+  const treffer = [];
   for (let seite = 1; ; seite++) {
     const { data, error } = await admin.auth.admin.listUsers({ page: seite, perPage: 200 });
-    if (error) abbruch('Auth-Nutzer konnten nicht gelesen werden: ' + error.message);
-    const treffer = data.users.find((u) => u.email === email);
-    if (treffer) return treffer;
-    if (data.users.length < 200) return null;
+    if (error) abbruch('Auth-Nutzer lesen: ' + error.message);
+    for (const u of data.users) {
+      if ((u.email ?? '').startsWith(SLUG + '.')) treffer.push(u);
+    }
+    if (data.users.length < 200) return treffer;
   }
 }
 
-async function raeumeTestkurse(admin, tenantId) {
-  const { data: courses, error } = await admin
-    .from('courses')
-    .select('id')
-    .eq('tenant_id', tenantId)
-    .in('title', [TITLE_T1, TITLE_T2]);
-  if (error) abbruch('Testkurse lesen: ' + error.message);
-  for (const c of courses || []) {
-    const { error: e1 } = await admin.from('registrations').delete().eq('course_id', c.id);
-    if (e1) abbruch('Registrations löschen: ' + e1.message);
-    const { error: e2 } = await admin.from('user_notifications').delete().eq('course_id', c.id);
-    if (e2) abbruch('Benachrichtigungen löschen: ' + e2.message);
-    const { error: e3 } = await admin.from('courses').delete().eq('id', c.id);
-    if (e3) abbruch('Kurs löschen: ' + e3.message);
+async function resteEntfernen(admin) {
+  const { data: tenants, error } = await admin.from('tenants').select('id').eq('slug', SLUG);
+  if (error) abbruch('Studio lesen: ' + error.message);
+  for (const t of tenants || []) {
+    const { error: e } = await admin.rpc('delete_tenant_complete', { p_tenant_id: t.id });
+    if (e) abbruch('Studio löschen: ' + e.message);
+  }
+  for (const u of await authNutzer(admin)) {
+    const { error: e } = await admin.auth.admin.deleteUser(u.id);
+    if (e) abbruch('Auth-Nutzer ' + u.email + ': ' + e.message);
   }
 }
 
-async function entferneT2(admin) {
-  const vorhanden = await authUserByEmail(admin, EMAIL_T2);
-  if (!vorhanden) return;
-  const { error } = await admin.auth.admin.deleteUser(vorhanden.id);
-  if (error) abbruch('T2 löschen: ' + error.message);
+async function nutzerAnlegen(admin, { email, vorname, nachname, rolle, tenantId, password }) {
+  const { data, error } = await admin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: { tenant_id: tenantId, first_name: vorname, last_name: nachname },
+    app_metadata: { role: rolle },
+  });
+  if (error) abbruch('Nutzer ' + email + ': ' + error.message);
+
+  const { data: profil, error: eProfil } = await admin
+    .from('users')
+    .select('id, email, role, tenant_id')
+    .eq('auth_user_id', data.user.id)
+    .single();
+  if (eProfil || !profil) abbruch('Profil ' + email + ': ' + (eProfil?.message ?? 'keine Zeile'));
+
+  const { error: e2 } = await admin
+    .from('users')
+    .update({ email_verified: true, email_verified_at: new Date().toISOString() })
+    .eq('id', profil.id);
+  if (e2) abbruch('email_verified ' + email + ': ' + e2.message);
+  if (profil.role !== rolle) abbruch(email + ' hat Rolle ' + profil.role + ', erwartet ' + rolle);
+  return profil;
 }
 
 async function anmelden(client, courseId, wer) {
@@ -165,70 +179,37 @@ async function main() {
   if (!url.includes(ERLAUBTE_REF)) abbruch('URL zeigt nicht auf DEV (' + ERLAUBTE_REF + ')');
   if (refAusKey(anon) !== ERLAUBTE_REF) abbruch('Anon-Key gehört nicht zu DEV');
   if (refAusKey(service) !== ERLAUBTE_REF) abbruch('Service-Role-Key gehört nicht zu DEV');
+  devOk = true;
 
   const password = seedPasswort();
   const admin = clientMitTenant(url, service);
 
+  await resteEntfernen(admin);
+
   const { data: tenant, error: tErr } = await admin
     .from('tenants')
+    .insert({ name: 'A2 Sichtbarkeit', slug: SLUG })
     .select('id')
-    .eq('slug', SLUG)
     .single();
-  if (tErr || !tenant) abbruch('Tenant demoalpha nicht gefunden — npm run seed:dev');
+  if (tErr) abbruch('Studio anlegen: ' + tErr.message);
 
-  await raeumeTestkurse(admin, tenant.id);
-  await entferneT2(admin);
-
-  const { data: seedUsers, error: uErr } = await admin
-    .from('users')
-    .select('id, email, role')
-    .eq('tenant_id', tenant.id)
-    .in('email', [
-      `${SLUG}.teacher@example.com`,
-      `${SLUG}.owner@example.com`,
-      `${SLUG}.teilnehmer1@example.com`,
-      `${SLUG}.teilnehmer2@example.com`,
-    ]);
-  if (uErr) abbruch('Seed-Profile: ' + uErr.message);
-  const byEmail = Object.fromEntries((seedUsers || []).map((u) => [u.email, u]));
-  const t1 = byEmail[`${SLUG}.teacher@example.com`];
-  const owner = byEmail[`${SLUG}.owner@example.com`];
-  const p1 = byEmail[`${SLUG}.teilnehmer1@example.com`];
-  const p2 = byEmail[`${SLUG}.teilnehmer2@example.com`];
-  if (!t1 || t1.role !== 'teacher') abbruch('Seed-Lehrende fehlt');
-  if (!owner || owner.role !== 'owner') abbruch('Seed-Owner fehlt');
-  if (!p1 || !p2) abbruch('Seed-Teilnehmerinnen fehlen — npm run seed:dev');
+  const owner = await nutzerAnlegen(admin, {
+    email: SLUG + '.owner@example.com', vorname: 'Olivia', nachname: 'Owner', rolle: 'owner', tenantId: tenant.id, password,
+  });
+  const t1 = await nutzerAnlegen(admin, {
+    email: SLUG + '.teacher@example.com', vorname: 'Tina', nachname: 'Eins', rolle: 'teacher', tenantId: tenant.id, password,
+  });
+  const t2 = await nutzerAnlegen(admin, {
+    email: SLUG + '.teacher2@example.com', vorname: 'Toni', nachname: 'Zwei', rolle: 'teacher', tenantId: tenant.id, password,
+  });
+  const p1 = await nutzerAnlegen(admin, {
+    email: SLUG + '.teilnehmer1@example.com', vorname: 'Anna', nachname: 'Eins', rolle: 'user', tenantId: tenant.id, password,
+  });
+  const p2 = await nutzerAnlegen(admin, {
+    email: SLUG + '.teilnehmer2@example.com', vorname: 'Ben', nachname: 'Zwei', rolle: 'user', tenantId: tenant.id, password,
+  });
 
   try {
-    const { data: authT2, error: aErr } = await admin.auth.admin.createUser({
-      email: EMAIL_T2,
-      password,
-      email_confirm: true,
-      user_metadata: {
-        tenant_id: tenant.id,
-        first_name: 'Tina',
-        last_name: 'Teacher',
-      },
-      app_metadata: { role: 'teacher' },
-    });
-    if (aErr || !authT2.user) abbruch('T2 anlegen: ' + (aErr?.message || 'kein User'));
-
-    const { data: profilT2, error: pErr } = await admin
-      .from('users')
-      .select('id, role, tenant_id')
-      .eq('auth_user_id', authT2.user.id)
-      .single();
-    if (pErr || !profilT2) abbruch('Profil T2 fehlt: ' + (pErr?.message || 'keine Zeile'));
-    if (profilT2.role !== 'teacher' || profilT2.tenant_id !== tenant.id) {
-      abbruch('Profil T2 hat Rolle ' + profilT2.role + ' oder fremdes Studio');
-    }
-
-    const { error: vErr } = await admin
-      .from('users')
-      .update({ email_verified: true, email_verified_at: new Date().toISOString() })
-      .eq('id', profilT2.id);
-    if (vErr) abbruch('email_verified T2: ' + vErr.message);
-
     const kursBasis = {
       tenant_id: tenant.id,
       description: 'A2 Sichtbarkeit',
@@ -242,11 +223,13 @@ async function main() {
       frequency: 'one_time',
     };
     const courseT1 = await kursAnlegen(admin, { ...kursBasis, title: TITLE_T1, teacher_id: t1.id });
-    const courseT2 = await kursAnlegen(admin, { ...kursBasis, title: TITLE_T2, time: '12:00:00', end_time: '13:00:00', teacher_id: profilT2.id });
+    const courseT2 = await kursAnlegen(admin, {
+      ...kursBasis, title: TITLE_T2, time: '12:00:00', end_time: '13:00:00', teacher_id: t2.id,
+    });
     const courseIds = [courseT1, courseT2];
 
     const clientT1 = await login(url, anon, t1.email, password);
-    const clientT2 = await login(url, anon, EMAIL_T2, password);
+    const clientT2 = await login(url, anon, t2.email, password);
     const clientOwner = await login(url, anon, owner.email, password);
     const clientP1 = await login(url, anon, p1.email, password);
     const clientP2 = await login(url, anon, p2.email, password);
@@ -308,8 +291,7 @@ async function main() {
 
     console.log('\n  A2-Sichtbarkeit: alle Fälle ok\n');
   } finally {
-    await raeumeTestkurse(admin, tenant.id);
-    await entferneT2(admin);
+    if (devOk) await resteEntfernen(admin);
   }
 }
 

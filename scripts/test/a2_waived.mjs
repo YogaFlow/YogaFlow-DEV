@@ -3,7 +3,8 @@
  * A2 Schritt 3 — Erlass einer offenen Buchung (nur DEV).
  *
  * Nicht ausführen, bevor 20260927093608_a2_coverage_waived.sql auf DEV liegt.
- * Gegen PROD nie.
+ * Gegen PROD nie. Studios `a2waivetest` und `a2waivefremd`, am Ende
+ * delete_tenant_complete und auth.admin.deleteUser für beide.
  *
  * Fälle:
  *  1) Owner erlässt eine offene Buchung mit goodwill und Notiz → waived,
@@ -20,10 +21,6 @@
  *     Ob coverage_waived_note ankommt, schreibt das Skript als BEOBACHTUNG
  *     und wertet es nicht als Fehlschlag.
  *
- * Testdaten: Kurse, Anmeldungen, Benachrichtigungen räumt das Skript auf.
- * events und audit_log sind append-only; ein Löschversuch wird gemeldet,
- * wenn der Trigger ihn ablehnt. Die Zeilen enthalten keinen Notiztext.
- *
  * Verwendung: node scripts/test/a2_waived.mjs
  */
 import { readFileSync } from 'node:fs';
@@ -32,14 +29,15 @@ import { fileURLToPath } from 'node:url';
 import { createClient } from '@supabase/supabase-js';
 
 const ERLAUBTE_REF = 'mufxhtctutfpzklwqnze';
-const SLUG = 'demoalpha';
-const SLUG_FREMD = 'demobeta';
+const SLUG = 'a2waivetest';
+const SLUG_FREMD = 'a2waivefremd';
+const SLUGS = [SLUG, SLUG_FREMD];
 const TITLE_PAID = 'A2_WAIVED_PAID';
 const TITLE_FREE = 'A2_WAIVED_FREE';
-const TITEL = [TITLE_PAID, TITLE_FREE];
 const NOTIZ = 'Kulanz Probe';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+let devOk = false;
 
 function ladeEnv() {
   const out = {};
@@ -85,7 +83,7 @@ function ok(name, cond, detail = '') {
   console.log(`  OK  ${name}${detail ? ' — ' + detail : ''}`);
 }
 
-function clientMitTenant(url, key, slug) {
+function clientMitTenant(url, key, slug = SLUG) {
   return createClient(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },
     global: {
@@ -105,32 +103,61 @@ async function login(url, anon, email, password, slug) {
   return c;
 }
 
-async function raeumeTestkurse(admin, tenantId) {
-  const { data: courses, error } = await admin
-    .from('courses')
-    .select('id')
-    .eq('tenant_id', tenantId)
-    .in('title', TITEL);
-  if (error) abbruch('Testkurse lesen: ' + error.message);
-  for (const c of courses || []) {
-    const { error: e1 } = await admin.from('registrations').delete().eq('course_id', c.id);
-    if (e1) abbruch('Registrations löschen: ' + e1.message);
-    const { error: e2 } = await admin.from('user_notifications').delete().eq('course_id', c.id);
-    if (e2) abbruch('Benachrichtigungen löschen: ' + e2.message);
-    const { error: e3 } = await admin.from('courses').delete().eq('id', c.id);
-    if (e3) abbruch('Kurs löschen: ' + e3.message);
+function authEmailGehoertTest(email) {
+  return SLUGS.some((s) => (email ?? '').startsWith(s + '.'));
+}
+
+async function authNutzer(admin) {
+  const treffer = [];
+  for (let seite = 1; ; seite++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page: seite, perPage: 200 });
+    if (error) abbruch('Auth-Nutzer lesen: ' + error.message);
+    for (const u of data.users) {
+      if (authEmailGehoertTest(u.email)) treffer.push(u);
+    }
+    if (data.users.length < 200) return treffer;
   }
 }
 
-async function loescheProtokoll(admin, registrationIds) {
-  if (registrationIds.length === 0) return;
-  const { error: aErr } = await admin.from('audit_log').delete().in('row_id', registrationIds);
-  const { error: eErr } = await admin.from('events').delete().in('subject_id', registrationIds);
-  if (aErr || eErr) {
-    console.log(
-      '  Protokoll bleibt (append-only): ' + [aErr?.message, eErr?.message].filter(Boolean).join(' | ')
-    );
+async function resteEntfernen(admin) {
+  for (const slug of SLUGS) {
+    const { data: tenants, error } = await admin.from('tenants').select('id').eq('slug', slug);
+    if (error) abbruch('Studio lesen (' + slug + '): ' + error.message);
+    for (const t of tenants || []) {
+      const { error: e } = await admin.rpc('delete_tenant_complete', { p_tenant_id: t.id });
+      if (e) abbruch('Studio löschen (' + slug + '): ' + e.message);
+    }
   }
+  for (const u of await authNutzer(admin)) {
+    const { error: e } = await admin.auth.admin.deleteUser(u.id);
+    if (e) abbruch('Auth-Nutzer ' + u.email + ': ' + e.message);
+  }
+}
+
+async function nutzerAnlegen(admin, { email, vorname, nachname, rolle, tenantId, password }) {
+  const { data, error } = await admin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: { tenant_id: tenantId, first_name: vorname, last_name: nachname },
+    app_metadata: { role: rolle },
+  });
+  if (error) abbruch('Nutzer ' + email + ': ' + error.message);
+
+  const { data: profil, error: eProfil } = await admin
+    .from('users')
+    .select('id, email, role, tenant_id')
+    .eq('auth_user_id', data.user.id)
+    .single();
+  if (eProfil || !profil) abbruch('Profil ' + email + ': ' + (eProfil?.message ?? 'keine Zeile'));
+
+  const { error: e2 } = await admin
+    .from('users')
+    .update({ email_verified: true, email_verified_at: new Date().toISOString() })
+    .eq('id', profil.id);
+  if (e2) abbruch('email_verified ' + email + ': ' + e2.message);
+  if (profil.role !== rolle) abbruch(email + ' hat Rolle ' + profil.role + ', erwartet ' + rolle);
+  return profil;
 }
 
 async function anmelden(client, courseId, wer) {
@@ -218,49 +245,63 @@ async function main() {
   if (!url.includes(ERLAUBTE_REF)) abbruch('URL zeigt nicht auf DEV (' + ERLAUBTE_REF + ')');
   if (refAusKey(anon) !== ERLAUBTE_REF) abbruch('Anon-Key gehört nicht zu DEV');
   if (refAusKey(service) !== ERLAUBTE_REF) abbruch('Service-Role-Key gehört nicht zu DEV');
+  devOk = true;
 
   const password = seedPasswort();
   const admin = clientMitTenant(url, service, SLUG);
-  const registrationIds = [];
 
-  const { data: tenants, error: tErr } = await admin
+  await resteEntfernen(admin);
+
+  const { data: tenantMain, error: tMainErr } = await admin
     .from('tenants')
-    .select('id, slug')
-    .in('slug', [SLUG, SLUG_FREMD]);
-  if (tErr) abbruch('Tenants lesen: ' + tErr.message);
-  const alpha = (tenants || []).find((t) => t.slug === SLUG);
-  const beta = (tenants || []).find((t) => t.slug === SLUG_FREMD);
-  if (!alpha) abbruch('Tenant demoalpha nicht gefunden — npm run seed:dev');
-  if (!beta) abbruch('Tenant demobeta nicht gefunden — npm run seed:dev');
+    .insert({ name: 'A2 Erlass Haupt', slug: SLUG })
+    .select('id')
+    .single();
+  if (tMainErr) abbruch('Hauptstudio anlegen: ' + tMainErr.message);
 
-  await raeumeTestkurse(admin, alpha.id);
+  const { data: tenantFremd, error: tFremdErr } = await admin
+    .from('tenants')
+    .insert({ name: 'A2 Erlass Fremd', slug: SLUG_FREMD })
+    .select('id')
+    .single();
+  if (tFremdErr) abbruch('Fremdstudio anlegen: ' + tFremdErr.message);
 
-  const { data: seedUsers, error: uErr } = await admin
-    .from('users')
-    .select('id, email, role, tenant_id')
-    .in('email', [
-      `${SLUG}.owner@example.com`,
-      `${SLUG}.teacher@example.com`,
-      `${SLUG}.teilnehmer1@example.com`,
-      `${SLUG_FREMD}.owner@example.com`,
-    ]);
-  if (uErr) abbruch('Seed-Profile: ' + uErr.message);
-  const profil = (email, tenantId) =>
-    (seedUsers || []).find((u) => u.email === email && u.tenant_id === tenantId);
-  const owner = profil(`${SLUG}.owner@example.com`, alpha.id);
-  const teacher = profil(`${SLUG}.teacher@example.com`, alpha.id);
-  const p1 = profil(`${SLUG}.teilnehmer1@example.com`, alpha.id);
-  const ownerFremd = profil(`${SLUG_FREMD}.owner@example.com`, beta.id);
-  if (!owner || owner.role !== 'owner' || owner.tenant_id !== alpha.id) abbruch('Owner demoalpha fehlt');
-  if (!teacher || teacher.role !== 'teacher') abbruch('Seed-Lehrende fehlt');
-  if (!p1) abbruch('Seed-Teilnehmerin fehlt — npm run seed:dev');
-  if (!ownerFremd || ownerFremd.role !== 'owner' || ownerFremd.tenant_id !== beta.id) {
-    abbruch('Owner demobeta fehlt');
-  }
+  const owner = await nutzerAnlegen(admin, {
+    email: SLUG + '.owner@example.com',
+    vorname: 'Olivia',
+    nachname: 'Owner',
+    rolle: 'owner',
+    tenantId: tenantMain.id,
+    password,
+  });
+  const teacher = await nutzerAnlegen(admin, {
+    email: SLUG + '.teacher@example.com',
+    vorname: 'Tom',
+    nachname: 'Teacher',
+    rolle: 'teacher',
+    tenantId: tenantMain.id,
+    password,
+  });
+  const p1 = await nutzerAnlegen(admin, {
+    email: SLUG + '.teilnehmer1@example.com',
+    vorname: 'Anna',
+    nachname: 'Eins',
+    rolle: 'user',
+    tenantId: tenantMain.id,
+    password,
+  });
+  const ownerFremd = await nutzerAnlegen(admin, {
+    email: SLUG_FREMD + '.owner@example.com',
+    vorname: 'Oskar',
+    nachname: 'Fremd',
+    rolle: 'owner',
+    tenantId: tenantFremd.id,
+    password,
+  });
 
   try {
     const basis = {
-      tenant_id: alpha.id,
+      tenant_id: tenantMain.id,
       teacher_id: teacher.id,
       description: 'A2 Erlass Test',
       date: tag(14),
@@ -293,7 +334,6 @@ async function main() {
     await anmelden(clientP1, courseFree, 'P1 kostenlos');
     const offen = await buchung(admin, coursePaid, p1.id);
     const gratis = await buchung(admin, courseFree, p1.id);
-    registrationIds.push(offen.id, gratis.id);
     ok(
       'Ausgang offen, 1500',
       offen.coverage_status === 'open' && Number(offen.price_cents_at_booking) === 1500,
@@ -441,8 +481,7 @@ async function main() {
 
     console.log('\n  A2-Erlass: alle Fälle ok\n');
   } finally {
-    await loescheProtokoll(admin, registrationIds);
-    await raeumeTestkurse(admin, alpha.id);
+    if (devOk) await resteEntfernen(admin);
   }
 }
 

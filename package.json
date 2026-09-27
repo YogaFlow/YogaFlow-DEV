@@ -18,7 +18,8 @@
     "db:status:prod": "node scripts/db.mjs status prod",
     "db:push:prod": "node scripts/db.mjs push prod",
     "functions:prod": "node scripts/db.mjs functions prod",
-    "secrets:prod": "node scripts/db.mjs secrets prod"
+    "secrets:prod": "node scripts/db.mjs secrets prod",
+    "test:geldkette": "node scripts/test/run_geldkette.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",

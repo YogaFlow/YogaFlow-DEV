@@ -3,7 +3,8 @@
  * A2 Schritt 2 — Deckung und eingefrorener Preis (nur DEV).
  *
  * Nicht ausführen, bevor 20260926190000_a2_registrations_coverage_and_price.sql
- * auf DEV liegt. Gegen PROD nie.
+ * auf DEV liegt. Gegen PROD nie. Eigenes Studio `a2covtest`, am Ende
+ * delete_tenant_complete und auth.admin.deleteUser.
  *
  * Fälle:
  *  1) Kurs 15,00 €: Teilnehmerin meldet sich an → open, 1500, EUR
@@ -18,9 +19,6 @@
  *  8) Lehrende sieht coverage_status der Buchungen ihres Kurses.
  *     Teilnehmerin sieht nur die eigene Zeile
  *
- * Testdaten räumt das Skript selbst auf (registrations → user_notifications
- * → courses), auch wenn eine Prüfung scheitert.
- *
  * Verwendung: node scripts/test/a2_coverage.mjs
  */
 import { readFileSync } from 'node:fs';
@@ -29,14 +27,14 @@ import { fileURLToPath } from 'node:url';
 import { createClient } from '@supabase/supabase-js';
 
 const ERLAUBTE_REF = 'mufxhtctutfpzklwqnze';
-const SLUG = 'demoalpha';
+const SLUG = 'a2covtest';
 const TITLE_PAID = 'A2_COVERAGE_PAID';
 const TITLE_FREE = 'A2_COVERAGE_FREE';
 const TITLE_WAIT = 'A2_COVERAGE_WAITLIST';
 const TITLE_REREG = 'A2_COVERAGE_REREG';
-const TITEL = [TITLE_PAID, TITLE_FREE, TITLE_WAIT, TITLE_REREG];
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+let devOk = false;
 
 function ladeEnv() {
   const out = {};
@@ -82,13 +80,13 @@ function ok(name, cond, detail = '') {
   console.log(`  OK  ${name}${detail ? ' — ' + detail : ''}`);
 }
 
-function clientMitTenant(url, key) {
+function clientMitTenant(url, key, slug = SLUG) {
   return createClient(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },
     global: {
       fetch: (input, init) => {
         const headers = new Headers(init?.headers);
-        headers.set('x-omlify-tenant', SLUG);
+        headers.set('x-omlify-tenant', slug);
         return fetch(input, { ...init, headers });
       },
     },
@@ -102,21 +100,55 @@ async function login(url, anon, email, password) {
   return c;
 }
 
-async function raeumeTestkurse(admin, tenantId) {
-  const { data: courses, error } = await admin
-    .from('courses')
-    .select('id')
-    .eq('tenant_id', tenantId)
-    .in('title', TITEL);
-  if (error) abbruch('Testkurse lesen: ' + error.message);
-  for (const c of courses || []) {
-    const { error: e1 } = await admin.from('registrations').delete().eq('course_id', c.id);
-    if (e1) abbruch('Registrations löschen: ' + e1.message);
-    const { error: e2 } = await admin.from('user_notifications').delete().eq('course_id', c.id);
-    if (e2) abbruch('Benachrichtigungen löschen: ' + e2.message);
-    const { error: e3 } = await admin.from('courses').delete().eq('id', c.id);
-    if (e3) abbruch('Kurs löschen: ' + e3.message);
+async function authNutzer(admin) {
+  const treffer = [];
+  for (let seite = 1; ; seite++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page: seite, perPage: 200 });
+    if (error) abbruch('Auth-Nutzer lesen: ' + error.message);
+    for (const u of data.users) {
+      if ((u.email ?? '').startsWith(SLUG + '.')) treffer.push(u);
+    }
+    if (data.users.length < 200) return treffer;
   }
+}
+
+async function resteEntfernen(admin) {
+  const { data: tenants, error } = await admin.from('tenants').select('id').eq('slug', SLUG);
+  if (error) abbruch('Studio lesen: ' + error.message);
+  for (const t of tenants || []) {
+    const { error: e } = await admin.rpc('delete_tenant_complete', { p_tenant_id: t.id });
+    if (e) abbruch('Studio löschen: ' + e.message);
+  }
+  for (const u of await authNutzer(admin)) {
+    const { error: e } = await admin.auth.admin.deleteUser(u.id);
+    if (e) abbruch('Auth-Nutzer ' + u.email + ': ' + e.message);
+  }
+}
+
+async function nutzerAnlegen(admin, { email, vorname, nachname, rolle, tenantId, password }) {
+  const { data, error } = await admin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: { tenant_id: tenantId, first_name: vorname, last_name: nachname },
+    app_metadata: { role: rolle },
+  });
+  if (error) abbruch('Nutzer ' + email + ': ' + error.message);
+
+  const { data: profil, error: eProfil } = await admin
+    .from('users')
+    .select('id, email, role, tenant_id')
+    .eq('auth_user_id', data.user.id)
+    .single();
+  if (eProfil || !profil) abbruch('Profil ' + email + ': ' + (eProfil?.message ?? 'keine Zeile'));
+
+  const { error: e2 } = await admin
+    .from('users')
+    .update({ email_verified: true, email_verified_at: new Date().toISOString() })
+    .eq('id', profil.id);
+  if (e2) abbruch('email_verified ' + email + ': ' + e2.message);
+  if (profil.role !== rolle) abbruch(email + ' hat Rolle ' + profil.role + ', erwartet ' + rolle);
+  return profil;
 }
 
 async function anmelden(client, courseId, wer) {
@@ -182,35 +214,44 @@ async function main() {
   if (!url.includes(ERLAUBTE_REF)) abbruch('URL zeigt nicht auf DEV (' + ERLAUBTE_REF + ')');
   if (refAusKey(anon) !== ERLAUBTE_REF) abbruch('Anon-Key gehört nicht zu DEV');
   if (refAusKey(service) !== ERLAUBTE_REF) abbruch('Service-Role-Key gehört nicht zu DEV');
+  devOk = true;
 
   const password = seedPasswort();
   const admin = clientMitTenant(url, service);
 
+  await resteEntfernen(admin);
+
   const { data: tenant, error: tErr } = await admin
     .from('tenants')
+    .insert({ name: 'A2 Deckungstest', slug: SLUG })
     .select('id')
-    .eq('slug', SLUG)
     .single();
-  if (tErr || !tenant) abbruch('Tenant demoalpha nicht gefunden — npm run seed:dev');
+  if (tErr) abbruch('Studio anlegen: ' + tErr.message);
 
-  await raeumeTestkurse(admin, tenant.id);
-
-  const { data: seedUsers, error: uErr } = await admin
-    .from('users')
-    .select('id, email, role')
-    .eq('tenant_id', tenant.id)
-    .in('email', [
-      `${SLUG}.teacher@example.com`,
-      `${SLUG}.teilnehmer1@example.com`,
-      `${SLUG}.teilnehmer2@example.com`,
-    ]);
-  if (uErr) abbruch('Seed-Profile: ' + uErr.message);
-  const byEmail = Object.fromEntries((seedUsers || []).map((u) => [u.email, u]));
-  const teacher = byEmail[`${SLUG}.teacher@example.com`];
-  const p1 = byEmail[`${SLUG}.teilnehmer1@example.com`];
-  const p2 = byEmail[`${SLUG}.teilnehmer2@example.com`];
-  if (!teacher || teacher.role !== 'teacher') abbruch('Seed-Lehrende fehlt');
-  if (!p1 || !p2) abbruch('Seed-Teilnehmerinnen fehlen — npm run seed:dev');
+  const teacher = await nutzerAnlegen(admin, {
+    email: SLUG + '.teacher@example.com',
+    vorname: 'Tom',
+    nachname: 'Teacher',
+    rolle: 'teacher',
+    tenantId: tenant.id,
+    password,
+  });
+  const p1 = await nutzerAnlegen(admin, {
+    email: SLUG + '.teilnehmer1@example.com',
+    vorname: 'Anna',
+    nachname: 'Eins',
+    rolle: 'user',
+    tenantId: tenant.id,
+    password,
+  });
+  const p2 = await nutzerAnlegen(admin, {
+    email: SLUG + '.teilnehmer2@example.com',
+    vorname: 'Ben',
+    nachname: 'Zwei',
+    rolle: 'user',
+    tenantId: tenant.id,
+    password,
+  });
 
   try {
     const basis = {
@@ -357,7 +398,7 @@ async function main() {
 
     console.log('\n  A2-Deckung: alle Fälle ok\n');
   } finally {
-    await raeumeTestkurse(admin, tenant.id);
+    if (devOk) await resteEntfernen(admin);
   }
 }
 
