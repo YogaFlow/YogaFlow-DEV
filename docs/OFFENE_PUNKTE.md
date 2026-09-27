@@ -1,6 +1,6 @@
 # Offene Punkte
 
-**Stand:** 27.09.2026
+**Stand:** 28.09.2026
 Ausführliche Begründungen stehen im Claude-Projekt „Omlify" in
 `Landingpage_Neubau_September_2026.md` und
 `Rechtstexte_Datenschutz_und_Betrieb_September_2026.md`.
@@ -10,6 +10,12 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 ---
 
 ## Jetzt
+
+- [ ] **Befreite Kurse je Kurs (§ 4 UStG)** — A7 H1: Steuerstatus nur Studio-weit
+      (`regular` 19 %/7 % oder Kleinunternehmer). Abweichung je Kurs später.
+- [ ] **SKR-/DATEV-Mapping** — laut Epic in 1b, nicht A7.
+- [ ] **E14-Hinweistext in der Kasse fehlt** — Inventur A7: Nachtrag verlangt sichtbaren
+      Text „Omlify führt keine Kasse“; im Client kein Treffer. Fix in **A7-2**.
 
 - [ ] **AVV an die Testkundin schicken** — rückwirkend, per Mail von
       `support@omlify.de`, mit Bitte um Bestätigung in Textform. Sie verarbeitet

@@ -27,6 +27,7 @@ const SKRIPTE = [
   'a6_1_foundation.mjs',
   'a6_2_redeem.mjs',
   'a6_3_reverse.mjs',
+  'a7_1_ledger.mjs',
   'a9_cancel.mjs',
   's4_3_remove_member.mjs',
   's4_3_delete_user_fn.mjs',

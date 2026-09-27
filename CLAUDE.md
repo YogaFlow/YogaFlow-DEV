@@ -56,6 +56,7 @@ sich in einen Design- oder Refactoring-Durchlauf einschleicht: sagen, nicht ausf
 - Der Service-Role-Key bleibt serverseitig. Niemals in eine `VITE_`-Variable.
 - Feature-Arbeit und Design-/Aufräumarbeit kommen nie in denselben Commit.
 - Jede neue Funktion in `public` braucht `REVOKE ALL … FROM PUBLIC, anon, authenticated` und danach nur die nötigen `GRANT`s. Die Selbstprüfung testet `anon` **und** `authenticated`. Grund: Supabase-Default-Privileges geben beiden sonst `EXECUTE`.
+- Nie `REVOKE … FROM postgres` und kein `REVOKE` auf Supabase-Systemschemata (`cron`, `auth`, `storage`). `postgres` behält Rechte als Eigentümer; bei Bedarf nur `GRANT … TO service_role` (Muster A6-3 `expire_passes`). Erneutes `GRANT`/`REVOKE` auf `cron` kann `2BP01` (dependent privileges) auslösen — Extension/Rechte nur einmal anlegen (A6-3), später nicht wiederholen.
 
 ## Deploy/Sicherheit
 
@@ -206,6 +207,10 @@ nur `first_name, last_name, email, phone, street, house_number, postal_code, cit
   authenticated` und danach nur die nötigen `GRANT`s. Die Selbstprüfung testet `anon` **und**
   `authenticated`. Grund: Supabase-Default-Privileges geben beiden sonst `EXECUTE`
   (Befund B1, `20260917134259`).
+- Nie `REVOKE … FROM postgres`; kein `REVOKE`/`GRANT`-Tanz auf Systemschemata `cron`, `auth`,
+  `storage` in Folgemigrationen. Befund A7-1: `GRANT ALL ON ALL TABLES IN SCHEMA cron TO postgres`
+  nach A6-3 → Risiko `2BP01` dependent privileges (postgres hält Rechte WITH GRANT OPTION von
+  `supabase_admin`).
 - `email` ist nur vorläufig freigegeben und wird mit der Mehrfachmitgliedschaft Login-Sache.
 
 **Plattformtabellen `system_settings` und `admin_emails` (Hotfix 15.09.2026)**

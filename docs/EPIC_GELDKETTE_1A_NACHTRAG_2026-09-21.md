@@ -423,10 +423,30 @@ der Frist → +1, außerhalb → 0. Verfall am Stichtag → Rest 0, Event. Nachr
   Studios üblich ist. Soll-Versteuerung (Forderung am Leistungsdatum) braucht eine Einstellung je Studio → 1b
 - Gegenzeile eines Vermerks → Stornobuchung. Summe Soll = Summe Haben je Event
 
-**Akzeptanz:** Kartenverkauf 150 € bar, Studio regulär 19 %: Rechenweg im Bericht (150 € / 1,19 = 126,05 €
-netto, 150 € − 126,05 € = 23,95 € USt) → Zeilen `cash` 150,00 Soll · `revenue_standard` 126,05 Haben ·
-`vat_output` 23,95 Haben. Einlösung → keine Zeile. Doppelte Verarbeitung desselben Events → Zeilen genau
-einmal. **Schema → Freigabe. STOPP.**
+**Abweichung:** Steuerstatus vorgezogen aus Story 1.1 in **Minimalform** (`tenant_tax_settings` +
+`set_tax_setting`, nur Owner). Volle Stammdaten/Impressum bleiben im Rechts-Epic / 1.1.
+
+**Entscheidungen H1–H9 (28.09.2026):**
+
+| # | Thema | Entscheidung |
+|---|---|---|
+| H1 | Steuerstatus | Pflicht durch Owner, historisiert `valid_from`: `small_business` (keine USt) oder `regular` mit 19 % oder 7 %. Kein Standard. Ohne Angabe wählt der Job das Studio nicht. Erste Angabe: `valid_from` muss alle bestehenden Zahlungen abdecken (`BEFORE_FIRST_PAYMENT` sonst). Befreite Kurse (§ 4 UStG) je Kurs → später. |
+| H2 | Verarbeitung | `pg_cron` alle 5 Min (`yogaflow_process_ledger`). Fehler im Hauptbuch blockiert nie eine Zahlung. Alte Events werden nachgebucht. Job wählt nur Studios mit mindestens einem Steuerstatus (Verhungern). Lock → `{ skipped: 'locked' }`. |
+| H3 | Zeilenmodell | Eine Zeile je Konto je Event mit `debit_cents` oder `credit_cents`. Summe Soll = Summe Haben je Event. |
+| H4 | Quelle | Nur `payment.recorded` / `payment.reversed`. Art (`course`/`pass`) aus `payments.subject_type`. `pass.purchased` und übrige Events erzeugen keine Zeile. |
+| H5 | Storno | Gegenzeile spiegelt exakt die Originalzeilen (Steuersatz des Originals). Original noch nicht gebucht → Gegenzeile wartet. |
+| H6 | Statuswechsel | Neuer Status nur ab Datum nach letzter gebuchter Zeile (`ALREADY_BOOKED` sonst). Gebuchtes nie umschreiben. Erste Angabe darf rückwirkend sein. |
+| H7 | Auswertung | Nur CSV-Export für Steuerberatung (**A7-2**). Keine Summen am Bildschirm (E14). |
+| H8 | Rundung | `netto = round(brutto × 10000 / (10000 + satz_bp))`, `ust = brutto − netto` (Cent, kaufmännisch). |
+| H9 | Buchungsdatum | Kalendertag von `payments.received_at` in `Europe/Berlin`. Steuerstatus mit größtem `valid_from` ≤ Buchungsdatum. |
+
+**A7-1 (Schema + Job, Migration `20260928020000_a7_1_ledger.sql`):** Tabellen `tenant_tax_settings`,
+`ledger_entries`, `ledger_event_log`; RPC `set_tax_setting`; Job `process_ledger`; Cron
+`yogaflow_process_ledger`. UI/CSV/Hinweis → A7-2.
+
+**Akzeptanz A7-1:** Kartenverkauf 150 € bar, Studio regulär 19 %: 15000 × 10000 / 11900 = 12605,04 →
+12605 netto, USt 2395 → `cash` Soll 15000 · `revenue_standard` Haben 12605 · `vat_output` Haben 2395.
+Einlösung → keine Zeile. Doppelte Job-Läufe → Zeilen genau einmal. **Schema → Freigabe. STOPP.**
 
 ### A8 — Teilnehmerliste mit Deckung (Design-Story)
 *Als Lehrerin möchte ich fünf Minuten vor dem Kurs sehen, wer offen ist, und es mit einem Tipp erledigen.*

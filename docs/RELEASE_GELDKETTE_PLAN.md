@@ -38,8 +38,11 @@ PROD hat zuletzt `20260926160500` (`security_handle_new_user_role_from_trusted_s
 | `20260927235000` | `a6_2b_tenant_delete_cycle.sql` | `registrations_pass_id_fkey` DEFERRABLE + `delete_tenant_complete` SET CONSTRAINTS — **wirkungslos** (RESTRICT wird nicht deferred); Korrektur A6-2c |
 | `20260927235500` | `a6_2c_pass_fk_no_action.sql` | dieselbe FK als `ON DELETE NO ACTION DEFERRABLE INITIALLY IMMEDIATE` |
 | `20260928010000` | `a6_3_reverse_and_expire.sql` | Zurückbuchen, Nachrücken-Einlösung, `adjust_pass_units`, `expire_passes`, `pg_cron`-Job `yogaflow_expire_passes` — A6-3 UI 28.09.2026, A6 abgeschlossen |
+| `20260928020000` | `a7_1_ledger.sql` | Hauptbuch: `tenant_tax_settings`, `ledger_entries`, `ledger_event_log`, `set_tax_setting`, `process_ledger`, Cron `yogaflow_process_ledger` (*/5) — A7-1 Schema/Job; UI/CSV in A7-2 |
 
 **Release-Hinweis A6 / A6-3:** PROD braucht die Erweiterung `pg_cron` (Migration legt sie an: `CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA pg_catalog` plus Rechte). Vor dem PROD-Push prüfen: Extension aktiv, Job `yogaflow_expire_passes` existiert (`cron.job`, Schedule `5 * * * *`), Funktion `yogaflow_private.expire_passes` nur für `postgres`/`service_role`. Auf DEV ebenfalls. A6-1/A6-2 brauchen `pg_cron` noch nicht.
+
+**Release-Hinweis A7-1:** Zusätzlich Job `yogaflow_process_ledger` (`*/5 * * * *`), Funktionen `process_ledger` / `ledger_unbalanced_events` nur `postgres`/`service_role`. **PROD-Punkt:** Owner jedes PROD-Studios müssen nach dem Release ihren Steuerstatus angeben (`set_tax_setting`), sonst wartet das Hauptbuch auf alle Zahlungen (H1).
 
 ### `--include-all`
 
