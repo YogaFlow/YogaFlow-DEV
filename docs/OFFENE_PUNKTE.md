@@ -24,6 +24,11 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 - [ ] **`scripts/test/` prüfen** — liegt unversioniert im Arbeitsbaum. Stehen
       Zugangsdaten darin, in `.gitignore` aufnehmen oder löschen.
 
+## Später — nach A6-3
+
+- [ ] **Mail bei `pass.expiring`** — der Verfall-Job schreibt nur das Event
+      `pass.expiring` (14 Tage vor `valid_until`, Rest > 0). Keine E-Mail in A6-3.
+
 ## Bald — vor dem dritten Studio oder dem ersten zahlenden Kunden
 
 - [ ] **Onboarding-Token statt 10-Minuten-Fenster in `handle_new_user`.** Das Fenster

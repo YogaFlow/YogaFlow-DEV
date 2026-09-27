@@ -388,15 +388,15 @@ der Frist → +1, außerhalb → 0. Verfall am Stichtag → Rest 0, Event. Nachr
 | W12 | Kostenloser Kurs: Wunsch „mit Karte“ / `p_coverage` wird ignoriert, Deckung bleibt `not_required`. |
 | W13 | Studio trägt auf die Warteliste ein: nur „offen“ oder „mit Karte beim Nachrücken“ (`coverage_intent`). Bar/PayPal/Überweisung erst, wenn der Platz da ist (`WAITLIST_NO_PAYMENT`). |
 
-**Zwischenstand (nur DEV, bis A6-3):** Eine eingelöste Einheit bleibt bei Abmeldung, Studio-Abmeldung, Kursabsage und Rücknahme verbraucht. Zurückbuchen kommt in A6-3.
+**Stand Abmeldung bucht zurück (A6-3, Migration geschrieben, noch nicht auf DEV):** Eine eingelöste Einheit wird bei Selbstabmeldung in der eingefrorenen Frist zurückgebucht (`self_in_window`); danach bleibt sie verbraucht. Studio-Abmeldung und Kursabsage buchen immer zurück (`studio_unregister` / `course_cancelled`). Absage zurücknehmen löst erneut ein; scheitert das, bleibt die Buchung `open` und Owner/Admin bekommen eine Glocke (W7). Nachrücken mit `coverage_intent = pass` löst automatisch ein. Reason-Codes in `pass_movements.reason` (keine Freitexte in Events/Audit): `self_in_window`, `studio_unregister`, `course_cancelled`; Freitext nur bei `manual_adjustment`.
 
 **Schnitt (verbindlich):**
 
 | Schritt | Inhalt |
 |---|---|
 | **A6-1** | Frist, Spalten (`cancellation_deadline`, `pass_id`, `coverage_intent`), Helfer `pick_pass` / `redeem_pass` / `reverse_redemption`, `remove_member`-Fix. Noch kein öffentlicher Buchungsweg löst ein. Migration `20260927221500_a6_1_pass_booking_foundation.sql`. |
-| **A6-2** | Einlösen beim Anmelden / Studio-Eintrag / Umwandeln open→Karte; Undo; RPCs + UI. Migration `20260927233000_a6_2_redeem.sql` (+ 2b/2c FK). UI (27.09.): `findUsablePass`, Kursdetail-Auswahl, Meine Anmeldungen W10, Kasse „Karte“, Studio-Deckungswahl, Teilnehmerliste/CSV „Bezahlung“. A6-3 bleibt Rückbuchung / Meine Karten / Nachrücken-Einlösung. |
-| **A6-3** | Zurückbuchen (Abmelden, Studio, Kursabsage, Rücknahme), Nachrücken mit Zustimmung, `manual_adjustment`, Verfall per `pg_cron`, „Meine Karten“. |
+| **A6-2** | Einlösen beim Anmelden / Studio-Eintrag / Umwandeln open→Karte; Undo; RPCs + UI. Migration `20260927233000_a6_2_redeem.sql` (+ 2b/2c FK). UI (27.09.): `findUsablePass`, Kursdetail-Auswahl, Meine Anmeldungen W10, Kasse „Karte“, Studio-Deckungswahl, Teilnehmerliste/CSV „Bezahlung“. |
+| **A6-3** | Zurückbuchen (Abmelden, Studio, Kursabsage, Rücknahme), Nachrücken mit Intent, `adjust_pass_units`, Verfall per `pg_cron` (`expire_passes` stündlich). Migration `20260928010000_a6_3_reverse_and_expire.sql` (geschrieben, nicht angewendet). UI offen: Abmelde-Hinweis, „Meine Karten“, Einzelkorrektur in Personenverwaltung. |
 
 **Befund Inventur:** `cancel_reason = promotion_expired` ist reserviert für E2 (Zahlungsfrist nach Nachrücken), nicht Teil von A6 — kein RPC schreibt ihn heute.
 
