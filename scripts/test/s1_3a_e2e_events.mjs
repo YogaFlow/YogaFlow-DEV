@@ -7,7 +7,8 @@
  *
  * Zeigt für ein Studio (Slug als Argument) die Rohzeilen in provider_events_raw
  * der letzten 60 Minuten (Typ, Zeitpunkt, processing_error) und den aktuellen
- * get_payment_setup_status — damit Julius sieht, welche Ereignisse wirklich ankommen.
+ * Stand aus provider_accounts / provider_capabilities / tenant_payment_settings
+ * (service_role, ohne Nutzer-Login). Keine acct_…-Ausgabe.
  *
  * Verwendung: node scripts/test/s1_3a_e2e_events.mjs <tenant-slug>
  */
@@ -74,29 +75,31 @@ if (!tenant) abbruch(`Studio „${slug}“ nicht gefunden`);
 
 const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
+const { data: accountRow, error: aErr } = await admin
+  .from('provider_accounts')
+  .select(
+    'id, onboarding_status, charges_enabled, payouts_enabled, details_submitted, requirements_pending, requirements_due_at, disconnected_at, livemode, provider_ref',
+  )
+  .eq('tenant_id', tenant.id)
+  .maybeSingle();
+if (aErr) abbruch('provider_accounts: ' + aErr.message);
+
 const { data: events, error: eErr } = await admin
   .from('provider_events_raw')
-  .select('event_id, event_type, received_at, processed_at, processing_error, account_ref, livemode')
+  .select('event_id, event_type, received_at, processed_at, processing_error, livemode')
   .eq('tenant_id', tenant.id)
   .gte('received_at', since)
   .order('received_at', { ascending: false });
 if (eErr) {
-  // tenant_id kann null sein, wenn das Event vor der Zuordnung kam — zusätzlich über account_ref.
   console.warn('Hinweis tenant_id-Filter:', eErr.message);
 }
 
-const { data: account } = await admin
-  .from('provider_accounts')
-  .select('provider_ref')
-  .eq('tenant_id', tenant.id)
-  .maybeSingle();
-
 let byAccount = [];
-if (account?.provider_ref) {
+if (accountRow?.provider_ref) {
   const { data, error } = await admin
     .from('provider_events_raw')
-    .select('event_id, event_type, received_at, processed_at, processing_error, account_ref, livemode, tenant_id')
-    .eq('account_ref', account.provider_ref)
+    .select('event_id, event_type, received_at, processed_at, processing_error, livemode, tenant_id')
+    .eq('account_ref', accountRow.provider_ref)
     .gte('received_at', since)
     .order('received_at', { ascending: false });
   if (error) abbruch('Events lesen: ' + error.message);
@@ -129,20 +132,44 @@ if (rows.length === 0) {
   }
 }
 
-const { data: status, error: sErr } = await admin.rpc('get_payment_setup_status');
-if (sErr) {
-  console.log('\nget_payment_setup_status: Fehler —', sErr.message);
-  console.log('(RPC braucht Nutzer-JWT; service_role sieht ggf. kein Mitglied. Status aus provider_accounts:)');
-  const { data: pa, error: pErr } = await admin
-    .from('provider_accounts')
-    .select(
-      'onboarding_status, charges_enabled, payouts_enabled, details_submitted, requirements_pending, requirements_due_at, disconnected_at, livemode',
-    )
-    .eq('tenant_id', tenant.id)
-    .maybeSingle();
-  if (pErr) abbruch('provider_accounts: ' + pErr.message);
-  console.log(JSON.stringify(pa ?? { onboarding_status: 'not_started' }, null, 2));
-} else {
-  console.log('\nget_payment_setup_status:');
-  console.log(JSON.stringify(status, null, 2));
-}
+const { data: caps, error: cErr } = await admin
+  .from('provider_capabilities')
+  .select('method, status')
+  .eq('tenant_id', tenant.id);
+if (cErr) abbruch('provider_capabilities: ' + cErr.message);
+
+const { data: settings, error: setErr } = await admin
+  .from('tenant_payment_settings')
+  .select('online_payments_enabled, allow_onsite_payment')
+  .eq('tenant_id', tenant.id)
+  .maybeSingle();
+if (setErr) abbruch('tenant_payment_settings: ' + setErr.message);
+
+const accountSafe = accountRow
+  ? {
+      onboarding_status: accountRow.onboarding_status,
+      charges_enabled: accountRow.charges_enabled,
+      payouts_enabled: accountRow.payouts_enabled,
+      details_submitted: accountRow.details_submitted,
+      requirements_pending: accountRow.requirements_pending,
+      requirements_due_at: accountRow.requirements_due_at,
+      disconnected_at: accountRow.disconnected_at,
+      livemode: accountRow.livemode,
+    }
+  : { onboarding_status: 'not_started' };
+
+console.log('\nStand (service_role, ohne acct_…):');
+console.log(
+  JSON.stringify(
+    {
+      provider_accounts: accountSafe,
+      provider_capabilities: caps ?? [],
+      tenant_payment_settings: settings ?? {
+        online_payments_enabled: false,
+        allow_onsite_payment: true,
+      },
+    },
+    null,
+    2,
+  ),
+);

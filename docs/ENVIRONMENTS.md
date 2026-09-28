@@ -73,6 +73,7 @@ Datenbank, mit der zuletzt verlinkt wurde, und dieser Zustand lag unsichtbar in 
 |----------|--------------|
 | `VITE_SUPABASE_URL` | Supabase-Projekt-URL (z.B. `https://xxxx.supabase.co`) |
 | `VITE_SUPABASE_ANON_KEY` | Öffentlicher Anon-Key (für Browser/Frontend) |
+| `VITE_STRIPE_PUBLISHABLE_KEY` | Stripe Publishable Key für Embedded Onboarding (1.3b). Lokal und in den Cloudflare-Build-Variablen für **DEV**: `pk_test_…`. Für **PROD** erst beim Einschalten (`pk_live_…`). Fehlt der Key oder beginnt er auf DEV nicht mit `pk_test_`, bleibt der Abschnitt Online-Zahlung unsichtbar. |
 
 Weitere Supabase-Keys (z.B. Service Role Key) werden nur serverseitig (Supabase Edge Functions, Skripte) genutzt und gehören **nicht** in die Frontend-Env-Variablen.
 
@@ -90,7 +91,7 @@ Nur als Supabase-Secret im jeweiligen Projekt, eingespielt aus `supabase/.env.de
 | `STRIPE_WEBHOOK_SECRET_THIN` | optional | optional | Signing Secret des zweiten Stripe-Ziels mit Nutzlast-Stil **Thin/Schlank** (v2-Ereignisse). Wird wie die anderen Secrets geprüft. |
 | `PAYMENTS_PROVIDER` | optional | nie | `stripe` (Standard) oder `fake`; `fake` nur mit `PAYMENTS_MODE=test`. |
 
-`VITE_STRIPE_PUBLISHABLE_KEY` (`pk_test_…`) kommt mit der ersten Frontend-Story (1.3) in die Cloudflare-DEV-Umgebung.
+`VITE_STRIPE_PUBLISHABLE_KEY` (`pk_test_…`): lokal in `.env` und in den Cloudflare-Build-Variablen für DEV setzen (Story 1.3b). Für PROD erst beim Einschalten.
 
 ### Webhook-Endpunkt (Geldkette 1.4)
 

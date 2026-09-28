@@ -44,6 +44,16 @@ export function createOnboardingStore(
       };
     },
 
+    async getTenantName(tenantId: string): Promise<string | null> {
+      const { data, error } = await serviceClient
+        .from("tenants")
+        .select("name")
+        .eq("id", tenantId)
+        .maybeSingle();
+      if (error) throw new StoreError("tenants.name");
+      return typeof data?.name === "string" && data.name.trim() ? data.name.trim() : null;
+    },
+
     async upsertAccount(
       tenantId: string,
       provider: ProviderId,

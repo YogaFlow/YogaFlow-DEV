@@ -1,6 +1,6 @@
 import { connectedAccountIdempotencyKey } from "../port.ts";
 import { assert, assertEquals, assertProviderError, definePortContract } from "../port_contract.ts";
-import { isV2CoreAccountEventType, StripePaymentProvider } from "./adapter.ts";
+import { isV2CoreAccountEventType, StripePaymentProvider, toStatementDescriptor } from "./adapter.ts";
 import * as fx from "./fixtures/accounts.ts";
 import { createOnboardingSession } from "./onboarding.ts";
 import { STRIPE_API_VERSION } from "./sdk.ts";
@@ -63,6 +63,25 @@ Deno.test("createConnectedAccount: P7 neu v2, DE, nur card_payments, kein transf
   assert(!raw.includes("transfers"), "kein transfers");
   assert(!raw.includes("stripe_transfers"), "kein stripe_transfers");
   assert(!raw.includes('"customer"'), "keine customer-Konfiguration");
+});
+
+Deno.test("createConnectedAccount: statement_descriptor aus Studionamen", async () => {
+  const { stub, provider } = setup();
+  await provider.createConnectedAccount(TENANT, connectedAccountIdempotencyKey(TENANT), {
+    statementDescriptor: "Yoga-Studio Müller & Co.",
+  });
+  const body = stub.calls[0].jsonBody as {
+    configuration?: { merchant?: { statement_descriptor?: { descriptor?: string } } };
+  };
+  assertEquals(
+    body.configuration?.merchant?.statement_descriptor?.descriptor,
+    toStatementDescriptor("Yoga-Studio Müller & Co."),
+  );
+  assertEquals(toStatementDescriptor("Yoga-Studio Müller & Co."), "Yoga Studio Muller Co");
+  assert(
+    (toStatementDescriptor("Yoga-Studio Müller & Co.") ?? "").length <= 22,
+    "max 22 Zeichen",
+  );
 });
 
 Deno.test("Anfragen tragen die gepinnte API-Version", async () => {

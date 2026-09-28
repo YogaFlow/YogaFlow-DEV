@@ -796,6 +796,23 @@ auch wenn etwas `currently_due` ist (`requirementsPending = true`).
 
 Account Sessions bleiben `POST /v1/account_sessions` mit `account_onboarding`.
 
+### 5d (Fortsetzung) — Story 1.3b Oberfläche Onboarding (29.09.2026)
+
+| # | Frage | Entscheidung |
+|---|---|---|
+| U1 | Ort | Neuer Abschnitt „Online-Zahlung“ in den Studio-Einstellungen (`Settings.tsx`, beim bestehenden Owner-/Admin-Bereich). Kein eigener Menüpunkt. |
+| U2 | Sichtbarkeit | Owner: alles. Admin: nur Status lesen, keine Knöpfe. Lehrende/Teilnehmende: Abschnitt nicht sichtbar (Einstellungen ohnehin nur Admin/Owner). Plattform-Schalter aus: Abschnitt für alle unsichtbar (auf PROD beim Release). |
+| U3 | Zustände | `not_started`, `in_progress`, `in_review`, `active`, `disconnected`. `action_required` erzeugt der Adapter nicht mehr; kommt er trotzdem, UI wie `in_progress`. |
+| U4 | Einbettung | `@stripe/connect-js` und `@stripe/react-connect-js`, Komponente `ConnectAccountOnboarding`. `fetchClientSecret` → `payments-onboarding` `start`, `onExit` → `refresh`. Sprache `de`. Collection: `fields: 'eventually_due'`. |
+| U5 | Kosten vorher | Im Zustand „nicht eingerichtet“ mit Rechenweg (Standardkarte EWR 1,5 % + 0,25 €; Premium/Firma 2,8 % + 0,25 €; Beispiel 15 €). Texte in `src/features/payments/paymentSetupCopy.ts`, Preise als Konstanten mit Hinweis „Stand 09/2026, Stripe-Listenpreis“. Omlify verlangt nichts zusätzlich. |
+| U6 | Publishable Key | `VITE_STRIPE_PUBLISHABLE_KEY`. Auf DEV: beginnt der Key nicht mit `pk_test_`, Abschnitt nicht rendern und Hinweis loggen (kein Absturz). |
+| U7 | Plattform-Schalter DEV | Skript `node scripts/dev/platform_flag.mjs on\|off` (nur DEV-Service-Role). |
+| U8 | Grenz-Prüfung | Ausnahme nur `src/features/payments/StripeAccountOnboarding.tsx` für `@stripe/connect-js` / `@stripe/react-connect-js`. Kein anderer Stripe-Import in `src/`. |
+
+**Fehlertexte der Schalter:** `TAX_SETTING_MISSING` → „Bitte hinterlege zuerst deinen Steuerstatus“ mit Link `#steuern`. `PROVIDER_NOT_READY` → „Dein Stripe-Konto ist noch nicht bereit.“ `PLATFORM_DISABLED` → Abschnitt ausblenden und neu laden. Sonst allgemeine Meldung, nie Stripe-Texte.
+
+**DEV-Mock für Screenshots:** Query `?paymentSetup=<zustand>` nur mit `import.meta.env.DEV` (`not_started` \| `in_progress` \| `in_review` \| `active` \| `disconnected`).
+
 ---
 
 ## 6. Änderungen an bestehenden Abschnitten des Epics

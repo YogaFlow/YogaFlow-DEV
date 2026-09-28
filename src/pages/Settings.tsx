@@ -6,6 +6,7 @@ import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDi
 import PassProductsSection from '../components/settings/PassProductsSection';
 import StudioDesignSection from '../components/settings/StudioDesignSection';
 import TaxSettingsSection from '../components/settings/TaxSettingsSection';
+import OnlinePaymentSection from '../features/payments/OnlinePaymentSection';
 import {
   BOOKING_CANCELLATION_WINDOW_DEFAULT,
   BOOKING_CANCELLATION_WINDOW_MAX,
@@ -108,6 +109,8 @@ export default function Settings() {
       <div className="mb-6">
         <TaxSettingsSection isOwner={isOwner} />
       </div>
+
+      <OnlinePaymentSection isOwner={isOwner} />
 
       <div className="mb-6">
         <PassProductsSection />

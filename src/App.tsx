@@ -13,6 +13,7 @@ import Profile from './pages/Profile';
 import Participants from './pages/Participants';
 import Users from './pages/Users';
 import Settings from './pages/Settings';
+import DevPaymentSetupStates from './pages/DevPaymentSetupStates';
 import Messages from './pages/Messages';
 import VerifyEmail from './pages/VerifyEmail';
 import ForgotPassword from './pages/ForgotPassword';
@@ -293,6 +294,10 @@ function App() {
 
             {/* Rechtliche Seiten: auf Studio-Hosts nur der Verweis auf omlify.de */}
             <Route path="/legal/*" element={<LegalPage />} />
+
+            {import.meta.env.DEV ? (
+              <Route path="/dev/payment-setup" element={<DevPaymentSetupStates />} />
+            ) : null}
 
             {/* Mandanten-App (pathloses Layout — zuverlässiges Matching unter RR 6/7) */}
             <Route element={<TenantAppShell />}>

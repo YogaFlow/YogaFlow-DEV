@@ -11,6 +11,7 @@
  */
 import {
   type CapabilityStatus,
+  type CreateConnectedAccountOptions,
   type DomainEvent,
   type OnboardingStatus,
   type PaymentProvider,
@@ -91,7 +92,12 @@ export class FakePaymentProvider implements PaymentProvider {
     this.now = options.now ?? (() => Math.floor(Date.now() / 1000));
   }
 
-  createConnectedAccount(tenantId: string, idempotencyKey: string): Promise<ProviderAccountState> {
+  createConnectedAccount(
+    tenantId: string,
+    idempotencyKey: string,
+    options?: CreateConnectedAccountOptions,
+  ): Promise<ProviderAccountState> {
+    void options;
     if (!tenantId || !idempotencyKey) {
       return Promise.reject(new ProviderError("PROVIDER_REJECTED", "missing_input"));
     }

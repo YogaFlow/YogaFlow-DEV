@@ -48,20 +48,31 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 - [ ] **Neues Konto nach `disconnected`.** Nach `account.application.deauthorized`
       bleibt das Studio ohne neues Stripe-Konto. Ob und wie Owner erneut onboarden
       dürfen, ist nicht Teil von 1.3a (O6).
-- [ ] **Thin-Events: Geltungsbereich nach E2E.** Nach echtem Onboarding im Browser mit
-      `scripts/test/s1_3a_e2e_events.mjs <slug>` festhalten, ob Thin-Ereignisse
-      (`v2.core.account…`) für verbundene Konten ankommen (V4). Parallel beobachten,
-      ob es einen v2-Ersatz für `account.application.deauthorized` gibt.
+- [x] **Thin-Events: Geltungsbereich nach E2E.** Erledigt 29.09.2026 (Demo Alpha):
+      Thin (`v2.core.account…`) und Snapshot (`account.updated`) kommen beide an;
+      Details unter „V4 Ereignisse“ weiter unten.
 - [ ] **Stripe-Testkonten in der Sandbox aufräumen (optional).** Rauchtests legen
       Connect-Konten an; sie bleiben in der Stripe-Sandbox. Bei Bedarf manuell
       löschen oder periodisch aufräumen.
-- [ ] **1.3b — Oberfläche Onboarding.** Zustände `not_started`, `in_progress`,
-      `in_review`, `active`, `action_required`, `disconnected` und Hinweis auf die
-      Stripe-Frist (`requirements_due_at`).
+- [x] **1.3b — Oberfläche Onboarding.** Abschnitt in den Einstellungen; Zustände
+      `not_started` … `disconnected`; `action_required` in der UI wie `in_progress`.
+- [ ] **Keine CSP gesetzt – bei Einführung Stripe-Quellen (`js.stripe.com`,
+      `connect-js.stripe.com`, Frames) ergänzen.**
+- [ ] **Impressum je Studio ist Pflicht vor Live-Onboarding.** Stripe prüft die
+      Website; Platzhalterseiten sind nicht erlaubt. Rechts-Epic, hart.
+- [x] **V4 Ereignisse (E2E 29.09.2026, Demo Alpha).** Beide Stripe-Ziele liefern:
+      `account.updated` über „Verbundene Konten“/Snapshot; `v2.core.account[…]`
+      über „Ihr Konto“/Thin. Doppelte Ereignisse durch Nachlesen (W3) harmlos.
+      Später prüfen, ob Snapshot-`account.updated` entfallen kann (weniger Abrufe).
+- [ ] **Stripe-Login per Fenster beim Onboarding.** Folge von P7 (`dashboard: full`);
+      bewusst akzeptiert — Stripe legt beim Formular ein eigenes Login an.
+- [ ] **`disconnected` neu verbinden.** Nach `account.application.deauthorized` ist
+      Online aus und die UI zeigt nur den Hinweis — kein erneutes Einrichten in 1.3b.
+- [ ] **Onboarding-/Gebühren-Texte vom Anwalt prüfen lassen** (Rechts-Epic). Stand
+      09/2026 Stripe-Listenpreis; Formulierungen in `paymentSetupCopy.ts`.
 - [ ] **`action_required` für Nachforderungen nach Aktivierung, später.** Der Adapter
       mappt v2 vorerst nie auf `action_required` (frisch `past_due` + Nutzerin am Zug →
-      `in_progress`; Enum bleibt). Wann die UI nach Aktivierung wieder `action_required`
-      braucht, in 1.3b klären.
+      `in_progress`; Enum bleibt). UI behandelt den Wert wie `in_progress`.
 - [ ] **`evt_smoke_`-Zeilen auf DEV.** Der Rauchtest `scripts/test/s1_4_webhook_smoke.mjs`
       hinterlässt Rohzeilen ohne Studio (Event-IDs mit Präfix `evt_smoke_`). Sie lassen
       sich wegen des Lösch-Triggers nicht löschen (Absicht). Mit der Aufbewahrungsfrist

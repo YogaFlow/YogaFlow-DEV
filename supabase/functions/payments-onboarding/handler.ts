@@ -32,6 +32,8 @@ export type PaymentSetupStatus = Record<string, unknown>;
 
 export interface OnboardingStore {
   getOwnerContext(tenantId: string, memberId: string): Promise<OwnerPaymentContext>;
+  /** Studioname für Statement Descriptor beim ersten Anlegen. */
+  getTenantName(tenantId: string): Promise<string | null>;
   upsertAccount(tenantId: string, provider: ProviderId, state: ProviderAccountState): Promise<UpsertResult>;
   /** Ruft get_payment_setup_status mit dem Nutzer-JWT auf. */
   getSetupStatus(): Promise<PaymentSetupStatus>;
@@ -147,11 +149,18 @@ async function handleStart(
   let onboardingStatus = ctx.onboardingStatus;
 
   if (!accountRef) {
+    let studioName: string | null = null;
+    try {
+      studioName = await store.getTenantName(caller.tenantId);
+    } catch {
+      // Name ist optional fürs Anlegen; ohne Descriptor weiter.
+    }
     let state: ProviderAccountState;
     try {
       state = await provider.createConnectedAccount(
         caller.tenantId,
         connectedAccountIdempotencyKey(caller.tenantId),
+        studioName ? { statementDescriptor: studioName } : undefined,
       );
     } catch (err) {
       log.error("payments-onboarding", {

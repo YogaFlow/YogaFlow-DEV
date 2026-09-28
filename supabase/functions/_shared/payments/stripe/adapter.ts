@@ -6,6 +6,7 @@
  */
 import type { PaymentsMode } from "../config.ts";
 import {
+  type CreateConnectedAccountOptions,
   type DomainEvent,
   type PaymentProvider,
   type PaymentRef,
@@ -46,6 +47,26 @@ export const CONNECTED_ACCOUNT_PARAMS = {
     },
   },
 } as const satisfies Omit<Stripe.V2.Core.AccountCreateParams, "metadata">;
+
+/** Stripe v2: statement_descriptor.descriptor — max. 22 Zeichen (Merchant Configuration). */
+export const STATEMENT_DESCRIPTOR_MAX = 22;
+
+/**
+ * Studioname → zulässigen Statement Descriptor.
+ * Quelle: Stripe API `configuration.merchant.statement_descriptor.descriptor`
+ * (Accounts v2 Create, SDK stripe@22.6.2 / API 2026-08-26.dahlia).
+ * Nur lateinische Buchstaben/Ziffern/Leerzeichen; Umlaute und Sonderzeichen entfallen.
+ */
+export function toStatementDescriptor(name: string): string | undefined {
+  const ascii = name
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .replace(/[^A-Za-z0-9 ]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!ascii || !/[A-Za-z]/.test(ascii)) return undefined;
+  return ascii.slice(0, STATEMENT_DESCRIPTOR_MAX).trim();
+}
 
 const ACCOUNT_INCLUDE = [
   "configuration.merchant",
@@ -105,12 +126,30 @@ export class StripePaymentProvider implements PaymentProvider {
     return this.mode === "live";
   }
 
-  async createConnectedAccount(tenantId: string, idempotencyKey: string): Promise<ProviderAccountState> {
+  async createConnectedAccount(
+    tenantId: string,
+    idempotencyKey: string,
+    options?: CreateConnectedAccountOptions,
+  ): Promise<ProviderAccountState> {
     if (!tenantId || !idempotencyKey) throw new ProviderError("PROVIDER_REJECTED", "missing_input");
     try {
+      const descriptor = options?.statementDescriptor
+        ? toStatementDescriptor(options.statementDescriptor)
+        : undefined;
+      const merchant: Stripe.V2.Core.AccountCreateParams.Configuration.Merchant = {
+        capabilities: {
+          card_payments: { requested: true },
+        },
+        ...(descriptor
+          ? { statement_descriptor: { descriptor } }
+          : {}),
+      };
       const account = await this.client.v2.core.accounts.create(
         {
-          ...CONNECTED_ACCOUNT_PARAMS,
+          dashboard: CONNECTED_ACCOUNT_PARAMS.dashboard,
+          defaults: CONNECTED_ACCOUNT_PARAMS.defaults,
+          identity: CONNECTED_ACCOUNT_PARAMS.identity,
+          configuration: { merchant },
           include: [...ACCOUNT_INCLUDE],
           metadata: { omlify_tenant_id: tenantId },
         },

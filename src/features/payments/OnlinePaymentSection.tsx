@@ -1,0 +1,311 @@
+/**
+ * Abschnitt „Online-Zahlung“ in den Studio-Einstellungen (1.3b).
+ * Owner: Aktionen. Admin: nur Lesen. Plattform aus → unsichtbar.
+ */
+import { lazy, Suspense, useEffect, useState } from 'react';
+import { formatDate } from '../../lib/format';
+import AccentPill from '../../components/ui/AccentPill';
+import { copy, STRIPE_DASHBOARD_URL } from './paymentSetupCopy';
+import { readDevMockStatus } from './paymentSetupTypes';
+import { usePaymentSetup } from './usePaymentSetup';
+
+const StripeAccountOnboarding = lazy(() => import('./StripeAccountOnboarding'));
+
+function publishableKeyOrNull(): string | null {
+  const mock = readDevMockStatus();
+  const key = (import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined)?.trim() ?? '';
+  if (mock) {
+    // DEV-Mock für Screenshots: Abschnitt auch ohne echten Key zeigen (Formular braucht trotzdem pk_test_).
+    return key || 'pk_test_dev_mock';
+  }
+  if (!key) {
+    console.info('[payments] VITE_STRIPE_PUBLISHABLE_KEY fehlt — Online-Zahlung-Abschnitt ausgeblendet.');
+    return null;
+  }
+  if (import.meta.env.DEV && !key.startsWith('pk_test_')) {
+    console.info(
+      '[payments] VITE_STRIPE_PUBLISHABLE_KEY beginnt auf DEV nicht mit pk_test_ — Abschnitt ausgeblendet.',
+    );
+    return null;
+  }
+  return key;
+}
+
+function dueDateLabel(iso: string | null): string {
+  if (!iso) return '';
+  // requirements_due_at ist timestamptz — civil date in Europe/Berlin
+  const dateOnly = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Berlin',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date(iso));
+  return formatDate(dateOnly);
+}
+
+type Props = { isOwner: boolean };
+
+export default function OnlinePaymentSection({ isOwner }: Props) {
+  const [publishableKey] = useState(() => publishableKeyOrNull());
+  const enabled = publishableKey != null;
+  const {
+    status,
+    uiStatus,
+    loading,
+    error,
+    busy,
+    reload,
+    refresh,
+    setOnlineEnabled,
+    setOnsiteAllowed,
+  } = usePaymentSetup(enabled);
+
+  const [showForm, setShowForm] = useState(false);
+  const [switchError, setSwitchError] = useState<string | null>(null);
+  const [taxLinkNeeded, setTaxLinkNeeded] = useState(false);
+  const [hideForPlatform, setHideForPlatform] = useState(false);
+
+  useEffect(() => {
+    if (!status) return;
+    if (status.platform_enabled === false) {
+      setHideForPlatform(true);
+    }
+  }, [status]);
+
+  if (!enabled || hideForPlatform) return null;
+
+  if (loading && !status) {
+    return (
+      <section
+        id="online-zahlung"
+        className="mb-6 scroll-mt-24 rounded-md border border-border bg-surface p-3.5"
+        aria-busy="true"
+      >
+        <h2 className="text-[19px] font-medium leading-snug text-text">{copy.sectionTitle}</h2>
+        <p className="mt-3 text-[15px] text-textMuted">{copy.loading}</p>
+      </section>
+    );
+  }
+
+  if (error && !status) {
+    return (
+      <section id="online-zahlung" className="mb-6 scroll-mt-24 rounded-md border border-border bg-surface p-3.5">
+        <h2 className="text-[19px] font-medium leading-snug text-text">{copy.sectionTitle}</h2>
+        <p role="alert" className="mt-3 text-[15px] text-text">
+          {error}
+        </p>
+        <button
+          type="button"
+          onClick={() => void reload()}
+          className="mt-3 min-h-11 rounded-sm bg-brand px-4 py-2 text-[15px] text-onBrand active:bg-brandPressed"
+        >
+          Erneut laden
+        </button>
+      </section>
+    );
+  }
+
+  if (!status || !uiStatus) return null;
+  if (!status.platform_enabled) return null;
+
+  const openForm = () => setShowForm(true);
+  const onFormExit = () => {
+    setShowForm(false);
+    void refresh();
+  };
+
+  const onToggleOnline = async (next: boolean) => {
+    setSwitchError(null);
+    setTaxLinkNeeded(false);
+    const result = await setOnlineEnabled(next);
+    if (!result.ok) {
+      if (result.code === 'PLATFORM_DISABLED') {
+        setHideForPlatform(true);
+        void reload();
+        return;
+      }
+      setSwitchError(result.message);
+      setTaxLinkNeeded(result.code === 'TAX_SETTING_MISSING');
+    }
+  };
+
+  const onToggleOnsite = async (next: boolean) => {
+    setSwitchError(null);
+    setTaxLinkNeeded(false);
+    const result = await setOnsiteAllowed(next);
+    if (!result.ok) {
+      if (result.code === 'PLATFORM_DISABLED') {
+        setHideForPlatform(true);
+        void reload();
+        return;
+      }
+      setSwitchError(result.message);
+    }
+  };
+
+  return (
+    <section id="online-zahlung" className="mb-6 scroll-mt-24 rounded-md border border-border bg-surface p-3.5">
+      <h2 className="text-[19px] font-medium leading-snug text-text">{copy.sectionTitle}</h2>
+
+      {uiStatus === 'not_started' ? (
+        <div className="mt-3 space-y-3">
+          <p className="text-[15px] leading-6 text-text">{copy.notStarted.lead}</p>
+          <div>
+            <p className="text-[15px] font-medium text-text">{copy.notStarted.needsTitle}</p>
+            <ul className="mt-1 list-disc space-y-1 pl-5 text-[15px] leading-6 text-text">
+              {copy.notStarted.needs.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </div>
+          <p className="text-[15px] text-textMuted">{copy.notStarted.duration}</p>
+          <div>
+            <p className="text-[15px] font-medium text-text">{copy.notStarted.feesTitle}</p>
+            <p className="mt-1 text-[15px] leading-6 text-text">{copy.notStarted.feesBody()}</p>
+          </div>
+          {isOwner ? (
+            <button
+              type="button"
+              disabled={busy || showForm}
+              onClick={openForm}
+              className="min-h-11 rounded-sm bg-brand px-4 py-2 text-[15px] text-onBrand active:bg-brandPressed disabled:bg-surfaceSunken disabled:text-textMuted"
+            >
+              {copy.notStarted.cta}
+            </button>
+          ) : (
+            <p className="text-[15px] text-textMuted">Noch nicht eingerichtet.</p>
+          )}
+        </div>
+      ) : null}
+
+      {uiStatus === 'in_progress' ? (
+        <div className="mt-3 space-y-3">
+          <p className="text-[15px] font-medium text-text">{copy.inProgress.lead}</p>
+          <p className="text-[15px] leading-6 text-textMuted">{copy.inProgress.body}</p>
+          {isOwner ? (
+            <button
+              type="button"
+              disabled={busy || showForm}
+              onClick={openForm}
+              className="min-h-11 rounded-sm bg-brand px-4 py-2 text-[15px] text-onBrand active:bg-brandPressed disabled:bg-surfaceSunken disabled:text-textMuted"
+            >
+              {copy.inProgress.cta}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      {uiStatus === 'in_review' ? (
+        <div className="mt-3 space-y-3">
+          <p className="text-[15px] font-medium text-text">{copy.inReview.lead}</p>
+          <p className="text-[15px] leading-6 text-textMuted">{copy.inReview.body}</p>
+          {isOwner ? (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void refresh()}
+              className="min-h-11 rounded-sm border border-borderStrong bg-surface px-4 py-2 text-[15px] text-text active:bg-surfaceSunken disabled:opacity-60"
+            >
+              {busy ? copy.refreshing : copy.inReview.cta}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      {uiStatus === 'active' ? (
+        <div className="mt-3 space-y-4">
+          <p className="text-[15px] font-medium text-text">{copy.active.lead}</p>
+
+          {status.requirements_pending && status.requirements_due_at ? (
+            <div
+              role="status"
+              className="rounded-sm border border-accent bg-accentSoft px-3 py-2.5"
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                <AccentPill>Frist</AccentPill>
+                <p className="text-[15px] leading-6 text-accentText">
+                  {copy.active.requirementsPending(dueDateLabel(status.requirements_due_at))}
+                </p>
+              </div>
+              {isOwner ? (
+                <button
+                  type="button"
+                  disabled={busy || showForm}
+                  onClick={openForm}
+                  className="mt-2 min-h-11 rounded-sm border border-accent bg-surface px-4 py-2 text-[15px] text-accentText active:bg-accentSoft disabled:opacity-60"
+                >
+                  {copy.active.requirementsCta}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+
+          <div className="space-y-1">
+            <label
+              className={`flex min-h-11 items-center gap-3 ${isOwner ? 'cursor-pointer' : 'cursor-default opacity-80'}`}
+            >
+              <input
+                type="checkbox"
+                checked={status.online_payments_enabled}
+                disabled={!isOwner || busy}
+                onChange={(e) => void onToggleOnline(e.target.checked)}
+                className="h-4 w-4 rounded-sm border-border text-brand focus:ring-brand"
+              />
+              <span className="text-[15px] text-text">{copy.active.onlineLabel}</span>
+            </label>
+            <label
+              className={`flex min-h-11 items-center gap-3 ${isOwner ? 'cursor-pointer' : 'cursor-default opacity-80'}`}
+            >
+              <input
+                type="checkbox"
+                checked={status.allow_onsite_payment}
+                disabled={!isOwner || busy}
+                onChange={(e) => void onToggleOnsite(e.target.checked)}
+                className="h-4 w-4 rounded-sm border-border text-brand focus:ring-brand"
+              />
+              <span className="text-[15px] text-text">{copy.active.onsiteLabel}</span>
+            </label>
+          </div>
+
+          {switchError ? (
+            <p role="alert" className="text-[15px] text-text">
+              {switchError}
+              {taxLinkNeeded ? (
+                <>
+                  {' '}
+                  <a href="#steuern" className="underline text-brand">
+                    {copy.switchErrors.TAX_SETTING_LINK}
+                  </a>
+                </>
+              ) : null}
+            </p>
+          ) : null}
+
+          <a
+            href={STRIPE_DASHBOARD_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-11 items-center text-[15px] text-brand underline"
+          >
+            {copy.active.dashboardLink}
+          </a>
+        </div>
+      ) : null}
+
+      {uiStatus === 'disconnected' ? (
+        <div className="mt-3 space-y-2">
+          <p className="text-[15px] font-medium text-text">{copy.disconnected.lead}</p>
+          <p className="text-[15px] leading-6 text-textMuted">{copy.disconnected.body}</p>
+        </div>
+      ) : null}
+
+      {showForm && isOwner && publishableKey ? (
+        <div className="mt-4 border-t border-border pt-4">
+          <Suspense fallback={<p className="text-[15px] text-textMuted">{copy.loading}</p>}>
+            <StripeAccountOnboarding publishableKey={publishableKey} onExit={onFormExit} />
+          </Suspense>
+        </div>
+      ) : null}
+    </section>
+  );
+}

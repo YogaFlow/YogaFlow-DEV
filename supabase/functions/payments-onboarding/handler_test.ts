@@ -43,6 +43,10 @@ class MemoryStore implements OnboardingStore {
     return Promise.resolve({ ...this.ctx });
   }
 
+  getTenantName(): Promise<string | null> {
+    return Promise.resolve("Demo Alpha Yoga");
+  }
+
   upsertAccount(_tenantId: string, _provider: ProviderId, state: ProviderAccountState): Promise<UpsertResult> {
     if (this.upsertThrows) return Promise.reject(new Error("db down"));
     this.upserts.push(structuredClone(state));
@@ -75,10 +79,14 @@ class SpyProvider extends FakePaymentProvider {
   getCalls = 0;
   unavailable = false;
 
-  override createConnectedAccount(tenantId: string, idempotencyKey: string): Promise<ProviderAccountState> {
+  override createConnectedAccount(
+    tenantId: string,
+    idempotencyKey: string,
+    options?: import("../_shared/payments/port.ts").CreateConnectedAccountOptions,
+  ): Promise<ProviderAccountState> {
     this.createCalls += 1;
     if (this.unavailable) return Promise.reject(new ProviderError("PROVIDER_UNAVAILABLE"));
-    return super.createConnectedAccount(tenantId, idempotencyKey);
+    return super.createConnectedAccount(tenantId, idempotencyKey, options);
   }
 
   override getAccountState(ref: string): Promise<ProviderAccountState> {

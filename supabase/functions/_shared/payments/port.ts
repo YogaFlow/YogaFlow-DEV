@@ -101,9 +101,21 @@ export interface ProviderAccountDisconnectedEvent {
 /** Zahlungstypen kommen mit 2.2. */
 export type DomainEvent = ProviderAccountUpdatedEvent | ProviderAccountDisconnectedEvent;
 
+export interface CreateConnectedAccountOptions {
+  /**
+   * Text auf Kontoauszügen (Stripe v2:
+   * `configuration.merchant.statement_descriptor.descriptor`, max. 22 Zeichen).
+   */
+  statementDescriptor?: string;
+}
+
 export interface PaymentProvider {
   readonly id: ProviderId;
-  createConnectedAccount(tenantId: string, idempotencyKey: string): Promise<ProviderAccountState>;
+  createConnectedAccount(
+    tenantId: string,
+    idempotencyKey: string,
+    options?: CreateConnectedAccountOptions,
+  ): Promise<ProviderAccountState>;
   getAccountState(ref: string): Promise<ProviderAccountState>;
   /** Gerüst, wirft NOT_IMPLEMENTED bis 2.2. */
   createPayment(cmd: CreatePaymentCommand): Promise<PaymentRef>;
