@@ -32,6 +32,14 @@ export const isCourseUpcoming = (course: CourseLike, now = new Date()): boolean 
   return !isCourseInPast(course, now);
 };
 
+/** Termine einer Serie, die noch nicht begonnen haben (`isCourseUpcoming`). */
+export function futureSeriesCourses<T extends CourseLike>(
+  courses: readonly T[],
+  now = new Date(),
+): T[] {
+  return courses.filter((course) => isCourseUpcoming(course, now));
+}
+
 /** Heute als YYYY-MM-DD in Europe/Berlin. Offset in Kalendertagen, ohne courses.date zu parsen. */
 export function berlinIsoDate(dayOffset = 0, now = new Date()): string {
   const parts = new Intl.DateTimeFormat('en-CA', {

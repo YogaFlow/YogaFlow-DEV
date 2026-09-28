@@ -182,10 +182,10 @@ const CourseDeleteDialog: React.FC<CourseDeleteDialogProps> = ({
                         seriesBlocked ? 'text-textSubtle' : 'text-text'
                       }`}
                     >
-                      Alle {upcomingCount} kommenden Termine löschen
+                      {upcomingCount} kommende Termine löschen
                     </span>
                     <span className="block text-sm text-textMuted mt-1">
-                      Vergangene Termine der Serie bleiben erhalten.
+                      Vergangene Termine bleiben erhalten.
                     </span>
                     {seriesBlocked ? (
                       <span id="course-delete-series-block" className="block text-sm text-accentText mt-1">

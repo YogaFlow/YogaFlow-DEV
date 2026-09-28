@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { MapPin, Users, FileText, Save, ArrowLeft, AlertCircle, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
-import { isCourseUpcoming } from '../lib/courseDateTime';
+import { futureSeriesCourses } from '../lib/courseDateTime';
 import { countActivePassProducts } from '../lib/passProducts';
 import { Course } from '../types';
 import { DatePicker, TimePicker } from '../components/DateTimePicker';
@@ -16,6 +16,12 @@ interface CourseLeader {
   email: string;
 }
 
+type SeriesSessionRow = {
+  id: string;
+  date: string;
+  time: string;
+};
+
 const EditCourse: React.FC = () => {
   const navigate = useNavigate();
   const { courseId } = useParams<{ courseId: string }>();
@@ -26,7 +32,7 @@ const EditCourse: React.FC = () => {
   const [course, setCourse] = useState<Course | null>(null);
   const [courseLeaders, setCourseLeaders] = useState<CourseLeader[]>([]);
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>('');
-  const [seriesCount, setSeriesCount] = useState(0);
+  const [seriesSessions, setSeriesSessions] = useState<SeriesSessionRow[]>([]);
   const [updateScope, setUpdateScope] = useState<'single' | 'series'>('single');
   const [passEligible, setPassEligible] = useState(true);
   const [showPassEligible, setShowPassEligible] = useState(false);
@@ -165,12 +171,15 @@ const EditCourse: React.FC = () => {
       });
 
       if (data.series_id) {
-        const { count } = await supabase
+        const { data: seriesRows, error: seriesError } = await supabase
           .from('courses')
-          .select('*', { count: 'exact', head: true })
+          .select('id, date, time')
           .eq('series_id', data.series_id);
 
-        setSeriesCount(count || 0);
+        if (seriesError) throw seriesError;
+        setSeriesSessions(seriesRows ?? []);
+      } else {
+        setSeriesSessions([]);
       }
     } catch (err: any) {
       console.error('Error fetching course:', err);
@@ -356,42 +365,32 @@ const EditCourse: React.FC = () => {
       }
 
       if (updateScope === 'series' && course.series_id) {
+        const upcoming = futureSeriesCourses(seriesSessions);
+        if (upcoming.length === 0) {
+          setError('Diese Serie hat keine kommenden Termine mehr.');
+          setSaving(false);
+          return;
+        }
+
         const seriesUpdateData: Record<string, unknown> = { ...updateData };
         delete seriesUpdateData.date;
-        // pass_eligible: only future, not-yet-started sessions (see isCourseUpcoming)
-        delete seriesUpdateData.pass_eligible;
 
-        const { error: updateError } = await supabase
+        const upcomingIds = upcoming.map((row) => row.id);
+        const { data: updatedRows, error: updateError } = await supabase
           .from('courses')
           .update(seriesUpdateData)
-          .eq('series_id', course.series_id);
+          .in('id', upcomingIds)
+          .select('id');
 
         if (updateError) throw updateError;
-
-        if (showPassEligible) {
-          const { data: seriesRows, error: seriesFetchError } = await supabase
-            .from('courses')
-            .select('id, date, time')
-            .eq('series_id', course.series_id);
-
-          if (seriesFetchError) throw seriesFetchError;
-
-          const upcomingIds = (seriesRows ?? [])
-            .filter((row) => isCourseUpcoming(row))
-            .map((row) => row.id);
-
-          if (upcomingIds.length > 0) {
-            const { error: passError } = await supabase
-              .from('courses')
-              .update({ pass_eligible: passEligible })
-              .in('id', upcomingIds);
-
-            if (passError) throw passError;
-          }
+        if ((updatedRows?.length ?? 0) !== upcomingIds.length) {
+          throw new Error('Serienupdate hat nicht alle kommenden Termine geschrieben.');
         }
 
         navigate('/my-courses', {
-          state: { message: `Alle ${seriesCount} Kurse der Serie wurden erfolgreich aktualisiert!` }
+          state: {
+            message: `${upcomingIds.length} kommende Termine der Serie wurden aktualisiert.`,
+          },
         });
       } else {
         const { error: updateError } = await supabase
@@ -414,6 +413,9 @@ const EditCourse: React.FC = () => {
   };
 
   const hasPermission = isCourseLeader;
+  const seriesCount = seriesSessions.length;
+  const futureCount = futureSeriesCourses(seriesSessions).length;
+  const seriesSaveBlocked = updateScope === 'series' && course?.series_id != null && futureCount === 0;
 
   if (!hasPermission) {
     return (
@@ -561,10 +563,18 @@ const EditCourse: React.FC = () => {
                     className="w-4 h-4 text-brand border-border focus:ring-brand"
                   />
                   <span className="ml-3 text-sm font-medium text-text">
-                    Alle {seriesCount} Termine der Serie ändern
+                    Serie ändern ({futureCount} kommende Termine)
                   </span>
                 </label>
               </div>
+
+              {updateScope === 'series' ? (
+                <p className="mt-3 text-sm text-text">
+                  {futureCount === 0
+                    ? 'Diese Serie hat keine kommenden Termine mehr.'
+                    : `Die Änderung gilt für die ${futureCount} kommenden Termine dieser Serie. Vergangene Termine bleiben, wie sie waren.`}
+                </p>
+              ) : null}
             </div>
           )}
 
@@ -714,7 +724,7 @@ const EditCourse: React.FC = () => {
             </button>
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || seriesSaveBlocked}
               className="flex items-center px-6 py-2 bg-brand text-onBrand rounded-sm hover:bg-brandPressed focus:ring-4 focus:ring-brandSoft transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save className="w-4 h-4 mr-2" />

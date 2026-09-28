@@ -107,11 +107,13 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
       Vorher Zustelltest gegen Gmail, GMX, Web.de, Outlook.
 - [ ] **Systemmails überarbeiten:** siezen heute, Landingpage duzt; altes Design
       (Arial, `#0f766e`).
-- [ ] **`EditCourse` preist bei Serien-Updates auch vergangene Termine um**
-      (`EditCourse.tsx` aktualisiert die Serie ohne Datumsfilter). Befund
-      A2-Inventur. **Eigener Fix direkt nach A8, vor Stripe** (S6). Künftig nur
-      kommende Termine ändern. Die Kursbearbeitung soll bei einer Preisänderung
-      anzeigen, dass bestehende Buchungen den alten Preis behalten (Nachtrag, L9).
+- [ ] **Preisänderung: Hinweis, dass bestehende Buchungen den alten Preis behalten**
+      (Nachtrag L9). Serienbearbeitung ändert seit S6 nur kommende Termine;
+      der Hinweistext fehlt noch.
+- [ ] **A5 — Einzelbearbeitung vergangener Kurse (Entscheidung Julius).**
+      Heute lässt `EditCourse` alle Felder auch an begonnenen Terminen zu
+      (kein Zeitfilter bei Scope `single`). Vorschlag siehe Abschlussbericht S6
+      (Feld → sperren ja/nein). Bis zur Entscheidung unverändert.
 - [ ] **A8-Feinschliff (Kassier-/Teilnehmerliste)**
       - ~~`MemberPassesSection` doppelt eingebunden~~ — behoben in A6-3
         (`matchMedia`, nur ein Layout mountet).
@@ -119,8 +121,8 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
         Auth-Rate-Limit (viele Logins hintereinander).
       - Sammel-RPC Kassieren für große Kurse (viele Einzel-
         `record_manual_payment`-Tipps) — **nach Release**, nicht A8.
-      - ~~Serienbearbeitung schreibt auf vergangene Termine~~ — siehe Punkt
-        oben (S6, Fix nach A8).
+      - ~~Serienbearbeitung schreibt auf vergangene Termine~~ — erledigt S6
+        (28.09.2026).
       - Zwei Teilnehmerlisten (Kasse vs. Kontaktliste) zusammenlegen —
         **später**, nicht A8.
       - ~~A8-2 Offene Zahlungen / Alte Kurse abhaken / coverageLabel~~ —
@@ -172,6 +174,10 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Erledigt
 
+- 28.09.2026 — S6: Serienbearbeitung ändert nur kommende Termine
+  (`futureSeriesCourses`, `EditCourse`). Serie löschen/absagen waren schon
+  zeitgefiltert. Sprint A damit abgeschlossen. A5 (Einzelbearbeitung
+  vergangener Kurse) bleibt offen als Entscheidung.
 - 28.09.2026 — A7 abgeschlossen (A7-1 Schema/Job + A7-2 UI/Export): Steuerstatus,
   Wartehinweis, CSV-Hauptbuch (`export_ledger`), Kassenhinweis E14. Nachtrag
   `docs/EPIC_GELDKETTE_1A_NACHTRAG_2026-09-21.md`. Commits `0d941e0`, `e92e611`,
