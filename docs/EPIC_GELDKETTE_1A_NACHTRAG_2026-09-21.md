@@ -236,7 +236,9 @@ bezahlt hat.*
 
 - Tabelle `payments` **bereits mit dem vollen Modell** aus 2.1 (alle Zustände, `provider`, `provider_ref`,
   `method`, `subject_type`, `subject_id`, `registration_id`, `amount_cents`, `currency`, `received_at`,
-  `recorded_by`, `note`, `reverses_payment_id`). Stripe fügt später nur Zeilen hinzu, keine Spalten
+  `recorded_by`, `note`, `reverses_payment_id`). ~~Stripe fügt später nur Zeilen hinzu, keine Spalten~~
+  **Überholt durch Entscheidung 08 (28.09.2026, Variante D):** Online-Versuche laufen über eine eigene
+  Tabelle `payment_attempts` (2.1b-a). `payments` bleibt unverändert und nimmt nur erfolgreiche Eingänge auf
 - Vermerk: `provider = 'manual'`, `method ∈ {cash, bank_transfer, paypal_manual}`, Status direkt `succeeded`
 - **Betrag vom Server:** `price_cents_at_booking`. `owner`/`admin` dürfen abweichen (Rabatt), mit Pflichtgrund.
   `teacher` nicht
@@ -551,6 +553,48 @@ Abweichungen vom Entwurf vom 21.09.:
 `courses.status` bleibt die Schreibweise `canceled` (ein l). `register_for_course` lehnt abgesagte Kurse schon ab. `promote_from_waitlist` und `admin_register_user_for_course` werden in derselben Migration geschlossen, damit niemand in einen abgesagten Kurs nachrückt oder nachgebucht wird.
 
 **Akzeptanz:** Kurs mit Warteliste und einer Barzahlung absagen → niemand rückt nach, Glocken, Zahlung bleibt `paid`, bis Owner/Admin die Gegenzeile setzt. Rücknahme stellt nur die durch die Absage stornierten Buchungen wieder her. Serie „ab diesem Termin“ lässt frühere Termine aktiv. **STOPP.**
+
+---
+
+## 5a. Story 1.2a — Provider-Schema (Entscheidung 08, 28.09.2026)
+
+Stripe-Schritt 1.2 wird geteilt: **1.2a** Schema und Schalter (ohne Stripe-API), **1.2b** Provider-Port,
+Stripe-Adapter, Fake-Adapter, Deno-Tests, Log-Fix.
+
+| # | Frage | Entscheidung |
+|---|---|---|
+| P1 | Release | Ein gemeinsames PROD-Update (Entscheidung 07 bleibt). Alles in 1.2a verhält sich bei ausgeschaltetem Schalter wie heute. |
+| P2 | Zahlungsmodell | Variante D. `payment_attempts` kommt in 2.1b-a, nicht jetzt. `payments` bleibt unverändert. Der A3-Satz „Stripe fügt nur Zeilen hinzu“ ist damit überholt. |
+| P3 | Umfang | Nur Karte, nur Einzeltermin. Kein `sepa_debit` im Enum. |
+| P4 | Schalter | Owner schaltet je Studio ein, nur wenn die Plattform freigegeben hat (`service_role`) und das Stripe-Konto bereit ist. |
+| P5 | Kunden | `provider_customers` erst in 2.2a. |
+
+**Migration** `20260928203500_s1_2a_provider_schema.sql` (geschrieben, nicht angewendet). Test
+`scripts/test/s1_2a_provider_schema.mjs` (geschrieben, nicht gelaufen, in `run_geldkette.mjs`).
+
+- Tabellen: `platform_flags` (+ Verlauf `platform_flag_changes`), `provider_accounts`, `provider_capabilities`,
+  `provider_events_raw`, `tenant_payment_settings`. Nichts an `tenants`.
+- RPCs Studio: `set_online_payments_enabled` (Owner), `set_allow_onsite_payment` (Owner),
+  `get_payment_setup_status` (Owner/Admin).
+- RPCs nur `service_role`: `set_platform_flag`, `upsert_provider_account` (Alias auf `yogaflow_private`).
+- Einschalten prüft in dieser Reihenfolge: `PLATFORM_DISABLED` → `PROVIDER_NOT_READY` → `TAX_SETTING_MISSING`.
+- Wird das Konto nicht mehr bereit, schaltet `upsert_provider_account` online automatisch aus
+  (Event `payments.online_disabled`, Grund `PROVIDER_NOT_READY`).
+
+**Festlegungen in der Umsetzung:**
+
+| # | Festlegung | Grund |
+|---|---|---|
+| 1.2a-1 | Verlauf des Plattform-Schalters in `platform_flag_changes` statt `audit_log` | `audit_log.tenant_id` ist `NOT NULL`; der Schalter hat kein Studio (Rückfrage 28.09.) |
+| 1.2a-2 | `provider_capabilities.tenant_id NOT NULL` mit FK `(provider_account_id, tenant_id)` | Hausregel „jede tenant-eigene Tabelle hat `tenant_id`“ (Rückfrage 28.09.) |
+| 1.2a-3 | Löschschalter `yogaflow.allow_payment_delete` gilt auch für `provider_accounts` und `provider_events_raw` | Vorgabe „bestehender Schalter“ |
+| 1.2a-4 | `service_role` auf den neuen Tabellen nur `SELECT`, auf `provider_events_raw` zusätzlich `INSERT`/`UPDATE`; kein `DELETE`/`TRUNCATE` | `TRUNCATE` umginge die Lösch-Trigger; Konten und Einstellungen nur über RPCs |
+| 1.2a-5 | `provider_accounts`: `tenant_id`, `provider`, `provider_ref`, `livemode` unveränderlich; zweite Referenz im selben Studio → `ACCOUNT_REF_MISMATCH`, anderer `livemode` → `LIVEMODE_MISMATCH` | „Nie umhängen“ auch in der Datenbank erzwingen |
+| 1.2a-6 | Automatisch aus bei „nicht bereit“ insgesamt (Status nicht `active`, `charges_enabled` false oder `card` nicht `active`), nicht nur bei `card` | Gleiche Regel wie beim Einschalten, Grund-Code heißt `PROVIDER_NOT_READY` |
+| 1.2a-7 | Steuerstatus „vorhanden“ = Zeile mit `valid_from` ≤ heute (Europe/Berlin) | Vorsichtige Variante (N9): ein nur künftiger Status lässt heutige Online-Zahlungen im Hauptbuch warten |
+| 1.2a-8 | Einschalten prüft auch, wenn schon an; ohne Zustandswechsel kein Event | Ein „schon an“ bei gesperrter Plattform wäre irreführend |
+| 1.2a-9 | `upsert_provider_account` ohne Änderung (doppelter Webhook) schreibt kein Event | Kein Rauschen in `events` |
+| 1.2a-10 | Capabilities als `{"card": "<status>"}` mit `active`, `inactive` oder `pending`; andere Schlüssel → `INVALID_CAPABILITIES` | P3; der Adapter (1.2b) übersetzt Stripe-Namen |
 
 ---
 

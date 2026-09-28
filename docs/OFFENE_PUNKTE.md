@@ -28,6 +28,26 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 - [ ] **`scripts/test/` prüfen** — liegt unversioniert im Arbeitsbaum. Stehen
       Zugangsdaten darin, in `.gitignore` aufnehmen oder löschen.
 
+## Stripe (Story 1.2a und folgende)
+
+- [ ] **Aufbewahrungsfrist `provider_events_raw`.** Payload enthält Personendaten
+      (Name, E-Mail, letzte vier Kartenziffern). Frist bzw. Kürzen nach Verarbeitung
+      festlegen (Rechts-Epic), dann Job bauen. In 1.2a bewusst nicht gebaut.
+- [ ] **E11 (Dashboard-Typ) und E12 (Vertragspartner Plattformkonto) vor 1.3 entscheiden.**
+      E11 ist je Konto unveränderlich.
+- [ ] **Klartext-E-Mails in drei Edge Functions** in den Logs. Fix in 1.2b mit
+      `createServiceLogger`.
+- [ ] **`card` im Hauptbuch → Endlosschleife `UNSUPPORTED_PAYMENT`.** Eine Zahlung mit
+      `method = card` hat kein Geldkonto in `ledger_money_account`; der Job würde sie
+      bei jedem Lauf erneut versuchen. Fix in 2.2a (Konto für Kartenzahlungen).
+- [ ] **Namenskollision „Checkout“.** In der App heißt die Kassier-Ansicht umgangssprachlich
+      Kasse/Checkout, Stripe nennt den Bezahlschritt Checkout. Vor 2.2 Begriffe festlegen.
+- [ ] **Online aus und vor Ort aus zugleich.** 1.2a erlaubt beides (Ausschalten ist immer
+      erlaubt, automatisches Aus bei nicht bereitem Konto). 2.2 muss festlegen, was dann
+      bei Bezahlkursen passiert.
+- [ ] **Plattform-Schalter aus, Studios noch an.** `set_platform_flag(false)` schaltet
+      Studios nicht mit aus. 2.2 muss beim Checkout beide Schalter prüfen.
+
 ## Später — nach A6-3
 
 - [ ] **Mail bei `pass.expiring`** — der Verfall-Job schreibt nur das Event

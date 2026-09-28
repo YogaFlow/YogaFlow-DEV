@@ -42,6 +42,9 @@ PROD hat zuletzt `20260926160500` (`security_handle_new_user_role_from_trusted_s
 | `20260928143000` | `a7_2_ledger_export.sql` | `export_ledger` für Owner/Admin, Zeitraum max. 366 Tage — A7-2 CSV |
 | `20260928160000` | `a8_1_bulk_waive_open_list.sql` | Sammel-Erlass vor Omlify, `get_open_coverage`, `get_course_member_passes` — A8-1 Schema |
 | `20260928170000` | `a5_courses_teacher_guard.sql` | RLS WITH CHECK UPDATE+INSERT: Lehrende können `teacher_id` nicht fremd setzen; Trigger `courses_teacher_guard` → `INVALID_TEACHER` |
+| `20260928203500` | `s1_2a_provider_schema.sql` | Stripe 1.2a: `platform_flags` (+ `platform_flag_changes`), `provider_accounts`, `provider_capabilities`, `provider_events_raw`, `tenant_payment_settings`, RPCs `set_online_payments_enabled` / `set_allow_onsite_payment` / `get_payment_setup_status`, `service_role`: `set_platform_flag` / `upsert_provider_account`, `delete_tenant_complete` ergänzt |
+
+**Release-Hinweis 1.2a:** **`online_payments` bleibt beim Release `false`.** Die Migration legt die Zeile mit `false` an. Beim Release niemand `set_platform_flag` aufrufen. Nach dem Push prüfen: `SELECT key, enabled FROM platform_flags` → genau `online_payments | false`; `tenant_payment_settings` leer. Einschalten erst nach 1.3/1.4 und dann je Studio mit einer kleinen echten Zahlung (Regel oben).
 
 **Release-Hinweis A5 Lehrer-Guard:** **RLS-Lücke `teacher_id` besteht auf PROD bis zum Release.** Bis die Migration auf PROD liegt, kann eine Lehrende per API `teacher_id` auf ein anderes Profil setzen (WITH CHECK prüfte nur `tenant_id`). UI listet für Lehrende nur die eigene Person — die Lücke ist API-seitig.
 
