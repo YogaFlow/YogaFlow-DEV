@@ -104,7 +104,7 @@ export default function TaxSettingsSection({ isOwner }: { isOwner: boolean }) {
 
   return (
     <section id="steuern" className="scroll-mt-24 rounded-md border border-border bg-surface p-3.5">
-      <h2 className="text-[19px] font-medium text-text">Steuern</h2>
+      <h2 className="text-[19px] font-medium leading-snug text-text">Steuern</h2>
 
       {loading ? <p className="mt-3 text-[15px] text-textMuted">Wird geladen…</p> : null}
       {loadError ? (
@@ -163,7 +163,7 @@ export default function TaxSettingsSection({ isOwner }: { isOwner: boolean }) {
       {savedNote ? <p className="mt-3 text-[15px] text-text">{savedNote}</p> : null}
 
       <div className="mt-6 border-t border-border pt-4">
-        <h3 className="text-[17px] font-medium text-text">Export</h3>
+        <h3 className="text-[17px] font-medium leading-snug text-text">Export</h3>
         <div className="mt-3 inline-flex rounded-sm bg-surfaceSunken p-1">
           <button
             type="button"
@@ -231,7 +231,7 @@ export default function TaxSettingsSection({ isOwner }: { isOwner: boolean }) {
             {exportError}
           </p>
         ) : null}
-        <p className="mt-3 text-[13px] leading-snug text-textMuted">{LEDGER_EXPORT_FOOTNOTE}</p>
+        <p className="mt-3 text-[13px] leading-5 text-textMuted">{LEDGER_EXPORT_FOOTNOTE}</p>
       </div>
 
       <TaxStatusDialog

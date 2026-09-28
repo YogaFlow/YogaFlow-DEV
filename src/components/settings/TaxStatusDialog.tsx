@@ -109,7 +109,7 @@ export default function TaxStatusDialog({
         aria-labelledby="tax-status-title"
         className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-lg border border-border bg-surface p-5 shadow-lg"
       >
-        <h3 id="tax-status-title" className="text-[19px] font-medium text-text">
+        <h3 id="tax-status-title" className="text-[19px] font-medium leading-snug text-text">
           Steuerstatus angeben
         </h3>
 

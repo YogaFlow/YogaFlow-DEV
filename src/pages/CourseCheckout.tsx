@@ -764,7 +764,7 @@ const CourseCheckout: React.FC = () => {
             {paidSentence} Um die Rückgabe kümmert sich die Studioleitung.
           </p>
         )}
-        <p className="text-[13px] leading-snug text-textMuted">{CASH_HINT}</p>
+        <p className="text-[13px] leading-5 text-textMuted">{CASH_HINT}</p>
 
         <ConfirmDialog
           dialog={
@@ -984,7 +984,7 @@ const CourseCheckout: React.FC = () => {
         </div>
       )}
 
-      <p className="text-[13px] leading-snug text-textMuted">{CASH_HINT}</p>
+        <p className="text-[13px] leading-5 text-textMuted">{CASH_HINT}</p>
 
       {undo ? (
         <UndoBar

@@ -15,8 +15,8 @@ export default function LedgerWaitingNotice({ variant, onSpecify }: Props) {
   const text = variant === 'dashboard' ? SHORT_TEXT : LEDGER_WAITING_TEXT;
 
   return (
-    <div className="rounded-md border border-accent bg-accentSoft px-3.5 py-3">
-      <p className="text-[15px] leading-snug text-text">{text}</p>
+    <div className="rounded-md border border-accent bg-accentSoft px-3.5 py-3 text-text">
+      <p className="text-[15px] leading-snug">{text}</p>
       {variant === 'settings-owner' ? (
         <button
           type="button"
@@ -27,7 +27,7 @@ export default function LedgerWaitingNotice({ variant, onSpecify }: Props) {
         </button>
       ) : null}
       {variant === 'settings-admin' ? (
-        <p className="mt-2 text-[15px] text-text">Nur die Inhaberin kann das angeben.</p>
+        <p className="mt-2 text-[15px] leading-snug">Nur die Inhaberin kann das angeben.</p>
       ) : null}
       {variant === 'dashboard' ? (
         <Link
