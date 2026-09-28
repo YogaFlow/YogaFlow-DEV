@@ -112,6 +112,7 @@ const PreOmlifyWaiveSection: React.FC<PreOmlifyWaiveSectionProps> = ({
     }
     onWaived(body.batch_id, body.waived);
     onChanged();
+    if (civil) void loadPreview(civil);
   };
 
   const first = preview && preview.success ? preview.first_course_date : null;
