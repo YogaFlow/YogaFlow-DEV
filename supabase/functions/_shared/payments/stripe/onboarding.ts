@@ -1,6 +1,9 @@
 /**
  * Account Session für die eingebettete Onboarding-Komponente (1.3). Liegt bewusst
  * außerhalb des Ports: Die Onboarding-Oberfläche wird nicht abstrahiert (Epic 4.3).
+ *
+ * Bleibt POST /v1/account_sessions mit account_onboarding — unabhängig vom
+ * Kontomodell (Accounts v2). Keine v1-Kontofelder.
  */
 import { ProviderError } from "../port.ts";
 import { createStripeClient, type StripeClientConfig, toProviderError } from "./sdk.ts";

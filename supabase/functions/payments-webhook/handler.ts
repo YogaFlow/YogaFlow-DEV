@@ -43,6 +43,7 @@ export type RecordEventResult =
   | { ok: false; code: string };
 
 export type UpsertAccountResult = { ok: true } | { ok: false; code: string };
+export type MarkDisconnectedResult = { ok: true; changed: boolean } | { ok: false; code: string };
 
 /** Jede Methode wirft bei vorübergehenden Fehlern (Datenbank nicht erreichbar). */
 export interface WebhookStore {
@@ -50,10 +51,11 @@ export interface WebhookStore {
   markProcessed(id: string, errorCode: string | null): Promise<void>;
   markFailed(id: string): Promise<void>;
   upsertAccount(tenantId: string, provider: ProviderId, state: ProviderAccountState): Promise<UpsertAccountResult>;
+  markDisconnected(provider: ProviderId, accountRef: string): Promise<MarkDisconnectedResult>;
 }
 
 export interface WebhookDeps {
-  /** PAYMENTS_MODE, STRIPE_WEBHOOK_SECRET, STRIPE_WEBHOOK_SECRET_2. */
+  /** PAYMENTS_MODE, STRIPE_WEBHOOK_SECRET, optional _2 und _THIN. */
   env: PaymentsEnv;
   /** Wirft bei fehlender Konfiguration. */
   getProvider: () => PaymentProvider;
@@ -72,9 +74,12 @@ function json(status: number, body: Record<string, unknown>): Response {
 const received = () => json(200, { received: true });
 const failure = (status: number, code: string) => json(status, { code });
 
-/** Gesetzte Webhook-Secrets in fester Reihenfolge; Rotation über das zweite. */
+/**
+ * Gesetzte Webhook-Secrets in fester Reihenfolge.
+ * `_2` für Snapshot-Rotation, `_THIN` für das zweite Stripe-Ziel (Thin-Nutzlast).
+ */
 export function readWebhookSecrets(env: PaymentsEnv): string[] {
-  return ["STRIPE_WEBHOOK_SECRET", "STRIPE_WEBHOOK_SECRET_2"]
+  return ["STRIPE_WEBHOOK_SECRET", "STRIPE_WEBHOOK_SECRET_2", "STRIPE_WEBHOOK_SECRET_THIN"]
     .map((key) => env.get(key)?.trim() ?? "")
     .filter((value) => value !== "");
 }
@@ -263,6 +268,16 @@ export async function handleWebhook(req: Request, deps: WebhookDeps): Promise<Re
           processingError = ERROR_CODE_RE.test(upsert.code) ? upsert.code : "UPSERT_FAILED";
         }
       }
+    }
+  } else if (domain?.type === "provider_account.disconnected") {
+    let marked: MarkDisconnectedResult;
+    try {
+      marked = await store.markDisconnected(provider.id, domain.accountRef);
+    } catch {
+      return await failTransient("DB_ERROR");
+    }
+    if (!marked.ok) {
+      processingError = ERROR_CODE_RE.test(marked.code) ? marked.code : "DISCONNECT_FAILED";
     }
   }
 

@@ -86,7 +86,7 @@ export function definePortContract(name: string, makeHarness: () => PortHarness)
     );
   });
 
-  t("account.updated → provider_account.updated mit Kontostand", async (h) => {
+  t("account.updated → provider_account.updated; Stand über getAccountState", async (h) => {
     const { ref } = await h.provider.createConnectedAccount(TENANT, connectedAccountIdempotencyKey(TENANT));
     h.activateAccount(ref);
     const { rawBody, signature } = await h.signedEvent("account.updated", ref);
@@ -94,8 +94,14 @@ export function definePortContract(name: string, makeHarness: () => PortHarness)
     assertEquals([ev.type, ev.accountRef, ev.livemode], ["account.updated", ref, false]);
     const d = h.provider.toDomainEvent(ev);
     assert(d !== null, "Domain-Event erwartet");
+    assert(d.type === "provider_account.updated", "Typ provider_account.updated");
     assertEquals([d.type, d.id, d.accountRef], ["provider_account.updated", ev.id, ref]);
-    assertEquals([d.payload.status, d.payload.capabilities.card], ["active", "active"]);
+    if (d.payload) {
+      assertEquals([d.payload.status, d.payload.capabilities.card], ["active", "active"]);
+    } else {
+      const s = await h.provider.getAccountState(ref);
+      assertEquals([s.status, s.capabilities.card], ["active", "active"]);
+    }
   });
 
   t("anderes Event → null", async (h) => {

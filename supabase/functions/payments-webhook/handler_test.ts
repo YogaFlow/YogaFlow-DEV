@@ -2,9 +2,19 @@ import { envFromRecord } from "../_shared/payments/config.ts";
 import { FAKE_WEBHOOK_SECRET, FakePaymentProvider } from "../_shared/payments/fake/adapter.ts";
 import { assert, assertEquals } from "../_shared/payments/port_contract.ts";
 import { type ProviderAccountState, ProviderError } from "../_shared/payments/port.ts";
+import { StripePaymentProvider } from "../_shared/payments/stripe/adapter.ts";
+import * as fx from "../_shared/payments/stripe/fixtures/accounts.ts";
+import {
+  createStripeStub,
+  signStripeThinEvent,
+  TEST_SECRET_KEY,
+  TEST_WEBHOOK_SECRET_THIN,
+} from "../_shared/payments/stripe/test_support.ts";
 import {
   handleWebhook,
   MAX_BODY_BYTES,
+  readWebhookSecrets,
+  type MarkDisconnectedResult,
   type RecordEventInput,
   type RecordEventResult,
   type UpsertAccountResult,
@@ -32,7 +42,9 @@ class MemoryStore implements WebhookStore {
   /** provider_accounts: provider_ref → tenant_id */
   readonly accounts = new Map<string, string>();
   readonly upserts: { tenantId: string; state: ProviderAccountState }[] = [];
+  readonly disconnects: string[] = [];
   upsertResult: UpsertAccountResult = { ok: true };
+  disconnectResult: MarkDisconnectedResult = { ok: true, changed: true };
   writes = 0;
   private counter = 0;
 
@@ -84,6 +96,12 @@ class MemoryStore implements WebhookStore {
     this.writes += 1;
     this.upserts.push({ tenantId, state: structuredClone(state) });
     return Promise.resolve(this.upsertResult);
+  }
+
+  markDisconnected(_provider: string, accountRef: string): Promise<MarkDisconnectedResult> {
+    this.writes += 1;
+    this.disconnects.push(accountRef);
+    return Promise.resolve(this.disconnectResult);
   }
 
   only(): Row {
@@ -378,4 +396,139 @@ Deno.test("Webhook: Logger bekommt weder Payload noch Signatur", async () => {
   }
   assert(all.includes(eventId), "Event-ID steht im Log");
   assert(all.includes("account.updated"), "Event-Typ steht im Log");
+});
+
+Deno.test("Webhook: account.application.deauthorized bekannt → markDisconnected, 200", async () => {
+  const s = setup();
+  const ref = await connectedAccount(s);
+  const res = await handleWebhook(
+    await signed(s, s.provider.buildEvent("account.application.deauthorized", ref)),
+    s.deps,
+  );
+  assertEquals(res.status, 200);
+  assertEquals(s.store.disconnects, [ref]);
+  assertEquals(s.provider.getAccountStateCalls, 0);
+  assertEquals(s.store.upserts.length, 0);
+  const row = s.store.only();
+  assert(row.processedAt !== null, "verarbeitet");
+  assertEquals(row.processingError, null);
+});
+
+Deno.test("Webhook: account.application.deauthorized unbekannt → NOT_FOUND in Rohzeile, 200", async () => {
+  const s = setup();
+  const { ref } = await s.provider.createConnectedAccount(TENANT, "k-deauth-unknown");
+  s.store.disconnectResult = { ok: false, code: "NOT_FOUND" };
+  const res = await handleWebhook(
+    await signed(s, s.provider.buildEvent("account.application.deauthorized", ref)),
+    s.deps,
+  );
+  assertEquals(res.status, 200);
+  assertEquals(s.store.disconnects, [ref]);
+  const row = s.store.only();
+  assert(row.processedAt !== null, "abschließend behandelt");
+  assertEquals(row.processingError, "NOT_FOUND");
+});
+
+Deno.test("Webhook: account.updated reicht requirementsPending und requirementsDueAt weiter", async () => {
+  const s = setup();
+  const ref = await connectedAccount(s);
+  const dueAt = "2026-10-15T12:00:00.000Z";
+  s.provider.setAccountState(ref, {
+    status: "active",
+    chargesEnabled: true,
+    payoutsEnabled: true,
+    detailsSubmitted: true,
+    requirementsPending: true,
+    requirementsDueAt: dueAt,
+    capabilities: { card: "active" },
+  });
+  const res = await handleWebhook(await signed(s, s.provider.buildEvent("account.updated", ref)), s.deps);
+  assertEquals(res.status, 200);
+  assertEquals(s.store.upserts.length, 1);
+  assertEquals(s.store.upserts[0].state.requirementsPending, true);
+  assertEquals(s.store.upserts[0].state.requirementsDueAt, dueAt);
+});
+
+Deno.test("readWebhookSecrets: _THIN wird mitgelesen", () => {
+  assertEquals(
+    readWebhookSecrets(envFromRecord({
+      STRIPE_WEBHOOK_SECRET: "whsec_a",
+      STRIPE_WEBHOOK_SECRET_THIN: "whsec_thin",
+    })),
+    ["whsec_a", "whsec_thin"],
+  );
+});
+
+Deno.test("Webhook Thin: gültig → Nachlesen und upsert", async () => {
+  const stub = createStripeStub();
+  const stripe = new StripePaymentProvider({ secretKey: TEST_SECRET_KEY, mode: "test", fetchFn: stub.fetchFn });
+  const { ref } = await stripe.createConnectedAccount(TENANT, `acct-create-${TENANT}`);
+  stub.activate(ref);
+
+  const store = new MemoryStore();
+  store.accounts.set(ref, TENANT);
+  const log = new SpyLogger();
+  const deps: WebhookDeps = {
+    env: envFromRecord({
+      PAYMENTS_MODE: "test",
+      STRIPE_WEBHOOK_SECRET: "whsec_unused_snapshot",
+      STRIPE_WEBHOOK_SECRET_THIN: TEST_WEBHOOK_SECRET_THIN,
+    }),
+    getProvider: () => stripe,
+    getStore: () => store,
+    log,
+  };
+
+  const envelope = fx.thinAccountEvent("v2.core.account[requirements].updated", ref, { id: "evt_thin_handler" });
+  const { rawBody, signature } = await signStripeThinEvent(envelope);
+  const res = await handleWebhook(post(rawBody, signature), deps);
+  assertEquals(res.status, 200);
+  assertEquals(store.upserts.length, 1);
+  assertEquals(store.upserts[0].state.status, "active");
+  const row = store.only();
+  assertEquals(row.eventType, "v2.core.account[requirements].updated");
+  assertEquals(row.processingError, null);
+  assert(row.processedAt !== null, "verarbeitet");
+});
+
+Deno.test("Webhook Thin: falsche Signatur → 400", async () => {
+  const stub = createStripeStub();
+  const stripe = new StripePaymentProvider({ secretKey: TEST_SECRET_KEY, mode: "test", fetchFn: stub.fetchFn });
+  const store = new MemoryStore();
+  const deps: WebhookDeps = {
+    env: envFromRecord({
+      PAYMENTS_MODE: "test",
+      STRIPE_WEBHOOK_SECRET_THIN: TEST_WEBHOOK_SECRET_THIN,
+    }),
+    getProvider: () => stripe,
+    getStore: () => store,
+    log: new SpyLogger(),
+  };
+  const { rawBody } = await signStripeThinEvent(fx.thinAccountUpdated);
+  const { signature: foreign } = await signStripeThinEvent(fx.thinAccountUpdated, { secret: "whsec_fremd" });
+  const res = await handleWebhook(post(rawBody, foreign), deps);
+  assertEquals(res.status, 400);
+  assertEquals(await readJson(res), { code: "INVALID_SIGNATURE" });
+  assertEquals(store.writes, 0);
+});
+
+Deno.test("Webhook Thin: fremder Typ → ohne Wirkung", async () => {
+  const stub = createStripeStub();
+  const stripe = new StripePaymentProvider({ secretKey: TEST_SECRET_KEY, mode: "test", fetchFn: stub.fetchFn });
+  const store = new MemoryStore();
+  const deps: WebhookDeps = {
+    env: envFromRecord({
+      PAYMENTS_MODE: "test",
+      STRIPE_WEBHOOK_SECRET_THIN: TEST_WEBHOOK_SECRET_THIN,
+    }),
+    getProvider: () => stripe,
+    getStore: () => store,
+    log: new SpyLogger(),
+  };
+  const { rawBody, signature } = await signStripeThinEvent(fx.thinPing);
+  const res = await handleWebhook(post(rawBody, signature), deps);
+  assertEquals(res.status, 200);
+  assertEquals(store.upserts.length, 0);
+  const row = store.only();
+  assertEquals([row.eventType, row.processingError], ["v2.core.event_destination.ping", null]);
 });

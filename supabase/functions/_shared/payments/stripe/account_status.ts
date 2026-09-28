@@ -1,112 +1,155 @@
 /**
- * Reine Abbildung eines Stripe-Kontos auf ProviderAccountState. Ohne SDK-Import,
- * damit Fixtures und Webhook-Nutzlast (unknown) dieselbe Form durchlaufen.
+ * Reine Abbildung eines Stripe-Kontos (Accounts v2) auf ProviderAccountState.
+ * Ohne SDK-Import, damit Fixtures und geparste Antworten dieselbe Form durchlaufen.
+ *
+ * Abbildung V2 (Nachtrag 5d): details_submitted gibt es in v2 nicht — abgeleitet.
+ * action_required erzeugt der Adapter vorerst nicht (Enum bleibt im Port).
+ *
+ * Quelle „wer ist am Zug“: requirements.entries[].awaiting_action_from = user | stripe
+ * (Stripe API Account object / SDK V2.Core.Account.Requirements.Entry,
+ * docs.stripe.com/api/v2/core/accounts/object, API 2026-08-26.dahlia).
  */
 import type { CapabilityStatus, OnboardingStatus, ProviderAccountState } from "../port.ts";
 
-/** Die Felder von Stripe.Account (v1), die die Abbildung liest. */
+export interface RequirementEntry {
+  awaiting_action_from?: string | null;
+  minimum_deadline?: { status?: string | null } | null;
+}
+
+/** Felder von v2.core.Account, die die Abbildung liest. */
 export interface StripeAccountSnapshot {
   id: string;
-  details_submitted?: boolean | null;
-  charges_enabled?: boolean | null;
-  payouts_enabled?: boolean | null;
+  object?: string;
+  livemode?: boolean;
+  configuration?: {
+    merchant?: {
+      capabilities?: {
+        card_payments?: { status?: string | null } | null;
+        stripe_balance?: {
+          payouts?: { status?: string | null } | null;
+        } | null;
+      } | null;
+    } | null;
+  } | null;
   requirements?: {
-    currently_due?: string[] | null;
-    past_due?: string[] | null;
-    eventually_due?: string[] | null;
-    /** Unix-Sekunden. */
-    current_deadline?: number | null;
-  } | null;
-  capabilities?: {
-    card_payments?: string | null;
+    entries?: RequirementEntry[] | null;
+    summary?: {
+      minimum_deadline?: {
+        status?: string | null;
+        /** RFC 3339. */
+        time?: string | null;
+      } | null;
+    } | null;
   } | null;
 }
 
-function nonEmpty(list: string[] | null | undefined): boolean {
-  return Array.isArray(list) && list.length > 0;
+function entriesOf(a: StripeAccountSnapshot): RequirementEntry[] {
+  return Array.isArray(a.requirements?.entries) ? a.requirements!.entries! : [];
 }
 
-/**
- * Reihenfolge ist Teil der Regel:
- * 1. nicht eingereicht → in_progress
- * 2. charges_enabled und past_due leer → active (eventually_due und currently_due
- *    sperren nicht, solange Stripe Zahlungen zulässt)
- * 3. currently_due oder past_due gefüllt → action_required
- * 4. sonst → in_review
- */
-export function mapOnboardingStatus(a: StripeAccountSnapshot): OnboardingStatus {
-  if (a.details_submitted !== true) return "in_progress";
-  const pastDue = nonEmpty(a.requirements?.past_due);
-  if (a.charges_enabled === true && !pastDue) return "active";
-  if (pastDue || nonEmpty(a.requirements?.currently_due)) return "action_required";
-  return "in_review";
+function entryStatus(entry: RequirementEntry): string | null {
+  const s = entry.minimum_deadline?.status;
+  return typeof s === "string" ? s : null;
+}
+
+function hasEntryStatus(a: StripeAccountSnapshot, status: string): boolean {
+  return entriesOf(a).some((e) => entryStatus(e) === status);
+}
+
+function hasCurrentlyDue(a: StripeAccountSnapshot): boolean {
+  return hasEntryStatus(a, "currently_due");
+}
+
+function hasPastDue(a: StripeAccountSnapshot): boolean {
+  return hasEntryStatus(a, "past_due");
+}
+
+/** Mindestens ein Eintrag trägt awaiting_action_from als String. */
+function hasAwaitingActionFrom(a: StripeAccountSnapshot): boolean {
+  return entriesOf(a).some((e) => typeof e.awaiting_action_from === "string");
+}
+
+function isUserAction(entry: RequirementEntry): boolean {
+  return entry.awaiting_action_from === "user";
+}
+
+function hasUserPastDue(a: StripeAccountSnapshot): boolean {
+  return entriesOf(a).some((e) => isUserAction(e) && entryStatus(e) === "past_due");
+}
+
+function hasUserAction(a: StripeAccountSnapshot): boolean {
+  return entriesOf(a).some((e) => isUserAction(e));
 }
 
 export function mapCardCapability(a: StripeAccountSnapshot): CapabilityStatus {
-  const raw = a.capabilities?.card_payments;
+  const raw = a.configuration?.merchant?.capabilities?.card_payments?.status;
   if (raw === "active") return "active";
   if (raw === "pending") return "pending";
   return "inactive";
 }
 
-export function mapRequirementsDueAt(a: StripeAccountSnapshot): string | null {
-  const deadline = a.requirements?.current_deadline;
-  if (typeof deadline !== "number" || !Number.isFinite(deadline)) return null;
-  return new Date(deadline * 1000).toISOString();
+/**
+ * Status-Abbildung (ohne action_required):
+ * Mit awaiting_action_from:
+ * 1. Karte active und kein user+past_due → active
+ * 2. mindestens ein Eintrag mit Nutzerin am Zug → in_progress
+ * 3. sonst → in_review
+ * Ohne das Feld (Fallback): Karte active und kein past_due → active;
+ * sonst currently_due/past_due → in_progress; sonst in_review.
+ */
+export function mapOnboardingStatus(a: StripeAccountSnapshot): OnboardingStatus {
+  const card = mapCardCapability(a);
+
+  if (hasAwaitingActionFrom(a)) {
+    if (card === "active" && !hasUserPastDue(a)) return "active";
+    if (hasUserAction(a)) return "in_progress";
+    return "in_review";
+  }
+
+  // Fallback ohne awaiting_action_from: in_review nur bei keinen fälligen Einträgen.
+  if (card === "active" && !hasPastDue(a)) return "active";
+  if (hasCurrentlyDue(a) || hasPastDue(a)) return "in_progress";
+  return "in_review";
 }
 
-/** Das v1-Konto hat kein livemode-Feld; es kommt aus dem Schlüssel bzw. dem Event. */
+export function mapRequirementsDueAt(a: StripeAccountSnapshot): string | null {
+  const time = a.requirements?.summary?.minimum_deadline?.time;
+  if (typeof time !== "string" || time.trim() === "") return null;
+  const ms = Date.parse(time);
+  if (!Number.isFinite(ms)) return null;
+  return new Date(ms).toISOString();
+}
+
+/** details_submitted abgeleitet: keine currently_due- und keine past_due-Einträge. */
+export function mapDetailsSubmitted(a: StripeAccountSnapshot): boolean {
+  return !hasCurrentlyDue(a) && !hasPastDue(a);
+}
+
 export function mapStripeAccount(a: StripeAccountSnapshot, livemode: boolean): ProviderAccountState {
+  const card = mapCardCapability(a);
+  const payouts =
+    a.configuration?.merchant?.capabilities?.stripe_balance?.payouts?.status === "active";
   return {
     ref: a.id,
     livemode,
     status: mapOnboardingStatus(a),
-    chargesEnabled: a.charges_enabled === true,
-    payoutsEnabled: a.payouts_enabled === true,
-    detailsSubmitted: a.details_submitted === true,
-    requirementsPending: nonEmpty(a.requirements?.currently_due),
+    chargesEnabled: card === "active",
+    payoutsEnabled: payouts,
+    detailsSubmitted: mapDetailsSubmitted(a),
+    requirementsPending: hasCurrentlyDue(a) || hasPastDue(a),
     requirementsDueAt: mapRequirementsDueAt(a),
-    capabilities: { card: mapCardCapability(a) },
+    capabilities: { card },
   };
 }
 
-function isStringArrayOrNull(v: unknown): boolean {
-  return v === undefined || v === null || (Array.isArray(v) && v.every((x) => typeof x === "string"));
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
-function isBoolOrNull(v: unknown): boolean {
-  return v === undefined || v === null || typeof v === "boolean";
-}
-
-/** Prüft eine Webhook-Nutzlast (unknown) auf die Form eines Kontos. */
+/** Prüft eine API-Antwort (unknown) auf die Form eines v2-Kontos. */
 export function parseAccountSnapshot(value: unknown): StripeAccountSnapshot | null {
-  if (typeof value !== "object" || value === null) return null;
-  const o = value as Record<string, unknown>;
-  if (o.object !== undefined && o.object !== "account") return null;
-  if (typeof o.id !== "string" || !o.id.startsWith("acct_")) return null;
-  if (!isBoolOrNull(o.details_submitted) || !isBoolOrNull(o.charges_enabled) || !isBoolOrNull(o.payouts_enabled)) {
-    return null;
-  }
-
-  const req = o.requirements;
-  if (req !== undefined && req !== null) {
-    if (typeof req !== "object") return null;
-    const r = req as Record<string, unknown>;
-    if (!isStringArrayOrNull(r.currently_due) || !isStringArrayOrNull(r.past_due) || !isStringArrayOrNull(r.eventually_due)) {
-      return null;
-    }
-    const deadline = r.current_deadline;
-    if (deadline !== undefined && deadline !== null && (typeof deadline !== "number" || !Number.isFinite(deadline))) {
-      return null;
-    }
-  }
-
-  const caps = o.capabilities;
-  if (caps !== undefined && caps !== null) {
-    if (typeof caps !== "object") return null;
-    const card = (caps as Record<string, unknown>).card_payments;
-    if (card !== undefined && card !== null && typeof card !== "string") return null;
-  }
-
-  return o as unknown as StripeAccountSnapshot;
+  if (!isPlainObject(value)) return null;
+  if (value.object !== undefined && value.object !== "v2.core.account") return null;
+  if (typeof value.id !== "string" || !value.id.startsWith("acct_")) return null;
+  return value as unknown as StripeAccountSnapshot;
 }

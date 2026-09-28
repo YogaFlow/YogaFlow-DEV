@@ -1,9 +1,8 @@
 /**
- * Stripe-Adapter für den Zahlungs-Port. Accounts v1 mit Controller-Eigenschaften
- * (Entscheidung P7), Direct Charges, verbundene Konten in DE.
+ * Stripe-Adapter für den Zahlungs-Port. Accounts v2 (Entscheidung P7 neu).
  *
  * Stripe ist Ausführungsorgan, nicht Quelle der Wahrheit: Die Datenbank erfährt
- * Zustände über Webhooks (1.4) und liest bei account.updated per getAccountState nach.
+ * Zustände über Webhooks (1.4) und liest bei Konto-Ereignissen per getAccountState nach (W3).
  */
 import type { PaymentsMode } from "../config.ts";
 import {
@@ -25,23 +24,72 @@ import {
 } from "./sdk.ts";
 
 /**
- * P7: vollständiges Dashboard, Gebühren und Verluste beim Studio bzw. bei Stripe,
- * Stripe sammelt die Nachweise ein. `transfers` verlangt Stripe zusammen mit
- * `card_payments` („you must request both“, docs.stripe.com/connect/account-capabilities).
+ * P7 neu: Accounts v2. Kein transfers / stripe_transfers, keine customer-Konfiguration.
+ * RequestOptions.idempotencyKey unverändert (SDK RequestOptions).
  */
 export const CONNECTED_ACCOUNT_PARAMS = {
-  country: "DE",
-  controller: {
-    stripe_dashboard: { type: "full" },
-    fees: { payer: "account" },
-    losses: { payments: "stripe" },
-    requirement_collection: "stripe",
+  dashboard: "full",
+  defaults: {
+    responsibilities: {
+      fees_collector: "stripe",
+      losses_collector: "stripe",
+    },
   },
-  capabilities: {
-    card_payments: { requested: true },
-    transfers: { requested: true },
+  identity: {
+    country: "DE",
   },
-} as const satisfies Omit<Stripe.AccountCreateParams, "metadata">;
+  configuration: {
+    merchant: {
+      capabilities: {
+        card_payments: { requested: true },
+      },
+    },
+  },
+} as const satisfies Omit<Stripe.V2.Core.AccountCreateParams, "metadata">;
+
+const ACCOUNT_INCLUDE = [
+  "configuration.merchant",
+  "requirements",
+  "identity",
+] as const satisfies ReadonlyArray<Stripe.V2.Core.AccountRetrieveParams.Include>;
+
+/** v2.core.account…, nicht account_link / account_person. */
+export function isV2CoreAccountEventType(type: string): boolean {
+  return type === "v2.core.account.closed" ||
+    type === "v2.core.account.created" ||
+    type === "v2.core.account.updated" ||
+    type.startsWith("v2.core.account[");
+}
+
+function peekObject(rawBody: string): string | null {
+  try {
+    const parsed = JSON.parse(rawBody) as { object?: unknown };
+    return typeof parsed.object === "string" ? parsed.object : null;
+  } catch {
+    return null;
+  }
+}
+
+function thinToProviderEvent(n: Stripe.V2.Core.EventNotification): ProviderEvent {
+  const related = "related_object" in n && n.related_object && typeof n.related_object === "object"
+    ? n.related_object as { id?: unknown }
+    : null;
+  const accountRef = typeof related?.id === "string" ? related.id : null;
+  return {
+    id: n.id,
+    type: n.type,
+    accountRef,
+    livemode: n.livemode,
+    payload: {
+      id: n.id,
+      object: n.object,
+      type: n.type,
+      created: n.created,
+      livemode: n.livemode,
+      related_object: "related_object" in n ? n.related_object : null,
+    },
+  };
+}
 
 export class StripePaymentProvider implements PaymentProvider {
   readonly id = "stripe" as const;
@@ -60,8 +108,12 @@ export class StripePaymentProvider implements PaymentProvider {
   async createConnectedAccount(tenantId: string, idempotencyKey: string): Promise<ProviderAccountState> {
     if (!tenantId || !idempotencyKey) throw new ProviderError("PROVIDER_REJECTED", "missing_input");
     try {
-      const account = await this.client.accounts.create(
-        { ...CONNECTED_ACCOUNT_PARAMS, metadata: { omlify_tenant_id: tenantId } },
+      const account = await this.client.v2.core.accounts.create(
+        {
+          ...CONNECTED_ACCOUNT_PARAMS,
+          include: [...ACCOUNT_INCLUDE],
+          metadata: { omlify_tenant_id: tenantId },
+        },
         { idempotencyKey },
       );
       return mapStripeAccount(account, this.livemode);
@@ -73,8 +125,12 @@ export class StripePaymentProvider implements PaymentProvider {
   async getAccountState(ref: string): Promise<ProviderAccountState> {
     if (!ref) throw new ProviderError("PROVIDER_REJECTED", "missing_input");
     try {
-      const account = await this.client.accounts.retrieve(ref);
-      return mapStripeAccount(account, this.livemode);
+      const account = await this.client.v2.core.accounts.retrieve(ref, {
+        include: [...ACCOUNT_INCLUDE],
+      });
+      const snapshot = parseAccountSnapshot(account);
+      if (!snapshot) throw new ProviderError("PROVIDER_REJECTED", "account_shape");
+      return mapStripeAccount(snapshot, this.livemode);
     } catch (err) {
       throw toProviderError(err);
     }
@@ -93,6 +149,28 @@ export class StripePaymentProvider implements PaymentProvider {
       throw new ProviderError("CONFIG_ERROR", "STRIPE_WEBHOOK_SECRET");
     }
     if (!signature) throw new ProviderError("INVALID_SIGNATURE", "missing_header");
+
+    const object = peekObject(rawBody);
+
+    if (object === "v2.core.event") {
+      let notification: Stripe.V2.Core.EventNotification;
+      try {
+        notification = await this.client.parseEventNotificationAsync(
+          rawBody,
+          signature,
+          secret,
+          undefined,
+          subtleCryptoProvider,
+        );
+      } catch (err) {
+        const mapped = toProviderError(err);
+        throw mapped.code === "PROVIDER_UNAVAILABLE" ? new ProviderError("INVALID_SIGNATURE") : mapped;
+      }
+      if (notification.livemode !== this.livemode) {
+        throw new ProviderError("LIVEMODE_MISMATCH", notification.livemode ? "live_event" : "test_event");
+      }
+      return thinToProviderEvent(notification);
+    }
 
     let event: Stripe.Event;
     try {
@@ -123,20 +201,27 @@ export class StripePaymentProvider implements PaymentProvider {
   }
 
   toDomainEvent(e: ProviderEvent): DomainEvent | null {
-    if (e.type !== "account.updated") return null;
-
-    const snapshot = parseAccountSnapshot(e.payload);
-    if (!snapshot) throw new ProviderError("INVALID_EVENT", "account_payload");
-    if (e.accountRef !== null && e.accountRef !== snapshot.id) {
-      throw new ProviderError("INVALID_EVENT", "account_ref");
+    if (e.type === "account.application.deauthorized") {
+      if (!e.accountRef) throw new ProviderError("INVALID_EVENT", "missing_account");
+      return {
+        type: "provider_account.disconnected",
+        id: e.id,
+        accountRef: e.accountRef,
+        livemode: e.livemode,
+      };
     }
 
-    return {
-      type: "provider_account.updated",
-      id: e.id,
-      accountRef: snapshot.id,
-      livemode: e.livemode,
-      payload: mapStripeAccount(snapshot, e.livemode),
-    };
+    if (e.type === "account.updated" || isV2CoreAccountEventType(e.type)) {
+      if (!e.accountRef) throw new ProviderError("INVALID_EVENT", "missing_account");
+      // W3: Stand wird beim Verarbeiten nachgelesen; kein Snapshot im Domain-Event.
+      return {
+        type: "provider_account.updated",
+        id: e.id,
+        accountRef: e.accountRef,
+        livemode: e.livemode,
+      };
+    }
+
+    return null;
   }
 }

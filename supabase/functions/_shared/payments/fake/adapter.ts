@@ -165,6 +165,16 @@ export class FakePaymentProvider implements PaymentProvider {
   }
 
   toDomainEvent(e: ProviderEvent): DomainEvent | null {
+    if (e.type === "account.application.deauthorized") {
+      if (!e.accountRef) throw new ProviderError("INVALID_EVENT", "missing_account");
+      return {
+        type: "provider_account.disconnected",
+        id: e.id,
+        accountRef: e.accountRef,
+        livemode: e.livemode,
+      };
+    }
+
     if (e.type !== "account.updated") return null;
     if (!isAccountState(e.payload)) throw new ProviderError("INVALID_EVENT", "account_payload");
     if (e.accountRef !== null && e.accountRef !== e.payload.ref) {

@@ -45,8 +45,23 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
       `processing_error = 'TENANT_NOT_RESOLVED'` (Event vor dem Konto in
       `provider_accounts`) werden heute nicht erneut angefasst. Der Abgleich in 5.1
       muss sie finden und nachverarbeiten.
-- [ ] **`account.application.deauthorized` → 1.3.** Studio automatisch online aus
-      (Event `payments.online_disabled`, Grund `PROVIDER_DISCONNECTED`).
+- [ ] **Neues Konto nach `disconnected`.** Nach `account.application.deauthorized`
+      bleibt das Studio ohne neues Stripe-Konto. Ob und wie Owner erneut onboarden
+      dürfen, ist nicht Teil von 1.3a (O6).
+- [ ] **Thin-Events: Geltungsbereich nach E2E.** Nach echtem Onboarding im Browser mit
+      `scripts/test/s1_3a_e2e_events.mjs <slug>` festhalten, ob Thin-Ereignisse
+      (`v2.core.account…`) für verbundene Konten ankommen (V4). Parallel beobachten,
+      ob es einen v2-Ersatz für `account.application.deauthorized` gibt.
+- [ ] **Stripe-Testkonten in der Sandbox aufräumen (optional).** Rauchtests legen
+      Connect-Konten an; sie bleiben in der Stripe-Sandbox. Bei Bedarf manuell
+      löschen oder periodisch aufräumen.
+- [ ] **1.3b — Oberfläche Onboarding.** Zustände `not_started`, `in_progress`,
+      `in_review`, `active`, `action_required`, `disconnected` und Hinweis auf die
+      Stripe-Frist (`requirements_due_at`).
+- [ ] **`action_required` für Nachforderungen nach Aktivierung, später.** Der Adapter
+      mappt v2 vorerst nie auf `action_required` (frisch `past_due` + Nutzerin am Zug →
+      `in_progress`; Enum bleibt). Wann die UI nach Aktivierung wieder `action_required`
+      braucht, in 1.3b klären.
 - [ ] **`evt_smoke_`-Zeilen auf DEV.** Der Rauchtest `scripts/test/s1_4_webhook_smoke.mjs`
       hinterlässt Rohzeilen ohne Studio (Event-IDs mit Präfix `evt_smoke_`). Sie lassen
       sich wegen des Lösch-Triggers nicht löschen (Absicht). Mit der Aufbewahrungsfrist
@@ -211,14 +226,22 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Erledigt
 
+- 29.09.2026 — Abbildung V2: frisches Konto mit `past_due` + `awaiting_action_from=user`
+  → `in_progress` (nicht `action_required`); Adapter erzeugt `action_required` vorerst nicht.
+- 28.09.2026 — Accounts v2 (P7 neu, V1–V5): Adapter `v2.core.accounts.create/retrieve`,
+  Thin-Events + `STRIPE_WEBHOOK_SECRET_THIN`, Abbildung in `account_status.ts`.
+  Kein Deploy/Commit in diesem Schritt; Commit 2 nach grünem Rauchtest.
+- 28.09.2026 — 1.3a Backend: `account.application.deauthorized` → Status `disconnected`,
+  Studio online aus (`PROVIDER_DISCONNECTED`); Migration `20260928231500`, Function
+  `payments-onboarding` (geschrieben, Deploy ausstehend).
 - 28.09.2026 — Deno-Tests in der CI: `denoland/setup-deno@v2` mit `v2.9.7`, danach
   `npm run test:deno` (`.github/workflows/ci.yml`).
 - 28.09.2026 — Fehler-Logs in `send-email`, `request-password-reset` und
   `request-verification-email` laufen durch `createServiceLogger` (Maskierer).
 - 28.09.2026 — 1.2b-2 bestätigt, ergänzt um `requirementsPending` und
   `requirementsDueAt` in `ProviderAccountState` (Nachtrag 5b).
-- 28.09.2026 — E11 und E12 entschieden (P6, P7 im Nachtrag 5b): Julius als
-  Einzelunternehmer, vollständiges Dashboard, Accounts v1 mit Controller-Eigenschaften.
+- 28.09.2026 — E11 und E12 entschieden (P6, P7): Julius als Einzelunternehmer,
+  vollständiges Dashboard; Konto-Modell später auf Accounts v2 (P7 neu, Nachtrag 5d).
 - 28.09.2026 — Sicherheits-Hotfix Kursleitung-Guard live auf PROD (Merge `3bcd961`,
   PR #174, Migration `20260928213000`, Trigger `courses_teacher_guard_hotfix`).
 - 28.09.2026 — A5: Vergangene Kurse nur eingeschränkt bearbeitbar (Client) und

@@ -5,23 +5,48 @@
 import { Stripe, subtleCryptoProvider } from "./sdk.ts";
 
 export const TEST_WEBHOOK_SECRET = "whsec_omlify_unit_test";
+export const TEST_WEBHOOK_SECRET_THIN = "whsec_omlify_thin_unit_test";
 export const TEST_SECRET_KEY = "sk_test_omlify_unit_test";
 
 export interface StubCall {
   method: string;
   path: string;
+  /** Form-Body (v1) oder leere Params. */
   params: URLSearchParams;
+  /** JSON-Body (v2), sonst null. */
+  jsonBody: unknown | null;
+  query: URLSearchParams;
   idempotencyKey: string | null;
 }
 
 export type StubAccount = {
   id: string;
-  object: "account";
-  details_submitted: boolean;
-  charges_enabled: boolean;
-  payouts_enabled: boolean;
-  requirements: { currently_due: string[]; past_due: string[]; eventually_due: string[] };
-  capabilities: { card_payments?: string; transfers?: string };
+  object: "v2.core.account";
+  created: string;
+  livemode: boolean;
+  applied_configurations: string[];
+  dashboard: string;
+  identity: { country: string };
+  configuration: {
+    merchant: {
+      applied: boolean;
+      capabilities: {
+        card_payments: { status: string; status_details: unknown[] };
+        stripe_balance: { payouts: { status: string; status_details: unknown[] } };
+      };
+    };
+  };
+  requirements: {
+    entries: Array<{
+      awaiting_action_from: string;
+      description: string;
+      errors: unknown[];
+      impact: Record<string, unknown>;
+      minimum_deadline: { status: string };
+      requested_reasons: Array<{ code: string }>;
+    }>;
+    summary: Record<string, unknown>;
+  };
   metadata: Record<string, string>;
 };
 
@@ -30,6 +55,39 @@ function json(status: number, body: unknown): Response {
     status,
     headers: { "content-type": "application/json", "request-id": "req_stub" },
   });
+}
+
+function freshAccount(id: string, tenantId: string): StubAccount {
+  return {
+    id,
+    object: "v2.core.account",
+    created: "2026-09-28T12:00:00.000Z",
+    livemode: false,
+    applied_configurations: ["merchant"],
+    dashboard: "full",
+    identity: { country: "DE" },
+    configuration: {
+      merchant: {
+        applied: true,
+        capabilities: {
+          card_payments: { status: "inactive", status_details: [] },
+          stripe_balance: { payouts: { status: "inactive", status_details: [] } },
+        },
+      },
+    },
+    requirements: {
+      entries: [{
+        awaiting_action_from: "user",
+        description: "business_type",
+        errors: [],
+        impact: {},
+        minimum_deadline: { status: "past_due" },
+        requested_reasons: [{ code: "routine_onboarding" }],
+      }],
+      summary: { minimum_deadline: { status: "past_due" } },
+    },
+    metadata: { omlify_tenant_id: tenantId },
+  };
 }
 
 export function createStripeStub(options: { failWithStatus?: number } = {}) {
@@ -42,8 +100,27 @@ export function createStripeStub(options: { failWithStatus?: number } = {}) {
     const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url);
     const headers = new Headers(init?.headers);
     const method = (init?.method ?? "GET").toUpperCase();
-    const params = new URLSearchParams(typeof init?.body === "string" ? init.body : "");
-    calls.push({ method, path: url.pathname, params, idempotencyKey: headers.get("idempotency-key") });
+    const contentType = headers.get("content-type") ?? "";
+    const rawBody = typeof init?.body === "string" ? init.body : "";
+    let jsonBody: unknown | null = null;
+    let params = new URLSearchParams();
+    if (contentType.includes("application/json") && rawBody) {
+      try {
+        jsonBody = JSON.parse(rawBody);
+      } catch {
+        jsonBody = null;
+      }
+    } else if (rawBody) {
+      params = new URLSearchParams(rawBody);
+    }
+    calls.push({
+      method,
+      path: url.pathname,
+      params,
+      jsonBody,
+      query: url.searchParams,
+      idempotencyKey: headers.get("idempotency-key"),
+    });
     await Promise.resolve();
 
     if (options.failWithStatus) {
@@ -52,28 +129,22 @@ export function createStripeStub(options: { failWithStatus?: number } = {}) {
       });
     }
 
-    if (method === "POST" && url.pathname === "/v1/accounts") {
+    if (method === "POST" && url.pathname === "/v2/core/accounts") {
       const key = headers.get("idempotency-key");
       const known = key ? idempotent.get(key) : undefined;
       if (known) return json(200, accounts.get(known));
       counter += 1;
       const id = `acct_stub${String(counter).padStart(6, "0")}`;
-      const acc: StubAccount = {
-        id,
-        object: "account",
-        details_submitted: false,
-        charges_enabled: false,
-        payouts_enabled: false,
-        requirements: { currently_due: ["business_type"], past_due: [], eventually_due: ["business_type"] },
-        capabilities: { card_payments: "inactive", transfers: "inactive" },
-        metadata: { omlify_tenant_id: params.get("metadata[omlify_tenant_id]") ?? "" },
-      };
+      const meta = isPlain(jsonBody) && isPlain(jsonBody.metadata)
+        ? String((jsonBody.metadata as Record<string, unknown>).omlify_tenant_id ?? "")
+        : "";
+      const acc = freshAccount(id, meta);
       accounts.set(id, acc);
       if (key) idempotent.set(key, id);
       return json(200, acc);
     }
 
-    const m = url.pathname.match(/^\/v1\/accounts\/(acct_[A-Za-z0-9]+)$/);
+    const m = url.pathname.match(/^\/v2\/core\/accounts\/(acct_[A-Za-z0-9]+)$/);
     if (method === "GET" && m) {
       const acc = accounts.get(m[1]);
       if (!acc) {
@@ -109,13 +180,15 @@ export function createStripeStub(options: { failWithStatus?: number } = {}) {
     activate(ref: string) {
       const acc = accounts.get(ref);
       if (!acc) throw new Error(`Stub: Konto ${ref} fehlt`);
-      acc.details_submitted = true;
-      acc.charges_enabled = true;
-      acc.payouts_enabled = true;
-      acc.requirements = { currently_due: [], past_due: [], eventually_due: [] };
-      acc.capabilities = { card_payments: "active", transfers: "active" };
+      acc.configuration.merchant.capabilities.card_payments = { status: "active", status_details: [] };
+      acc.configuration.merchant.capabilities.stripe_balance.payouts = { status: "active", status_details: [] };
+      acc.requirements = { entries: [], summary: {} };
     },
   };
+}
+
+function isPlain(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
 const signer = new Stripe(TEST_SECRET_KEY, { httpClient: Stripe.createFetchHttpClient(() => {
@@ -147,6 +220,21 @@ export async function signStripeEvent(opts: {
   const signature = await signer.webhooks.generateTestHeaderStringAsync({
     payload: rawBody,
     secret: opts.secret ?? TEST_WEBHOOK_SECRET,
+    timestamp: opts.timestamp,
+    cryptoProvider: subtleCryptoProvider,
+  });
+  return { rawBody, signature };
+}
+
+/** Signierter Thin-Event-Umschlag (object = v2.core.event). */
+export async function signStripeThinEvent(
+  envelope: Record<string, unknown>,
+  opts: { secret?: string; timestamp?: number } = {},
+): Promise<{ rawBody: string; signature: string }> {
+  const rawBody = JSON.stringify(envelope);
+  const signature = await signer.webhooks.generateTestHeaderStringAsync({
+    payload: rawBody,
+    secret: opts.secret ?? TEST_WEBHOOK_SECRET_THIN,
     timestamp: opts.timestamp,
     cryptoProvider: subtleCryptoProvider,
   });

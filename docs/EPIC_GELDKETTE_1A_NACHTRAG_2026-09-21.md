@@ -601,7 +601,7 @@ Stripe-Adapter, Fake-Adapter, Deno-Tests, Log-Fix.
 | # | Frage | Entscheidung |
 |---|---|---|
 | P6 | Vertragspartner Plattform (E12) | Julius als Einzelunternehmer. Steht in Stripe, nicht im Code. |
-| P7 | Konto-Konfiguration (E11) | Vollständiges Stripe-Dashboard für die Studios. Accounts v1 mit Controller-Eigenschaften, nicht v2: `controller.stripe_dashboard.type = 'full'`, `controller.fees.payer = 'account'`, `controller.losses.payments = 'stripe'`, `controller.requirement_collection = 'stripe'`. Onboarding eingebettet (Account Session), Direct Charges. |
+| P7 | Konto-Konfiguration (E11) | **Ersetzt durch P7 neu in Nachtrag 5d.** (Historisch: Accounts v1 mit Controller-Eigenschaften.) |
 | P8 | Reihenfolge | Erst alles auf DEV im Stripe-Testmodus fertig bauen und testen. Rechts-Epic, Anwalt und Steuerberatung kommen danach. |
 | P9 | Offener Punkt 1 aus 1.2a | Ist Online aus, gilt Vor-Ort-Zahlung immer als erlaubt, egal was in `allow_onsite_payment` steht. Die Einstellung wirkt nur, wenn Online wirksam an ist. **Gebaut in 2.2.** |
 | P10 | Offener Punkt 2 aus 1.2a | „Online wirksam an“ = Plattform-Schalter **und** Studio-Schalter. Gilt überall (Checkout, Buchungsseite, Anzeige). Ein zentraler Helfer, keine doppelte Logik. **Gebaut in 2.2.** |
@@ -643,11 +643,12 @@ an Stripe möglich ist. `livemode` jedes Events muss zu `PAYMENTS_MODE` passen (
 
 | # | Festlegung | Grund |
 |---|---|---|
-| 1.2b-1 | `transfers` wird zusammen mit `card_payments` angefordert | Stripe: „For an Account to have the `card_payments` capability, you must request both `card_payments` and `transfers`“ (docs.stripe.com/connect/account-capabilities, abgerufen 28.09.) |
-| 1.2b-2 | `charges_enabled` und `past_due` leer → `active`, auch wenn `currently_due` gefüllt ist. Damit die Nachforderung nicht verloren geht, trägt `ProviderAccountState` zusätzlich `requirementsPending` (`currently_due` nicht leer) und `requirementsDueAt` (ISO 8601 UTC aus `requirements.current_deadline`, sonst `null`). Keine DB-Änderung; Speicherung und Anzeige kommen in 1.3 | Stripe lässt Zahlungen bis zur Frist zu; `action_required` würde über 1.2a-6 Online automatisch ausschalten. Bestätigt durch Julius 28.09. |
+| 1.2b-1 | ~~`transfers` zusammen mit `card_payments`~~ → aufgehoben durch P7 neu (Accounts v2: nur `card_payments`, kein `transfers`/`stripe_transfers`) | v1-Regel galt nur für Accounts v1 |
+| 1.2b-2 | Karte `active` und kein Nutzer-`past_due` (`awaiting_action_from = user`) → `active`, auch wenn `currently_due` gefüllt ist. `requirementsPending` / `requirementsDueAt` siehe Abbildung V2 in Nachtrag 5d. `action_required` erzeugt der Adapter vorerst nicht. | In v2 sind frische Pflichtangaben oft sofort `past_due` (Sperre); das ist kein v1-„Frist verpasst“. Bestätigt / korrigiert 29.09. |
+
 | 1.2b-3 | Zusätzliche Fehlercodes `PROVIDER_REJECTED`, `INVALID_EVENT`, `LIVEMODE_MISMATCH` | Ungültige Anfrage ist kein Ausfall (kein Retry); `LIVEMODE_MISMATCH` wie in `upsert_provider_account` |
 | 1.2b-4 | Fake meldet `id = 'stripe'` | `payment_provider` kennt nur `stripe` und `manual`; der Fake steht in Function-Tests an Stripes Stelle |
-| 1.2b-5 | Das v1-Konto hat kein `livemode`; `ProviderAccountState.livemode` kommt aus dem Schlüsselmodus bzw. dem Event | Stripe-Objekt `Account` (v1) ohne Feld `livemode` |
+| 1.2b-5 | `ProviderAccountState.livemode` kommt aus dem Schlüsselmodus (`PAYMENTS_MODE`); Events tragen eigenes `livemode` | v2-Konto hat `livemode`, der Adapter nutzt für den Port-Stand weiterhin den konfigurierten Modus |
 | 1.2b-6 | Maskierer ergänzt um `rk_` | Restricted Keys sind jetzt erlaubt und dürfen nicht im Klartext ins Log |
 
 ## 5c. Story 1.4 — Webhook-Empfang (28.09.2026)
@@ -701,6 +702,99 @@ Geloggt werden nur Event-Typ, `evt_…`-ID und Ergebnis-Code, über `createServi
 | 1.4-4 | `record_provider_event` → `FORBIDDEN` wird 500 `CONFIG_ERROR` (Function spricht nicht als `service_role`). Andere Fehler der RPC (`INVALID_INPUT`, `LIVEMODE_MISMATCH` einer bestehenden Zeile) → 200 ohne Wirkung, nur Log | W5; eine Wiederholung ändert daran nichts |
 | 1.4-5 | Bei einem Duplikat gilt die gespeicherte `tenant_id` (unveränderlich), nicht eine neue Auflösung | Die Rohzeile wird nie überschrieben (1.2a-Trigger) |
 | 1.4-6 | Fehlercodes der Antwort: `METHOD_NOT_ALLOWED`, `PAYLOAD_TOO_LARGE`, `CONFIG_ERROR`, `MISSING_SIGNATURE`, `INVALID_SIGNATURE`, `INVALID_EVENT`, `LIVEMODE_MISMATCH`, `DB_ERROR`, `PROVIDER_UNAVAILABLE` | Nur Code, keine Details |
+
+## 5d. Story 1.3a — Onboarding-Backend (28.09.2026)
+
+| # | Frage | Entscheidung |
+|---|---|---|
+| O1 | Wer startet | Nur Owner. Admin sieht den Stand (`get_payment_setup_status`), startet nichts. |
+| O2 | Plattform aus | Kein Onboarding, solange der Plattform-Schalter aus ist (`PLATFORM_DISABLED`). |
+| O3 | Ablauf | Owner startet → Server legt bei Bedarf das Konto an (P7), speichert sofort, gibt Account Session für `account_onboarding` zurück. Kein Redirect. |
+| O4 | Stand aktualisieren | Nach dem Schließen der Komponente: Client ruft `refresh` → Server liest bei Stripe nach und speichert. Webhook bleibt die zweite Quelle (W4). |
+| O5 | Frist von Stripe | `requirements_pending` und `requirements_due_at` werden gespeichert und in `get_payment_setup_status` ausgegeben. Status bleibt `active`, solange Stripe kassieren lässt (1.2b-2). |
+| O6 | Verbindung getrennt | `account.application.deauthorized` → Status `disconnected`, Studio online aus (Grund `PROVIDER_DISCONNECTED`). Neues Konto danach ist nicht Teil von 1.3a. |
+| O7 | Idempotenz | Konto anlegen mit Key `acct-create-<tenant_id>`. Zweimal „Einrichten“ → dasselbe Konto. |
+
+**Migration** `20260928231500_s1_3a_onboarding.sql` (geschrieben, nicht angewendet).
+
+- Spalten auf `provider_accounts`: `requirements_pending`, `requirements_due_at`, `disconnected_at`; CHECK um `disconnected`.
+- `upsert_provider_account`: neue Parameter mit Defaults (`p_requirements_pending`, `p_requirements_due_at`); alte 9-Parameter-Signatur entfällt. Konten mit Status `disconnected` → `ACCOUNT_DISCONNECTED`.
+- Neu nur `service_role`: `mark_provider_account_disconnected`, `get_owner_payment_context`.
+- `get_payment_setup_status`: zusätzlich `requirements_pending`, `requirements_due_at`, `disconnected`.
+
+**Edge Function** `supabase/functions/payments-onboarding/` (`verify_jwt = false`, JWT/Tenant über `initService` wie `service-ping`). Aktionen `start` und `refresh`. Antworten ohne `acct_…`.
+
+**Webhook-Ergänzung:** `toDomainEvent` mappt `account.application.deauthorized` → `provider_account.disconnected` → `mark_provider_account_disconnected`. `account.updated` reicht die Anforderungsfelder weiter.
+
+**Ablauf in Worten (start)**
+
+1. `initService` prüft JWT und Tenant. Mitgliedschaft über `get_current_member`.
+2. `get_owner_payment_context` (service_role): kein Owner → 403. Plattform aus → 409. Status `disconnected` → 409.
+3. Kein Konto → `createConnectedAccount` mit Idempotency-Key → sofort `upsert_provider_account`. Speicherfehler → 500 (nächster Versuch: dasselbe Stripe-Konto).
+4. Account Session für `account_onboarding` → `{ client_secret, expires_at, onboarding_status }`.
+
+**Ablauf in Worten (refresh)**
+
+1. Owner-Kontext wie oben (ohne Plattform-Prüfung fürs Lesen).
+2. Mit Konto und nicht `disconnected` → `getAccountState` → `upsert_provider_account`.
+3. Antwort = `get_payment_setup_status` (Nutzer-JWT). Ohne Konto derselbe Status wie die RPC.
+
+**Festlegungen in der Umsetzung** (zur Bestätigung):
+
+| # | Festlegung | Grund |
+|---|---|---|
+| 1.3a-1 | `upsert_provider_account` akzeptiert `disconnected` nicht als `p_status`; nur `mark_provider_account_disconnected` setzt ihn | Stripe liefert keinen Onboarding-Status „disconnected“ |
+| 1.3a-2 | Signatur mit Defaults statt Überladung | PostgREST und alte Aufrufe ohne die neuen Felder bleiben gültig; `CREATE OR REPLACE` kann Parameter nicht anhängen |
+| 1.3a-3 | `refresh` bei `disconnected` liest Stripe nicht nach | Konto ist getrennt; Setup-Status aus der DB reicht |
+| 1.3a-4 | `PROVIDER_UNAVAILABLE` → HTTP 503, `CONFIG_ERROR` → 500, sonst 500 `PROVIDER_ERROR` | Vorgabe; keine Stripe-Texte an den Client |
+
+### P7 neu und Accounts v2 (Nachtrag zur Story 1.3a)
+
+Der Stripe-Testmodus lehnte `POST /v1/accounts` mit Controller-Eigenschaften ab
+(„Accounts v1 with controller properties is not enabled“). Entscheidung: **Accounts v2**
+über `POST /v2/core/accounts`. Der v1-Schalter im Dashboard wird nicht aktiviert.
+SDK bleibt `npm:stripe@22.6.2`, API `2026-08-26.dahlia`.
+
+| # | Frage | Entscheidung |
+|---|---|---|
+| P7 neu | Konto-Modell | Accounts v2, `POST /v2/core/accounts`. Felder: `dashboard: full`, `defaults.responsibilities.fees_collector: stripe`, `losses_collector: stripe`, `identity.country` (Schreibweise wie in der Doku), `configuration.merchant.capabilities.card_payments.requested: true`, `metadata.omlify_tenant_id`. Kein `transfers` bzw. `stripe_transfers`, keine customer-Konfiguration. Idempotency-Key unverändert `acct-create-<tenant_id>` (`RequestOptions.idempotencyKey`). |
+| V1 | Stand lesen | Nur v2: `v2.core.accounts.retrieve` mit `include` für `configuration.merchant`, `requirements`, `identity`. Kein Umweg über v1-Retrieve. |
+| V2 | Abbildung auf `ProviderAccountState` | Siehe Tabelle unten. `details_submitted` gibt es in v2 nicht — der Wert wird abgeleitet. `action_required` erzeugt der Adapter vorerst nicht (Enum bleibt); Nachforderungen nach Aktivierung später. |
+| V3 | Ereignisse | Grundregel bleibt W3: Wir lesen immer nach. Welches Ereignis kommt, ist nur der Auslöser. Der Webhook nimmt zusätzlich v2-Thin-Events an (`parseEventNotificationAsync`) und liest dann das Konto nach. Snapshot `account.updated` und `account.application.deauthorized` bleiben unterstützt. |
+| V4 | Welche Ereignisse wirklich ankommen | Der Geltungsbereich der Doku („Ihr Konto“ / „Verbundene Konten“) ist widersprüchlich. Klärung empirisch per `scripts/test/s1_3a_e2e_events.mjs` nach echtem Onboarding — nicht per Annahme. |
+| V5 | Secrets | Optionales Secret `STRIPE_WEBHOOK_SECRET_THIN` für das zweite Stripe-Ziel (Nutzlast-Stil Thin). Die Function prüft die Signatur gegen alle gesetzten Secrets (`STRIPE_WEBHOOK_SECRET`, `_2`, `_THIN`); mindestens eines muss gesetzt sein. |
+
+**Abbildung V2** (`account_status.ts`):
+
+Quelle „wer ist am Zug“: `requirements.entries[].awaiting_action_from` mit Werten
+`user` | `stripe` (Stripe API Account object, API `2026-08-26.dahlia`; SDK
+`V2.Core.Account.Requirements.Entry`). In v2 sind Pflichtangaben eines neuen Kontos
+oft sofort `past_due` (Sperre bis erledigt) — das ist nicht „Frist verpasst“ wie in v1.
+
+| Port-Feld | aus v2 |
+|---|---|
+| `capabilities.card` | `configuration.merchant.capabilities.card_payments.status`: `active` → `active`, `pending` → `pending`, sonst `inactive` |
+| `chargesEnabled` | `card === active` (in dieser Ausbaustufe nur Karte) |
+| `payoutsEnabled` | `configuration.merchant.capabilities.stripe_balance.payouts.status === active` |
+| `requirementsPending` | Eintrag in `requirements.entries` mit `minimum_deadline.status` `currently_due` oder `past_due` |
+| `requirementsDueAt` | `requirements.summary.minimum_deadline.time` (RFC 3339), sonst `null` |
+| `detailsSubmitted` (abgeleitet) | keine `currently_due`- und keine `past_due`-Einträge |
+| `status` | siehe Regeln darunter — Adapter liefert vorerst nie `action_required` |
+
+**Status-Regeln** (mit `awaiting_action_from`):
+
+1. Karte `active` und kein Eintrag mit `awaiting_action_from = user` und Status `past_due` → `active`
+2. sonst mindestens ein Eintrag mit `awaiting_action_from = user` → `in_progress`
+3. sonst (nur Stripe am Zug oder keine Einträge) → `in_review`
+
+**Fallback** (kein `awaiting_action_from` an den Einträgen): Karte `active` und kein `past_due` →
+`active`; sonst `currently_due`/`past_due` → `in_progress`; sonst `in_review`
+(Unterscheidung zu `in_review` dann nur über „keine fälligen Einträge“).
+
+**1.2b-2 gilt weiter (angepasst):** Karte `active` und kein Nutzer-`past_due` → `active`,
+auch wenn etwas `currently_due` ist (`requirementsPending = true`).
+
+Account Sessions bleiben `POST /v1/account_sessions` mit `account_onboarding`.
 
 ---
 

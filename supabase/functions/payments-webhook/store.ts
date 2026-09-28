@@ -7,7 +7,7 @@
  */
 import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
 import type { ProviderAccountState, ProviderId } from "../_shared/payments/port.ts";
-import type { RecordEventInput, RecordEventResult, UpsertAccountResult, WebhookStore } from "./handler.ts";
+import type { RecordEventInput, RecordEventResult, UpsertAccountResult, MarkDisconnectedResult, WebhookStore } from "./handler.ts";
 
 class StoreError extends Error {
   constructor(operation: string) {
@@ -72,9 +72,23 @@ export function createSupabaseWebhookStore(client: SupabaseClient): WebhookStore
         p_details: state.detailsSubmitted,
         p_livemode: state.livemode,
         p_capabilities: { card: state.capabilities.card },
+        p_requirements_pending: state.requirementsPending,
+        p_requirements_due_at: state.requirementsDueAt,
       });
       if (error || !isObject(data)) throw new StoreError("upsert_provider_account");
       if (data.success === true) return { ok: true };
+      return { ok: false, code: typeof data.error === "string" ? data.error : "UNKNOWN" };
+    },
+
+    async markDisconnected(provider: ProviderId, accountRef: string): Promise<MarkDisconnectedResult> {
+      const { data, error } = await client.rpc("mark_provider_account_disconnected", {
+        p_provider: provider,
+        p_ref: accountRef,
+      });
+      if (error || !isObject(data)) throw new StoreError("mark_provider_account_disconnected");
+      if (data.success === true) {
+        return { ok: true, changed: data.changed === true };
+      }
       return { ok: false, code: typeof data.error === "string" ? data.error : "UNKNOWN" };
     },
   };

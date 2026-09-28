@@ -24,7 +24,7 @@ export interface ProviderAccountState {
   chargesEnabled: boolean;
   payoutsEnabled: boolean;
   detailsSubmitted: boolean;
-  /** Anbieter fordert Angaben nach (Stripe: currently_due nicht leer). Sperrt nicht, solange status active. */
+  /** Anbieter fordert Angaben nach (v2: currently_due oder past_due). Sperrt nicht, solange status active. */
   requirementsPending: boolean;
   /** Frist für die nachgeforderten Angaben, ISO 8601 (UTC), sonst null. */
   requirementsDueAt: string | null;
@@ -83,11 +83,23 @@ export interface ProviderAccountUpdatedEvent {
   id: string;
   accountRef: string;
   livemode: boolean;
-  payload: ProviderAccountState;
+  /**
+   * Optionaler Snapshot-Stand. Der Webhook liest immer nach (W3); Stripe-Thin-Events
+   * und Snapshot-account.updated liefern hier keinen Stand mehr.
+   */
+  payload?: ProviderAccountState;
+}
+
+/** Studio hat die Verbindung zur Plattform getrennt (Stripe: account.application.deauthorized). */
+export interface ProviderAccountDisconnectedEvent {
+  type: "provider_account.disconnected";
+  id: string;
+  accountRef: string;
+  livemode: boolean;
 }
 
 /** Zahlungstypen kommen mit 2.2. */
-export type DomainEvent = ProviderAccountUpdatedEvent;
+export type DomainEvent = ProviderAccountUpdatedEvent | ProviderAccountDisconnectedEvent;
 
 export interface PaymentProvider {
   readonly id: ProviderId;

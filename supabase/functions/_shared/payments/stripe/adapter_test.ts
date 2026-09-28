@@ -1,10 +1,17 @@
 import { connectedAccountIdempotencyKey } from "../port.ts";
 import { assert, assertEquals, assertProviderError, definePortContract } from "../port_contract.ts";
-import { StripePaymentProvider } from "./adapter.ts";
+import { isV2CoreAccountEventType, StripePaymentProvider } from "./adapter.ts";
 import * as fx from "./fixtures/accounts.ts";
 import { createOnboardingSession } from "./onboarding.ts";
 import { STRIPE_API_VERSION } from "./sdk.ts";
-import { createStripeStub, signStripeEvent, TEST_SECRET_KEY, TEST_WEBHOOK_SECRET } from "./test_support.ts";
+import {
+  createStripeStub,
+  signStripeEvent,
+  signStripeThinEvent,
+  TEST_SECRET_KEY,
+  TEST_WEBHOOK_SECRET,
+  TEST_WEBHOOK_SECRET_THIN,
+} from "./test_support.ts";
 
 const TENANT = "00000000-0000-4000-8000-00000000c0de";
 
@@ -32,26 +39,30 @@ definePortContract("Stripe (Stub)", () => {
 
 // --- Konto anlegen ---------------------------------------------------------
 
-Deno.test("createConnectedAccount: Controller P7, DE, card_payments + transfers, nur omlify_tenant_id", async () => {
+Deno.test("createConnectedAccount: P7 neu v2, DE, nur card_payments, kein transfers", async () => {
   const { stub, provider } = setup();
   await provider.createConnectedAccount(TENANT, connectedAccountIdempotencyKey(TENANT));
 
   assertEquals(stub.calls.length, 1);
   const call = stub.calls[0];
-  assertEquals([call.method, call.path], ["POST", "/v1/accounts"]);
+  assertEquals([call.method, call.path], ["POST", "/v2/core/accounts"]);
   assertEquals(call.idempotencyKey, `acct-create-${TENANT}`);
-
-  const p = Object.fromEntries(call.params.entries());
-  assertEquals(p, {
-    country: "DE",
-    "controller[stripe_dashboard][type]": "full",
-    "controller[fees][payer]": "account",
-    "controller[losses][payments]": "stripe",
-    "controller[requirement_collection]": "stripe",
-    "capabilities[card_payments][requested]": "true",
-    "capabilities[transfers][requested]": "true",
-    "metadata[omlify_tenant_id]": TENANT,
+  assert(call.jsonBody !== null, "JSON-Body erwartet");
+  const body = call.jsonBody as Record<string, unknown>;
+  assertEquals(body.dashboard, "full");
+  assertEquals(body.identity, { country: "DE" });
+  assertEquals(body.defaults, {
+    responsibilities: { fees_collector: "stripe", losses_collector: "stripe" },
   });
+  assertEquals(body.configuration, {
+    merchant: { capabilities: { card_payments: { requested: true } } },
+  });
+  assertEquals(body.metadata, { omlify_tenant_id: TENANT });
+  assertEquals(body.include, ["configuration.merchant", "requirements", "identity"]);
+  const raw = JSON.stringify(body);
+  assert(!raw.includes("transfers"), "kein transfers");
+  assert(!raw.includes("stripe_transfers"), "kein stripe_transfers");
+  assert(!raw.includes('"customer"'), "keine customer-Konfiguration");
 });
 
 Deno.test("Anfragen tragen die gepinnte API-Version", async () => {
@@ -71,6 +82,28 @@ Deno.test("getAccountState: unbekanntes Konto → PROVIDER_REJECTED ohne Stripe-
   const err = await assertProviderError(() => provider.getAccountState("acct_gibtsnicht"), "PROVIDER_REJECTED");
   assert(!err.message.includes("acct_gibtsnicht"), "keine Stripe-Meldung in message");
   assertEquals(err.detail, "StripeInvalidRequestError/resource_missing");
+});
+
+Deno.test("getAccountState: Pfad /v2/core/accounts und include", async () => {
+  const { stub, provider } = setup();
+  const { ref } = await provider.createConnectedAccount(TENANT, connectedAccountIdempotencyKey(TENANT));
+  stub.calls.length = 0;
+  await provider.getAccountState(ref);
+  assertEquals(stub.calls.length, 1);
+  assertEquals([stub.calls[0].method, stub.calls[0].path], ["GET", `/v2/core/accounts/${ref}`]);
+  const includes = stub.calls[0].query.getAll("include[0]")
+    .concat(stub.calls[0].query.getAll("include[1]"))
+    .concat(stub.calls[0].query.getAll("include[2]"));
+  // SDK kann include[0]=… oder wiederholte include=… senden.
+  const all = [
+    ...stub.calls[0].query.getAll("include"),
+    ...includes,
+  ];
+  for (const need of ["configuration.merchant", "requirements", "identity"]) {
+    assert(all.includes(need) || [...stub.calls[0].query.keys()].some((k) =>
+      stub.calls[0].query.get(k) === need
+    ), `include enthält ${need}: ${stub.calls[0].query.toString()}`);
+  }
 });
 
 Deno.test("Stripe 500 → PROVIDER_UNAVAILABLE nach höchstens 2 Wiederholungen", async () => {
@@ -121,7 +154,7 @@ Deno.test("Konfiguration: rk_test_ im Testmodus ist erlaubt", () => {
   new StripePaymentProvider({ secretKey: "rk_test_abc", mode: "test", fetchFn: createStripeStub().fetchFn });
 });
 
-// --- Webhooks --------------------------------------------------------------
+// --- Webhooks Snapshot -----------------------------------------------------
 
 Deno.test("Webhook: gültige Signatur (generateTestHeaderStringAsync)", async () => {
   const { provider } = setup();
@@ -189,9 +222,44 @@ Deno.test("Webhook: fehlendes oder fremdes Secret → CONFIG_ERROR", async () =>
   await assertProviderError(() => provider.verifyWebhook(rawBody, signature, "sk_test_abc"), "CONFIG_ERROR");
 });
 
+// --- Thin-Events -----------------------------------------------------------
+
+Deno.test("Thin: gültige Signatur → ProviderEvent ohne Stripe-Typ nach außen", async () => {
+  const { provider } = setup();
+  const { rawBody, signature } = await signStripeThinEvent(fx.thinRequirementsUpdated);
+  const ev = await provider.verifyWebhook(rawBody, signature, TEST_WEBHOOK_SECRET_THIN);
+  assertEquals(
+    [ev.id, ev.type, ev.accountRef, ev.livemode],
+    ["evt_thin_requirements", "v2.core.account[requirements].updated", fx.active.id, false],
+  );
+  assertEquals(typeof (ev.payload as { related_object?: unknown }).related_object, "object");
+});
+
+Deno.test("Thin: falsche Signatur → INVALID_SIGNATURE", async () => {
+  const { provider } = setup();
+  const { rawBody } = await signStripeThinEvent(fx.thinAccountUpdated);
+  const { signature: foreign } = await signStripeThinEvent(fx.thinAccountUpdated, { secret: "whsec_fremd" });
+  await assertProviderError(
+    () => provider.verifyWebhook(rawBody, foreign, TEST_WEBHOOK_SECRET_THIN),
+    "INVALID_SIGNATURE",
+  );
+});
+
+Deno.test("isV2CoreAccountEventType: account… ja, account_link/person/ping nein", () => {
+  assert(isV2CoreAccountEventType("v2.core.account.updated"), "account.updated");
+  assert(isV2CoreAccountEventType("v2.core.account[requirements].updated"), "requirements");
+  assert(
+    isV2CoreAccountEventType("v2.core.account[configuration.merchant].capability_status_updated"),
+    "merchant capability",
+  );
+  assert(!isV2CoreAccountEventType("v2.core.account_link.returned"), "account_link");
+  assert(!isV2CoreAccountEventType("v2.core.account_person.created"), "account_person");
+  assert(!isV2CoreAccountEventType("v2.core.event_destination.ping"), "ping");
+});
+
 // --- toDomainEvent ---------------------------------------------------------
 
-Deno.test("toDomainEvent: account.updated → provider_account.updated aus dem Event-Objekt", async () => {
+Deno.test("toDomainEvent: account.updated → provider_account.updated ohne Snapshot-Payload", async () => {
   const { provider } = setup();
   const { rawBody, signature } = await signStripeEvent({
     id: "evt_test_acc",
@@ -205,18 +273,25 @@ Deno.test("toDomainEvent: account.updated → provider_account.updated aus dem E
     id: "evt_test_acc",
     accountRef: fx.submittedCurrentlyDue.id,
     livemode: false,
-    payload: {
-      ref: fx.submittedCurrentlyDue.id,
-      livemode: false,
-      status: "action_required",
-      chargesEnabled: false,
-      payoutsEnabled: false,
-      detailsSubmitted: true,
-      requirementsPending: true,
-      requirementsDueAt: null,
-      capabilities: { card: "pending" },
-    },
   });
+});
+
+Deno.test("toDomainEvent: Thin-Kontoereignis → provider_account.updated", async () => {
+  const { provider } = setup();
+  const { rawBody, signature } = await signStripeThinEvent(fx.thinMerchantCapabilityUpdated);
+  const d = provider.toDomainEvent(await provider.verifyWebhook(rawBody, signature, TEST_WEBHOOK_SECRET_THIN));
+  assertEquals(d, {
+    type: "provider_account.updated",
+    id: "evt_thin_merchant_cap",
+    accountRef: fx.active.id,
+    livemode: false,
+  });
+});
+
+Deno.test("toDomainEvent: Thin-Ping → null (ohne Wirkung)", async () => {
+  const { provider } = setup();
+  const { rawBody, signature } = await signStripeThinEvent(fx.thinPing);
+  assertEquals(provider.toDomainEvent(await provider.verifyWebhook(rawBody, signature, TEST_WEBHOOK_SECRET_THIN)), null);
 });
 
 Deno.test("toDomainEvent: payment_intent.succeeded → null (bis 2.2)", async () => {
@@ -229,18 +304,7 @@ Deno.test("toDomainEvent: payment_intent.succeeded → null (bis 2.2)", async ()
   assertEquals(provider.toDomainEvent(await provider.verifyWebhook(rawBody, signature, TEST_WEBHOOK_SECRET)), null);
 });
 
-Deno.test("toDomainEvent: account.updated mit fremdem Konto im Objekt → INVALID_EVENT", async () => {
-  const { provider } = setup();
-  const { rawBody, signature } = await signStripeEvent({
-    type: "account.updated",
-    account: "acct_anderes",
-    object: fx.active,
-  });
-  const ev = await provider.verifyWebhook(rawBody, signature, TEST_WEBHOOK_SECRET);
-  await assertProviderError(() => provider.toDomainEvent(ev), "INVALID_EVENT");
-});
-
-Deno.test("toDomainEvent: account.updated mit kaputtem Objekt → INVALID_EVENT", async () => {
+Deno.test("toDomainEvent: account.updated ohne account → INVALID_EVENT", async () => {
   const { provider } = setup();
   await assertProviderError(
     () =>
@@ -249,7 +313,7 @@ Deno.test("toDomainEvent: account.updated mit kaputtem Objekt → INVALID_EVENT"
         type: "account.updated",
         accountRef: null,
         livemode: false,
-        payload: { id: "pi_1" },
+        payload: {},
       }),
     "INVALID_EVENT",
   );
@@ -266,6 +330,7 @@ Deno.test("Onboarding-Sitzung: nur client_secret und Ablauf, Komponente account_
   assertEquals(s, { clientSecret: "accs_secret_stub", expiresAt: 1_900_000_000 });
   const p = Object.fromEntries(stub.calls[0].params.entries());
   assertEquals(p, { account: "acct_stub000001", "components[account_onboarding][enabled]": "true" });
+  assertEquals(stub.calls[0].path, "/v1/account_sessions");
 });
 
 Deno.test("Onboarding-Sitzung: Live-Key im Testmodus → CONFIG_ERROR, kein Aufruf", async () => {

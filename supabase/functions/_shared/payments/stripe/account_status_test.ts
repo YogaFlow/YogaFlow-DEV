@@ -1,51 +1,62 @@
 import { assertEquals } from "../port_contract.ts";
-import { mapCardCapability, mapOnboardingStatus, mapStripeAccount, parseAccountSnapshot } from "./account_status.ts";
+import {
+  mapCardCapability,
+  mapDetailsSubmitted,
+  mapOnboardingStatus,
+  mapStripeAccount,
+  parseAccountSnapshot,
+} from "./account_status.ts";
 import * as fx from "./fixtures/accounts.ts";
 
-Deno.test("Status: nicht eingereicht → in_progress", () => {
+Deno.test("Status: frisches v2 (past_due, Nutzerin am Zug) → in_progress", () => {
   assertEquals(mapOnboardingStatus(fx.notSubmitted), "in_progress");
 });
 
-Deno.test("Status: eingereicht, currently_due gefüllt → action_required", () => {
-  assertEquals(mapOnboardingStatus(fx.submittedCurrentlyDue), "action_required");
+Deno.test("Status: currently_due, Nutzerin am Zug, Karte nicht active → in_progress", () => {
+  assertEquals(mapOnboardingStatus(fx.submittedCurrentlyDue), "in_progress");
 });
 
-Deno.test("Status: eingereicht, past_due gefüllt → action_required", () => {
-  assertEquals(mapOnboardingStatus(fx.submittedPastDue), "action_required");
+Deno.test("Status: past_due, Nutzerin am Zug → in_progress (kein action_required)", () => {
+  assertEquals(mapOnboardingStatus(fx.submittedPastDue), "in_progress");
 });
 
-Deno.test("Status: eingereicht, nichts fällig, charges aus → in_review", () => {
+Deno.test("Status: nach Einreichung nur Stripe am Zug → in_review", () => {
+  assertEquals(mapOnboardingStatus(fx.stripeReviewing), "in_review");
+});
+
+Deno.test("Status: nichts fällig, Karte pending → in_review", () => {
   assertEquals(mapOnboardingStatus(fx.inReview), "in_review");
 });
 
-Deno.test("Status: charges an, past_due leer → active", () => {
+Deno.test("Status: Karte active → active", () => {
   assertEquals(mapOnboardingStatus(fx.active), "active");
 });
 
-Deno.test("Grenzfall: active trotz gefülltem eventually_due", () => {
-  assertEquals(mapOnboardingStatus(fx.activeEventuallyDue), "active");
-});
-
-Deno.test("Grenzfall: charges an, past_due gefüllt → action_required", () => {
-  assertEquals(mapOnboardingStatus(fx.chargesEnabledPastDue), "action_required");
-});
-
-Deno.test("Grenzfall: charges an, nur currently_due gefüllt → active", () => {
+Deno.test("1.2b-2: Karte active, currently_due (Nutzerin) → active", () => {
   assertEquals(mapOnboardingStatus(fx.chargesEnabledCurrentlyDue), "active");
 });
 
-Deno.test("Grenzfall: details_submitted false schlägt charges_enabled", () => {
-  assertEquals(mapOnboardingStatus({ ...fx.active, details_submitted: false }), "in_progress");
+Deno.test("Grenzfall: Karte active, Nutzerin past_due → in_progress", () => {
+  assertEquals(mapOnboardingStatus(fx.chargesEnabledPastDue), "in_progress");
 });
 
-Deno.test("Grenzfall: requirements null → wie leer", () => {
-  assertEquals(mapOnboardingStatus({ ...fx.inReview, requirements: null }), "in_review");
-});
-
-Deno.test("Status: nie not_started aus dem Adapter", () => {
-  for (const a of Object.values(fx)) {
+Deno.test("Status: Adapter erzeugt nie action_required / not_started", () => {
+  const all = [
+    fx.notSubmitted,
+    fx.submittedCurrentlyDue,
+    fx.submittedPastDue,
+    fx.stripeReviewing,
+    fx.inReview,
+    fx.active,
+    fx.chargesEnabledCurrentlyDue,
+    fx.chargesEnabledPastDue,
+    fx.noCardCapability,
+  ];
+  for (const a of all) {
     const s = mapOnboardingStatus(a);
-    if ((s as string) === "not_started") throw new Error(`${a.id} → not_started`);
+    if (s === "action_required" || (s as string) === "not_started") {
+      throw new Error(`${a.id} → ${s}`);
+    }
   }
 });
 
@@ -54,8 +65,16 @@ Deno.test("Karte: card_payments active / pending / sonst inactive", () => {
   assertEquals(mapCardCapability(fx.inReview), "pending");
   assertEquals(mapCardCapability(fx.submittedPastDue), "inactive");
   assertEquals(mapCardCapability(fx.noCardCapability), "inactive");
-  assertEquals(mapCardCapability({ ...fx.active, capabilities: { card_payments: "unrequested" } }), "inactive");
-  assertEquals(mapCardCapability({ ...fx.active, capabilities: null }), "inactive");
+});
+
+Deno.test("details_submitted abgeleitet: keine currently_due/past_due", () => {
+  assertEquals(mapDetailsSubmitted(fx.active), true);
+  assertEquals(mapDetailsSubmitted(fx.inReview), true);
+  assertEquals(mapDetailsSubmitted(fx.notSubmitted), false);
+  assertEquals(mapDetailsSubmitted(fx.submittedCurrentlyDue), false);
+  assertEquals(mapDetailsSubmitted(fx.submittedPastDue), false);
+  assertEquals(mapDetailsSubmitted(fx.chargesEnabledCurrentlyDue), false);
+  assertEquals(mapDetailsSubmitted(fx.stripeReviewing), false);
 });
 
 Deno.test("Gesamtabbildung aktives Konto", () => {
@@ -72,36 +91,51 @@ Deno.test("Gesamtabbildung aktives Konto", () => {
   });
 });
 
-Deno.test("1.2b-2: charges an, currently_due mit Frist → active, Nachforderung und Frist sichtbar", () => {
+Deno.test("Active mit Frist → active + requirementsPending + DueAt", () => {
   const s = mapStripeAccount(fx.chargesEnabledCurrentlyDue, false);
   assertEquals(
-    [s.status, s.chargesEnabled, s.requirementsPending, s.requirementsDueAt],
-    ["active", true, true, "2026-10-12T10:00:00.000Z"],
+    [s.status, s.chargesEnabled, s.requirementsPending, s.detailsSubmitted, s.requirementsDueAt],
+    ["active", true, true, false, fx.FIXTURE_DEADLINE_ISO],
   );
 });
 
-Deno.test("Nachforderung: nur currently_due zählt, eventually_due nicht", () => {
-  assertEquals(mapStripeAccount(fx.activeEventuallyDue, false).requirementsPending, false);
+Deno.test("Nachforderung: currently_due oder past_due, eventually_due nicht allein", () => {
+  assertEquals(mapStripeAccount(fx.active, false).requirementsPending, false);
   assertEquals(mapStripeAccount(fx.submittedCurrentlyDue, false).requirementsPending, true);
+  assertEquals(mapStripeAccount(fx.submittedPastDue, false).requirementsPending, true);
   assertEquals(mapStripeAccount({ ...fx.active, requirements: null }, false).requirementsPending, false);
 });
 
-Deno.test("Frist: fehlt, null oder kein endlicher Wert → null", () => {
+Deno.test("Frist: fehlt oder ungültig → null", () => {
   assertEquals(mapStripeAccount(fx.active, false).requirementsDueAt, null);
   assertEquals(mapStripeAccount({ ...fx.active, requirements: null }, false).requirementsDueAt, null);
   assertEquals(
-    mapStripeAccount({ ...fx.active, requirements: { currently_due: [], current_deadline: Number.NaN } }, false)
-      .requirementsDueAt,
+    mapStripeAccount({
+      ...fx.chargesEnabledCurrentlyDue,
+      requirements: {
+        entries: fx.chargesEnabledCurrentlyDue.requirements?.entries,
+        summary: { minimum_deadline: { status: "currently_due", time: "kein-datum" } },
+      },
+    }, false).requirementsDueAt,
     null,
   );
 });
 
-Deno.test("parseAccountSnapshot: gültig, fremdes Objekt, kaputte Felder", () => {
+Deno.test("Fallback ohne awaiting_action_from: currently_due/past_due → in_progress", () => {
+  const withoutField = {
+    ...fx.notSubmitted,
+    requirements: {
+      entries: [{ minimum_deadline: { status: "past_due" } }],
+      summary: { minimum_deadline: { status: "past_due" } },
+    },
+  };
+  assertEquals(mapOnboardingStatus(withoutField), "in_progress");
+  assertEquals(mapOnboardingStatus({ ...fx.inReview, requirements: { entries: [] } }), "in_review");
+});
+
+Deno.test("parseAccountSnapshot: gültig, fremdes Objekt", () => {
   assertEquals(parseAccountSnapshot(fx.active)?.id, "acct_fixture_active");
+  assertEquals(parseAccountSnapshot({ id: "acct_1", object: "account" }), null);
   assertEquals(parseAccountSnapshot({ id: "pi_123", object: "payment_intent" }), null);
-  assertEquals(parseAccountSnapshot({ id: "acct_1", charges_enabled: "yes" }), null);
-  assertEquals(parseAccountSnapshot({ id: "acct_1", requirements: { past_due: [1] } }), null);
-  assertEquals(parseAccountSnapshot({ id: "acct_1", requirements: { current_deadline: "morgen" } }), null);
-  assertEquals(parseAccountSnapshot({ id: "acct_1", requirements: { current_deadline: 1791799200 } })?.id, "acct_1");
   assertEquals(parseAccountSnapshot(null), null);
 });
