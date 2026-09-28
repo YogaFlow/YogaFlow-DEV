@@ -7,7 +7,8 @@
  *
  * Fälle:
  *  1) Lehrende ändert Titel des eigenen Kurses → ok
- *  2) Lehrende setzt teacher_id auf andere Person → verweigert (RLS)
+ *  2) Lehrende setzt teacher_id auf andere Person → verweigert (RLS oder
+ *     INVALID_TEACHER aus courses_teacher_guard_hotfix, läuft vor WITH CHECK)
  *  3) Owner setzt teacher_id auf andere Lehrerin → ok
  *  4) Owner setzt teacher_id auf Teilnehmerin → INVALID_TEACHER
  *  5) Owner setzt teacher_id auf Profil fremdes Studio → INVALID_TEACHER
@@ -275,7 +276,8 @@ async function main() {
       .update({ teacher_id: teacher2.id })
       .eq('id', kurs.id)
       .select('id, teacher_id');
-    const verweigert = istRlsVerweigert(error) || ((data?.length ?? 0) === 0 && !error);
+    const verweigert =
+      istRlsVerweigert(error) || istInvalidTeacher(error) || ((data?.length ?? 0) === 0 && !error);
     ok('Lehrende teacher_id fremd verweigert', verweigert, error?.message ?? `rows=${data?.length ?? 0}`);
 
     const { data: check } = await admin.from('courses').select('teacher_id').eq('id', kurs.id).single();
@@ -335,13 +337,20 @@ async function main() {
       .from('courses')
       .insert({ ...basis, teacher_id: teacher2.id, tenant_id: tenant.id })
       .select('id');
-    const fremdVerweigert =
-      istRlsVerweigert(fremdErr) || ((fremdIns?.length ?? 0) === 0 && !fremdErr);
+    const fremdVerweigert = istRlsVerweigert(fremdErr) || istInvalidTeacher(fremdErr);
     ok(
       'Lehrende INSERT fremde Kursleitung verweigert',
       fremdVerweigert,
       fremdErr?.message ?? `rows=${fremdIns?.length ?? 0}`,
     );
+
+    const { count: fremdAnzahl, error: fremdZaehlErr } = await admin
+      .from('courses')
+      .select('id', { count: 'exact', head: true })
+      .eq('tenant_id', tenant.id)
+      .eq('title', basis.title);
+    if (fremdZaehlErr) abbruch('Kurse zählen: ' + fremdZaehlErr.message);
+    ok('kein Kurs mit fremder Kursleitung angelegt', fremdAnzahl === 0, `Anzahl=${fremdAnzahl}`);
 
     const { data: selfIns, error: selfErr } = await clientTeacher
       .from('courses')
