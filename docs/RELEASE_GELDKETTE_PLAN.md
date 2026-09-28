@@ -10,7 +10,7 @@ Bestandsaufnahme und Release-Regeln für den PROD-Release der Geldkette (Sprint 
 - **`main` wird nach jedem Hotfix in Julius gemergt**, mindestens aber vor jeder neuen Story.
 - **Pflicht-Generalprobe** auf einer Kopie der PROD-Datenbank mit `npm run test:geldkette`.
 - **Stripe** bekommt einen Schalter je Studio. Das Update geht mit Stripe aus live; Einschalten danach je Studio, zuerst mit einer kleinen echten Zahlung.
-- **Release-Abend in Etappen** mit Prüfpunkten: Hint-Frontend → Migrationen in Blöcken mit Zählwerten → Functions (`delete-user` nach 4.3) → neues Frontend.
+- **Release-Abend in Etappen** mit Prüfpunkten: Hint-Frontend → Migrationen in Blöcken mit Zählwerten → Functions (`delete-user` nach 4.3, `payments-webhook` nach 1.4) → neues Frontend.
 - **Testlauf der doppelten Bestätigung** in `db.mjs`: `INCLUDE-ALL` richtig tippen; bei PROD absichtlich falsch → Abbruch ohne Änderung.
 - Die **Migrationsliste** wird ab jetzt je Story fortgeschrieben (A4 eingetragen).
 
@@ -43,6 +43,9 @@ PROD hat zuletzt `20260926160500` (`security_handle_new_user_role_from_trusted_s
 | `20260928160000` | `a8_1_bulk_waive_open_list.sql` | Sammel-Erlass vor Omlify, `get_open_coverage`, `get_course_member_passes` — A8-1 Schema |
 | `20260928170000` | `a5_courses_teacher_guard.sql` | RLS WITH CHECK UPDATE+INSERT: Lehrende können `teacher_id` nicht fremd setzen; Trigger `courses_teacher_guard` → `INVALID_TEACHER` |
 | `20260928203500` | `s1_2a_provider_schema.sql` | Stripe 1.2a: `platform_flags` (+ `platform_flag_changes`), `provider_accounts`, `provider_capabilities`, `provider_events_raw`, `tenant_payment_settings`, RPCs `set_online_payments_enabled` / `set_allow_onsite_payment` / `get_payment_setup_status`, `service_role`: `set_platform_flag` / `upsert_provider_account`, `delete_tenant_complete` ergänzt |
+| `20260928224500` | `s1_4_webhook_rpcs.sql` | Stripe 1.4: `service_role`-RPCs `record_provider_event`, `mark_provider_event_processed`, `mark_provider_event_failed` (Aliase auf `yogaflow_private`). Liegt **nach** dem PROD-Hotfix `20260928213000` — braucht kein `--include-all` |
+
+**Release-Hinweis 1.4:** Edge Function `payments-webhook` (`verify_jwt = false`) kommt mit den Functions. Der **Live-Endpunkt** im Stripe-Dashboard (Live-Modus, „Connected accounts“, URL `https://<PROD_REF>.supabase.co/functions/v1/payments-webhook`) und das **Live-Secret** `STRIPE_WEBHOOK_SECRET` in `supabase/.env.prod` entstehen **erst beim Einschalten**, nicht am Release-Abend. Bis dahin antwortet die Function auf PROD mit 500 `CONFIG_ERROR`; ohne Endpunkt ruft sie niemand auf.
 
 **Release-Hinweis 1.2a:** **`online_payments` bleibt beim Release `false`.** Die Migration legt die Zeile mit `false` an. Beim Release niemand `set_platform_flag` aufrufen. Nach dem Push prüfen: `SELECT key, enabled FROM platform_flags` → genau `online_payments | false`; `tenant_payment_settings` leer. Einschalten erst nach 1.3/1.4 und dann je Studio mit einer kleinen echten Zahlung (Regel oben).
 

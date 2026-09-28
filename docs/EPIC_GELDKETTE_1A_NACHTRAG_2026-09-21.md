@@ -650,6 +650,58 @@ an Stripe möglich ist. `livemode` jedes Events muss zu `PAYMENTS_MODE` passen (
 | 1.2b-5 | Das v1-Konto hat kein `livemode`; `ProviderAccountState.livemode` kommt aus dem Schlüsselmodus bzw. dem Event | Stripe-Objekt `Account` (v1) ohne Feld `livemode` |
 | 1.2b-6 | Maskierer ergänzt um `rk_` | Restricted Keys sind jetzt erlaubt und dürfen nicht im Klartext ins Log |
 
+## 5c. Story 1.4 — Webhook-Empfang (28.09.2026)
+
+| # | Frage | Entscheidung |
+|---|---|---|
+| W1 | Endpunkte | Ein Stripe-Endpunkt für Ereignisse verbundener Konten (Connect). Bei Direct Charges kommen auch die Zahlungsereignisse von dort. Ein Plattform-Endpunkt ist vorerst nicht nötig (ersetzt „zwei Endpoints“ aus Epic 1.4). Secret `STRIPE_WEBHOOK_SECRET`, optional `STRIPE_WEBHOOK_SECRET_2` für die Rotation: Die Signatur gilt, wenn eines der gesetzten Secrets passt. |
+| W2 | Reihenfolge | Erst prüfen, dann speichern, dann verarbeiten. Ungültige Signatur → 400, nichts wird gespeichert. |
+| W3 | Wahrheit | Bei `account.updated` wird der Stand bei Stripe nachgelesen (`getAccountState`), nicht aus dem Event übernommen. Die Reihenfolge der Events spielt keine Rolle. |
+| W4 | Studio | Nur über `provider_accounts.provider_ref = account` im Event (I7). Kein Rückgriff auf Metadaten. Nicht auflösbar → Rohzeile mit `TENANT_NOT_RESOLVED`, HTTP 200, keine Wirkung. Das Onboarding (1.3) liest den Stand nach dem Anlegen selbst nach. |
+| W5 | Antwortcodes | 200 für alles, was angenommen und abschließend behandelt ist, auch ignorierte Typen und fachliche Fehler (`ACCOUNT_TENANT_MISMATCH` usw.). 500 nur bei vorübergehenden Fehlern (Datenbank oder Stripe nicht erreichbar), damit Stripe erneut zustellt. |
+| W6 | Doppelte Events | Dedup über `(provider, event_id)`. Schon da und verarbeitet → sofort 200. Da, aber nicht verarbeitet (früherer 500er) → erneut verarbeiten, `attempts + 1`. |
+| W7 | Typen jetzt | Nur `account.updated` hat eine Wirkung. Alle anderen Typen werden gespeichert und ohne Fehler als verarbeitet markiert. Zahlungstypen kommen in 2.2. |
+
+**Migration** `20260928224500_s1_4_webhook_rpcs.sql` (geschrieben, nicht angewendet). Drei Funktionen in
+`yogaflow_private`, je ein `public`-Alias nur für `service_role`, Client-JWT → `FORBIDDEN`:
+`record_provider_event`, `mark_provider_event_processed`, `mark_provider_event_failed`.
+
+**Edge Function** `supabase/functions/payments-webhook/` (`verify_jwt = false`): `index.ts` (Einstieg,
+Service-Client), `handler.ts` (Logik, alle Abhängigkeiten injiziert), `store.ts` (RPC-Aufrufe),
+`handler_test.ts`. Stripe nur über den Port; die Grenz-Prüfung bleibt grün.
+
+**Ablauf in Worten**
+
+1. Nur `POST`, sonst 405. Body höchstens 1 MB, sonst 413 (Content-Length vorab, beim Lesen erneut).
+2. Konfiguration prüfen: `PAYMENTS_MODE`, mindestens ein Webhook-Secret im Format `whsec_…`, Anbieter und
+   Service-Client baubar. Fehlt etwas → 500 `CONFIG_ERROR`.
+3. Header `stripe-signature` fehlt → 400. Rohbody lesen.
+4. Signatur gegen jedes gesetzte Secret prüfen. Keines passt → 400 `INVALID_SIGNATURE`. `livemode` passt
+   nicht zu `PAYMENTS_MODE` → 400 `LIVEMODE_MISMATCH`. Bis hier wird nichts gespeichert.
+5. `record_provider_event`: Studio über das Konto auflösen, Rohzeile einfügen oder vorhandene finden.
+   Datenbank nicht erreichbar → 500.
+6. Vorhanden und verarbeitet → 200, Ende.
+7. Verarbeiten:
+   - `account.updated` mit Studio → Stand bei Stripe nachlesen → `upsert_provider_account` mit
+     `{"card": …}`. Liefert die RPC einen Fehlercode → Code in die Rohzeile, 200.
+     Stripe nicht erreichbar → `mark_provider_event_failed`, 500.
+   - `account.updated` ohne Studio → `TENANT_NOT_RESOLVED`, 200.
+   - alle anderen Typen → verarbeitet ohne Fehler, 200.
+8. `mark_provider_event_processed` (Code oder `NULL`), Antwort `{ "received": true }`.
+
+Geloggt werden nur Event-Typ, `evt_…`-ID und Ergebnis-Code, über `createServiceLogger`.
+
+**Festlegungen in der Umsetzung** (bestätigt durch Julius 28.09.):
+
+| # | Festlegung | Grund |
+|---|---|---|
+| 1.4-1 | Die Function erkennt `account.updated` über `toDomainEvent` des Ports, nicht über den Typ-String. Ein kaputtes Kontoobjekt im Event → `INVALID_EVENT` in der Rohzeile, 200 | Anbieterwissen bleibt im Adapter; eine Wiederholung heilt ein kaputtes Event nicht |
+| 1.4-2 | `PROVIDER_REJECTED` beim Nachlesen (z. B. Konto nicht mehr mit der Plattform verbunden) → Code in die Rohzeile, 200. `CONFIG_ERROR` (Key ungültig) und `PROVIDER_UNAVAILABLE` → 500 | W5: Nur Vorübergehendes wird wiederholt; ein falscher Key ist nach der Korrektur wiederholbar |
+| 1.4-3 | Die Rohzeile speichert den ganzen Event-Body, nicht nur `data.object` | Nachverarbeitung (5.1) braucht den vollständigen Umschlag |
+| 1.4-4 | `record_provider_event` → `FORBIDDEN` wird 500 `CONFIG_ERROR` (Function spricht nicht als `service_role`). Andere Fehler der RPC (`INVALID_INPUT`, `LIVEMODE_MISMATCH` einer bestehenden Zeile) → 200 ohne Wirkung, nur Log | W5; eine Wiederholung ändert daran nichts |
+| 1.4-5 | Bei einem Duplikat gilt die gespeicherte `tenant_id` (unveränderlich), nicht eine neue Auflösung | Die Rohzeile wird nie überschrieben (1.2a-Trigger) |
+| 1.4-6 | Fehlercodes der Antwort: `METHOD_NOT_ALLOWED`, `PAYLOAD_TOO_LARGE`, `CONFIG_ERROR`, `MISSING_SIGNATURE`, `INVALID_SIGNATURE`, `INVALID_EVENT`, `LIVEMODE_MISMATCH`, `DB_ERROR`, `PROVIDER_UNAVAILABLE` | Nur Code, keine Details |
+
 ---
 
 ## 6. Änderungen an bestehenden Abschnitten des Epics

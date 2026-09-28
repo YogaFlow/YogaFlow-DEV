@@ -33,3 +33,8 @@ verify_jwt = false
 # abfangen und unsere Codes untestbar machen — gleiches Muster wie service-ping.
 [functions.set-participant-password]
 verify_jwt = false
+
+# payments-webhook (Geldkette 1.4): Stripe sendet kein JWT. Geprueft wird die
+# Signatur (STRIPE_WEBHOOK_SECRET, optional STRIPE_WEBHOOK_SECRET_2) in der Function.
+[functions.payments-webhook]
+verify_jwt = false

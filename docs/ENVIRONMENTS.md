@@ -85,7 +85,18 @@ Nur als Supabase-Secret im jeweiligen Projekt, eingespielt aus `supabase/.env.de
 |--------|-----|------|-----------|
 | `PAYMENTS_MODE` | `test` | erst mit dem PROD-Gate | `test` verlangt `sk_test_`/`rk_test_`, `live` verlangt `sk_live_`/`rk_live_`. Fehlt es oder passt der Key nicht, verweigert der Adapter jede Anfrage (`CONFIG_ERROR`). |
 | `STRIPE_SECRET_KEY` | Test-Key der Sandbox | — | Secret oder Restricted Key der Plattform. |
-| `STRIPE_WEBHOOK_SECRET` | später (1.4) | — | `whsec_…` des Webhook-Endpoints. |
+| `STRIPE_WEBHOOK_SECRET` | `whsec_…` des DEV-Endpunkts (Testmodus) | erst beim Einschalten | Signing Secret des Webhook-Endpunkts. Ohne gesetztes Secret antwortet `payments-webhook` mit 500 `CONFIG_ERROR`. |
+| `STRIPE_WEBHOOK_SECRET_2` | optional | optional | Zweites Secret für die Rotation. Die Signatur gilt, wenn eines der gesetzten Secrets passt. Nach dem Wechsel wieder leeren. |
 | `PAYMENTS_PROVIDER` | optional | nie | `stripe` (Standard) oder `fake`; `fake` nur mit `PAYMENTS_MODE=test`. |
 
 `VITE_STRIPE_PUBLISHABLE_KEY` (`pk_test_…`) kommt mit der ersten Frontend-Story (1.3) in die Cloudflare-DEV-Umgebung.
+
+### Webhook-Endpunkt (Geldkette 1.4)
+
+- Ein Endpunkt im Stripe-Dashboard, Testmodus, Typ **„Connected accounts“** (Ereignisse verbundener Konten).
+  Ein Plattform-Endpunkt ist vorerst nicht nötig (Nachtrag 5c, W1).
+- URL: `https://<DEV_REF>.supabase.co/functions/v1/payments-webhook`
+- Ereignisse vorerst: `account.updated`. Zahlungsereignisse kommen mit 2.2.
+- Das Signing Secret des Endpunkts wird `STRIPE_WEBHOOK_SECRET` in `supabase/.env.dev`, danach
+  `npm run secrets:dev`.
+- PROD: Live-Endpunkt und Live-Secret erst beim Einschalten (siehe `docs/RELEASE_GELDKETTE_PLAN.md`).

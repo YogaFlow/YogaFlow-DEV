@@ -37,8 +37,20 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 ## Stripe (Story 1.2a und folgende)
 
 - [ ] **Aufbewahrungsfrist `provider_events_raw`.** Payload enthält Personendaten
-      (Name, E-Mail, letzte vier Kartenziffern). Frist bzw. Kürzen nach Verarbeitung
-      festlegen (Rechts-Epic), dann Job bauen. In 1.2a bewusst nicht gebaut.
+      (Name, E-Mail, letzte vier Kartenziffern). Seit 1.4 speichert der Webhook den
+      ganzen Event-Body. Frist bzw. Kürzen nach Verarbeitung festlegen (Rechts-Epic),
+      dann Job bauen. In 1.2a und 1.4 bewusst nicht gebaut.
+- [ ] **Nachverarbeitung liegen gebliebener Rohzeilen → 5.1.** Zeilen mit
+      `processed_at IS NULL` (Stripe hat nach 500ern aufgegeben) und Zeilen mit
+      `processing_error = 'TENANT_NOT_RESOLVED'` (Event vor dem Konto in
+      `provider_accounts`) werden heute nicht erneut angefasst. Der Abgleich in 5.1
+      muss sie finden und nachverarbeiten.
+- [ ] **`account.application.deauthorized` → 1.3.** Studio automatisch online aus
+      (Event `payments.online_disabled`, Grund `PROVIDER_DISCONNECTED`).
+- [ ] **`evt_smoke_`-Zeilen auf DEV.** Der Rauchtest `scripts/test/s1_4_webhook_smoke.mjs`
+      hinterlässt Rohzeilen ohne Studio (Event-IDs mit Präfix `evt_smoke_`). Sie lassen
+      sich wegen des Lösch-Triggers nicht löschen (Absicht). Mit der Aufbewahrungsfrist
+      mitnehmen.
 - [ ] **Log-Fix wirkt erst nach DEV-Deploy.** E-Mail-Adressen in `send-email`,
       `request-password-reset` und `request-verification-email` laufen seit 1.2b im Code
       durch `createServiceLogger` (Info- und Fehler-Logs). Offen: Deploy der drei
