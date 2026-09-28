@@ -287,7 +287,7 @@ const OpenPayments: React.FC = () => {
           <button
             type="button"
             onClick={() => setHistoryOpen((value) => !value)}
-            className="flex min-h-11 w-full items-center gap-2 px-3.5 py-3 text-left text-[15px] font-medium text-text active:bg-surfaceSunken"
+            className="flex min-h-11 w-full items-center gap-2 border-b border-border px-3.5 py-3 text-left text-[15px] font-medium text-text active:bg-surfaceSunken focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset"
           >
             {historyOpen ? (
               <ChevronDown className="h-[18px] w-[18px] text-textSubtle" aria-hidden />
@@ -297,7 +297,7 @@ const OpenPayments: React.FC = () => {
             Bisher abgehakt ({batches.length})
           </button>
           {historyOpen ? (
-            <ul className="divide-y divide-border border-t border-border">
+            <ul className="divide-y divide-border">
               {batches.map((batch) => {
                 const created = berlinIsoFromInstant(batch.created_at);
                 const before = asCivilOrEmpty(batch.before_date);
@@ -305,18 +305,19 @@ const OpenPayments: React.FC = () => {
                 return (
                   <li
                     key={batch.id}
-                    className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-3 text-[15px] text-text"
+                    className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-3 text-[15px] leading-6 text-text"
                   >
-                    <span className="tabular-nums">
-                      {formatNumericDate(created)} · {batch.waived_count} abgehakt (alles vor dem{' '}
-                      {formatNumericDate(before)})
+                    <span className="tabular-nums text-textMuted">
+                      <span className="text-text">{formatNumericDate(created)}</span>
+                      {' · '}
+                      {batch.waived_count} abgehakt (alles vor dem {formatNumericDate(before)})
                       {!canRevert ? ' · rückgängig gemacht' : ''}
                     </span>
                     {canRevert ? (
                       <button
                         type="button"
                         onClick={() => setRevertBatch(batch)}
-                        className="inline-flex min-h-11 items-center rounded-full px-3 text-[15px] font-medium text-brand active:bg-surfaceSunken"
+                        className="inline-flex min-h-11 items-center rounded-full px-3 text-[15px] font-medium text-brand active:bg-surfaceSunken focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
                       >
                         Rückgängig
                       </button>
