@@ -40,6 +40,9 @@ PROD hat zuletzt `20260926160500` (`security_handle_new_user_role_from_trusted_s
 | `20260928010000` | `a6_3_reverse_and_expire.sql` | Zurückbuchen, Nachrücken-Einlösung, `adjust_pass_units`, `expire_passes`, `pg_cron`-Job `yogaflow_expire_passes` — A6-3 UI 28.09.2026, A6 abgeschlossen |
 | `20260928020000` | `a7_1_ledger.sql` | Hauptbuch: `tenant_tax_settings`, `ledger_entries`, `ledger_event_log`, `set_tax_setting`, `process_ledger`, Cron `yogaflow_process_ledger` (*/5) — A7-1 Schema/Job; UI/CSV in A7-2 |
 | `20260928143000` | `a7_2_ledger_export.sql` | `export_ledger` für Owner/Admin, Zeitraum max. 366 Tage — A7-2 CSV |
+| `20260928160000` | `a8_1_bulk_waive_open_list.sql` | Sammel-Erlass vor Omlify, `get_open_coverage`, `get_course_member_passes` — A8-1 Schema |
+
+**Release-Hinweis A8-1:** Nach dem Schema-Push und dem Frontend-Deploy: **„Nach dem Release mit der Testkundin die Sammelaktion ausführen.“** Erwartete Vorschau im Hauptstudio `892370b8`: etwa **169** aktive offene Buchungen in vergangenen Kursen (Stand Inventur 28.09.2026, vor A2-PROD; nach A2 alle preispflichtigen Buchungen `open`). Das Stichtagsdatum stimmt Julius mit ihr ab. Die zwei kleinen Studios (`1ffd7778`, `5110be00`) prüft Julius separat.
 
 **Release-Hinweis A6 / A6-3:** PROD braucht die Erweiterung `pg_cron` (Migration legt sie an: `CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA pg_catalog` plus Rechte). Vor dem PROD-Push prüfen: Extension aktiv, Job `yogaflow_expire_passes` existiert (`cron.job`, Schedule `5 * * * *`), Funktion `yogaflow_private.expire_passes` nur für `postgres`/`service_role`. Auf DEV ebenfalls. A6-1/A6-2 brauchen `pg_cron` noch nicht.
 

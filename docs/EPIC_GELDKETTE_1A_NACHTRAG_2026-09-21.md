@@ -436,7 +436,7 @@ der Frist → +1, außerhalb → 0. Verfall am Stichtag → Rest 0, Event. Nachr
 | H4 | Quelle | Nur `payment.recorded` / `payment.reversed`. Art (`course`/`pass`) aus `payments.subject_type`. `pass.purchased` und übrige Events erzeugen keine Zeile. |
 | H5 | Storno | Gegenzeile spiegelt exakt die Originalzeilen (Steuersatz des Originals). Original noch nicht gebucht → Gegenzeile wartet. |
 | H6 | Statuswechsel | Neuer Status nur ab Datum nach letzter gebuchter Zeile (`ALREADY_BOOKED` sonst). Gebuchtes nie umschreiben. Erste Angabe darf rückwirkend sein. |
-| H7 | Auswertung | Nur CSV-Export für Steuerberatung (**A7-2**). Keine Summen am Bildschirm (E14). |
+| H7 | Auswertung | Nur CSV-Export für Steuerberatung (**A7-2**). Keine Summen von **eingenommenem** Geld am Bildschirm (E14). Offene Beträge je Person erlaubt (S4, 28.09.). |
 | H8 | Rundung | `netto = round(brutto × 10000 / (10000 + satz_bp))`, `ust = brutto − netto` (Cent, kaufmännisch). |
 | H9 | Buchungsdatum | Kalendertag von `payments.received_at` in `Europe/Berlin`. Steuerstatus mit größtem `valid_from` ≤ Buchungsdatum. |
 
@@ -465,14 +465,64 @@ Einlösung → keine Zeile. Doppelte Job-Läufe → Zeilen genau einmal. **Schem
 ### A8 — Teilnehmerliste mit Deckung (Design-Story)
 *Als Lehrerin möchte ich fünf Minuten vor dem Kurs sehen, wer offen ist, und es mit einem Tipp erledigen.*
 
-- Je Person: offen · bar · PayPal · Überweisung · Karte (Rest n) · erlassen. Nicht allein über Farbe
-- Schnellaktionen: „bar“, „PayPal“, „mit Karte“ (wenn gültige Karte vorhanden), „Karte verkaufen“ (wenn E13 es
-  erlaubt)
-- `owner`/`admin`: Übersicht „Offene Beträge“ (Summe je Kurs, je Person), Sammelaktion „erledigt vor Omlify“
-  für vergangene Kurse
+- Je Person: offen · bar · PayPal · Überweisung · Karte (Rest n) · erlassen / vor Omlify erledigt · kostenlos.
+  Nicht allein über Farbe
+- Schnellaktionen: „bar“, „mit Karte“ (wenn gültige Karte vorhanden); PayPal und „Karte verkaufen“ im Menü „Mehr“
+  (S5)
+- `owner`/`admin`: Liste „Offene Zahlungen“ (S3), Sammelaktion „Alte Kurse abhaken“ (S1)
 - Grundlage `docs/DESIGNSYSTEM.md`. **Zustände zuerst festlegen, dann gestalten.** Design-Commits getrennt
 
-**Akzeptanz:** Screenshots aller Deckungszustände, mobil und Desktop. **STOPP.**
+#### Entscheidungen A8 (28.09.2026) — S1–S7
+
+| # | Frage | Entscheidung |
+|---|---|---|
+| S1 | Sammelaktion | „Alles vor dem [Datum] war vor Omlify erledigt“. Nur Owner/Admin. Vorschau mit Anzahl Buchungen und Kurse. Atomar (alles oder nichts), als Ganzes rücknehmbar. Keine Sammelaktion je Kurs. |
+| S2 | Welche Buchungen | Nur `status = registered`, `coverage_status = open`, Kursbeginn vor dem Datum **und** in der Vergangenheit. Warteliste und Stornierte zählen nirgends als offen. |
+| S3 | Offene Zahlungen | Owner/Admin: Liste je Person (vergangene Kurse mit offenem Betrag). Summe **je Person** erlaubt, **keine** Gesamtsumme über das Studio. Filter wie S2. |
+| S4 | E14/H7 präzisiert | Keine Anzeige von **eingenommenem** Geld (Kassenbestand, Umsatz). Offene Beträge je Person sind erlaubt. |
+| S5 | PayPal | Bleibt im Menü „Mehr“. |
+| S6 | Serienbearbeitung | Nicht A8. Eigener Fix direkt nach A8, vor Stripe. |
+| S7 | N+1 in der Kasse | Eine RPC liefert die Karten aller Personen eines Kurses (`get_course_member_passes`). |
+
+**Schema A8-1** (Migration `20260928160000_a8_1_bulk_waive_open_list.sql`): `coverage_waive_batches`,
+`preview_pre_omlify_waive`, `waive_pre_omlify_before`, `revert_pre_omlify_batch`, `get_pre_omlify_batches`,
+`get_open_coverage`, `get_course_member_passes`. UI → A8-2.
+
+#### Textvorgabe Sammelaktion „Alte Kurse abhaken“ (A8-2)
+
+Titel: **Alte Kurse abhaken**
+
+Erklärung: Omlify weiß nicht, wer vor dem Start mit Omlify bezahlt hat. Deshalb stehen deine bisherigen
+Kurse als „offen“. Hast du das früher schon selbst geregelt, kannst du hier alles auf einmal abhaken.
+
+Feld: Alles vor dem: [Datum, Standard heute, max. heute]
+
+Vorschau: Das betrifft {count} Anmeldungen aus deinen Kursen vom {first_course_date} bis {last_course_date}.
+
+Was passiert:
+
+- Die Anmeldungen stehen nicht mehr als offen, sondern als „vor Omlify erledigt“.
+- Deine Teilnehmenden merken davon nichts, es geht keine Nachricht raus.
+- Es wird kein Geld verbucht.
+- Du kannst es jederzeit rückgängig machen.
+
+Knopf (primär): {count} Anmeldungen abhaken
+
+Erfolg: „Erledigt. {count} alte Anmeldungen sind abgehakt.“ mit Knopf „Rückgängig“ (Batch-Rücknahme).
+
+Verlauf: „28.09.2026 · 169 abgehakt (alles vor dem 28.09.2026) · Rückgängig“. Nach Rücknahme: „rückgängig gemacht“.
+
+| Code | Text |
+|---|---|
+| NOTHING_TO_WAIVE / count 0 | „Vor diesem Datum ist nichts mehr offen.“ (Knopf aus) |
+| COUNT_CHANGED | „Inzwischen hat sich etwas geändert. Bitte prüf die neue Zahl.“ Vorschau neu laden. |
+| TOO_MANY | „Das sind mehr als 1.000 Anmeldungen. Wähle ein früheres Datum und mach es in mehreren Schritten.“ |
+| DATE_IN_FUTURE | „Das Datum darf nicht in der Zukunft liegen.“ |
+| FORBIDDEN | „Nur die Studioleitung kann das.“ |
+
+Umbenennung Anzeige: `waived` + `pre_omlify` → „vor Omlify erledigt“; `goodwill`/`other` → „erlassen“.
+
+**Akzeptanz A8-1:** Migration + Test geschrieben, nicht angewendet. **STOPP.** A8-2: Screenshots, Dialog-Text von der Testkundin ohne Erklärung verständlich.
 
 ### A9 — Kurs absagen (ohne Online-Erstattung)
 *Als Studio möchte ich einen Kurs absagen, statt ihn zu löschen.*
@@ -569,7 +619,7 @@ Sprint A darf vor Stripe nach PROD, wenn alles zutrifft:
 | **W12** | Kostenlos + Kartenwunsch? | Ignorieren, `not_required` | entschieden 27.09. (A6-2) |
 | **W13** | Warteliste + Zahlart vom Studio? | Nein — nur open oder `coverage_intent=pass` | entschieden 27.09. (A6-2) |
 | **E13** | Dürfen Lehrende Karten verkaufen? | **Ja** (V1): Owner, Admin und Lehrende; Listenpreis; Lehrende stornieren eigenen Verkauf 15 Minuten (wie P4) | entschieden 27.09. (V1) |
-| **E14** | Barbeleg aus Omlify? | **Nein, nur Vermerk** (Abschnitt 3) | entschieden 21.09. |
+| **E14** | Barbeleg aus Omlify? | **Nein, nur Vermerk** (Abschnitt 3). **Präzisierung 28.09. (S4):** Keine Anzeige von eingenommenem Geld (Kassenbestand, Umsatz). Offene Beträge je Person sind erlaubt. | entschieden 21.09., präzisiert 28.09. |
 | **E15** | Rechte der Lehrenden bei Deckung | Vermerk bar/PayPal/Überweisung und Einlösen **nur in eigenen Kursen**, Betrag vom Server, keine Korrektur, kein `waived`, keine Studio-Übersicht der Beträge. **P4 (27.09.):** den eigenen Vermerk innerhalb von 15 Minuten selbst zurücknehmen, auch als Lehrende; danach nur `owner`/`admin` | entschieden 21.09., ergänzt 27.09. |
 | **E16** | Gültigkeit von Karten | Studio setzt sie. Standard „3 Jahre zum Jahresende“, Hinweis unter 12 Monaten. Rechtsprüfung im Rechts-Epic | entschieden 21.09. |
 | **E17** | Einheit bei Absage auf abgelaufene Karte | Hinweis ans Studio, Studio entscheidet per `manual_adjustment` | entschieden 21.09. |

@@ -109,18 +109,20 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
       (Arial, `#0f766e`).
 - [ ] **`EditCourse` preist bei Serien-Updates auch vergangene Termine um**
       (`EditCourse.tsx` aktualisiert die Serie ohne Datumsfilter). Befund
-      A2-Inventur. Künftig nur kommende Termine ändern. Die Kursbearbeitung
-      soll bei einer Preisänderung anzeigen, dass bestehende Buchungen den
-      alten Preis behalten (Nachtrag, L9).
+      A2-Inventur. **Eigener Fix direkt nach A8, vor Stripe** (S6). Künftig nur
+      kommende Termine ändern. Die Kursbearbeitung soll bei einer Preisänderung
+      anzeigen, dass bestehende Buchungen den alten Preis behalten (Nachtrag, L9).
 - [ ] **A8-Feinschliff (Kassier-/Teilnehmerliste)**
       - ~~`MemberPassesSection` doppelt eingebunden~~ — behoben in A6-3
         (`matchMedia`, nur ein Layout mountet).
       - `npm run test:geldkette` braucht Pause bzw. Wiederholung gegen das
         Auth-Rate-Limit (viele Logins hintereinander).
-      - Sammel-RPC für große Kurse (viele Einzel-`record_manual_payment`-
-        Tipps) — Produktfrage für A8.
-      - Serienbearbeitung schreibt auf vergangene Termine (siehe Punkt oben).
-- [ ] **Veraltete Dokumentation korrigieren:**
+      - Sammel-RPC Kassieren für große Kurse (viele Einzel-
+        `record_manual_payment`-Tipps) — **nach Release**, nicht A8.
+      - ~~Serienbearbeitung schreibt auf vergangene Termine~~ — siehe Punkt
+        oben (S6, Fix nach A8).
+      - Zwei Teilnehmerlisten (Kasse vs. Kontaktliste) zusammenlegen —
+        **später**, nicht A8.- [ ] **Veraltete Dokumentation korrigieren:**
       `EMAIL_SYSTEM_DOCUMENTATION.md` und `docs/RELEASE_PR_AND_NEXT_STEPS.md`
       beschreiben Gmail als Mailversand — richtig ist Resend für ausgehende Mails,
       IONOS nur für das Postfach. `docs/README.md` nennt `wrangler.toml` —
