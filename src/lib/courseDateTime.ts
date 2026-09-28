@@ -50,6 +50,56 @@ export function berlinIsoDate(dayOffset = 0, now = new Date()): string {
 }
 
 /**
+ * Reines Kalenderdatum YYYY-MM-DD aus Eingabe oder API-Wert.
+ * Nie über Date/UTC — nur das Präfix YYYY-MM-DD, falls vorhanden.
+ */
+export function asCivilIsoDate(value: string | null | undefined): string {
+  if (value == null || value === '') return '';
+  const match = String(value).trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return '';
+  const y = Number(match[1]);
+  const m = Number(match[2]);
+  const d = Number(match[3]);
+  if (!y || m < 1 || m > 12 || d < 1 || d > 31) return '';
+  return `${match[1]}-${match[2]}-${match[3]}`;
+}
+
+/**
+ * Kalendertag in Europe/Berlin für einen Zeitpunkt (timestamptz).
+ * Bare YYYY-MM-DD bleibt unverändert — `new Date('YYYY-MM-DD')` wäre UTC und verschiebt.
+ */
+export function berlinIsoFromInstant(value: string | Date | null | undefined): string {
+  if (value == null || value === '') return '';
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return asCivilIsoDate(trimmed);
+  }
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Berlin',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
+
+/** Hält ein Kalenderdatum in [min, max], jeweils YYYY-MM-DD oder null. */
+export function clampCivilIsoDate(
+  value: string,
+  min: string | null | undefined,
+  max: string | null | undefined,
+): string {
+  const civil = asCivilIsoDate(value);
+  if (!civil) return '';
+  const lo = min ? asCivilIsoDate(min) : '';
+  const hi = max ? asCivilIsoDate(max) : '';
+  if (lo && civil < lo) return lo;
+  if (hi && civil > hi) return hi;
+  return civil;
+}
+
+/**
  * Teilnehmerliste: Kursdatum heute oder später in Europe/Berlin.
  * Eine Stunde, die heute schon begonnen hat, bleibt bis Tagesende sichtbar.
  * isCourseUpcoming (Beginn, andere Listen) bleibt unverändert.

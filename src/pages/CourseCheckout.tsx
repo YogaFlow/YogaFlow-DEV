@@ -764,6 +764,8 @@ const CourseCheckout: React.FC = () => {
             {paidSentence} Um die Rückgabe kümmert sich die Studioleitung.
           </p>
         )}
+        <p className="text-[13px] leading-snug text-textMuted">{CASH_HINT}</p>
+
         <ConfirmDialog
           dialog={
             refundTarget

@@ -16,6 +16,8 @@ import { fetchCourseParticipantCounts } from '../lib/courseParticipantCounts';
 import { isParticipantOnlyRole, isTeacherOnly } from '../lib/userRoles';
 import { formatStaffName, withCourseTeachers } from '../lib/staffNames';
 import { berlinIsoDate, checkoutDayWord, latestUnreversedPayment } from '../lib/courseCheckout';
+import { loadTaxSettings, studioHasPayment } from '../lib/taxStatus';
+import LedgerWaitingNotice from '../components/tax/LedgerWaitingNotice';
 import AccentPill from '../components/ui/AccentPill';
 import CourseRow from '../components/courses/CourseRow';
 
@@ -37,7 +39,7 @@ type CheckoutLine = {
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { userProfile, isAdmin, isCourseLeader } = useAuth();
+  const { userProfile, isAdmin, isOwner, isCourseLeader } = useAuth();
   const [courses, setCourses] = useState<CourseWithCount[]>([]);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [stats, setStats] = useState({
@@ -49,6 +51,7 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [checkoutLines, setCheckoutLines] = useState<CheckoutLine[]>([]);
   const [refundLines, setRefundLines] = useState<CheckoutLine[]>([]);
+  const [ledgerWaiting, setLedgerWaiting] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -373,6 +376,31 @@ const Dashboard: React.FC = () => {
     };
   }, [userProfile]);
 
+  useEffect(() => {
+    if (!isOwner) {
+      setLedgerWaiting(false);
+      return;
+    }
+    let active = true;
+    void (async () => {
+      try {
+        const settings = await loadTaxSettings();
+        if (!active) return;
+        if (settings.length > 0) {
+          setLedgerWaiting(false);
+          return;
+        }
+        const hasPayment = await studioHasPayment();
+        if (active) setLedgerWaiting(hasPayment);
+      } catch {
+        if (active) setLedgerWaiting(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [isOwner, userProfile?.id]);
+
   const isParticipantOnly = isParticipantOnlyRole(userProfile);
   const isTeacher = isTeacherOnly(userProfile);
 
@@ -559,6 +587,8 @@ const Dashboard: React.FC = () => {
             : 'Willkommen zurück!'}
         </p>
       </div>
+
+      {ledgerWaiting ? <LedgerWaitingNotice variant="dashboard" /> : null}
 
       {refundLines.length > 0 && isAdmin && (
         <section className="overflow-hidden rounded-md border border-border bg-surface">

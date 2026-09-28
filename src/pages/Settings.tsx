@@ -5,6 +5,7 @@ import { Save } from 'lucide-react';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
 import PassProductsSection from '../components/settings/PassProductsSection';
 import StudioDesignSection from '../components/settings/StudioDesignSection';
+import TaxSettingsSection from '../components/settings/TaxSettingsSection';
 import {
   BOOKING_CANCELLATION_WINDOW_DEFAULT,
   BOOKING_CANCELLATION_WINDOW_MAX,
@@ -103,6 +104,10 @@ export default function Settings() {
           <StudioDesignSection />
         </div>
       ) : null}
+
+      <div className="mb-6">
+        <TaxSettingsSection isOwner={isOwner} />
+      </div>
 
       <div className="mb-6">
         <PassProductsSection />

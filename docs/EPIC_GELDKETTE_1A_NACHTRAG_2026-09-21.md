@@ -444,6 +444,20 @@ der Frist → +1, außerhalb → 0. Verfall am Stichtag → Rest 0, Event. Nachr
 `ledger_entries`, `ledger_event_log`; RPC `set_tax_setting`; Job `process_ledger`; Cron
 `yogaflow_process_ledger`. UI/CSV/Hinweis → A7-2.
 
+**A7-2 (UI + Export, Migration `20260928143000_a7_2_ledger_export.sql`):** Einstellungen → Steuern
+(Owner setzt, Admin liest), Hinweis solange die Angabe fehlt, CSV-Export ohne Summen am
+Bildschirm, Kassenhinweis E14. RPC `export_ledger` nur Owner/Admin, Zeitraum max. 366 Tage.
+
+**A7 abgeschlossen (28.09.2026).** Bewusste Abweichungen:
+
+| ID | Abweichung |
+|---|---|
+| A7-2a | 19 % und 7 % erklären „Du weist … Umsatzsteuer aus.“ Das benennt die Option, es ist keine Beratung. |
+| A7-2b | Summen-CSV: Saldo = Summe Soll − Summe Haben im Zeitraum, nur Konten mit Zeilen. |
+| A7-2c | NULL oder Ende vor Anfang → `INVALID_RANGE`. Nur `p_to - p_from` > 365 → `RANGE_TOO_LARGE`. 366 Tage einschließlich erlaubt. |
+| A7-2d | CSV-Datum `TT.MM.JJJJ`. Von–Bis-Dateiname `omlify-hauptbuch-YYYY-MM-DD_YYYY-MM-DD`. |
+| A7-2e | Kalenderdaten nur als YYYY-MM-DD (`asCivilIsoDate` / `berlinIsoFromInstant` in `courseDateTime.ts`). Dialog klemmt an min/max, damit Anzeige und RPC nicht auseinanderlaufen. |
+
 **Akzeptanz A7-1:** Kartenverkauf 150 € bar, Studio regulär 19 %: 15000 × 10000 / 11900 = 12605,04 →
 12605 netto, USt 2395 → `cash` Soll 15000 · `revenue_standard` Haben 12605 · `vat_output` Haben 2395.
 Einlösung → keine Zeile. Doppelte Job-Läufe → Zeilen genau einmal. **Schema → Freigabe. STOPP.**

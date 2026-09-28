@@ -14,8 +14,6 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 - [ ] **Befreite Kurse je Kurs (§ 4 UStG)** — A7 H1: Steuerstatus nur Studio-weit
       (`regular` 19 %/7 % oder Kleinunternehmer). Abweichung je Kurs später.
 - [ ] **SKR-/DATEV-Mapping** — laut Epic in 1b, nicht A7.
-- [ ] **E14-Hinweistext in der Kasse fehlt** — Inventur A7: Nachtrag verlangt sichtbaren
-      Text „Omlify führt keine Kasse“; im Client kein Treffer. Fix in **A7-2**.
 
 - [ ] **AVV an die Testkundin schicken** — rückwirkend, per Mail von
       `support@omlify.de`, mit Bitte um Bestätigung in Textform. Sie verarbeitet
@@ -164,6 +162,8 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Erledigt
 
+- 28.09.2026 — E14-Hinweis in der Kasse: „Omlify vermerkt nur, wer bezahlt hat. …“
+  (`CASH_HINT` in der Kasse, auch bei abgesagtem Kurs). A7-2.
 - 27.09.2026 — `delete-user` mappt `23503` nicht mehr auf „hat noch Kurse“.
   Die Function ruft `remove_member` und löscht das Login nur bei
   `remaining_profiles === 0` (Zahl). Geschrieben, Deploy auf DEV steht aus.

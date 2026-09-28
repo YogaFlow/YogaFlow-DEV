@@ -159,6 +159,27 @@ export function formatDateTime(value: string | Date | null | undefined): string 
   return `${formatDate(isoDate)}, ${time}`;
 }
 
+/** 01.09.2026 — civil date, no timezone shift. */
+export function formatNumericDate(value: string | null | undefined): string {
+  const parts = parseCivilDate(value ?? '');
+  if (!parts) return '';
+  const day = String(parts.d).padStart(2, '0');
+  const month = String(parts.m).padStart(2, '0');
+  return `${day}.${month}.${parts.y}`;
+}
+
+/** Shift a YYYY-MM-DD civil date by whole days. */
+export function shiftIsoDate(value: string, days: number): string {
+  const parts = parseCivilDate(value);
+  if (!parts) return '';
+  const next = addDays(parts, days);
+  const month = String(next.m).padStart(2, '0');
+  const day = String(next.d).padStart(2, '0');
+  return `${next.y}-${month}-${day}`;
+}
+
+export { asCivilIsoDate, berlinIsoFromInstant, clampCivilIsoDate } from './courseDateTime';
+
 /** 18 € / 18,50 € (narrow no-break space before €) */
 export function formatPrice(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(value)) return '';
