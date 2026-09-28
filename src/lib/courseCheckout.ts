@@ -1,7 +1,21 @@
 import type { CoverageStatus, PaymentMethod, WaivedReason } from '../types';
 import { berlinIsoDate } from './courseDateTime';
+import {
+  coverageLabel,
+  methodWord,
+  type CoverageLabelAudience,
+  type CoverageLabelInput,
+  type ManualCheckoutMethod,
+} from './coverageLabel';
 
 export { berlinIsoDate };
+export {
+  coverageLabel,
+  methodWord,
+  type CoverageLabelAudience,
+  type CoverageLabelInput,
+  type ManualCheckoutMethod,
+};
 
 export const CASH_HINT =
   'Omlify vermerkt nur, wer bezahlt hat. Deine Kasse bzw. dein Kassenbuch führst du wie bisher selbst.';
@@ -14,18 +28,8 @@ export const WAIVE_REASONS: { value: WaivedReason; label: string }[] = [
   { value: 'other', label: 'Sonstiges' },
 ];
 
-export type ManualCheckoutMethod = 'cash' | 'paypal_manual' | 'bank_transfer';
-
 export function waiveReasonLabel(reason: WaivedReason | null | undefined): string {
   return WAIVE_REASONS.find((item) => item.value === reason)?.label ?? '';
-}
-
-export function methodWord(method: PaymentMethod | ManualCheckoutMethod | null | undefined): string {
-  if (method === 'cash') return 'bar';
-  if (method === 'paypal_manual') return 'PayPal';
-  if (method === 'bank_transfer') return 'Überweisung';
-  if (method === 'card') return 'Karte';
-  return 'bezahlt';
 }
 
 /** Lehrende sehen bei bezahlt nur das Wort. Owner und Admin sehen die Methode. */
@@ -75,37 +79,30 @@ export function checkoutErrorMessage(code: string | undefined): string {
   }
 }
 
-/** Kurzlabel für Kasse, Teilnehmerliste, CSV (ohne Beträge). */
+/** @deprecated Prefer coverageLabel. Kurzlabel ohne Rolle/Methode. */
 export function coverageShortLabel(status: CoverageStatus | null | undefined): string {
-  switch (status) {
-    case 'pass':
-      return 'Karte';
-    case 'paid':
-      return 'bezahlt';
-    case 'waived':
-      return 'erlassen';
-    case 'not_required':
-      return 'kostenlos';
-    case 'open':
-    default:
-      return 'offen';
-  }
+  return coverageLabel({ coverage_status: status }, { audience: 'teacher' });
 }
 
-/** Fließtext für Meine Anmeldungen. */
+/** @deprecated Prefer coverageLabel. Fließtext für Meine Anmeldungen. */
 export function coveragePaymentPhrase(status: CoverageStatus | null | undefined): string {
-  switch (status) {
-    case 'pass':
-      return 'mit Karte bezahlt';
-    case 'paid':
-      return 'bezahlt';
-    case 'waived':
-      return 'erlassen';
-    case 'not_required':
-      return 'kostenlos';
-    case 'open':
+  return coverageLabel({ coverage_status: status }, { audience: 'participant' });
+}
+
+export function preOmlifyErrorMessage(code: string | undefined): string {
+  switch (code) {
+    case 'NOTHING_TO_WAIVE':
+      return 'Vor diesem Datum ist nichts mehr offen.';
+    case 'COUNT_CHANGED':
+      return 'Inzwischen hat sich etwas geändert. Bitte prüf die neue Zahl.';
+    case 'TOO_MANY':
+      return 'Das sind mehr als 1.000 Anmeldungen. Wähle ein früheres Datum und mach es in mehreren Schritten.';
+    case 'DATE_IN_FUTURE':
+      return 'Das Datum darf nicht in der Zukunft liegen.';
+    case 'FORBIDDEN':
+      return 'Nur die Studioleitung kann das.';
     default:
-      return 'offen · vor Ort bezahlen';
+      return 'Das hat nicht geklappt. Bitte versuche es noch einmal.';
   }
 }
 

@@ -122,7 +122,10 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
       - ~~Serienbearbeitung schreibt auf vergangene Termine~~ — siehe Punkt
         oben (S6, Fix nach A8).
       - Zwei Teilnehmerlisten (Kasse vs. Kontaktliste) zusammenlegen —
-        **später**, nicht A8.- [ ] **Veraltete Dokumentation korrigieren:**
+        **später**, nicht A8.
+      - ~~A8-2 Offene Zahlungen / Alte Kurse abhaken / coverageLabel~~ —
+        erledigt 28.09.2026.
+- [ ] **Veraltete Dokumentation korrigieren:**
       `EMAIL_SYSTEM_DOCUMENTATION.md` und `docs/RELEASE_PR_AND_NEXT_STEPS.md`
       beschreiben Gmail als Mailversand — richtig ist Resend für ausgehende Mails,
       IONOS nur für das Postfach. `docs/README.md` nennt `wrangler.toml` —

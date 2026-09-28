@@ -11,6 +11,7 @@ import {
   MessageSquare,
   UserCog,
   ClipboardCheck,
+  Wallet,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTenant } from '../../context/TenantContext';
@@ -75,6 +76,7 @@ const Sidebar: React.FC = () => {
 
     if (isAdmin) {
       items.splice(-1, 0,
+        { to: '/open-payments', icon: Wallet, label: 'Offene Zahlungen' },
         { to: '/settings', icon: Settings, label: 'Einstellungen' },
       );
     }

@@ -7,6 +7,7 @@ const TITLES: Record<string, string | undefined> = {
   '/my-courses': 'Kurse verwalten',
   '/my-registrations': 'Meine Anmeldungen',
   '/participants': 'Teilnehmer',
+  '/open-payments': 'Offene Zahlungen',
   '/messages': 'Nachrichten',
   '/profile': 'Profil',
   '/users': 'Nutzerverwaltung',

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Check } from 'lucide-react';
 import type { Course, CoverageStatus, Registration } from '../../types';
 import { isCourseCancelled, isCourseUpcoming } from '../../lib/courseDateTime';
-import { coveragePaymentPhrase } from '../../lib/courseCheckout';
+import { coverageLabel } from '../../lib/courseCheckout';
 import { formatTimeRange, formatTodayOrTomorrow } from '../../lib/format';
 import {
   passRefundInfo,
@@ -38,7 +38,15 @@ function paymentLine(
   if (refund) {
     return passRefundStatusLine(refund);
   }
-  return coveragePaymentPhrase(registration.coverage_status as CoverageStatus | undefined);
+  return coverageLabel(
+    {
+      status: registration.status,
+      is_waitlist: registration.is_waitlist,
+      coverage_status: registration.coverage_status as CoverageStatus | undefined,
+      coverage_waived_reason: registration.coverage_waived_reason,
+    },
+    { audience: 'participant' },
+  ) || null;
 }
 
 const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({

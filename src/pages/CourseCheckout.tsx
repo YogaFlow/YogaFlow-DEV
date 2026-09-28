@@ -19,17 +19,15 @@ import {
   checkoutErrorMessage,
   compareCheckoutRows,
   countCheckout,
-  coverageShortLabel,
+  coverageLabel,
   eurosToCents,
   latestUnreversedPayment,
   methodWord,
-  paidStatusLabel,
-  waiveReasonLabel,
   type ManualCheckoutMethod,
 } from '../lib/courseCheckout';
 import {
   applyPassToRegistration,
-  fetchMemberPassesForMany,
+  fetchCourseMemberPasses,
   fetchSellablePassProducts,
   findUsablePass,
   passBadgeLabel,
@@ -49,6 +47,8 @@ type Person = {
   waivedNote: string | null;
   priceCents: number | null;
   method: PaymentMethod | null;
+  passId: string | null;
+  passRemaining: number | null;
 };
 
 type CourseHead = {
@@ -121,25 +121,26 @@ function personName(person: Pick<Person, 'firstName' | 'lastName'>): string {
 }
 
 function statusLabel(person: Person, seesMethod: boolean): { text: string; detail: string } {
-  if (person.coverage === 'pass') {
-    return { text: coverageShortLabel('pass'), detail: '' };
+  const audience = seesMethod ? 'manager' : 'teacher';
+  const text = coverageLabel(
+    {
+      coverage_status: person.coverage,
+      coverage_waived_reason: person.waivedReason,
+      method: person.method,
+      pass_remaining: person.passRemaining,
+    },
+    { audience },
+  );
+  if (person.coverage === 'waived' && seesMethod) {
+    const detail = [person.waivedNote].filter(Boolean).join('');
+    return { text, detail };
   }
-  if (person.coverage === 'paid') {
-    return { text: paidStatusLabel(seesMethod, person.method), detail: '' };
+  if (person.coverage === 'open') {
+    const price =
+      person.priceCents != null ? formatPrice(person.priceCents / 100) : '';
+    return { text, detail: price };
   }
-  if (person.coverage === 'waived') {
-    const reason = waiveReasonLabel(person.waivedReason);
-    const detail = seesMethod
-      ? [reason, person.waivedNote].filter(Boolean).join(': ')
-      : '';
-    return { text: 'erlassen', detail };
-  }
-  if (person.coverage === 'not_required') {
-    return { text: 'kostenlos', detail: '' };
-  }
-  const price =
-    person.priceCents != null ? formatPrice(person.priceCents / 100) : '';
-  return { text: 'offen', detail: price };
+  return { text, detail: '' };
 }
 
 const CourseCheckout: React.FC = () => {
@@ -284,6 +285,7 @@ const CourseCheckout: React.FC = () => {
         coverage_waived_reason,
         coverage_waived_note,
         price_cents_at_booking,
+        pass_id,
         user:users!registrations_user_id_fkey(first_name, last_name)
       `
       )
@@ -331,15 +333,24 @@ const CourseCheckout: React.FC = () => {
         waivedNote: row.coverage_waived_note ?? null,
         priceCents: row.price_cents_at_booking ?? null,
         method: methodByRegistration.get(row.id) ?? null,
+        passId: (row.pass_id as string | null) ?? null,
+        passRemaining: null,
       };
     });
 
     const [sellable, passesMap] = await Promise.all([
       fetchSellablePassProducts(),
-      fetchMemberPassesForMany(next.map((p) => p.userId)),
+      fetchCourseMemberPasses(courseId),
     ]);
     setHasSellableProducts(sellable.length > 0);
     setPassesByUser(passesMap);
+
+    for (const person of next) {
+      if (person.coverage !== 'pass' || !person.passId) continue;
+      const passes = passesMap[person.userId] ?? [];
+      const match = passes.find((pass) => pass.pass_id === person.passId);
+      person.passRemaining = match?.remaining ?? null;
+    }
 
     setPeople(next);
     setLoading(false);
@@ -973,7 +984,9 @@ const CourseCheckout: React.FC = () => {
                         }}
                         className="flex min-h-11 w-full items-center text-left text-[15px] text-text"
                       >
-                        Erlass zurücknehmen
+                        {person.waivedReason === 'pre_omlify'
+                          ? 'Abhaken zurücknehmen'
+                          : 'Erlass zurücknehmen'}
                       </button>
                     ) : null}
                   </div>
@@ -1175,7 +1188,10 @@ const CourseCheckout: React.FC = () => {
         dialog={
           revertTarget
             ? {
-                title: 'Erlass zurücknehmen',
+                title:
+                  revertTarget.waivedReason === 'pre_omlify'
+                    ? 'Abhaken zurücknehmen'
+                    : 'Erlass zurücknehmen',
                 message: `${personName(revertTarget)} ist danach wieder offen.`,
                 confirmLabel: 'Zurücknehmen',
                 cancelLabel: 'Abbrechen',

@@ -522,7 +522,9 @@ Verlauf: „28.09.2026 · 169 abgehakt (alles vor dem 28.09.2026) · Rückgängi
 
 Umbenennung Anzeige: `waived` + `pre_omlify` → „vor Omlify erledigt“; `goodwill`/`other` → „erlassen“.
 
-**Akzeptanz A8-1:** Migration + Test geschrieben, nicht angewendet. **STOPP.** A8-2: Screenshots, Dialog-Text von der Testkundin ohne Erklärung verständlich.
+**Akzeptanz A8-1:** Migration + Test auf DEV grün, CI grün (`a7bdac2`).
+
+**A8-2 (UI) — abgeschlossen 28.09.2026:** Seite „Offene Zahlungen“, Sammelaktion „Alte Kurse abhaken“, Dashboard-Karte, einheitliche `coverageLabel`-Texte, Kasse mit `get_course_member_passes`. Texte aus Teil E wörtlich. Abweichungen: siehe Abschlussbericht A8-2.
 
 ### A9 — Kurs absagen (ohne Online-Erstattung)
 *Als Studio möchte ich einen Kurs absagen, statt ihn zu löschen.*

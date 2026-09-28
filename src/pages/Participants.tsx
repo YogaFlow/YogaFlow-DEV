@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Course, CoverageStatus, Registration, User } from '../types';
+import { Course, CoverageStatus, PaymentMethod, Registration, User } from '../types';
 import { isCourseManagerRole, isStudioAdmin, isTeacherOnly } from '../lib/userRoles';
 import { Users, Mail, Phone, Search, Filter, Download, UserMinus } from 'lucide-react';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
@@ -19,7 +19,7 @@ import {
   labelRegistrationStatus,
   labelRegistrationStatusShort,
 } from '../lib/registrationStatus';
-import { coverageShortLabel } from '../lib/courseCheckout';
+import { coverageLabel, latestUnreversedPayment } from '../lib/courseCheckout';
 
 function shownMemberEmail(user: { email?: string | null; anonymized_at?: string | null } | null | undefined): string {
   if (!user || user.anonymized_at) return '';
@@ -70,6 +70,7 @@ const Participants: React.FC = () => {
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
   const [pendingUnregister, setPendingUnregister] = useState<ParticipantWithDetails | null>(null);
   const [unregisteringId, setUnregisteringId] = useState<string | null>(null);
+  const [paymentMethodByReg, setPaymentMethodByReg] = useState<Record<string, PaymentMethod>>({});
 
   useEffect(() => {
     if (courseId) {
@@ -123,6 +124,27 @@ const Participants: React.FC = () => {
             }
           );
           setParticipants(upcomingParticipants);
+
+          if (isStudioAdmin(userProfile)) {
+            const paidIds = upcomingParticipants
+              .filter((p: ParticipantWithDetails) => p.coverage_status === 'paid')
+              .map((p: ParticipantWithDetails) => p.id);
+            if (paidIds.length > 0) {
+              const { data: payments } = await supabase
+                .from('payments')
+                .select('id, registration_id, method, amount_cents, reverses_payment_id, received_at')
+                .in('registration_id', paidIds);
+              const methods: Record<string, PaymentMethod> = {};
+              for (const [regId, payment] of latestUnreversedPayment(payments ?? [])) {
+                methods[regId] = payment.method;
+              }
+              if (isMounted) setPaymentMethodByReg(methods);
+            } else {
+              setPaymentMethodByReg({});
+            }
+          } else {
+            setPaymentMethodByReg({});
+          }
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -238,6 +260,22 @@ const Participants: React.FC = () => {
     }
   };
 
+  const paymentAudience = isStudioAdmin(userProfile) ? 'manager' : 'teacher';
+
+  const paymentText = (participant: ParticipantWithDetails, forCsv = false) => {
+    if (participant.cancel_reason === 'course_cancelled') return '—';
+    return coverageLabel(
+      {
+        status: participant.status,
+        is_waitlist: participant.is_waitlist,
+        coverage_status: participant.coverage_status as CoverageStatus | undefined,
+        coverage_waived_reason: participant.coverage_waived_reason,
+        method: paymentMethodByReg[participant.id] ?? null,
+      },
+      { audience: forCsv ? 'csv' : paymentAudience },
+    );
+  };
+
   const exportParticipants = () => {
     const escapeCell = (value: string) => `"${value.replace(/"/g, '""')}"`;
 
@@ -250,7 +288,7 @@ const Participants: React.FC = () => {
         shownMemberEmail(p.user),
         p.user?.phone || '',
         labelRegistrationStatus(p.status, p.waitlist_position),
-        coverageShortLabel(p.coverage_status as CoverageStatus | undefined),
+        paymentText(p, true),
         formatDateTime(p.registered_at)
       ])
     ];
@@ -462,7 +500,7 @@ const Participants: React.FC = () => {
                           <span>{formatDateTime(participant.registered_at)}</span>
                           {participant.cancel_reason !== 'course_cancelled' ? (
                             <span className="before:content-['·'] before:mx-1">
-                              {coverageShortLabel(participant.coverage_status as CoverageStatus | undefined)}
+                              {paymentText(participant)}
                             </span>
                           ) : null}
                         </div>
@@ -577,9 +615,7 @@ const Participants: React.FC = () => {
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-textMuted">
-                          {participant.cancel_reason === 'course_cancelled'
-                            ? '—'
-                            : coverageShortLabel(participant.coverage_status as CoverageStatus | undefined)}
+                          {paymentText(participant)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-textMuted tabular-nums">
                           {formatDateTime(participant.registered_at)}

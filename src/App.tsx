@@ -24,6 +24,7 @@ import LegalPage from './pages/LegalPage';
 import JoinStudio from './pages/JoinStudio';
 import CourseDetail from './pages/CourseDetail';
 import CourseCheckout from './pages/CourseCheckout';
+import OpenPayments from './pages/OpenPayments';
 
 const Spinner = () => (
   <div className="min-h-screen bg-sand flex items-center justify-center">
@@ -306,6 +307,7 @@ function App() {
               <Route path="my-registrations" element={<MyRegistrations />} />
               <Route path="profile" element={<Profile />} />
               <Route path="participants" element={<Participants />} />
+              <Route path="open-payments" element={<OpenPayments />} />
               <Route path="users" element={<Users />} />
               <Route path="settings" element={<Settings />} />
               <Route path="messages" element={<Messages />} />

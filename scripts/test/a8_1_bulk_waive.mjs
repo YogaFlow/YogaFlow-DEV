@@ -428,6 +428,20 @@ async function main() {
       if (error) abbruch('Datum past: ' + error.message);
     }
 
+    // Pflicht-Asserts Teil 0 (A8-2): Platz paid, Warteliste bleibt waitlist und zählt nicht
+    const waitSeatBeforePreview = await buchung(admin, cWait, p3.id);
+    ok(
+      'waitSeat.coverage_status === paid vor Vorschau',
+      waitSeatBeforePreview.coverage_status === 'paid',
+      waitSeatBeforePreview.coverage_status
+    );
+    const waitRegBeforePreview = await buchung(admin, cWait, pExtra.id);
+    ok(
+      'Warteliste bleibt waitlist vor Vorschau',
+      waitRegBeforePreview.status === 'waitlist',
+      waitRegBeforePreview.status
+    );
+
     // --- Vorschau ---
     const prevMorgen = await clientOwner.rpc('preview_pre_omlify_waive', { p_before: morgen });
     ok(
@@ -438,7 +452,7 @@ async function main() {
 
     const prevHeute = await clientOwner.rpc('preview_pre_omlify_waive', { p_before: heute });
     ok(
-      'Vorschau heute count=5 course_count=3',
+      'Vorschau heute count=5 course_count=3 (Warteliste nicht gezählt)',
       prevHeute.data?.success === true
         && prevHeute.data?.count === 5
         && prevHeute.data?.course_count === 3,
@@ -676,6 +690,17 @@ async function main() {
     ok(
       'open_coverage nur past registered open',
       (openList || []).every((r) => typeof r.price_cents_at_booking === 'number'),
+    );
+    ok(
+      'Wartelisten-registration_id fehlt in get_open_coverage',
+      !(openList || []).some((r) => r.registration_id === waitReg.id),
+      waitReg.id
+    );
+    const waitStill = await buchung(admin, cWait, pExtra.id);
+    ok(
+      'Warteliste Status bleibt waitlist nach open_coverage',
+      waitStill.status === 'waitlist',
+      waitStill.status
     );
 
     const { data: openTeacher, error: openTErr } = await clientTeacher.rpc('get_open_coverage');

@@ -52,6 +52,9 @@ const Dashboard: React.FC = () => {
   const [checkoutLines, setCheckoutLines] = useState<CheckoutLine[]>([]);
   const [refundLines, setRefundLines] = useState<CheckoutLine[]>([]);
   const [ledgerWaiting, setLedgerWaiting] = useState(false);
+  const [openCoverage, setOpenCoverage] = useState<{ registrations: number; people: number } | null>(
+    null,
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -401,6 +404,35 @@ const Dashboard: React.FC = () => {
     };
   }, [isOwner, userProfile?.id]);
 
+  useEffect(() => {
+    if (!isAdmin) {
+      setOpenCoverage(null);
+      return;
+    }
+    let active = true;
+    void (async () => {
+      const { data, error } = await supabase.rpc('get_open_coverage');
+      if (!active) return;
+      if (error) {
+        console.error(error);
+        setOpenCoverage(null);
+        return;
+      }
+      const list = (data ?? []) as Array<{ user_id: string }>;
+      if (list.length === 0) {
+        setOpenCoverage(null);
+        return;
+      }
+      setOpenCoverage({
+        registrations: list.length,
+        people: new Set(list.map((row) => row.user_id)).size,
+      });
+    })();
+    return () => {
+      active = false;
+    };
+  }, [isAdmin, userProfile?.id]);
+
   const isParticipantOnly = isParticipantOnlyRole(userProfile);
   const isTeacher = isTeacherOnly(userProfile);
 
@@ -614,6 +646,23 @@ const Dashboard: React.FC = () => {
           </div>
         </section>
       )}
+
+      {openCoverage && isAdmin ? (
+        <section className="overflow-hidden rounded-md border border-border bg-surface">
+          <Link
+            to="/open-payments"
+            className="flex min-h-11 items-center gap-3 px-3.5 py-3 text-[17px] font-medium text-text no-underline active:bg-surfaceSunken focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset"
+          >
+            <span className="min-w-0 flex-1">
+              Offene Zahlungen
+              <span className="mt-0.5 block text-[15px] font-normal text-textMuted tabular-nums">
+                {openCoverage.registrations} Anmeldungen bei {openCoverage.people} Personen
+              </span>
+            </span>
+            <ChevronRight className="h-[18px] w-[18px] shrink-0 text-textSubtle" aria-hidden />
+          </Link>
+        </section>
+      ) : null}
 
       {checkoutLines.length > 0 && !isParticipantOnly && (
         <section className="overflow-hidden rounded-md border border-border bg-surface">

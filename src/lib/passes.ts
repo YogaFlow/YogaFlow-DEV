@@ -255,6 +255,40 @@ export async function fetchMemberPassesForMany(
   return Object.fromEntries(entries);
 }
 
+/** Aktive Karten aller Angemeldeten eines Kurses (eine RPC, S7). */
+export async function fetchCourseMemberPasses(
+  courseId: string,
+): Promise<Record<string, MemberPassSummary[]>> {
+  const { data, error } = await supabase.rpc('get_course_member_passes', {
+    p_course_id: courseId,
+  });
+  if (error) {
+    console.error(error);
+    return {};
+  }
+  const rows = (data ?? []) as Array<{
+    user_id: string;
+    pass_id: string;
+    name: string;
+    remaining: number;
+    units_total: number;
+    valid_until: string;
+  }>;
+  const map: Record<string, MemberPassSummary[]> = {};
+  for (const row of rows) {
+    const list = map[row.user_id] ?? [];
+    list.push({
+      pass_id: row.pass_id,
+      name: row.name,
+      remaining: row.remaining,
+      units_total: row.units_total,
+      valid_until: String(row.valid_until).slice(0, 10),
+    });
+    map[row.user_id] = list;
+  }
+  return map;
+}
+
 export async function sellPass(
   memberId: string,
   productId: string,
