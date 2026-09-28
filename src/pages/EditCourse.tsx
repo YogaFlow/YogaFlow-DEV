@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { MapPin, Users, FileText, Save, ArrowLeft, AlertCircle, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
-import { futureSeriesCourses } from '../lib/courseDateTime';
+import { futureSeriesCourses, pastCourseEditLocks } from '../lib/courseDateTime';
 import { countActivePassProducts } from '../lib/passProducts';
 import { Course } from '../types';
 import { DatePicker, TimePicker } from '../components/DateTimePicker';
@@ -364,6 +364,20 @@ const EditCourse: React.FC = () => {
         updateData.pass_eligible = passEligible;
       }
 
+      const pastLocks = pastCourseEditLocks(course, { isManager: isAdmin });
+      if (pastLocks.begun && updateScope === 'single') {
+        delete updateData.date;
+        delete updateData.time;
+        delete updateData.end_time;
+        delete updateData.duration;
+        delete updateData.price;
+        delete updateData.max_participants;
+        delete updateData.pass_eligible;
+        if (pastLocks.teacherLocked) {
+          delete updateData.teacher_id;
+        }
+      }
+
       if (updateScope === 'series' && course.series_id) {
         const upcoming = futureSeriesCourses(seriesSessions);
         if (upcoming.length === 0) {
@@ -416,6 +430,14 @@ const EditCourse: React.FC = () => {
   const seriesCount = seriesSessions.length;
   const futureCount = futureSeriesCourses(seriesSessions).length;
   const seriesSaveBlocked = updateScope === 'series' && course?.series_id != null && futureCount === 0;
+  const pastLocks = pastCourseEditLocks(course, { isManager: isAdmin });
+  const applyPastLocks = pastLocks.begun && !(updateScope === 'series' && futureCount > 0);
+  const scheduleMoneyLocked = applyPastLocks && pastLocks.scheduleAndMoneyLocked;
+  const teacherFieldLocked = applyPastLocks && pastLocks.teacherLocked;
+  const pastHint = 'Der Kurs hat schon stattgefunden.';
+  const teacherPastHint = 'Nur ändern, wenn jemand anderes den Kurs gegeben hat.';
+  const dateDisabled =
+    scheduleMoneyLocked || (updateScope === 'series' && course?.series_id != null);
 
   if (!hasPermission) {
     return (
@@ -508,7 +530,8 @@ const EditCourse: React.FC = () => {
                 id="teacher_id"
                 value={selectedTeacherId}
                 onChange={(e) => setSelectedTeacherId(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent appearance-none bg-surface"
+                disabled={teacherFieldLocked}
+                className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent appearance-none bg-surface disabled:cursor-not-allowed disabled:bg-surfaceSunken disabled:opacity-60"
                 required
               >
                 <option value="">Bitte wähle einen Kursleiter</option>
@@ -519,6 +542,12 @@ const EditCourse: React.FC = () => {
                 ))}
               </select>
             </div>
+            {applyPastLocks && isAdmin ? (
+              <p className="mt-1 text-xs text-textMuted">{teacherPastHint}</p>
+            ) : null}
+            {teacherFieldLocked ? (
+              <p className="mt-1 text-xs text-textMuted">{pastHint}</p>
+            ) : null}
             {courseLeaders.length === 0 && (
               <p className="mt-2 text-sm text-text">
                 Keine Kursleiter gefunden. Bitte in der Nutzerverwaltung mindestens einen Nutzer als Kursleiter anlegen.
@@ -586,15 +615,18 @@ const EditCourse: React.FC = () => {
               id="date"
               selected={selectedDate}
               onChange={handleDateChange}
-              disabled={updateScope === 'series' && course?.series_id !== null}
+              disabled={dateDisabled}
               required
               placeholder="Datum wählen"
             />
-            {updateScope === 'series' && course?.series_id && (
+            {scheduleMoneyLocked ? (
+              <p className="mt-1 text-xs text-textMuted">{pastHint}</p>
+            ) : null}
+            {!scheduleMoneyLocked && updateScope === 'series' && course?.series_id ? (
               <p className="mt-1 text-xs text-text">
                 Bei Serienänderungen bleiben die individuellen Daten aller Termine erhalten.
               </p>
-            )}
+            ) : null}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -606,9 +638,13 @@ const EditCourse: React.FC = () => {
                 id="time"
                 selected={selectedTime}
                 onChange={handleTimeChange}
+                disabled={scheduleMoneyLocked}
                 required
                 placeholder="Zeit wählen"
               />
+              {scheduleMoneyLocked ? (
+                <p className="mt-1 text-xs text-textMuted">{pastHint}</p>
+              ) : null}
             </div>
 
             <div>
@@ -623,7 +659,8 @@ const EditCourse: React.FC = () => {
                 step="15"
                 value={formData.duration}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
+                disabled={scheduleMoneyLocked}
+                className="w-full px-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent disabled:cursor-not-allowed disabled:bg-surfaceSunken disabled:opacity-60"
                 placeholder="z.B. 60"
               />
             </div>
@@ -636,6 +673,7 @@ const EditCourse: React.FC = () => {
                 id="end_time"
                 selected={selectedEndTime}
                 onChange={handleEndTimeChange}
+                disabled={scheduleMoneyLocked}
                 placeholder="Zeit wählen"
               />
             </div>
@@ -675,11 +713,15 @@ const EditCourse: React.FC = () => {
                   max="50"
                   value={formData.max_participants}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
+                  disabled={scheduleMoneyLocked}
+                  className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent disabled:cursor-not-allowed disabled:bg-surfaceSunken disabled:opacity-60"
                   placeholder="z.B. 12"
                   required
                 />
               </div>
+              {scheduleMoneyLocked ? (
+                <p className="mt-1 text-xs text-textMuted">{pastHint}</p>
+              ) : null}
             </div>
 
             <div>
@@ -695,17 +737,26 @@ const EditCourse: React.FC = () => {
                   step="0.01"
                   value={formData.price}
                   onChange={handleChange}
-                  className="w-full pl-4 pr-10 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
+                  disabled={scheduleMoneyLocked}
+                  className="w-full pl-4 pr-10 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent disabled:cursor-not-allowed disabled:bg-surfaceSunken disabled:opacity-60"
                   placeholder="z.B. 25.00"
                   required
                 />
                 <span className="absolute right-3 top-3 text-textSubtle font-semibold">€</span>
               </div>
+              {scheduleMoneyLocked ? (
+                <p className="mt-1 text-xs text-textMuted">{pastHint}</p>
+              ) : null}
             </div>
           </div>
 
           {showPassEligible ? (
-            <PassEligibleToggle checked={passEligible} onChange={setPassEligible} />
+            <PassEligibleToggle
+              checked={passEligible}
+              onChange={setPassEligible}
+              disabled={scheduleMoneyLocked}
+              hint={scheduleMoneyLocked ? pastHint : undefined}
+            />
           ) : null}
 
           {error && (

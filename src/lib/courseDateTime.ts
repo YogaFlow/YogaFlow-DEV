@@ -40,6 +40,32 @@ export function futureSeriesCourses<T extends CourseLike>(
   return courses.filter((course) => isCourseUpcoming(course, now));
 }
 
+/**
+ * A5: Welche Felder bei Einzelbearbeitung eines begonnenen Kurses gesperrt sind.
+ * Lehrerin: nur Owner/Admin dürfen ändern (Hint separat in der UI).
+ */
+export type PastCourseEditLocks = {
+  /** Kurs hat begonnen (`!isCourseUpcoming`). */
+  begun: boolean;
+  /** Preis, Datum, Uhrzeit, Ende/Dauer, pass_eligible, Kapazität. */
+  scheduleAndMoneyLocked: boolean;
+  /** Lehrerin-Feld für die aktuelle Rolle gesperrt. */
+  teacherLocked: boolean;
+};
+
+export function pastCourseEditLocks(
+  course: CourseLike | null | undefined,
+  options: { isManager: boolean },
+  now = new Date(),
+): PastCourseEditLocks {
+  const begun = course != null && !isCourseUpcoming(course, now);
+  return {
+    begun,
+    scheduleAndMoneyLocked: begun,
+    teacherLocked: begun ? !options.isManager : false,
+  };
+}
+
 /** Heute als YYYY-MM-DD in Europe/Berlin. Offset in Kalendertagen, ohne courses.date zu parsen. */
 export function berlinIsoDate(dayOffset = 0, now = new Date()): string {
   const parts = new Intl.DateTimeFormat('en-CA', {

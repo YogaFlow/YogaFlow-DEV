@@ -110,10 +110,6 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 - [ ] **Preisänderung: Hinweis, dass bestehende Buchungen den alten Preis behalten**
       (Nachtrag L9). Serienbearbeitung ändert seit S6 nur kommende Termine;
       der Hinweistext fehlt noch.
-- [ ] **A5 — Einzelbearbeitung vergangener Kurse (Entscheidung Julius).**
-      Heute lässt `EditCourse` alle Felder auch an begonnenen Terminen zu
-      (kein Zeitfilter bei Scope `single`). Vorschlag siehe Abschlussbericht S6
-      (Feld → sperren ja/nein). Bis zur Entscheidung unverändert.
 - [ ] **A8-Feinschliff (Kassier-/Teilnehmerliste)**
       - ~~`MemberPassesSection` doppelt eingebunden~~ — behoben in A6-3
         (`matchMedia`, nur ein Layout mountet).
@@ -174,10 +170,12 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Erledigt
 
+- 28.09.2026 — A5: Vergangene Kurse nur eingeschränkt bearbeitbar (Client) und
+  Kursleitung-Guard in der DB (`20260928170000`, RLS INSERT/UPDATE + Trigger
+  `INVALID_TEACHER`). `pastCourseEditLocks` / `EditCourse`.
 - 28.09.2026 — S6: Serienbearbeitung ändert nur kommende Termine
   (`futureSeriesCourses`, `EditCourse`). Serie löschen/absagen waren schon
-  zeitgefiltert. Sprint A damit abgeschlossen. A5 (Einzelbearbeitung
-  vergangener Kurse) bleibt offen als Entscheidung.
+  zeitgefiltert. Sprint A damit abgeschlossen.
 - 28.09.2026 — A7 abgeschlossen (A7-1 Schema/Job + A7-2 UI/Export): Steuerstatus,
   Wartehinweis, CSV-Hauptbuch (`export_ledger`), Kassenhinweis E14. Nachtrag
   `docs/EPIC_GELDKETTE_1A_NACHTRAG_2026-09-21.md`. Commits `0d941e0`, `e92e611`,
