@@ -162,6 +162,10 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Erledigt
 
+- 28.09.2026 — A7 abgeschlossen (A7-1 Schema/Job + A7-2 UI/Export): Steuerstatus,
+  Wartehinweis, CSV-Hauptbuch (`export_ledger`), Kassenhinweis E14. Nachtrag
+  `docs/EPIC_GELDKETTE_1A_NACHTRAG_2026-09-21.md`. Commits `0d941e0`, `e92e611`,
+  `9973acd`. CI https://github.com/YogaFlow/YogaFlow-DEV/actions/runs/36391942792
 - 28.09.2026 — E14-Hinweis in der Kasse: „Omlify vermerkt nur, wer bezahlt hat. …“
   (`CASH_HINT` in der Kasse, auch bei abgesagtem Kurs). A7-2.
 - 27.09.2026 — `delete-user` mappt `23503` nicht mehr auf „hat noch Kurse“.
