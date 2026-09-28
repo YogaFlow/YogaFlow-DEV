@@ -75,3 +75,17 @@ Datenbank, mit der zuletzt verlinkt wurde, und dieser Zustand lag unsichtbar in 
 | `VITE_SUPABASE_ANON_KEY` | Öffentlicher Anon-Key (für Browser/Frontend) |
 
 Weitere Supabase-Keys (z.B. Service Role Key) werden nur serverseitig (Supabase Edge Functions, Skripte) genutzt und gehören **nicht** in die Frontend-Env-Variablen.
+
+## Edge-Function-Secrets für Zahlungen (Geldkette 1.2b)
+
+Nur als Supabase-Secret im jeweiligen Projekt, eingespielt aus `supabase/.env.dev` bzw.
+`supabase/.env.prod` (`npm run secrets:dev`). Nie in eine `VITE_`-Variable, nie ins Repo.
+
+| Secret | DEV | PROD | Bedeutung |
+|--------|-----|------|-----------|
+| `PAYMENTS_MODE` | `test` | erst mit dem PROD-Gate | `test` verlangt `sk_test_`/`rk_test_`, `live` verlangt `sk_live_`/`rk_live_`. Fehlt es oder passt der Key nicht, verweigert der Adapter jede Anfrage (`CONFIG_ERROR`). |
+| `STRIPE_SECRET_KEY` | Test-Key der Sandbox | — | Secret oder Restricted Key der Plattform. |
+| `STRIPE_WEBHOOK_SECRET` | später (1.4) | — | `whsec_…` des Webhook-Endpoints. |
+| `PAYMENTS_PROVIDER` | optional | nie | `stripe` (Standard) oder `fake`; `fake` nur mit `PAYMENTS_MODE=test`. |
+
+`VITE_STRIPE_PUBLISHABLE_KEY` (`pk_test_…`) kommt mit der ersten Frontend-Story (1.3) in die Cloudflare-DEV-Umgebung.

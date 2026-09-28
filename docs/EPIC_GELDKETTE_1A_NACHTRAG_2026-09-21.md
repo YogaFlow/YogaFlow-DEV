@@ -569,8 +569,8 @@ Stripe-Adapter, Fake-Adapter, Deno-Tests, Log-Fix.
 | P4 | Schalter | Owner schaltet je Studio ein, nur wenn die Plattform freigegeben hat (`service_role`) und das Stripe-Konto bereit ist. |
 | P5 | Kunden | `provider_customers` erst in 2.2a. |
 
-**Migration** `20260928203500_s1_2a_provider_schema.sql` (geschrieben, nicht angewendet). Test
-`scripts/test/s1_2a_provider_schema.mjs` (geschrieben, nicht gelaufen, in `run_geldkette.mjs`).
+**Migration** `20260928203500_s1_2a_provider_schema.sql`, auf DEV angewendet 28.09.
+`scripts/test/s1_2a_provider_schema.mjs` und `test:geldkette` grün. Commits `2a25344` / `1af6ef4`.
 
 - Tabellen: `platform_flags` (+ Verlauf `platform_flag_changes`), `provider_accounts`, `provider_capabilities`,
   `provider_events_raw`, `tenant_payment_settings`. Nichts an `tenants`.
@@ -595,6 +595,60 @@ Stripe-Adapter, Fake-Adapter, Deno-Tests, Log-Fix.
 | 1.2a-8 | Einschalten prüft auch, wenn schon an; ohne Zustandswechsel kein Event | Ein „schon an“ bei gesperrter Plattform wäre irreführend |
 | 1.2a-9 | `upsert_provider_account` ohne Änderung (doppelter Webhook) schreibt kein Event | Kein Rauschen in `events` |
 | 1.2a-10 | Capabilities als `{"card": "<status>"}` mit `active`, `inactive` oder `pending`; andere Schlüssel → `INVALID_CAPABILITIES` | P3; der Adapter (1.2b) übersetzt Stripe-Namen |
+
+## 5b. Story 1.2b — Provider-Port, Stripe-Adapter, Fake-Adapter (28.09.2026)
+
+| # | Frage | Entscheidung |
+|---|---|---|
+| P6 | Vertragspartner Plattform (E12) | Julius als Einzelunternehmer. Steht in Stripe, nicht im Code. |
+| P7 | Konto-Konfiguration (E11) | Vollständiges Stripe-Dashboard für die Studios. Accounts v1 mit Controller-Eigenschaften, nicht v2: `controller.stripe_dashboard.type = 'full'`, `controller.fees.payer = 'account'`, `controller.losses.payments = 'stripe'`, `controller.requirement_collection = 'stripe'`. Onboarding eingebettet (Account Session), Direct Charges. |
+| P8 | Reihenfolge | Erst alles auf DEV im Stripe-Testmodus fertig bauen und testen. Rechts-Epic, Anwalt und Steuerberatung kommen danach. |
+| P9 | Offener Punkt 1 aus 1.2a | Ist Online aus, gilt Vor-Ort-Zahlung immer als erlaubt, egal was in `allow_onsite_payment` steht. Die Einstellung wirkt nur, wenn Online wirksam an ist. **Gebaut in 2.2.** |
+| P10 | Offener Punkt 2 aus 1.2a | „Online wirksam an“ = Plattform-Schalter **und** Studio-Schalter. Gilt überall (Checkout, Buchungsseite, Anzeige). Ein zentraler Helfer, keine doppelte Logik. **Gebaut in 2.2.** |
+
+**Regel „Stripe nur im Adapter“ (I8).** `npm:stripe`, Importe aus `stripe` und `Stripe.`-Typen stehen
+ausschließlich unter `supabase/functions/_shared/payments/stripe/`. Alles andere spricht nur mit dem Port.
+CI prüft das mit `scripts/check_provider_boundary.mjs` (`npm run check:provider-boundary`), auch in `src/`.
+`@stripe/stripe-js` / `@stripe/connect-js` im Frontend kommen in 1.3 und werden dann als Ausnahme für `src/`
+ergänzt.
+
+**Ordnerstruktur**
+
+```
+supabase/functions/_shared/payments/
+  port.ts              Port: Typen, ProviderError, connectedAccountIdempotencyKey
+  config.ts            PAYMENTS_MODE lesen (test | live)
+  index.ts             getPaymentProvider(env) — Fabrik
+  port_contract.ts     Vertragstest, läuft gegen jeden Adapter
+  index_test.ts
+  stripe/
+    sdk.ts             einziger Import npm:stripe@22.6.2, API 2026-08-26.dahlia, Key-Prüfung, Fehlerabbildung
+    account_status.ts  reine Status-Abbildung (ohne SDK)
+    adapter.ts         StripePaymentProvider
+    onboarding.ts      Account Session (außerhalb des Ports)
+    test_support.ts    fetch-Stub und signierte Events für Tests
+    fixtures/          Kontofixtures
+    *_test.ts
+  fake/
+    adapter.ts         FakePaymentProvider (Speicher, eigene HMAC-Signatur)
+    adapter_test.ts
+```
+
+**Konfiguration.** `PAYMENTS_MODE` (`test` | `live`) ist Pflicht. `test` verlangt `sk_test_`/`rk_test_`,
+`live` verlangt `sk_live_`/`rk_live_`. Abweichung oder fehlender Key → `CONFIG_ERROR`, bevor eine Anfrage
+an Stripe möglich ist. `livemode` jedes Events muss zu `PAYMENTS_MODE` passen (`LIVEMODE_MISMATCH`).
+`PAYMENTS_PROVIDER=fake` nur mit `PAYMENTS_MODE=test`.
+
+**Festlegungen in der Umsetzung** (alle bestätigt durch Julius 28.09.):
+
+| # | Festlegung | Grund |
+|---|---|---|
+| 1.2b-1 | `transfers` wird zusammen mit `card_payments` angefordert | Stripe: „For an Account to have the `card_payments` capability, you must request both `card_payments` and `transfers`“ (docs.stripe.com/connect/account-capabilities, abgerufen 28.09.) |
+| 1.2b-2 | `charges_enabled` und `past_due` leer → `active`, auch wenn `currently_due` gefüllt ist. Damit die Nachforderung nicht verloren geht, trägt `ProviderAccountState` zusätzlich `requirementsPending` (`currently_due` nicht leer) und `requirementsDueAt` (ISO 8601 UTC aus `requirements.current_deadline`, sonst `null`). Keine DB-Änderung; Speicherung und Anzeige kommen in 1.3 | Stripe lässt Zahlungen bis zur Frist zu; `action_required` würde über 1.2a-6 Online automatisch ausschalten. Bestätigt durch Julius 28.09. |
+| 1.2b-3 | Zusätzliche Fehlercodes `PROVIDER_REJECTED`, `INVALID_EVENT`, `LIVEMODE_MISMATCH` | Ungültige Anfrage ist kein Ausfall (kein Retry); `LIVEMODE_MISMATCH` wie in `upsert_provider_account` |
+| 1.2b-4 | Fake meldet `id = 'stripe'` | `payment_provider` kennt nur `stripe` und `manual`; der Fake steht in Function-Tests an Stripes Stelle |
+| 1.2b-5 | Das v1-Konto hat kein `livemode`; `ProviderAccountState.livemode` kommt aus dem Schlüsselmodus bzw. dem Event | Stripe-Objekt `Account` (v1) ohne Feld `livemode` |
+| 1.2b-6 | Maskierer ergänzt um `rk_` | Restricted Keys sind jetzt erlaubt und dürfen nicht im Klartext ins Log |
 
 ---
 
