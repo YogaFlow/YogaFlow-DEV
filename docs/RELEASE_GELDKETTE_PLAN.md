@@ -41,6 +41,9 @@ PROD hat zuletzt `20260926160500` (`security_handle_new_user_role_from_trusted_s
 | `20260928020000` | `a7_1_ledger.sql` | Hauptbuch: `tenant_tax_settings`, `ledger_entries`, `ledger_event_log`, `set_tax_setting`, `process_ledger`, Cron `yogaflow_process_ledger` (*/5) — A7-1 Schema/Job; UI/CSV in A7-2 |
 | `20260928143000` | `a7_2_ledger_export.sql` | `export_ledger` für Owner/Admin, Zeitraum max. 366 Tage — A7-2 CSV |
 | `20260928160000` | `a8_1_bulk_waive_open_list.sql` | Sammel-Erlass vor Omlify, `get_open_coverage`, `get_course_member_passes` — A8-1 Schema |
+| `20260928170000` | `a5_courses_teacher_guard.sql` | RLS WITH CHECK UPDATE+INSERT: Lehrende können `teacher_id` nicht fremd setzen; Trigger `courses_teacher_guard` → `INVALID_TEACHER` |
+
+**Release-Hinweis A5 Lehrer-Guard:** **RLS-Lücke `teacher_id` besteht auf PROD bis zum Release.** Bis die Migration auf PROD liegt, kann eine Lehrende per API `teacher_id` auf ein anderes Profil setzen (WITH CHECK prüfte nur `tenant_id`). UI listet für Lehrende nur die eigene Person — die Lücke ist API-seitig.
 
 **Release-Hinweis A8-1:** Nach dem Schema-Push und dem Frontend-Deploy: **„Nach dem Release mit der Testkundin die Sammelaktion ausführen.“** Erwartete Vorschau im Hauptstudio `892370b8`: etwa **169** aktive offene Buchungen in vergangenen Kursen (Stand Inventur 28.09.2026, vor A2-PROD; nach A2 alle preispflichtigen Buchungen `open`). Das Stichtagsdatum stimmt Julius mit ihr ab. Die zwei kleinen Studios (`1ffd7778`, `5110be00`) prüft Julius separat.
 
@@ -100,6 +103,10 @@ Abweichungen zur A2-Erwartung (317 / 507800): **keine**.
 
 ## 4. Risiken
 
+- **RLS-Lücke `teacher_id` besteht auf PROD bis zum Release.** Policy
+  `courses_update_own_or_manager` hatte `WITH CHECK` nur auf `tenant_id`.
+  Fix: Migration `20260928170000_a5_courses_teacher_guard.sql` (plus Trigger
+  gültige Kursleitung). Bis dahin API-seitig Umschreibung möglich.
 - **`--include-all` auf PROD:** Drei ältere A1-Versionen werden nachträglich eingefügt; falsche Reihenfolge oder doppelte Anwendung vermeiden — nur über `scripts/db.mjs push prod --include-all` mit beiden Bestätigungen.
 - **PGRST201:** Frontend-Hints müssen vor A1-Schema auf PROD live sein.
 - **Expand/Contract:** Altes Frontend nach Schema-Push bricht an neuen Spalten/RPCs; neues Frontend vor Schema bricht an fehlenden Spalten/RPCs — Deploy-Fenster kurz halten bzw. Reihenfolge oben einhalten.

@@ -31,6 +31,7 @@ const SKRIPTE = [
   'a7_2_export.mjs',
   'a8_1_bulk_waive.mjs',
   'a9_cancel.mjs',
+  'a5_teacher_guard.mjs',
   's4_3_remove_member.mjs',
   's4_3_delete_user_fn.mjs',
   'security_signup_role.mjs',
