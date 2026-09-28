@@ -27,6 +27,12 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
       Fließtext der Landingpage zu sehen? Das entscheidet über das Prerendering.
 - [ ] **`scripts/test/` prüfen** — liegt unversioniert im Arbeitsbaum. Stehen
       Zugangsdaten darin, in `.gitignore` aufnehmen oder löschen.
+- [ ] **Auswahl „Kursleiter“ für Lehrende fest auf sich selbst** (kleiner UI-Fix vor dem
+      Release). `CreateCourse.tsx` und `EditCourse.tsx` zeigen Lehrenden die volle Liste;
+      seit Hotfix `20260928213000` endet eine fremde Wahl in `INVALID_TEACHER` mit
+      allgemeiner Fehlermeldung.
+- [ ] **`scripts/db.mjs` DEP0190:** `spawnSync` mit `shell: true` — die DB-URL läuft
+      durch cmd. Ohne Shell aufrufen.
 
 ## Stripe (Story 1.2a und folgende)
 
@@ -190,6 +196,8 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Erledigt
 
+- 28.09.2026 — Sicherheits-Hotfix Kursleitung-Guard live auf PROD (Merge `3bcd961`,
+  PR #174, Migration `20260928213000`, Trigger `courses_teacher_guard_hotfix`).
 - 28.09.2026 — A5: Vergangene Kurse nur eingeschränkt bearbeitbar (Client) und
   Kursleitung-Guard in der DB (`20260928170000`, RLS INSERT/UPDATE + Trigger
   `INVALID_TEACHER`). `pastCourseEditLocks` / `EditCourse`.

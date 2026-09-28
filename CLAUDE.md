@@ -249,8 +249,9 @@ Was das für die Arbeit heißt:
 - Rückfallpunkt für das ganze Vorhaben: `supabase/snapshots/2026-09-11_pre_membership_dev.sql`.
 - `update-user` schreibt seit `0e8bf0f` (3c-B2) nur noch Profilfelder, nie Login-E-Mail oder Passwort.
 - **PROD:** Auf `main` liegt von diesen Mehrfachmitgliedschaft-Migrationen keine. Hotfixes
-  auf `main` und PROD: `20260911134500` (Spaltenrechte `users`) und `20260915104222`
-  (Plattformtabellen). Die PROD-Datenbank vor dem Release mit `npm run db:status:prod`
+  auf `main` und PROD: `20260911134500` (Spaltenrechte `users`), `20260915104222`
+  (Plattformtabellen), `20260926160500` (Rolle bei Registrierung) und `20260928213000`
+  (Kursleitung-Guard). Die PROD-Datenbank vor dem Release mit `npm run db:status:prod`
   bestätigen.
 
 ---
@@ -327,6 +328,14 @@ Vor 0.3: Epic Konto und Zugang (`docs/EPIC_KONTO_ZUGANG.md`).
 **Release 2026-09c — live seit 22.09.2026,** Expand-Merge `4cad142`, Contract-Merge
 `89a597c`. E4 (`staff_names`, Policy `users_select_participant_staff` entfernt),
 Glocke beim Nachrücken (`waitlist_promoted`). Ablauf: `docs/RELEASE_2026-09c.md`.
+
+**Hotfix Kursleitung-Guard — live auf PROD seit 28.09.2026,** Merge `3bcd961` (PR #174),
+Migration `20260928213000`. Trigger `courses_teacher_guard_hotfix` (INVOKER, `search_path ''`):
+owner/admin setzen `teacher_id` nur auf Staff des eigenen Studios, teacher nur auf sich selbst,
+unveränderte `teacher_id` und Nicht-Client-Rollen frei; sonst `INVALID_TEACHER`. Policies
+unverändert. Auf DEV neben `courses_teacher_guard` (`20260928170000`). Die Migration liegt nach
+allen Sprint-A-Versionen → Release-Push der Geldkette braucht `--include-all`.
+Test: `scripts/test/security_courses_teacher_guard.mjs`.
 
 **Danach — Paket 4:** destruktive Aktionen entschärfen, Tippziele 44 px, Leerzustände als
 Einladung, Gedrückt-Zustand statt Hover.

@@ -46,7 +46,7 @@ PROD hat zuletzt `20260926160500` (`security_handle_new_user_role_from_trusted_s
 
 **Release-Hinweis 1.2a:** **`online_payments` bleibt beim Release `false`.** Die Migration legt die Zeile mit `false` an. Beim Release niemand `set_platform_flag` aufrufen. Nach dem Push prüfen: `SELECT key, enabled FROM platform_flags` → genau `online_payments | false`; `tenant_payment_settings` leer. Einschalten erst nach 1.3/1.4 und dann je Studio mit einer kleinen echten Zahlung (Regel oben).
 
-**Release-Hinweis A5 Lehrer-Guard:** **RLS-Lücke `teacher_id` besteht auf PROD bis zum Release.** Bis die Migration auf PROD liegt, kann eine Lehrende per API `teacher_id` auf ein anderes Profil setzen (WITH CHECK prüfte nur `tenant_id`). UI listet für Lehrende nur die eigene Person — die Lücke ist API-seitig.
+**Release-Hinweis A5 Lehrer-Guard:** **Lücke `teacher_id` auf PROD seit 28.09.2026 durch Hotfix geschlossen.** Migration `20260928213000_security_courses_teacher_guard_hotfix.sql` (Merge `3bcd961`, PR #174): Trigger `courses_teacher_guard_hotfix` → `INVALID_TEACHER`; owner/admin nur Staff des eigenen Studios, teacher nur sich selbst, unveränderte `teacher_id` frei. Policies auf PROD unverändert. Die Datei liegt **zeitlich nach allen Sprint-A-Migrationen** und ist auf PROD schon angewendet — der Release-Push braucht deshalb `--include-all` für alle Sprint-A-Versionen, nicht nur für A1. `20260928170000` kommt beim Release dazu; beide Trigger bestehen nebeneinander. **Generalprobe prüft:** `courses_teacher_guard` und `courses_teacher_guard_hotfix` danach beide aktiv (`pg_trigger.tgenabled = 'O'`).
 
 **Release-Hinweis A8-1:** Nach dem Schema-Push und dem Frontend-Deploy: **„Nach dem Release mit der Testkundin die Sammelaktion ausführen.“** Erwartete Vorschau im Hauptstudio `892370b8`: etwa **169** aktive offene Buchungen in vergangenen Kursen (Stand Inventur 28.09.2026, vor A2-PROD; nach A2 alle preispflichtigen Buchungen `open`). Das Stichtagsdatum stimmt Julius mit ihr ab. Die zwei kleinen Studios (`1ffd7778`, `5110be00`) prüft Julius separat.
 
@@ -58,7 +58,7 @@ PROD hat zuletzt `20260926160500` (`security_handle_new_user_role_from_trusted_s
 
 Die drei A1-Migrationen (`20260926141500`, `20260926141501`, `20260926144500`) liegen **zeitlich vor** der bereits auf PROD angewendeten `20260926160500`. Ohne `--include-all` wendet `db push` sie nicht an.
 
-Die übrigen liegen nach `20260926160500` und brauchen das Flag nicht.
+Seit 28.09.2026 liegt auf PROD zusätzlich der Hotfix `20260928213000`. Damit liegen **alle** Sprint-A-Migrationen (bis `20260928203500`) zeitlich vor der neuesten PROD-Version und brauchen `--include-all`.
 
 `scripts/db.mjs` reicht `--include-all` für `push` durch (PROD: zweite getippte Bestätigung `INCLUDE-ALL` und Vorab-Liste der außer-Reihe-Migrationen; DEV ohne zweite Bestätigung).
 
@@ -106,10 +106,10 @@ Abweichungen zur A2-Erwartung (317 / 507800): **keine**.
 
 ## 4. Risiken
 
-- **RLS-Lücke `teacher_id` besteht auf PROD bis zum Release.** Policy
-  `courses_update_own_or_manager` hatte `WITH CHECK` nur auf `tenant_id`.
-  Fix: Migration `20260928170000_a5_courses_teacher_guard.sql` (plus Trigger
-  gültige Kursleitung). Bis dahin API-seitig Umschreibung möglich.
+- **Lücke `teacher_id` auf PROD:** am 28.09.2026 durch Hotfix
+  `20260928213000` (Trigger `courses_teacher_guard_hotfix`) geschlossen.
+  `20260928170000` folgt beim Release; die Generalprobe prüft, dass beide
+  Trigger danach aktiv sind.
 - **`--include-all` auf PROD:** Drei ältere A1-Versionen werden nachträglich eingefügt; falsche Reihenfolge oder doppelte Anwendung vermeiden — nur über `scripts/db.mjs push prod --include-all` mit beiden Bestätigungen.
 - **PGRST201:** Frontend-Hints müssen vor A1-Schema auf PROD live sein.
 - **Expand/Contract:** Altes Frontend nach Schema-Push bricht an neuen Spalten/RPCs; neues Frontend vor Schema bricht an fehlenden Spalten/RPCs — Deploy-Fenster kurz halten bzw. Reihenfolge oben einhalten.
