@@ -35,6 +35,7 @@ const SKRIPTE = [
   's4_3_remove_member.mjs',
   's4_3_delete_user_fn.mjs',
   'security_signup_role.mjs',
+  's1_2a_provider_schema.mjs',
 ];
 
 function sleepMs(ms) {
