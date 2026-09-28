@@ -39,10 +39,13 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 - [ ] **Aufbewahrungsfrist `provider_events_raw`.** Payload enthält Personendaten
       (Name, E-Mail, letzte vier Kartenziffern). Frist bzw. Kürzen nach Verarbeitung
       festlegen (Rechts-Epic), dann Job bauen. In 1.2a bewusst nicht gebaut.
-- [ ] **E11 (Dashboard-Typ) und E12 (Vertragspartner Plattformkonto) vor 1.3 entscheiden.**
-      E11 ist je Konto unveränderlich.
-- [ ] **Klartext-E-Mails in drei Edge Functions** in den Logs. Fix in 1.2b mit
-      `createServiceLogger`.
+- [ ] **Log-Fix wirkt erst nach DEV-Deploy.** E-Mail-Adressen in `send-email`,
+      `request-password-reset` und `request-verification-email` laufen seit 1.2b im Code
+      durch `createServiceLogger` (Info- und Fehler-Logs). Offen: Deploy der drei
+      Functions auf DEV.
+- [ ] **Erstattungen im Stripe-Dashboard des Studios.** Mit vollständigem Dashboard (P7)
+      können Studios selbst erstatten. Solche Erstattungen muss 3.2 per Webhook
+      (`charge.refunded`) erkennen und buchen.
 - [ ] **`card` im Hauptbuch → Endlosschleife `UNSUPPORTED_PAYMENT`.** Eine Zahlung mit
       `method = card` hat kein Geldkonto in `ledger_money_account`; der Job würde sie
       bei jedem Lauf erneut versuchen. Fix in 2.2a (Konto für Kartenzahlungen).
@@ -196,6 +199,14 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Erledigt
 
+- 28.09.2026 — Deno-Tests in der CI: `denoland/setup-deno@v2` mit `v2.9.7`, danach
+  `npm run test:deno` (`.github/workflows/ci.yml`).
+- 28.09.2026 — Fehler-Logs in `send-email`, `request-password-reset` und
+  `request-verification-email` laufen durch `createServiceLogger` (Maskierer).
+- 28.09.2026 — 1.2b-2 bestätigt, ergänzt um `requirementsPending` und
+  `requirementsDueAt` in `ProviderAccountState` (Nachtrag 5b).
+- 28.09.2026 — E11 und E12 entschieden (P6, P7 im Nachtrag 5b): Julius als
+  Einzelunternehmer, vollständiges Dashboard, Accounts v1 mit Controller-Eigenschaften.
 - 28.09.2026 — Sicherheits-Hotfix Kursleitung-Guard live auf PROD (Merge `3bcd961`,
   PR #174, Migration `20260928213000`, Trigger `courses_teacher_guard_hotfix`).
 - 28.09.2026 — A5: Vergangene Kurse nur eingeschränkt bearbeitbar (Client) und

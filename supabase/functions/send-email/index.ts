@@ -1,5 +1,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import nodemailer from "npm:nodemailer@6.9.10";
+import { createServiceLogger } from "../_shared/service.ts";
+
+const log = createServiceLogger();
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -63,7 +66,7 @@ Deno.serve(async (req: Request) => {
     );
   }
 
-  console.log("Sending email to:", toEmail, "subject:", subject);
+  log.info("Sending email to:", toEmail, "subject:", subject);
 
   const transport = nodemailer.createTransport({
     host: smtpHost,
@@ -86,7 +89,7 @@ Deno.serve(async (req: Request) => {
   let recipient = toEmail;
   let finalSubject = subject;
   if (redirectTo) {
-    console.log("EMAIL_REDIRECT_TO aktiv:", toEmail, "->", redirectTo);
+    log.info("EMAIL_REDIRECT_TO aktiv:", toEmail, "->", redirectTo);
     recipient = redirectTo;
     finalSubject = `[DEV → ${toEmail}] ${subject}`;
   }
@@ -113,7 +116,7 @@ Deno.serve(async (req: Request) => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error sending email:", error);
+    log.error("Error sending email:", error);
     const details = (error as { message?: string })?.message ?? String(error);
     return new Response(
       JSON.stringify({ error: "Failed to send email", details }),
