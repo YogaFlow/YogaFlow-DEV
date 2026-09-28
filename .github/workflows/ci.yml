@@ -53,6 +53,22 @@ jobs:
         # siehe Begruendung in eslint.config.js.
         run: npm run lint
 
+      - name: Stripe nur im Adapter
+        # I8: Kein Stripe-SDK und kein Stripe-Typ ausserhalb von
+        # supabase/functions/_shared/payments/stripe/ (auch nicht in src/).
+        run: npm run check:provider-boundary
+
+      - name: Deno einrichten
+        # Feste Version, dieselbe wie lokal. Edge Functions laufen auf Deno,
+        # nicht auf Node.
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.9.7
+
+      - name: Edge-Function-Tests
+        # Ohne --allow-net: Die Tests koennen die Stripe-API nicht erreichen.
+        run: npm run test:deno
+
       - name: Build
         # Platzhalterwerte: Der Build braucht die Variablen nur, damit die Warnung
         # aus src/lib/supabase.ts ausbleibt. Das Ergebnis wird verworfen, deployt

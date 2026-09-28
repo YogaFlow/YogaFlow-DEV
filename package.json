@@ -20,7 +20,8 @@
     "functions:prod": "node scripts/db.mjs functions prod",
     "secrets:prod": "node scripts/db.mjs secrets prod",
     "test:geldkette": "node scripts/test/run_geldkette.mjs",
-    "test:deno": "deno test --node-modules-dir=none --no-lock supabase/functions"
+    "test:deno": "deno test --node-modules-dir=none --no-lock supabase/functions",
+    "check:provider-boundary": "node scripts/check_provider_boundary.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",
