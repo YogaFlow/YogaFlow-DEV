@@ -40,7 +40,10 @@ export const copy = {
       'Bankverbindung (IBAN)',
       'Angaben zu deinem Unternehmen bzw. zur Selbstständigkeit',
       'Steuernummer',
+      'Dein Smartphone, falls Stripe ein Foto deines Ausweises verlangt',
     ],
+    stripeLoginNote:
+      'Stripe fragt zu Beginn nach deiner E-Mail-Adresse und legt dafür ein eigenes Stripe-Login an.',
     duration: 'Das dauert etwa 10 Minuten.',
     feesTitle: 'Kosten',
     feesBody: () =>

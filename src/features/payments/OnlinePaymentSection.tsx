@@ -157,24 +157,26 @@ export default function OnlinePaymentSection({ isOwner }: Props) {
                 <li key={item}>{item}</li>
               ))}
             </ul>
+            <p className="mt-2 text-[15px] leading-6 text-text">{copy.notStarted.stripeLoginNote}</p>
           </div>
           <p className="text-[15px] text-textMuted">{copy.notStarted.duration}</p>
           <div>
             <p className="text-[15px] font-medium text-text">{copy.notStarted.feesTitle}</p>
             <p className="mt-1 text-[15px] leading-6 text-text">{copy.notStarted.feesBody()}</p>
           </div>
-          {isOwner ? (
+          {isOwner && !showForm ? (
             <button
               type="button"
-              disabled={busy || showForm}
+              disabled={busy}
               onClick={openForm}
               className="min-h-11 rounded-sm bg-brand px-4 py-2 text-[15px] text-onBrand active:bg-brandPressed disabled:bg-surfaceSunken disabled:text-textMuted"
             >
               {copy.notStarted.cta}
             </button>
-          ) : (
+          ) : null}
+          {!isOwner ? (
             <p className="text-[15px] text-textMuted">Noch nicht eingerichtet.</p>
-          )}
+          ) : null}
         </div>
       ) : null}
 
@@ -182,10 +184,10 @@ export default function OnlinePaymentSection({ isOwner }: Props) {
         <div className="mt-3 space-y-3">
           <p className="text-[15px] font-medium text-text">{copy.inProgress.lead}</p>
           <p className="text-[15px] leading-6 text-textMuted">{copy.inProgress.body}</p>
-          {isOwner ? (
+          {isOwner && !showForm ? (
             <button
               type="button"
-              disabled={busy || showForm}
+              disabled={busy}
               onClick={openForm}
               className="min-h-11 rounded-sm bg-brand px-4 py-2 text-[15px] text-onBrand active:bg-brandPressed disabled:bg-surfaceSunken disabled:text-textMuted"
             >
@@ -227,10 +229,10 @@ export default function OnlinePaymentSection({ isOwner }: Props) {
                   {copy.active.requirementsPending(dueDateLabel(status.requirements_due_at))}
                 </p>
               </div>
-              {isOwner ? (
+              {isOwner && !showForm ? (
                 <button
                   type="button"
-                  disabled={busy || showForm}
+                  disabled={busy}
                   onClick={openForm}
                   className="mt-2 min-h-11 rounded-sm border border-accent bg-surface px-4 py-2 text-[15px] text-accentText active:bg-accentSoft disabled:opacity-60"
                 >
