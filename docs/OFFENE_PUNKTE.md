@@ -130,6 +130,11 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
       beschreiben Gmail als Mailversand — richtig ist Resend für ausgehende Mails,
       IONOS nur für das Postfach. `docs/README.md` nennt `wrangler.toml` —
       wirksam ist `wrangler.jsonc`.
+- [ ] **Native Datumsfelder zeigen je nach Browser US-Format** (`MM/DD/YYYY`),
+      obwohl der Wert civil `YYYY-MM-DD` ist. Betrifft Steuerstatus
+      (`TaxStatusDialog`) und „Alte Kurse abhaken“ (`PreOmlifyWaiveSection`).
+      Anzeige-Format vereinheitlichen (z. B. `de-DE` bzw. Textfeld mit
+      Kalender), ohne den gesendeten ISO-Wert zu ändern.
 
 ## Später
 
