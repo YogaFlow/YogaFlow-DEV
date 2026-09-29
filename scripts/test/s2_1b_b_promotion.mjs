@@ -93,6 +93,45 @@ function berlinInMinutes(offsetMinutes) {
   };
 }
 
+/** Frist als Text wie in der Glocke: DD.MM.YYYY und HH:MM (Europe/Berlin). */
+function berlinDeadlineText(iso) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Berlin',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(new Date(iso));
+  const get = (t) => parts.find((p) => p.type === t)?.value;
+  return {
+    date: `${get('day')}.${get('month')}.${get('year')}`,
+    time: `${get('hour')}:${get('minute')}`,
+  };
+}
+
+function assertGlockeMitFrist(name, body, holdExpiresAt) {
+  const { date, time } = berlinDeadlineText(holdExpiresAt);
+  ok(
+    `${name} Glocke enthält Frist-Datum`,
+    typeof body === 'string' && body.includes(date),
+    `body=${body} date=${date}`
+  );
+  ok(
+    `${name} Glocke enthält Frist-Uhrzeit`,
+    typeof body === 'string' && body.includes(time),
+    `body=${body} time=${time}`
+  );
+  ok(
+    `${name} Glocke Formulierung`,
+    typeof body === 'string' &&
+      /reserviert/i.test(body) &&
+      /bezahlt?e bis dahin online/i.test(body),
+    body
+  );
+}
+
 function clientMitTenant(url, key, slug = SLUG) {
   return createClient(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },
@@ -427,7 +466,7 @@ async function main() {
 
       const { data: glocken } = await admin
         .from('user_notifications')
-        .select('type, metadata, action_path')
+        .select('type, body, metadata, action_path')
         .eq('user_id', b.id)
         .eq('course_id', kurs.id)
         .eq('type', 'waitlist_promoted_payment_required');
@@ -438,6 +477,7 @@ async function main() {
         JSON.stringify(glocken?.[0]?.metadata)
       );
       ok('F2 action_path Meine Anmeldungen', glocken?.[0]?.action_path === '/my-registrations');
+      assertGlockeMitFrist('F2', glocken?.[0]?.body, rowB.hold_expires_at);
 
       const { data: ev } = await admin
         .from('events')
@@ -664,6 +704,68 @@ async function main() {
         .eq('course_id', kurs.id)
         .eq('type', 'waitlist_promoted');
       ok('F5 Glocke wie bisher', (glocken?.length ?? 0) >= 1);
+    }
+
+    // ── Fall 5b: Karten-Intent, Einlösen scheitert → pending + Fristtext ─
+    console.log('\n5b) Online Pflicht + Karte ohne Gültigkeit → pending + Fristtext');
+    {
+      const kurs = await kursAnlegen(admin, {
+        tenantId,
+        teacherId: teacher.id,
+        title: TITLE + ' F5b',
+        date: berlinDate(4),
+        time: '16:00:00',
+        price: 15,
+      });
+      const a5b = await nutzerAnlegen(admin, {
+        email: SLUG + '.a5b@example.com',
+        vorname: 'A5b',
+        nachname: 'A',
+        rolle: 'user',
+        tenantId,
+        password,
+      });
+      const b5b = await nutzerAnlegen(admin, {
+        email: SLUG + '.b5b@example.com',
+        vorname: 'B5b',
+        nachname: 'B',
+        rolle: 'user',
+        tenantId,
+        password,
+      });
+      const a5bc = await login(url, anon, a5b.email, password);
+      const b5bc = await login(url, anon, b5b.email, password);
+      await a5bc.rpc('register_for_course', { p_course_id: kurs.id });
+      // Intent pass, aber keine Karte → Einlösen scheitert → pending_payment
+      const rB = await b5bc.rpc('register_for_course', {
+        p_course_id: kurs.id,
+        p_use_pass: true,
+      });
+      ok('F5b B Warteliste intent', rB.data?.success === true && rB.data?.is_waitlist === true);
+      const wl = await regRow(admin, kurs.id, b5b.id);
+      ok('F5b coverage_intent pass', wl?.coverage_intent === 'pass');
+      await a5bc.rpc('unregister_from_course', { p_course_id: kurs.id });
+      const rowB = await regRow(admin, kurs.id, b5b.id);
+      ok(
+        'F5b pending_payment nach Karten-Fail',
+        rowB?.status === 'pending_payment' &&
+          rowB?.hold_reason === 'promotion' &&
+          rowB?.coverage_status === 'open',
+        JSON.stringify(rowB)
+      );
+      const { data: glocken } = await admin
+        .from('user_notifications')
+        .select('type, body')
+        .eq('user_id', b5b.id)
+        .eq('course_id', kurs.id)
+        .eq('type', 'waitlist_promoted_payment_required');
+      ok('F5b Glocke payment_required', (glocken?.length ?? 0) === 1);
+      assertGlockeMitFrist('F5b', glocken?.[0]?.body, rowB.hold_expires_at);
+      const { data: deliv } = await admin
+        .from('email_deliveries')
+        .select('id, status')
+        .eq('registration_id', rowB.id);
+      ok('F5b Outbox pending', deliv?.length === 1 && deliv[0].status === 'pending');
     }
 
     // ── Fall 6: Kette — B läuft ab → C pending ───────────────────────────
