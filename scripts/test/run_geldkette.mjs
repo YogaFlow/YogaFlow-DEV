@@ -37,6 +37,7 @@ const SKRIPTE = [
   'security_signup_role.mjs',
   's1_2a_provider_schema.mjs',
   's2_1b_a_pending.mjs',
+  's2_1b_b_promotion.mjs',
 ];
 
 function sleepMs(ms) {
