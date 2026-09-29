@@ -908,3 +908,30 @@ Migrationen `20260929140000` (Enum) + `20260929140001` (Schema). Test `scripts/t
 | R10 | Helfer „Online wirksam an“ | Jetzt gebaut (`online_payments_effective` / `online_payment_required`), vorgezogen aus 2.2. |
 
 **Hinweise:** P10-Helfer vorgezogen aus 2.2. Epic 2.1: Zustandsautomat für Online-Versuche liegt in `payment_attempts`, nicht in `payments` (Entscheidung 08 / Variante D).
+
+---
+
+## 9. Story 2.1b-b — Entscheidungen S1–S8, S6a–h, K3 (29.09.2026)
+
+Umsetzung E2 (Nachrücken mit Zahlungspflicht). Migrationen `20260929150000` (B1), `20260929151000` (K3), `20260929160000` (B2). Edge Function `dispatch-emails`. Oberfläche ohne Bezahlen-Knopf.
+
+| # | Frage | Entscheidung |
+|---|---|---|
+| S1 | Nachrücken bei Online-Pflicht? | Drei Fälle: ohne Online → `registered` (+ Karte bei Intent); Online + Karte eingelöst → `registered`+pass; sonst → `pending_payment`. |
+| S2 | Hold-Frist Nachrücken? | `least(now()+12h, Kursbeginn−2h)` in Europe/Berlin (`promotion_hold_deadline`). |
+| S3 | Frist schon abgelaufen? | Kein Nachrücken; Event `waitlist.promotion_skipped` / `TOO_CLOSE_TO_START`. |
+| S4 | Glocke? | Typ `waitlist_promoted_payment_required`, Pfad `/my-registrations`, Aufforderung online zu bezahlen. |
+| S5 | Listen / Geld? | Pending zählt und wird angezeigt (R2/R7); Geld-Aktionen → `PAYMENT_PENDING`. |
+| S6a | Outbox? | Tabelle `email_deliveries`; `authenticated` ohne Zugriff; Löschen mit Person/Tenant (4.3). |
+| S6b | Wann Outbox-Zeile? | Beim Promote zu `pending_payment` (`waitlist_promoted_payment_required`). |
+| S6c | Claim / Mark? | Nur `service_role`. |
+| S6d | Vor dem SMTP? | Skip `NOT_PENDING` / `RECIPIENT_GONE`. |
+| S6e | Aufruf Versand? | `pg_net` → Edge Function `dispatch-emails`. |
+| S6f | Takt? | Cron `yogaflow_dispatch_emails`. |
+| S6g | Zustellung? | Mindestens einmal; Doppelzustellung bei Absturz nach SMTP akzeptiert. |
+| S6h | Absender? | Global „Omlify“. |
+| S7 | Bezahlen-Knopf in der App? | Nein → **2.2b**. |
+| S8 | Abmelden bei pending? | Wortlaut „Platz freigeben“. |
+| K3 | Helfer? | `promote_to_pending_payment`; Glockentext mit Frist. |
+| E2 | Epic-Regel | Umgesetzt in `promote_from_waitlist` (Zahlungspflicht + Frist + Benachrichtigung). |
+|

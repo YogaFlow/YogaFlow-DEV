@@ -1,6 +1,6 @@
 # Offene Punkte
 
-**Stand:** 28.09.2026
+**Stand:** 29.09.2026
 Ausführliche Begründungen stehen im Claude-Projekt „Omlify" in
 `Landingpage_Neubau_September_2026.md` und
 `Rechtstexte_Datenschutz_und_Betrieb_September_2026.md`.
@@ -46,10 +46,18 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
       (`promotion_hold_deadline`); ob ein Mindestfenster (z. B. 15 Min.) nötig ist, offen.
 - [ ] **E-Mail-Vorlage Nachrücken / Zahlungspflicht vom Anwalt prüfen lassen**
       (Rechts-Epic). Betreff und Text stehen in `dispatch-emails`.
+- [ ] **Test-Helfer nach `scripts/test/_helpers.mjs` auslagern.** Die DEV-Rauchtests
+      (u. a. `a6_1_foundation.mjs`, `s2_1b_b2_dispatch_smoke.mjs`) duplizieren Env-Laden,
+      Ref-Prüfung und Client-Helfer. Vor dem nächsten größeren Testpaket zusammenziehen.
+- [ ] **`pk_test_`-Prüfung nur im Dev-Modus.** `OnlinePaymentSection` prüft den Prefix nur bei
+      `import.meta.env.DEV`. Ein Production-Build (auch `omlify-dev.de`) akzeptiert jeden
+      gesetzten `VITE_STRIPE_PUBLISHABLE_KEY`. In **2.2** den Key im Build gegen
+      `PAYMENTS_MODE` absichern (test → `pk_test_`, live → `pk_live_`).
 - [ ] **S6g — doppelte Zustellung möglich.** Stürzt `dispatch-emails` nach dem SMTP-Versand,
       aber vor `mark_email_delivery(..., sent)` ab, kann dieselbe Aufforderung erneut
       rausgehen („mindestens einmal“). Bewusst akzeptiert; kein Idempotenz-Token beim
       SMTP-Versand.
+- [ ] **Bezahlen-Knopf für `pending_payment` → 2.2b.** In 2.1b-b bewusst nicht gebaut (S7).
 
 ## Stripe (Story 1.2a und folgende)
 
@@ -254,6 +262,8 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Erledigt
 
+- 29.09.2026 — 2.1b-b: S1–S8, S6a–h, K3, E2 auf DEV (Outbox, `dispatch-emails`, UI
+  `pending_payment`). Bezahlen-Knopf bewusst offen → 2.2b.
 - 29.09.2026 — Abbildung V2: frisches Konto mit `past_due` + `awaiting_action_from=user`
   → `in_progress` (nicht `action_required`); Adapter erzeugt `action_required` vorerst nicht.
 - 28.09.2026 — Accounts v2 (P7 neu, V1–V5): Adapter `v2.core.accounts.create/retrieve`,
