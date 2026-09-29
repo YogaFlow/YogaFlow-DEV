@@ -17,6 +17,8 @@ export function labelRegistrationStatus(
         : 'Warteliste';
     case 'cancelled':
       return '—';
+    case 'pending_payment':
+      return 'Zahlung ausstehend';
     default: {
       const _exhaustive: never = status;
       void _exhaustive;
@@ -37,6 +39,8 @@ export function labelRegistrationStatusShort(
       return waitlistPosition ? `Warteliste ${waitlistPosition}` : 'Warteliste';
     case 'cancelled':
       return '—';
+    case 'pending_payment':
+      return 'Zahlung ausstehend';
     default: {
       const _exhaustive: never = status;
       void _exhaustive;

@@ -42,7 +42,11 @@ export interface User {
 export type CourseStatus = 'active' | 'canceled' | 'not_planned';
 export type CourseFrequency = 'one_time' | 'weekly';
 
-export type RegistrationStatus = 'registered' | 'waitlist' | 'cancelled';
+export type RegistrationStatus =
+  | 'registered'
+  | 'waitlist'
+  | 'cancelled'
+  | 'pending_payment';
 
 export type CoverageStatus = 'not_required' | 'open' | 'paid' | 'pass' | 'waived';
 

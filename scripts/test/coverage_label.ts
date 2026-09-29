@@ -18,6 +18,23 @@ test('open', () => {
   assert.equal(coverageLabel({ coverage_status: 'open' }, { audience: 'csv' }), 'offen');
 });
 
+test('pending_payment', () => {
+  assert.equal(
+    coverageLabel(
+      { status: 'pending_payment', coverage_status: 'open' },
+      { audience: 'manager' },
+    ),
+    'Zahlung läuft',
+  );
+  assert.equal(
+    coverageLabel(
+      { status: 'pending_payment', coverage_status: 'open' },
+      { audience: 'participant' },
+    ),
+    'Zahlung läuft',
+  );
+});
+
 test('paid bar / PayPal / Überweisung', () => {
   assert.equal(
     coverageLabel({ coverage_status: 'paid', method: 'cash' }, { audience: 'manager' }),

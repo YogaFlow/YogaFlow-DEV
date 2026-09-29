@@ -71,6 +71,10 @@ export function coverageLabel(
     return audience === 'participant' ? '' : '—';
   }
 
+  if (registration.status === 'pending_payment') {
+    return 'Zahlung läuft';
+  }
+
   const coverage = registration.coverage_status ?? 'open';
   switch (coverage) {
     case 'paid':
