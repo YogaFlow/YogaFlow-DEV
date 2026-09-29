@@ -27,6 +27,11 @@ import {
 } from '../lib/courseCheckout';
 import { paymentPendingLabel } from '../lib/pendingPaymentLabel';
 import {
+  isDevPendingPaymentMock,
+  resolveHoldExpiresAt,
+} from '../lib/devPendingPaymentMock';
+import PaymentPendingStatus from '../components/ui/PaymentPendingStatus';
+import {
   applyPassToRegistration,
   fetchCourseMemberPasses,
   fetchSellablePassProducts,
@@ -329,8 +334,13 @@ const CourseCheckout: React.FC = () => {
       }
     }
 
+    const mockPending = isDevPendingPaymentMock();
+    let mockAssigned = false;
     const next: Person[] = rows.map((row) => {
       const user = Array.isArray(row.user) ? row.user[0] : row.user;
+      const realPending = row.status === 'pending_payment';
+      const forcePending = mockPending && !mockAssigned && !realPending;
+      if (forcePending) mockAssigned = true;
       return {
         registrationId: row.id,
         userId: row.user_id as string,
@@ -343,8 +353,10 @@ const CourseCheckout: React.FC = () => {
         method: methodByRegistration.get(row.id) ?? null,
         passId: (row.pass_id as string | null) ?? null,
         passRemaining: null,
-        paymentPending: row.status === 'pending_payment',
-        holdExpiresAt: (row.hold_expires_at as string | null) ?? null,
+        paymentPending: realPending || forcePending,
+        holdExpiresAt: resolveHoldExpiresAt(
+          (row.hold_expires_at as string | null) ?? null,
+        ),
       };
     });
 
@@ -856,6 +868,11 @@ const CourseCheckout: React.FC = () => {
                 <div className="flex items-center gap-2 px-3.5 py-2">
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[17px] font-medium text-text">{name}</p>
+                    {person.paymentPending ? (
+                      <div className="mt-0.5">
+                        <PaymentPendingStatus holdExpiresAt={person.holdExpiresAt} />
+                      </div>
+                    ) : (
                     <p className="mt-0.5 flex flex-wrap items-center gap-x-1 gap-y-0.5 text-[13px] text-text">
                       {person.coverage === 'paid' || person.coverage === 'pass' ? (
                         <Check className="h-4 w-4 shrink-0" aria-hidden />
@@ -868,6 +885,7 @@ const CourseCheckout: React.FC = () => {
                         <span className="text-textMuted tabular-nums">· {passLabel}</span>
                       ) : null}
                     </p>
+                    )}
                   </div>
                   {showMenu ? (
                     <div className="flex shrink-0 items-center gap-1">

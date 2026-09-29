@@ -17,7 +17,11 @@ import { supabase } from '../lib/supabase';
 import { Course } from '../types';
 import { isCourseCancelled, isCourseUpcoming } from '../lib/courseDateTime';
 import { formatDayLabel, formatTime } from '../lib/format';
-import { paymentPendingLabel } from '../lib/pendingPaymentLabel';
+import {
+  isDevPendingPaymentMock,
+  resolveHoldExpiresAt,
+} from '../lib/devPendingPaymentMock';
+import PaymentPendingStatus from '../components/ui/PaymentPendingStatus';
 import { groupCoursesByDay } from '../lib/courseGrouping';
 import { canSelfEnrollInCourses } from '../lib/userRoles';
 import { useCourseEnrollment } from '../lib/useCourseEnrollment';
@@ -237,18 +241,24 @@ const Courses: React.FC = () => {
                     status = (
                       <span className="text-[13px] font-medium text-text">Abgesagt</span>
                     );
+                  } else if (
+                    isRegistered &&
+                    (registrationStatus === 'pending_payment' ||
+                      isDevPendingPaymentMock())
+                  ) {
+                    status = (
+                      <PaymentPendingStatus
+                        holdExpiresAt={resolveHoldExpiresAt(
+                          getOwnRegistration(course.id)?.hold_expires_at,
+                        )}
+                      />
+                    );
                   } else if (isRegistered && registrationStatus === 'registered') {
                     status = (
                       <span className="inline-flex items-center gap-1 text-[13px] font-medium text-success">
                         <Check className="h-4 w-4" aria-hidden />
                         Angemeldet
                       </span>
-                    );
-                  } else if (isRegistered && registrationStatus === 'pending_payment') {
-                    status = (
-                      <AccentPill>
-                        {paymentPendingLabel(getOwnRegistration(course.id)?.hold_expires_at)}
-                      </AccentPill>
                     );
                   } else if (isRegistered && registrationStatus === 'waitlist') {
                     status = (

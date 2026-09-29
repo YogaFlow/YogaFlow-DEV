@@ -3,16 +3,16 @@ import { Check } from 'lucide-react';
 import type { Course, CoverageStatus, Registration } from '../../types';
 import { isCourseCancelled, isCourseUpcoming } from '../../lib/courseDateTime';
 import { coverageLabel } from '../../lib/courseCheckout';
+import {
+  isDevPendingPaymentMock,
+  resolveHoldExpiresAt,
+} from '../../lib/devPendingPaymentMock';
 import { formatTimeRange, formatTodayOrTomorrow } from '../../lib/format';
 import {
   passRefundInfo,
   passRefundStatusLine,
 } from '../../lib/passRefundInfo';
-import {
-  PAYMENT_PENDING_SHORT,
-  RELEASE_SEAT_LABEL,
-  paymentPendingLabel,
-} from '../../lib/pendingPaymentLabel';
+import { RELEASE_SEAT_LABEL } from '../../lib/pendingPaymentLabel';
 import {
   applyPassToRegistration,
   findUsablePass,
@@ -20,6 +20,7 @@ import {
 } from '../../lib/passes';
 import { formatStaffName } from '../../lib/staffNames';
 import AccentPill from '../ui/AccentPill';
+import PaymentPendingStatus from '../ui/PaymentPendingStatus';
 import CourseRow from './CourseRow';
 
 interface EnrollmentCardsProps {
@@ -69,6 +70,7 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({
   releasingCourseId = null,
 }) => {
   const [busyId, setBusyId] = useState<string | null>(null);
+  const forcePending = isDevPendingPaymentMock();
 
   const applyPass = async (registration: Registration) => {
     if (busyId) return;
@@ -91,12 +93,14 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({
 
   return (
     <div className="divide-y divide-border overflow-hidden rounded-md border border-border bg-surface">
-      {registrations.map((registration) => {
+      {registrations.map((registration, index) => {
         const course = registration.course as Course | undefined;
         if (!course) return null;
 
         const isWaitlist = registration.is_waitlist;
-        const paymentPending = registration.status === 'pending_payment';
+        const paymentPending =
+          registration.status === 'pending_payment' ||
+          (forcePending && index === 0);
         const teacherName = formatStaffName(course.teacher);
         const meta = [
           formatTodayOrTomorrow(course.date),
@@ -126,9 +130,9 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({
         const status = courseCancelled ? (
           <span className="text-[13px] font-medium text-text">Kurs fällt aus</span>
         ) : paymentPending ? (
-          <AccentPill>
-            {PAYMENT_PENDING_SHORT}
-          </AccentPill>
+          <PaymentPendingStatus
+            holdExpiresAt={resolveHoldExpiresAt(registration.hold_expires_at)}
+          />
         ) : isWaitlist ? (
           <AccentPill>
             {registration.waitlist_position
@@ -142,11 +146,9 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({
           </span>
         );
 
-        const pendingHint = paymentPending && !courseCancelled
-          ? paymentPendingLabel(registration.hold_expires_at)
-          : null;
-
-        const showFooter = Boolean(pay || usable || pendingHint);
+        const showFooter = Boolean(
+          pay || usable || (paymentPending && !courseCancelled),
+        );
 
         return (
           <div key={registration.id}>
@@ -159,8 +161,10 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({
             />
             {showFooter ? (
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-3.5 py-2.5 sm:px-4">
-                {pendingHint ? (
-                  <p className="text-[13px] text-textMuted tabular-nums">{pendingHint}</p>
+                {paymentPending && !courseCancelled ? (
+                  <p className="text-[13px] text-textMuted">
+                    Platz reserviert — bitte online bezahlen.
+                  </p>
                 ) : pay ? (
                   <p className="text-[13px] text-textMuted tabular-nums">{pay}</p>
                 ) : (
@@ -171,7 +175,7 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({
                     type="button"
                     disabled={releasingCourseId === course.id}
                     onClick={() => onReleaseSeat(registration)}
-                    className="inline-flex h-11 items-center rounded-full border border-borderStrong bg-surface px-4 text-[13px] font-medium text-danger active:bg-dangerSoft disabled:opacity-50"
+                    className="inline-flex h-11 items-center rounded-full border border-border bg-surface px-4 text-[13px] font-medium text-textMuted active:bg-surfaceSunken disabled:opacity-50"
                   >
                     {releasingCourseId === course.id ? '…' : RELEASE_SEAT_LABEL}
                   </button>

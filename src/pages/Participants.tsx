@@ -20,7 +20,13 @@ import {
   labelRegistrationStatusShort,
 } from '../lib/registrationStatus';
 import { coverageLabel, latestUnreversedPayment } from '../lib/courseCheckout';
-import { paymentPendingLabel } from '../lib/pendingPaymentLabel';
+import {
+  isDevPendingPaymentMock,
+  resolveHoldExpiresAt,
+} from '../lib/devPendingPaymentMock';
+import { paymentPendingDeadlinePhrase } from '../lib/pendingPaymentLabel';
+import PaymentPendingStatus from '../components/ui/PaymentPendingStatus';
+import AccentPill from '../components/ui/AccentPill';
 
 function shownMemberEmail(user: { email?: string | null; anonymized_at?: string | null } | null | undefined): string {
   if (!user || user.anonymized_at) return '';
@@ -267,7 +273,10 @@ const Participants: React.FC = () => {
   const paymentText = (participant: ParticipantWithDetails, forCsv = false) => {
     if (participant.cancel_reason === 'course_cancelled') return '—';
     if (participant.status === 'pending_payment') {
-      return paymentPendingLabel(participant.hold_expires_at);
+      const phrase = paymentPendingDeadlinePhrase(
+        resolveHoldExpiresAt(participant.hold_expires_at),
+      );
+      return phrase || 'Zahlung ausstehend';
     }
     return coverageLabel(
       {
@@ -278,6 +287,40 @@ const Participants: React.FC = () => {
         method: paymentMethodByReg[participant.id] ?? null,
       },
       { audience: forCsv ? 'csv' : paymentAudience },
+    );
+  };
+
+  const statusBadge = (
+    participant: ParticipantWithDetails,
+    options?: { forcePending?: boolean },
+  ) => {
+    if (participant.cancel_reason === 'course_cancelled') {
+      return <span className="flex-shrink-0 text-[13px] font-medium text-text">abgesagt</span>;
+    }
+    if (
+      participant.status === 'pending_payment' ||
+      (options?.forcePending &&
+        participant.status === 'registered' &&
+        !participant.is_waitlist)
+    ) {
+      return (
+        <PaymentPendingStatus
+          holdExpiresAt={resolveHoldExpiresAt(participant.hold_expires_at)}
+          compact
+        />
+      );
+    }
+    if (participant.status === 'waitlist' || participant.is_waitlist) {
+      return (
+        <AccentPill>
+          {labelRegistrationStatusShort(participant.status, participant.waitlist_position)}
+        </AccentPill>
+      );
+    }
+    return (
+      <span className="flex-shrink-0 inline-flex rounded-full bg-sage-100 px-2 py-1 text-xs font-medium text-sage-800">
+        {labelRegistrationStatusShort(participant.status, participant.waitlist_position)}
+      </span>
     );
   };
 
@@ -314,6 +357,17 @@ const Participants: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  // DEV-Mock vor dem Filter: sonst fällt die Zeile bei Status „Zahlung ausstehend“ weg.
+  const mockPendingId = isDevPendingPaymentMock()
+    ? participants.find(
+        (p) =>
+          p.user &&
+          p.course &&
+          p.status === 'registered' &&
+          !p.is_waitlist,
+      )?.id ?? null
+    : null;
+
   const filteredParticipants = participants.filter(participant => {
     if (!participant.user || !participant.course) return false;
 
@@ -325,7 +379,10 @@ const Participants: React.FC = () => {
       (participant.course.title || '').toLowerCase().includes(searchLower);
 
     const matchesCourse = !selectedCourse || participant.course_id === selectedCourse;
-    const matchesStatus = !selectedStatus || participant.status === selectedStatus;
+    const matchesStatus =
+      !selectedStatus ||
+      participant.status === selectedStatus ||
+      (selectedStatus === 'pending_payment' && participant.id === mockPendingId);
 
     return matchesSearch && matchesCourse && matchesStatus;
   });
@@ -468,20 +525,9 @@ const Participants: React.FC = () => {
                             </div>
                           )}
                         </div>
-                        {participant.cancel_reason === 'course_cancelled' ? (
-                          <span className="flex-shrink-0 text-[13px] font-medium text-text">abgesagt</span>
-                        ) : (
-                        <span className={`flex-shrink-0 inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                          participant.status === 'registered'
-                            ? 'bg-sage-100 text-sage-800'
-                            : 'bg-accentSoft text-accentText'
-                        }`}>
-                          {labelRegistrationStatusShort(
-                            participant.status,
-                            participant.waitlist_position
-                          )}
-                        </span>
-                        )}
+                        {statusBadge(participant, {
+                          forcePending: participant.id === mockPendingId,
+                        })}
                       </div>
 
                       <div className="mt-2 space-y-1 text-[13px]">
@@ -506,7 +552,11 @@ const Participants: React.FC = () => {
                           <span>{formatDateTime(participant.registered_at)}</span>
                           {participant.cancel_reason !== 'course_cancelled' ? (
                             <span className="before:content-['·'] before:mx-1">
-                              {paymentText(participant)}
+                              {participant.id === mockPendingId
+                                ? paymentPendingDeadlinePhrase(
+                                    resolveHoldExpiresAt(participant.hold_expires_at),
+                                  ) || 'Zahlung ausstehend'
+                                : paymentText(participant)}
                             </span>
                           ) : null}
                         </div>
@@ -605,23 +655,16 @@ const Participants: React.FC = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {participant.cancel_reason === 'course_cancelled' ? (
-                            <span className="text-sm font-medium text-text">abgesagt</span>
-                          ) : (
-                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                            participant.status === 'registered'
-                              ? 'bg-sage-100 text-sage-800'
-                              : 'bg-accentSoft text-accentText'
-                          }`}>
-                            {labelRegistrationStatus(
-                              participant.status,
-                              participant.waitlist_position
-                            )}
-                          </span>
-                          )}
+                          {statusBadge(participant, {
+                            forcePending: participant.id === mockPendingId,
+                          })}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-textMuted">
-                          {paymentText(participant)}
+                          {participant.id === mockPendingId
+                            ? paymentPendingDeadlinePhrase(
+                                resolveHoldExpiresAt(participant.hold_expires_at),
+                              ) || 'Zahlung ausstehend'
+                            : paymentText(participant)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-textMuted tabular-nums">
                           {formatDateTime(participant.registered_at)}

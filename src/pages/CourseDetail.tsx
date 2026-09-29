@@ -26,7 +26,11 @@ import {
   passRefundInfo,
   passRefundStatusLine,
 } from '../lib/passRefundInfo';
-import { paymentPendingLabel, PAYMENT_PENDING_SHORT } from '../lib/pendingPaymentLabel';
+import {
+  isDevPendingPaymentMock,
+  resolveHoldExpiresAt,
+} from '../lib/devPendingPaymentMock';
+import PaymentPendingStatus from '../components/ui/PaymentPendingStatus';
 import {
   fetchMemberPasses,
   findUsablePass,
@@ -192,8 +196,12 @@ const CourseDetail: React.FC = () => {
   const registrationStatus = getUserRegistrationStatus(course.id);
   const waitlistPosition = getUserWaitlistPosition(course.id);
   const ownRegistration = getOwnRegistration(course.id);
+  // DEV-Mock: jede eigene Anmeldung (auch Warteliste), wenn ?pendingPayment=1
+  const showPendingPayment =
+    (isRegistered && registrationStatus === 'pending_payment') ||
+    (isDevPendingPaymentMock() && isRegistered);
   const refundInfo =
-    ownRegistration && registrationStatus === 'registered' && !ownRegistration.is_waitlist
+    ownRegistration && registrationStatus === 'registered' && !ownRegistration.is_waitlist && !showPendingPayment
       ? passRefundInfo(ownRegistration)
       : null;
   const isFull = registeredCount >= course.max_participants;
@@ -457,7 +465,7 @@ const CourseDetail: React.FC = () => {
             <p className="text-[19px] font-medium leading-tight text-text tabular-nums">
               {formatPrice(course.price)}
             </p>
-            {isRegistered && registrationStatus === 'registered' ? (
+            {isRegistered && registrationStatus === 'registered' && !showPendingPayment ? (
               <div className="mt-0.5">
                 <span className="inline-flex items-center gap-1 text-[13px] font-medium text-success">
                   <Check className="h-3.5 w-3.5" aria-hidden />
@@ -469,12 +477,11 @@ const CourseDetail: React.FC = () => {
                   </p>
                 ) : null}
               </div>
-            ) : isRegistered && registrationStatus === 'pending_payment' ? (
+            ) : showPendingPayment ? (
               <div className="mt-0.5">
-                <AccentPill>{PAYMENT_PENDING_SHORT}</AccentPill>
-                <p className="mt-0.5 text-[13px] leading-snug text-textMuted tabular-nums">
-                  {paymentPendingLabel(ownRegistration?.hold_expires_at)}
-                </p>
+                <PaymentPendingStatus
+                  holdExpiresAt={resolveHoldExpiresAt(ownRegistration?.hold_expires_at)}
+                />
               </div>
             ) : isRegistered && registrationStatus === 'waitlist' ? (
               <span className="mt-0.5 inline-block">

@@ -218,7 +218,8 @@ export const isRegistrationVisible = (
 };
 
 /**
- * timestamptz → Datum + Uhrzeit in Europe/Berlin (z. B. Hold-Frist).
+ * timestamptz → lesbare Frist in Europe/Berlin.
+ * Beispiel: Mi., 01.10., 16:00 Uhr
  * Nie courses.date/time hierdurch jagen — nur echte Zeitstempel.
  */
 export function formatBerlinDateTime(
@@ -227,17 +228,30 @@ export function formatBerlinDateTime(
   if (value == null || value === '') return '';
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return '';
-  const datePart = new Intl.DateTimeFormat('de-DE', {
+
+  const weekday = new Intl.DateTimeFormat('de-DE', {
+    timeZone: 'Europe/Berlin',
+    weekday: 'short',
+  })
+    .format(date)
+    .replace(/\.$/, '');
+
+  // de-DE liefert oft schon „01.10.“ — abschließenden Punkt entfernen,
+  // sonst doppelt: „01.10..“
+  const dayMonth = new Intl.DateTimeFormat('de-DE', {
     timeZone: 'Europe/Berlin',
     day: '2-digit',
     month: '2-digit',
-    year: 'numeric',
-  }).format(date);
+  })
+    .format(date)
+    .replace(/\.$/, '');
+
   const timePart = new Intl.DateTimeFormat('de-DE', {
     timeZone: 'Europe/Berlin',
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
   }).format(date);
-  return `${datePart}, ${timePart}`;
+
+  return `${weekday}., ${dayMonth}., ${timePart} Uhr`;
 }

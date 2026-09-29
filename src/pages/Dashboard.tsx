@@ -12,7 +12,11 @@ import {
   formatTimeRange,
   formatTodayOrTomorrow,
 } from '../lib/format';
-import { paymentPendingLabel } from '../lib/pendingPaymentLabel';
+import {
+  isDevPendingPaymentMock,
+  resolveHoldExpiresAt,
+} from '../lib/devPendingPaymentMock';
+import PaymentPendingStatus from '../components/ui/PaymentPendingStatus';
 import { fetchCourseParticipantCounts } from '../lib/courseParticipantCounts';
 import { isParticipantOnlyRole, isTeacherOnly } from '../lib/userRoles';
 import { formatStaffName, withCourseTeachers } from '../lib/staffNames';
@@ -543,20 +547,20 @@ const Dashboard: React.FC = () => {
           let status: React.ReactNode = null;
           if (isCourseCancelled(course.status)) {
             status = <span className="text-[13px] font-medium text-text">Abgesagt</span>;
+          } else if (isPaymentPending || (isDevPendingPaymentMock() && isRegistered)) {
+            status = (
+              <PaymentPendingStatus
+                holdExpiresAt={resolveHoldExpiresAt(
+                  isRegistration ? item.hold_expires_at : null,
+                )}
+              />
+            );
           } else if (isRegistered) {
             status = (
               <span className="inline-flex items-center gap-1 text-[13px] font-medium text-success">
                 <Check className="h-4 w-4" aria-hidden />
                 Angemeldet
               </span>
-            );
-          } else if (isPaymentPending) {
-            status = (
-              <AccentPill>
-                {paymentPendingLabel(
-                  isRegistration ? item.hold_expires_at : null,
-                )}
-              </AccentPill>
             );
           } else if (isRegistration && isWaitlist) {
             const waitlistLabel = item.waitlist_position
