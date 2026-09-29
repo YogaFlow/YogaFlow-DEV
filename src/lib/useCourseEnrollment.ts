@@ -6,6 +6,7 @@ import {
   passRefundInfo,
   unregisterPassDialogMessage,
 } from './passRefundInfo';
+import { RELEASE_SEAT_LABEL } from './pendingPaymentLabel';
 import { passRedeemErrorMessage } from './passes';
 import { supabase } from './supabase';
 
@@ -24,6 +25,7 @@ type OwnCourseRegistration = Pick<
   | 'waitlist_position'
   | 'coverage_status'
   | 'cancellation_deadline'
+  | 'hold_expires_at'
 >;
 
 export function useCourseEnrollment(onAfterSuccess: () => void) {
@@ -72,7 +74,7 @@ export function useCourseEnrollment(onAfterSuccess: () => void) {
       const { data, error } = await supabase
         .from('registrations')
         .select(
-          'course_id, status, is_waitlist, waitlist_position, coverage_status, cancellation_deadline',
+          'course_id, status, is_waitlist, waitlist_position, coverage_status, cancellation_deadline, hold_expires_at',
         )
         .eq('user_id', userProfile.id)
         .is('cancellation_timestamp', null);
@@ -150,15 +152,18 @@ export function useCourseEnrollment(onAfterSuccess: () => void) {
 
   const requestUnregister = (course: Course) => {
     const reg = registrations.find((row) => row.course_id === course.id);
-    const refund = reg ? passRefundInfo(reg) : null;
-    const message = refund
-      ? unregisterPassDialogMessage(refund)
-      : `Möchtest du dich vom Kurs „${course.title}“ abmelden? Der Platz wird wieder frei.`;
+    const paymentPending = reg?.status === 'pending_payment';
+    const refund = reg && !paymentPending ? passRefundInfo(reg) : null;
+    const message = paymentPending
+      ? `Möchtest du den Platz für „${course.title}“ freigeben? Die Zahlungsfrist entfällt dann.`
+      : refund
+        ? unregisterPassDialogMessage(refund)
+        : `Möchtest du dich vom Kurs „${course.title}“ abmelden? Der Platz wird wieder frei.`;
     setPendingUnregisterCourseId(course.id);
     setConfirmDialog({
-      title: 'Vom Kurs abmelden?',
+      title: paymentPending ? 'Platz freigeben?' : 'Vom Kurs abmelden?',
       message,
-      confirmLabel: 'Abmelden',
+      confirmLabel: paymentPending ? RELEASE_SEAT_LABEL : 'Abmelden',
       cancelLabel: 'Abbrechen',
       variant: 'danger',
     });
@@ -241,6 +246,7 @@ export function useCourseEnrollment(onAfterSuccess: () => void) {
     setFeedbackDialog,
     confirmDialog,
     unregistering,
+    pendingUnregisterCourseId,
     registering,
     handleRegister,
     requestUnregister,

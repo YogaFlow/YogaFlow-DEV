@@ -266,6 +266,9 @@ export interface Registration {
   pass_id?: string | null;
   /** Warteliste: 'pass' = beim Nachrücken einlösen (W3). */
   coverage_intent?: 'pass' | null;
+  /** Frist für pending_payment (timestamptz). */
+  hold_expires_at?: string | null;
+  hold_reason?: string | null;
   course?: Course;
   user?: User;
 }

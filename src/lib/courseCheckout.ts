@@ -127,29 +127,41 @@ export function centsToEuroInput(cents: number | null | undefined): string {
 }
 
 export type CheckoutSortRow = {
-  coverage: CoverageStatus | undefined;
+  coverage?: CoverageStatus | null;
+  paymentPending?: boolean;
   lastName: string;
   firstName: string;
 };
 
 export function compareCheckoutRows(a: CheckoutSortRow, b: CheckoutSortRow): number {
-  const aOpen = (a.coverage ?? 'open') === 'open' ? 0 : 1;
-  const bOpen = (b.coverage ?? 'open') === 'open' ? 0 : 1;
-  if (aOpen !== bOpen) return aOpen - bOpen;
+  const rank = (row: CheckoutSortRow) => {
+    if (row.paymentPending) return 1;
+    if ((row.coverage ?? 'open') === 'open') return 0;
+    return 2;
+  };
+  const byRank = rank(a) - rank(b);
+  if (byRank !== 0) return byRank;
   const byLast = a.lastName.localeCompare(b.lastName, 'de');
   if (byLast !== 0) return byLast;
   return a.firstName.localeCompare(b.firstName, 'de');
 }
 
-export function countCheckout(rows: { coverage: CoverageStatus | undefined }[]): {
+export function countCheckout(
+  rows: { coverage: CoverageStatus | undefined; paymentPending?: boolean }[],
+): {
   open: number;
   done: number;
 } {
   let open = 0;
+  let pending = 0;
   for (const row of rows) {
+    if (row.paymentPending) {
+      pending += 1;
+      continue;
+    }
     if ((row.coverage ?? 'open') === 'open') open += 1;
   }
-  return { open, done: rows.length - open };
+  return { open, done: rows.length - open - pending };
 }
 
 /** Notiz nur, wenn der Betrag vom eingefrorenen Buchungspreis abweicht. */

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Calendar } from 'lucide-react';
 import { Navigate, useNavigate } from 'react-router-dom';
+import CourseEnrollmentDialogs from '../components/courses/CourseEnrollmentDialogs';
 import EnrollmentCards from '../components/courses/EnrollmentCards';
 import MyPassesSection from '../components/passes/MyPassesSection';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
@@ -10,6 +11,7 @@ import { fetchMemberPasses, type MemberPassSummary } from '../lib/passes';
 import { supabase } from '../lib/supabase';
 import { withCourseTeachers } from '../lib/staffNames';
 import { canSelfEnrollInCourses } from '../lib/userRoles';
+import { useCourseEnrollment } from '../lib/useCourseEnrollment';
 import type { Course, Registration } from '../types';
 
 const MyRegistrations: React.FC = () => {
@@ -44,7 +46,7 @@ const MyRegistrations: React.FC = () => {
           )
           .eq('user_id', userProfile.id)
           .or(
-            'cancel_reason.eq.course_cancelled,and(status.in.(registered,waitlist),cancellation_timestamp.is.null)',
+            'cancel_reason.eq.course_cancelled,and(status.in.(registered,waitlist,pending_payment),cancellation_timestamp.is.null)',
           ),
         fetchMemberPasses(userProfile.id),
       ]);
@@ -91,9 +93,29 @@ const MyRegistrations: React.FC = () => {
     }
   }, [userProfile, canSelfEnroll]);
 
+  const enrollment = useCourseEnrollment(() => {
+    void loadRegistrations();
+  });
+
   useEffect(() => {
     void loadRegistrations();
   }, [loadRegistrations]);
+
+  useEffect(() => {
+    enrollment.setRegistrations(
+      registrations.map((row) => ({
+        course_id: row.course_id,
+        status: row.status,
+        is_waitlist: row.is_waitlist,
+        waitlist_position: row.waitlist_position,
+        coverage_status: row.coverage_status,
+        cancellation_deadline: row.cancellation_deadline,
+        hold_expires_at: row.hold_expires_at,
+      })),
+    );
+    // Sync list into enrollment hook for Abmelden/Platz freigeben.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [registrations]);
 
   if (loading) {
     return (
@@ -110,6 +132,14 @@ const MyRegistrations: React.FC = () => {
   return (
     <div className="space-y-6">
       <FeedbackDialog dialog={feedback} onClose={() => setFeedback(null)} />
+      <CourseEnrollmentDialogs
+        feedbackDialog={enrollment.feedbackDialog}
+        setFeedbackDialog={enrollment.setFeedbackDialog}
+        confirmDialog={enrollment.confirmDialog}
+        cancelUnregister={enrollment.cancelUnregister}
+        handleUnregister={() => void enrollment.handleUnregister()}
+        unregistering={enrollment.unregistering}
+      />
       <MyPassesSection />
       {loadError ? (
         <div className="rounded-sm border border-danger bg-dangerSoft p-4 text-sm text-danger">
@@ -144,6 +174,11 @@ const MyRegistrations: React.FC = () => {
               type,
             })
           }
+          onReleaseSeat={(registration) => {
+            if (!registration.course) return;
+            enrollment.requestUnregister(registration.course);
+          }}
+          releasingCourseId={enrollment.pendingUnregisterCourseId}
         />
       )}
     </div>

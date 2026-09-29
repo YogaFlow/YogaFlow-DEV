@@ -72,7 +72,7 @@ export function coverageLabel(
   }
 
   if (registration.status === 'pending_payment') {
-    return 'Zahlung läuft';
+    return 'Zahlung ausstehend';
   }
 
   const coverage = registration.coverage_status ?? 'open';

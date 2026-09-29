@@ -12,6 +12,7 @@ import {
   formatTimeRange,
   formatTodayOrTomorrow,
 } from '../lib/format';
+import { paymentPendingLabel } from '../lib/pendingPaymentLabel';
 import { fetchCourseParticipantCounts } from '../lib/courseParticipantCounts';
 import { isParticipantOnlyRole, isTeacherOnly } from '../lib/userRoles';
 import { formatStaffName, withCourseTeachers } from '../lib/staffNames';
@@ -120,7 +121,7 @@ const Dashboard: React.FC = () => {
               course:courses(*)
             `)
             .eq('user_id', userProfile.id)
-            .in('status', ['registered', 'waitlist'])
+            .in('status', ['registered', 'waitlist', 'pending_payment'])
             .is('cancellation_timestamp', null);
 
           if (regError) throw regError;
@@ -520,6 +521,9 @@ const Dashboard: React.FC = () => {
           const remainingSpots = Math.max(0, maxParticipants - registrationCount);
           const isFull = remainingSpots === 0;
           const isRegistered = Boolean(options?.showRegisteredBadge && isRegistration && item.status === 'registered');
+          const isPaymentPending = Boolean(
+            isRegistration && item.status === 'pending_payment',
+          );
           const isWaitlist = Boolean(
             isRegistration && (item.status === 'waitlist' || item.is_waitlist)
           );
@@ -545,6 +549,14 @@ const Dashboard: React.FC = () => {
                 <Check className="h-4 w-4" aria-hidden />
                 Angemeldet
               </span>
+            );
+          } else if (isPaymentPending) {
+            status = (
+              <AccentPill>
+                {paymentPendingLabel(
+                  isRegistration ? item.hold_expires_at : null,
+                )}
+              </AccentPill>
             );
           } else if (isRegistration && isWaitlist) {
             const waitlistLabel = item.waitlist_position
@@ -592,7 +604,9 @@ const Dashboard: React.FC = () => {
 
   const statCards = getStatCards();
   const heroRegistration = isParticipantOnly
-    ? registrations.find((item) => item.status === 'registered')
+    ? registrations.find(
+        (item) => item.status === 'registered' || item.status === 'pending_payment',
+      )
     : undefined;
   const danachAll = isParticipantOnly
     ? registrations.filter((item) => item.id !== heroRegistration?.id)

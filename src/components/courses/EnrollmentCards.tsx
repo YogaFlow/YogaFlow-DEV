@@ -9,6 +9,11 @@ import {
   passRefundStatusLine,
 } from '../../lib/passRefundInfo';
 import {
+  PAYMENT_PENDING_SHORT,
+  RELEASE_SEAT_LABEL,
+  paymentPendingLabel,
+} from '../../lib/pendingPaymentLabel';
+import {
   applyPassToRegistration,
   findUsablePass,
   type MemberPassSummary,
@@ -22,6 +27,9 @@ interface EnrollmentCardsProps {
   ownPasses?: MemberPassSummary[];
   onCoverageChanged?: () => void;
   onFeedback?: (message: string, type: 'success' | 'error') => void;
+  /** Platz freigeben bei pending_payment (Meine Anmeldungen). */
+  onReleaseSeat?: (registration: Registration) => void;
+  releasingCourseId?: string | null;
 }
 
 function paymentLine(
@@ -32,6 +40,9 @@ function paymentLine(
     if (registration.is_waitlist && registration.coverage_intent === 'pass') {
       return 'Mit Karte beim Nachrücken';
     }
+    return null;
+  }
+  if (registration.status === 'pending_payment') {
     return null;
   }
   const refund = passRefundInfo(registration);
@@ -54,6 +65,8 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({
   ownPasses = [],
   onCoverageChanged,
   onFeedback,
+  onReleaseSeat,
+  releasingCourseId = null,
 }) => {
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -83,6 +96,7 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({
         if (!course) return null;
 
         const isWaitlist = registration.is_waitlist;
+        const paymentPending = registration.status === 'pending_payment';
         const teacherName = formatStaffName(course.teacher);
         const meta = [
           formatTodayOrTomorrow(course.date),
@@ -99,6 +113,7 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({
         const usable =
           !courseCancelled &&
           !isWaitlist &&
+          !paymentPending &&
           registration.coverage_status === 'open' &&
           isCourseUpcoming(course)
             ? findUsablePass(ownPasses, {
@@ -110,6 +125,10 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({
 
         const status = courseCancelled ? (
           <span className="text-[13px] font-medium text-text">Kurs fällt aus</span>
+        ) : paymentPending ? (
+          <AccentPill>
+            {PAYMENT_PENDING_SHORT}
+          </AccentPill>
         ) : isWaitlist ? (
           <AccentPill>
             {registration.waitlist_position
@@ -123,6 +142,12 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({
           </span>
         );
 
+        const pendingHint = paymentPending && !courseCancelled
+          ? paymentPendingLabel(registration.hold_expires_at)
+          : null;
+
+        const showFooter = Boolean(pay || usable || pendingHint);
+
         return (
           <div key={registration.id}>
             <CourseRow
@@ -132,13 +157,25 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({
               meta={meta}
               status={status}
             />
-            {pay || usable ? (
+            {showFooter ? (
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-3.5 py-2.5 sm:px-4">
-                {pay ? (
+                {pendingHint ? (
+                  <p className="text-[13px] text-textMuted tabular-nums">{pendingHint}</p>
+                ) : pay ? (
                   <p className="text-[13px] text-textMuted tabular-nums">{pay}</p>
                 ) : (
                   <span />
                 )}
+                {paymentPending && onReleaseSeat && !courseCancelled ? (
+                  <button
+                    type="button"
+                    disabled={releasingCourseId === course.id}
+                    onClick={() => onReleaseSeat(registration)}
+                    className="inline-flex h-11 items-center rounded-full border border-borderStrong bg-surface px-4 text-[13px] font-medium text-danger active:bg-dangerSoft disabled:opacity-50"
+                  >
+                    {releasingCourseId === course.id ? '…' : RELEASE_SEAT_LABEL}
+                  </button>
+                ) : null}
                 {usable ? (
                   <button
                     type="button"

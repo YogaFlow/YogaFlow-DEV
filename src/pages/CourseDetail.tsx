@@ -26,6 +26,7 @@ import {
   passRefundInfo,
   passRefundStatusLine,
 } from '../lib/passRefundInfo';
+import { paymentPendingLabel, PAYMENT_PENDING_SHORT } from '../lib/pendingPaymentLabel';
 import {
   fetchMemberPasses,
   findUsablePass,
@@ -467,6 +468,13 @@ const CourseDetail: React.FC = () => {
                     {passRefundStatusLine(refundInfo)}
                   </p>
                 ) : null}
+              </div>
+            ) : isRegistered && registrationStatus === 'pending_payment' ? (
+              <div className="mt-0.5">
+                <AccentPill>{PAYMENT_PENDING_SHORT}</AccentPill>
+                <p className="mt-0.5 text-[13px] leading-snug text-textMuted tabular-nums">
+                  {paymentPendingLabel(ownRegistration?.hold_expires_at)}
+                </p>
               </div>
             ) : isRegistered && registrationStatus === 'waitlist' ? (
               <span className="mt-0.5 inline-block">

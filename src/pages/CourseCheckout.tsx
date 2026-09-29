@@ -25,6 +25,7 @@ import {
   methodWord,
   type ManualCheckoutMethod,
 } from '../lib/courseCheckout';
+import { paymentPendingLabel } from '../lib/pendingPaymentLabel';
 import {
   applyPassToRegistration,
   fetchCourseMemberPasses,
@@ -49,6 +50,8 @@ type Person = {
   method: PaymentMethod | null;
   passId: string | null;
   passRemaining: number | null;
+  paymentPending: boolean;
+  holdExpiresAt: string | null;
 };
 
 type CourseHead = {
@@ -121,6 +124,9 @@ function personName(person: Pick<Person, 'firstName' | 'lastName'>): string {
 }
 
 function statusLabel(person: Person, seesMethod: boolean): { text: string; detail: string } {
+  if (person.paymentPending) {
+    return { text: paymentPendingLabel(person.holdExpiresAt), detail: '' };
+  }
   const audience = seesMethod ? 'manager' : 'teacher';
   const text = coverageLabel(
     {
@@ -281,6 +287,8 @@ const CourseCheckout: React.FC = () => {
         `
         id,
         user_id,
+        status,
+        hold_expires_at,
         coverage_status,
         coverage_waived_reason,
         coverage_waived_note,
@@ -290,7 +298,7 @@ const CourseCheckout: React.FC = () => {
       `
       )
       .eq('course_id', courseId)
-      .eq('status', 'registered');
+      .in('status', ['registered', 'pending_payment']);
 
     if (regError) {
       setErrorText(checkoutErrorMessage(undefined));
@@ -335,6 +343,8 @@ const CourseCheckout: React.FC = () => {
         method: methodByRegistration.get(row.id) ?? null,
         passId: (row.pass_id as string | null) ?? null,
         passRemaining: null,
+        paymentPending: row.status === 'pending_payment',
+        holdExpiresAt: (row.hold_expires_at as string | null) ?? null,
       };
     });
 
@@ -367,8 +377,8 @@ const CourseCheckout: React.FC = () => {
     () =>
       [...people].sort((a, b) =>
         compareCheckoutRows(
-          { coverage: a.coverage, lastName: a.lastName, firstName: a.firstName },
-          { coverage: b.coverage, lastName: b.lastName, firstName: b.firstName }
+          { coverage: a.coverage, paymentPending: a.paymentPending, lastName: a.lastName, firstName: a.firstName },
+          { coverage: b.coverage, paymentPending: b.paymentPending, lastName: b.lastName, firstName: b.firstName }
         )
       ),
     [people]
@@ -403,7 +413,7 @@ const CourseCheckout: React.FC = () => {
     note: string | null,
     surface: 'page' | 'dialog' = 'page'
   ): Promise<boolean> => {
-    if (person.coverage !== 'open') return false;
+    if (person.coverage !== 'open' || person.paymentPending) return false;
     if (busyIds.current.has(person.registrationId)) return false;
     busyIds.current.add(person.registrationId);
     setMenuFor(null);
@@ -508,7 +518,7 @@ const CourseCheckout: React.FC = () => {
   };
 
   const applyPass = async (person: Person) => {
-    if (busyIds.current.has(person.registrationId) || person.coverage !== 'open') return;
+    if (busyIds.current.has(person.registrationId) || person.coverage !== 'open' || person.paymentPending) return;
     busyIds.current.add(person.registrationId);
     setErrorText('');
     setMenuFor(null);
@@ -599,7 +609,7 @@ const CourseCheckout: React.FC = () => {
   const submitWaive = async () => {
     if (!waiveDialog || dialogBusy) return;
     const person = people.find((row) => row.registrationId === waiveDialog.registrationId);
-    if (!person || person.coverage !== 'open') return;
+    if (!person || person.coverage !== 'open' || person.paymentPending) return;
     if (!waiveDialog.reason) {
       setDialogError(checkoutErrorMessage('INVALID_REASON'));
       return;
@@ -826,10 +836,10 @@ const CourseCheckout: React.FC = () => {
           {sorted.map((person) => {
             const name = personName(person);
             const status = statusLabel(person, seesMethod);
-            const open = person.coverage === 'open';
-            const canRevertWaive = seesMethod && person.coverage === 'waived';
-            const canUndoPass = seesMethod && person.coverage === 'pass';
-            const canSellPass = hasSellableProducts;
+            const open = person.coverage === 'open' && !person.paymentPending;
+            const canRevertWaive = seesMethod && person.coverage === 'waived' && !person.paymentPending;
+            const canUndoPass = seesMethod && person.coverage === 'pass' && !person.paymentPending;
+            const canSellPass = hasSellableProducts && !person.paymentPending;
             const usablePass =
               open && course
                 ? findUsablePass(passesByUser[person.userId] ?? [], {

@@ -20,6 +20,7 @@ import {
   labelRegistrationStatusShort,
 } from '../lib/registrationStatus';
 import { coverageLabel, latestUnreversedPayment } from '../lib/courseCheckout';
+import { paymentPendingLabel } from '../lib/pendingPaymentLabel';
 
 function shownMemberEmail(user: { email?: string | null; anonymized_at?: string | null } | null | undefined): string {
   if (!user || user.anonymized_at) return '';
@@ -163,7 +164,8 @@ const Participants: React.FC = () => {
   }, [userProfile]);
 
   const isActiveRegistration = (participant: ParticipantWithDetails) =>
-    participant.status === 'registered' && !participant.is_waitlist;
+    (participant.status === 'registered' || participant.status === 'pending_payment') &&
+    !participant.is_waitlist;
 
   const canUnregisterParticipant = (participant: ParticipantWithDetails): boolean => {
     if (!userProfile) return false;
@@ -264,6 +266,9 @@ const Participants: React.FC = () => {
 
   const paymentText = (participant: ParticipantWithDetails, forCsv = false) => {
     if (participant.cancel_reason === 'course_cancelled') return '—';
+    if (participant.status === 'pending_payment') {
+      return paymentPendingLabel(participant.hold_expires_at);
+    }
     return coverageLabel(
       {
         status: participant.status,
@@ -419,6 +424,7 @@ const Participants: React.FC = () => {
             >
               <option value="">Alle Status</option>
               <option value="registered">Angemeldet</option>
+              <option value="pending_payment">Zahlung ausstehend</option>
               <option value="waitlist">Warteliste</option>
             </select>
           </div>

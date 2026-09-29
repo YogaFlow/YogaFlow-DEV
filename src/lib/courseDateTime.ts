@@ -216,3 +216,28 @@ export const isRegistrationVisible = (
   if (isCourseCancelled(registration.course.status)) return false;
   return !hasCourseEnded(registration.course, now);
 };
+
+/**
+ * timestamptz → Datum + Uhrzeit in Europe/Berlin (z. B. Hold-Frist).
+ * Nie courses.date/time hierdurch jagen — nur echte Zeitstempel.
+ */
+export function formatBerlinDateTime(
+  value: string | Date | null | undefined,
+): string {
+  if (value == null || value === '') return '';
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const datePart = new Intl.DateTimeFormat('de-DE', {
+    timeZone: 'Europe/Berlin',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(date);
+  const timePart = new Intl.DateTimeFormat('de-DE', {
+    timeZone: 'Europe/Berlin',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(date);
+  return `${datePart}, ${timePart}`;
+}

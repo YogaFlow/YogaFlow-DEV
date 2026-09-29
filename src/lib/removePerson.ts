@@ -41,7 +41,10 @@ export async function loadRemovalPreview(userId: string): Promise<RemovalPreview
     if (!course?.date) continue;
     const active = (course.status ?? 'active') === 'active';
     const notStarted = isCourseUpcoming(course);
-    const seated = row.status === 'registered' || row.status === 'waitlist';
+    const seated =
+      row.status === 'registered' ||
+      row.status === 'waitlist' ||
+      row.status === 'pending_payment';
     if (active && notStarted && seated) upcoming += 1;
     if (!notStarted && row.coverage_status === 'open') {
       openBookings += 1;

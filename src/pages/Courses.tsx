@@ -17,6 +17,7 @@ import { supabase } from '../lib/supabase';
 import { Course } from '../types';
 import { isCourseCancelled, isCourseUpcoming } from '../lib/courseDateTime';
 import { formatDayLabel, formatTime } from '../lib/format';
+import { paymentPendingLabel } from '../lib/pendingPaymentLabel';
 import { groupCoursesByDay } from '../lib/courseGrouping';
 import { canSelfEnrollInCourses } from '../lib/userRoles';
 import { useCourseEnrollment } from '../lib/useCourseEnrollment';
@@ -82,6 +83,7 @@ const Courses: React.FC = () => {
     isUserRegistered,
     getUserRegistrationStatus,
     getUserWaitlistPosition,
+    getOwnRegistration,
   } = useCourseEnrollment(fetchCourses);
 
   useEffect(() => {
@@ -241,6 +243,12 @@ const Courses: React.FC = () => {
                         <Check className="h-4 w-4" aria-hidden />
                         Angemeldet
                       </span>
+                    );
+                  } else if (isRegistered && registrationStatus === 'pending_payment') {
+                    status = (
+                      <AccentPill>
+                        {paymentPendingLabel(getOwnRegistration(course.id)?.hold_expires_at)}
+                      </AccentPill>
                     );
                   } else if (isRegistered && registrationStatus === 'waitlist') {
                     status = (

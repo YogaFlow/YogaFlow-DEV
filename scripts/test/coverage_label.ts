@@ -24,14 +24,14 @@ test('pending_payment', () => {
       { status: 'pending_payment', coverage_status: 'open' },
       { audience: 'manager' },
     ),
-    'Zahlung läuft',
+    'Zahlung ausstehend',
   );
   assert.equal(
     coverageLabel(
       { status: 'pending_payment', coverage_status: 'open' },
       { audience: 'participant' },
     ),
-    'Zahlung läuft',
+    'Zahlung ausstehend',
   );
 });
 
