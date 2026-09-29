@@ -34,6 +34,15 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 - [ ] **`scripts/db.mjs` DEP0190:** `spawnSync` mit `shell: true` — die DB-URL läuft
       durch cmd. Ohne Shell aufrufen.
 
+## Geldkette 2.1b / 2.2
+
+- [ ] **Zahlung erfolgreich nach Ablauf der Reservierung (2.2a).** Platz noch frei →
+      buchen; sonst automatisch erstatten (`payment.refund_required`).
+- [ ] **„Mit Karte statt online bezahlen“ bei `pending_payment`.** Später; Geld-Aktionen
+      lehnen pending heute ab (`PAYMENT_PENDING`).
+- [ ] **Hauptbuch `card` bleibt Blocker für 2.2a.** `ledger_money_account` kennt `card`
+      nicht → `UNSUPPORTED_PAYMENT` und 5-Min-Retry ohne Log-Zeile.
+
 ## Stripe (Story 1.2a und folgende)
 
 - [ ] **Aufbewahrungsfrist `provider_events_raw`.** Payload enthält Personendaten

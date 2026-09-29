@@ -45,6 +45,10 @@ PROD hat zuletzt `20260926160500` (`security_handle_new_user_role_from_trusted_s
 | `20260928203500` | `s1_2a_provider_schema.sql` | Stripe 1.2a: `platform_flags` (+ `platform_flag_changes`), `provider_accounts`, `provider_capabilities`, `provider_events_raw`, `tenant_payment_settings`, RPCs `set_online_payments_enabled` / `set_allow_onsite_payment` / `get_payment_setup_status`, `service_role`: `set_platform_flag` / `upsert_provider_account`, `delete_tenant_complete` ergänzt |
 | `20260928224500` | `s1_4_webhook_rpcs.sql` | Stripe 1.4: `service_role`-RPCs `record_provider_event`, `mark_provider_event_processed`, `mark_provider_event_failed` (Aliase auf `yogaflow_private`). Liegt **nach** dem PROD-Hotfix `20260928213000` — braucht kein `--include-all` |
 | `20260928231500` | `s1_3a_onboarding.sql` | Stripe 1.3a: Spalten `requirements_*` / `disconnected_at`, Status `disconnected`, `upsert_provider_account` erweitert, `mark_provider_account_disconnected`, `get_owner_payment_context`, `get_payment_setup_status` ergänzt |
+| `20260929140000` | `s2_1b_a_pending_payment_enum.sql` | 2.1b-a: Enum-Wert `pending_payment` (eigene TX, Nutzung erst in der Folgedatei) |
+| `20260929140001` | `s2_1b_a_pending_payment_schema.sql` | 2.1b-a: Hold-Spalten, `payment_attempts`, `course_occupied_seats`, Expire-Job `yogaflow_expire_payment_holds` (`* * * * *`), P10-Helfer, Storno-Pfade |
+
+**Release-Hinweis 2.1b-a:** Zwei Migrationen in dieser Reihenfolge. Neuer Cron-Job `yogaflow_expire_payment_holds` jede Minute — Extension `pg_cron` nicht neu anlegen (bereits A6-3). Client-Typen für `pending_payment` gehören in denselben Release; UI-Zweige folgen in 2.1b-b. `succeeded` und Hauptbuch-`card` bleiben 2.2a.
 
 **Release-Hinweis 1.3a:** Edge Function `payments-onboarding` (`verify_jwt = false`, Auth über `initService`) kommt mit den Functions. Onboarding und Live-Schalter bleiben aus, bis Rechtstexte und Steuerprüfung stehen (O2). Webhook-Ereignis `account.application.deauthorized` am Live-Endpunkt ergänzen (zusammen mit 1.4).
 

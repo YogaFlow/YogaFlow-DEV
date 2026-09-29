@@ -887,3 +887,24 @@ Sprint A darf vor Stripe nach PROD, wenn alles zutrifft:
 | **E16** | Gültigkeit von Karten | Studio setzt sie. Standard „3 Jahre zum Jahresende“, Hinweis unter 12 Monaten. Rechtsprüfung im Rechts-Epic | entschieden 21.09. |
 | **E17** | Einheit bei Absage auf abgelaufene Karte | Hinweis ans Studio, Studio entscheidet per `manual_adjustment` | entschieden 21.09. |
 | **E17b** | Ist- oder Soll-Versteuerung im Hauptbuch | **Ist** (nur Zahlungseingänge) in 1a, Einstellung je Studio in 1b | entschieden 21.09. |
+
+---
+
+## 8. Story 2.1b-a — Entscheidungen R1–R10 (29.09.2026)
+
+Migrationen `20260929140000` (Enum) + `20260929140001` (Schema). Test `scripts/test/s2_1b_a_pending.mjs`.
+
+| # | Frage | Entscheidung |
+|---|---|---|
+| R1 | Zählt `pending_payment` als belegter Platz? | Ja. |
+| R2 | Grundregel Listen vs. Geld | Zählungen und Listen zeigen pending; Geld-Aktionen → `PAYMENT_PENDING`; A8 / pre_omlify blenden pending aus. |
+| R3 | Ablaufgründe | Zwei: `promotion_expired` (Nachrücken) und `payment_expired` (Checkout); `hold_reason` ∈ {checkout, promotion}. |
+| R4 | Ablauf | Nur Job jede Minute (`yogaflow_expire_payment_holds`). Kein Expire-on-read. Checkout (2.2) prüft `hold_expires_at > now()`. |
+| R5 | Abmelden / Absage während pending | Platz sofort frei, Versuche → canceled, Nachrücken. `uncancel_course` stellt frühere pending nicht wieder her. |
+| R6 | Studio trägt ein | Immer `registered`, nie `pending_payment` (nur Platzzählung angepasst). |
+| R7 | Zentrale Platzzählung | `yogaflow_private.course_occupied_seats`; Client-Zählungen in 2.1b-b. |
+| R8 | Verlauf Versuche | Zustand an der Zeile, GUC-Guard (Muster passes), Verlauf über Events. |
+| R9 | `succeeded` | Nicht in diesem Schritt; Guard lehnt ab. Kommt in 2.2a mit `payments`-Zeile und Hauptbuch-`card`. |
+| R10 | Helfer „Online wirksam an“ | Jetzt gebaut (`online_payments_effective` / `online_payment_required`), vorgezogen aus 2.2. |
+
+**Hinweise:** P10-Helfer vorgezogen aus 2.2. Epic 2.1: Zustandsautomat für Online-Versuche liegt in `payment_attempts`, nicht in `payments` (Entscheidung 08 / Variante D).
