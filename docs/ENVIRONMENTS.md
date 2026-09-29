@@ -104,3 +104,20 @@ Nur als Supabase-Secret im jeweiligen Projekt, eingespielt aus `supabase/.env.de
   `v2.core.account…` (Nachlesen wie W3). Zahlungsereignisse kommen mit 2.2.
 - Signing Secrets in `supabase/.env.dev`, danach `npm run secrets:dev`.
 - PROD: Live-Endpunkt und Live-Secret erst beim Einschalten (siehe `docs/RELEASE_GELDKETTE_PLAN.md`).
+
+## Edge-Function-Secrets für E-Mail-Outbox (Geldkette 2.1b-b B2)
+
+| Secret | DEV | PROD | Bedeutung |
+|--------|-----|------|-----------|
+| `EMAIL_DISPATCH_SECRET` | Zufallswert aus `scripts/dev/email_dispatch_secret.mjs` | eigener Zufallswert (nicht DEV kopieren) | Header `X-Email-Dispatch-Secret` für `dispatch-emails`. Parallel als Vault-Eintrag `email_dispatch_secret` (Cron/`pg_net`). |
+| `INTERNAL_EMAIL_SECRET` | wie bisher | wie bisher | Weiterhin für `send-email`; `dispatch-emails` ruft `send-email` damit auf. |
+| `APP_BASE_DOMAIN` | `omlify-dev.de` | `omlify.de` | Link `https://{slug}.{APP_BASE_DOMAIN}/my-registrations` in der Nachrück-Mail. |
+
+Vault (nur DB, nicht Edge-Secret):
+
+| Name | Inhalt |
+|------|--------|
+| `email_dispatch_url` | `https://<REF>.supabase.co/functions/v1/dispatch-emails` |
+| `email_dispatch_secret` | derselbe Wert wie `EMAIL_DISPATCH_SECRET` |
+
+DEV-Einrichtung: `node scripts/dev/email_dispatch_secret.mjs` (Ref-Prüfung, schreibt Vault + `supabase/.env.dev`, gibt das Secret nie aus) → `npm run secrets:dev` → Function deployen. Fehlt ein Vault-Eintrag, tut der Cron-Job nichts.

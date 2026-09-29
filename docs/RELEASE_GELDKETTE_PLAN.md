@@ -47,9 +47,13 @@ PROD hat zuletzt `20260926160500` (`security_handle_new_user_role_from_trusted_s
 | `20260928231500` | `s1_3a_onboarding.sql` | Stripe 1.3a: Spalten `requirements_*` / `disconnected_at`, Status `disconnected`, `upsert_provider_account` erweitert, `mark_provider_account_disconnected`, `get_owner_payment_context`, `get_payment_setup_status` ergänzt |
 | `20260929140000` | `s2_1b_a_pending_payment_enum.sql` | 2.1b-a: Enum-Wert `pending_payment` (eigene TX, Nutzung erst in der Folgedatei) |
 | `20260929140001` | `s2_1b_a_pending_payment_schema.sql` | 2.1b-a: Hold-Spalten, `payment_attempts`, `course_occupied_seats`, Expire-Job `yogaflow_expire_payment_holds` (`* * * * *`), P10-Helfer, Storno-Pfade |
+| `20260929150000` | `s2_1b_b_promotion_e2.sql` | 2.1b-b B1: Nachrücken E2, `email_deliveries`, `claim`/`mark`, `promote_to_pending` vorbereitet in K3 |
+| `20260929151000` | `s2_1b_b_k3_promote_to_pending.sql` | K3: Helfer `promote_to_pending_payment`, Glockentext mit Frist |
+| `20260929160000` | `s2_1b_b2_dispatch_emails.sql` | 2.1b-b B2: `pg_net`, Cron `yogaflow_dispatch_emails` → Edge Function `dispatch-emails` |
 
 **Release-Hinweis 2.1b-a:** Zwei Migrationen in dieser Reihenfolge. Neuer Cron-Job `yogaflow_expire_payment_holds` jede Minute — Extension `pg_cron` nicht neu anlegen (bereits A6-3). Client-Typen für `pending_payment` gehören in denselben Release; UI-Zweige folgen in 2.1b-b. `succeeded` und Hauptbuch-`card` bleiben 2.2a.
 
+**Release-Hinweis 2.1b-b B2 (Versand):** Auf PROD zusätzlich zu den Migrationen: Extension `pg_net` aktivieren (liegt in `20260929160000`), Vault-Einträge `email_dispatch_url` und `email_dispatch_secret` setzen (PROD-eigene Werte, Skript-Analog zu DEV), `EMAIL_DISPATCH_SECRET` in `supabase/.env.prod` und `npm run secrets:prod`, Edge Function `dispatch-emails` deployen. Fehlt der Vault-Eintrag, ruft der Job nichts auf. Absender bleibt global „Omlify“ (S6h).
 **Release-Hinweis 1.3a:** Edge Function `payments-onboarding` (`verify_jwt = false`, Auth über `initService`) kommt mit den Functions. Onboarding und Live-Schalter bleiben aus, bis Rechtstexte und Steuerprüfung stehen (O2). Webhook-Ereignis `account.application.deauthorized` am Live-Endpunkt ergänzen (zusammen mit 1.4).
 
 **Release-Hinweis 1.4:** Edge Function `payments-webhook` (`verify_jwt = false`) kommt mit den Functions. Der **Live-Endpunkt** im Stripe-Dashboard (Live-Modus, „Connected accounts“, URL `https://<PROD_REF>.supabase.co/functions/v1/payments-webhook`) und das **Live-Secret** `STRIPE_WEBHOOK_SECRET` in `supabase/.env.prod` entstehen **erst beim Einschalten**, nicht am Release-Abend. Bis dahin antwortet die Function auf PROD mit 500 `CONFIG_ERROR`; ohne Endpunkt ruft sie niemand auf.

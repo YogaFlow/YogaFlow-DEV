@@ -1,0 +1,109 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
+import {
+  createDefaultLog,
+  handleDispatchRequest,
+  type DeliveryContext,
+  type DeliveryRow,
+  type DispatchDeps,
+} from "./handler.ts";
+
+Deno.serve(async (req: Request) => {
+  const log = createDefaultLog();
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const supabase = createClient(supabaseUrl, serviceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  const deps: DispatchDeps = {
+    env: (key) => Deno.env.get(key) ?? undefined,
+    log,
+    claimDeliveries: async (limit) => {
+      const { data, error } = await supabase.rpc("claim_email_deliveries", {
+        p_limit: limit,
+      });
+      if (error) {
+        log.error("claim_email_deliveries", { code: error.code ?? "CLAIM_FAILED" });
+        throw error;
+      }
+      return (data ?? []) as DeliveryRow[];
+    },
+    loadContext: async (registrationId) => {
+      const { data: reg, error: re } = await supabase
+        .from("registrations")
+        .select(
+          "id, status, hold_expires_at, user_id, course_id, tenant_id",
+        )
+        .eq("id", registrationId)
+        .maybeSingle();
+      if (re || !reg) return null;
+
+      const [{ data: course }, { data: tenant }, { data: user }] = await Promise.all([
+        supabase
+          .from("courses")
+          .select("title, date, time")
+          .eq("id", reg.course_id)
+          .maybeSingle(),
+        supabase.from("tenants").select("name, slug").eq("id", reg.tenant_id).maybeSingle(),
+        supabase
+          .from("users")
+          .select("email, anonymized_at, auth_user_id")
+          .eq("id", reg.user_id)
+          .maybeSingle(),
+      ]);
+
+      const ctx: DeliveryContext = {
+        registrationStatus: reg.status ?? null,
+        holdExpiresAt: reg.hold_expires_at ?? null,
+        courseTitle: course?.title ?? null,
+        courseDate: course?.date ?? null,
+        courseTime: course?.time ?? null,
+        studioName: tenant?.name ?? null,
+        studioSlug: tenant?.slug ?? null,
+        recipientEmail: user?.email ?? null,
+        anonymizedAt: user?.anonymized_at ?? null,
+        authUserId: user?.auth_user_id ?? null,
+      };
+      return ctx;
+    },
+    markDelivery: async (id, status, errorCode) => {
+      const { error } = await supabase.rpc("mark_email_delivery", {
+        p_id: id,
+        p_status: status,
+        p_error_code: errorCode ?? null,
+      });
+      if (error) {
+        log.error("mark_email_delivery", { code: error.code ?? "MARK_FAILED" });
+        throw error;
+      }
+    },
+    sendEmail: async ({ to, subject, html }) => {
+      const internal = Deno.env.get("INTERNAL_EMAIL_SECRET") ?? "";
+      const res = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Internal-Secret": internal,
+        },
+        body: JSON.stringify({ to, subject, html }),
+      });
+      if (!res.ok) {
+        return { ok: false, errorCode: "SMTP_ERROR" };
+      }
+      return { ok: true };
+    },
+  };
+
+  try {
+    return await handleDispatchRequest(req, deps);
+  } catch (err) {
+    log.error("dispatch failed", {
+      code: err instanceof Error ? err.name : "DISPATCH_ERROR",
+    });
+    return new Response(
+      JSON.stringify({ error: "Internal error", code: "DISPATCH_ERROR" }),
+      { status: 500, headers: { "Content-Type": "application/json" } },
+    );
+  }
+});

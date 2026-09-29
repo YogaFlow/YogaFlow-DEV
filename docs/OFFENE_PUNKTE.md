@@ -42,6 +42,14 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
       lehnen pending heute ab (`PAYMENT_PENDING`).
 - [ ] **Hauptbuch `card` bleibt Blocker für 2.2a.** `ledger_money_account` kennt `card`
       nicht → `UNSUPPORTED_PAYMENT` und 5-Min-Retry ohne Log-Zeile.
+- [ ] **Mindest-Zahlzeit beim Nachrücken.** Heute reicht eine Frist knapp in der Zukunft
+      (`promotion_hold_deadline`); ob ein Mindestfenster (z. B. 15 Min.) nötig ist, offen.
+- [ ] **E-Mail-Vorlage Nachrücken / Zahlungspflicht vom Anwalt prüfen lassen**
+      (Rechts-Epic). Betreff und Text stehen in `dispatch-emails`.
+- [ ] **S6g — doppelte Zustellung möglich.** Stürzt `dispatch-emails` nach dem SMTP-Versand,
+      aber vor `mark_email_delivery(..., sent)` ab, kann dieselbe Aufforderung erneut
+      rausgehen („mindestens einmal“). Bewusst akzeptiert; kein Idempotenz-Token beim
+      SMTP-Versand.
 
 ## Stripe (Story 1.2a und folgende)
 

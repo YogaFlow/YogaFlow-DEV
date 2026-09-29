@@ -45,3 +45,8 @@ verify_jwt = false
 # abfangen und unsere Codes untestbar machen — gleiches Muster wie service-ping.
 [functions.payments-onboarding]
 verify_jwt = false
+
+# dispatch-emails (2.1b-b B2): Aufruf nur mit X-Email-Dispatch-Secret aus dem Vault/Cron.
+# Gateway-JWT wäre unsinnig (pg_net hat kein Nutzer-JWT).
+[functions.dispatch-emails]
+verify_jwt = false
