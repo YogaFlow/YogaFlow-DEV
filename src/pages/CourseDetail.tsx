@@ -7,7 +7,10 @@ import CourseEnrollmentDialogs from '../components/courses/CourseEnrollmentDialo
 import PassBookChoiceDialog from '../components/courses/PassBookChoiceDialog';
 import AccentPill from '../components/ui/AccentPill';
 import FeedbackDialog from '../components/ui/FeedbackDialog';
+import PaymentSheet from '../features/payments/PaymentSheet';
 import { useAuth } from '../context/AuthContext';
+import { useTenant } from '../context/TenantContext';
+import { fetchBookingPaymentOptions } from '../lib/bookingPaymentOptions';
 import {
   courseDurationMinutes,
   isCourseCancelled,
@@ -32,6 +35,13 @@ import {
 } from '../lib/devPendingPaymentMock';
 import PaymentPendingStatus from '../components/ui/PaymentPendingStatus';
 import {
+  ONLINE_REQUIRED_HINT,
+  PAY_NOW_LABEL,
+  REGISTER_AND_PAY_LABEL,
+} from '../lib/paymentTexts';
+import { RELEASE_SEAT_LABEL } from '../lib/pendingPaymentLabel';
+import { paymentsClientConfig } from '../lib/paymentsClientConfig';
+import {
   fetchMemberPasses,
   findUsablePass,
   type MemberPassSummary,
@@ -49,6 +59,7 @@ const CourseDetail: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { userProfile, isAdmin, isCourseLeader } = useAuth();
+  const { tenant } = useTenant();
   const [course, setCourse] = useState<Course | null>(null);
   const [registeredCount, setRegisteredCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -57,6 +68,11 @@ const CourseDetail: React.FC = () => {
   const [descriptionOverflows, setDescriptionOverflows] = useState(false);
   const [ownPasses, setOwnPasses] = useState<MemberPassSummary[]>([]);
   const [passChoice, setPassChoice] = useState<'seat' | 'waitlist' | null>(null);
+  const [onlineRequired, setOnlineRequired] = useState(false);
+  const [paySheet, setPaySheet] = useState<{
+    registrationId: string;
+    holdExpiresAt?: string | null;
+  } | null>(null);
   const descriptionRef = useRef<HTMLParagraphElement>(null);
 
   const loadCourse = useCallback(async () => {
@@ -104,7 +120,9 @@ const CourseDetail: React.FC = () => {
     getUserRegistrationStatus,
     getUserWaitlistPosition,
     getOwnRegistration,
-  } = useCourseEnrollment(loadCourse);
+  } = useCourseEnrollment(loadCourse, {
+    onPendingPayment: (info) => setPaySheet(info),
+  });
 
   const {
     requestDelete,
@@ -140,6 +158,11 @@ const CourseDetail: React.FC = () => {
     void loadCourse();
     if (canSelfEnrollInCourses(userProfile)) {
       void fetchUserRegistrations();
+      void fetchBookingPaymentOptions().then((opts) => {
+        setOnlineRequired(opts.onlineRequired);
+      });
+    } else {
+      setOnlineRequired(false);
     }
     // fetchUserRegistrations is recreated every render; reload on course/profile change only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -302,10 +325,22 @@ const CourseDetail: React.FC = () => {
         open={passChoice != null && usablePass != null}
         mode={passChoice ?? 'seat'}
         pass={usablePass ?? { pass_id: '', name: '', remaining: 0, units_total: 0, valid_until: '' }}
+        onlineRequired={onlineRequired}
         busy={registering}
         onConfirm={(usePass) => void confirmPassChoice(usePass)}
         onCancel={() => {
           if (!registering) setPassChoice(null);
+        }}
+      />
+      <PaymentSheet
+        open={paySheet != null}
+        registrationId={paySheet?.registrationId ?? null}
+        studioName={tenant?.name ?? ''}
+        holdExpiresAt={paySheet?.holdExpiresAt}
+        onClose={() => setPaySheet(null)}
+        onFinished={() => {
+          void fetchUserRegistrations();
+          void loadCourse();
         }}
       />
       <CourseDeleteDialog
@@ -481,6 +516,7 @@ const CourseDetail: React.FC = () => {
               <div className="mt-0.5">
                 <PaymentPendingStatus
                   holdExpiresAt={resolveHoldExpiresAt(ownRegistration?.hold_expires_at)}
+                  className="!items-start"
                 />
               </div>
             ) : isRegistered && registrationStatus === 'waitlist' ? (
@@ -490,18 +526,51 @@ const CourseDetail: React.FC = () => {
                 </AccentPill>
               </span>
             ) : (
-              <p className="mt-0.5 text-[13px] text-textMuted">pro Termin</p>
+              <div className="mt-0.5">
+                <p className="text-[13px] text-textMuted">pro Termin</p>
+                {onlineRequired && canAct && !isRegistered ? (
+                  <p className="mt-0.5 text-[13px] font-medium text-accentText">
+                    {ONLINE_REQUIRED_HINT}
+                  </p>
+                ) : null}
+              </div>
             )}
           </div>
           {canAct ? (
             isRegistered ? (
-              <button
-                type="button"
-                onClick={() => requestUnregister(course)}
-                className={`${buttonShape} border border-borderStrong bg-surface text-danger active:bg-dangerSoft`}
-              >
-                Abmelden
-              </button>
+              showPendingPayment ? (
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => requestUnregister(course)}
+                    className={`${buttonShape} border border-borderStrong bg-surface text-danger active:bg-dangerSoft`}
+                  >
+                    {RELEASE_SEAT_LABEL}
+                  </button>
+                  {paymentsClientConfig().enabled && ownRegistration?.id ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPaySheet({
+                          registrationId: ownRegistration.id,
+                          holdExpiresAt: ownRegistration.hold_expires_at,
+                        })
+                      }
+                      className={`${buttonShape} bg-brand text-onBrand active:bg-brandPressed`}
+                    >
+                      {PAY_NOW_LABEL}
+                    </button>
+                  ) : null}
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => requestUnregister(course)}
+                  className={`${buttonShape} border border-borderStrong bg-surface text-danger active:bg-dangerSoft`}
+                >
+                  Abmelden
+                </button>
+              )
             ) : isFull ? (
               <button
                 type="button"
@@ -518,7 +587,7 @@ const CourseDetail: React.FC = () => {
                 disabled={registering}
                 className={`${buttonShape} bg-brand text-onBrand active:bg-brandPressed disabled:opacity-50`}
               >
-                Anmelden
+                {onlineRequired ? REGISTER_AND_PAY_LABEL : 'Anmelden'}
               </button>
             )
           ) : null}

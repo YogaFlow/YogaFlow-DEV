@@ -1,13 +1,21 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Calendar } from 'lucide-react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import CourseEnrollmentDialogs from '../components/courses/CourseEnrollmentDialogs';
 import EnrollmentCards from '../components/courses/EnrollmentCards';
 import MyPassesSection from '../components/passes/MyPassesSection';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
+import PaymentSheet from '../features/payments/PaymentSheet';
+import {
+  clearPaymentAttempt,
+  readAnyPaymentAttempt,
+  usePaymentCheckout,
+} from '../features/payments/usePaymentCheckout';
 import { useAuth } from '../context/AuthContext';
+import { useTenant } from '../context/TenantContext';
 import { isCourseUpcoming, isRegistrationVisible } from '../lib/courseDateTime';
 import { fetchMemberPasses, type MemberPassSummary } from '../lib/passes';
+import { paymentMessageForCode } from '../lib/paymentTexts';
 import { supabase } from '../lib/supabase';
 import { withCourseTeachers } from '../lib/staffNames';
 import { canSelfEnrollInCourses } from '../lib/userRoles';
@@ -16,12 +24,19 @@ import type { Course, Registration } from '../types';
 
 const MyRegistrations: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { userProfile } = useAuth();
+  const { tenant } = useTenant();
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [ownPasses, setOwnPasses] = useState<MemberPassSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [feedback, setFeedback] = useState<FeedbackDialogState | null>(null);
+  const [paySheet, setPaySheet] = useState<{
+    registrationId: string;
+    holdExpiresAt?: string | null;
+  } | null>(null);
+  const returnCheckout = usePaymentCheckout();
 
   const canSelfEnroll = canSelfEnrollInCourses(userProfile);
 
@@ -95,6 +110,8 @@ const MyRegistrations: React.FC = () => {
 
   const enrollment = useCourseEnrollment(() => {
     void loadRegistrations();
+  }, {
+    onPendingPayment: (info) => setPaySheet(info),
   });
 
   useEffect(() => {
@@ -104,6 +121,7 @@ const MyRegistrations: React.FC = () => {
   useEffect(() => {
     enrollment.setRegistrations(
       registrations.map((row) => ({
+        id: row.id,
         course_id: row.course_id,
         status: row.status,
         is_waitlist: row.is_waitlist,
@@ -116,6 +134,43 @@ const MyRegistrations: React.FC = () => {
     // Sync list into enrollment hook for Abmelden/Platz freigeben.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [registrations]);
+
+  // Z5: Rückkehr nach 3-D-Secure
+  useEffect(() => {
+    if (searchParams.get('payment') !== 'return') return;
+    const next = new URLSearchParams(searchParams);
+    next.delete('payment');
+    setSearchParams(next, { replace: true });
+
+    const stored = readAnyPaymentAttempt();
+    if (!stored) {
+      void loadRegistrations();
+      return;
+    }
+
+    void (async () => {
+      const status = await returnCheckout.runStatus(stored.attemptId);
+      clearPaymentAttempt(stored.registrationId);
+      void loadRegistrations();
+      if (status.kind === 'continue') {
+        const polled = await returnCheckout.pollUntilDone(stored.attemptId);
+        void loadRegistrations();
+        setFeedback({
+          title: 'Zahlung',
+          message: polled.message || paymentMessageForCode(polled.code),
+          type: polled.code === 'CARD_DECLINED' ? 'error' : 'success',
+        });
+        return;
+      }
+      setFeedback({
+        title: status.kind === 'done' ? 'Zahlung' : 'Hinweis',
+        message: status.message || paymentMessageForCode(status.code),
+        type: status.kind === 'done' ? 'success' : 'error',
+      });
+    })();
+    // nur einmal bei payment=return
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (loading) {
     return (
@@ -139,6 +194,16 @@ const MyRegistrations: React.FC = () => {
         cancelUnregister={enrollment.cancelUnregister}
         handleUnregister={() => void enrollment.handleUnregister()}
         unregistering={enrollment.unregistering}
+      />
+      <PaymentSheet
+        open={paySheet != null}
+        registrationId={paySheet?.registrationId ?? null}
+        studioName={tenant?.name ?? ''}
+        holdExpiresAt={paySheet?.holdExpiresAt}
+        onClose={() => setPaySheet(null)}
+        onFinished={() => {
+          void loadRegistrations();
+        }}
       />
       <MyPassesSection />
       {loadError ? (
@@ -177,6 +242,12 @@ const MyRegistrations: React.FC = () => {
           onReleaseSeat={(registration) => {
             if (!registration.course) return;
             enrollment.requestUnregister(registration.course);
+          }}
+          onPayNow={(registration) => {
+            setPaySheet({
+              registrationId: registration.id,
+              holdExpiresAt: registration.hold_expires_at,
+            });
           }}
           releasingCourseId={enrollment.pendingUnregisterCourseId}
         />

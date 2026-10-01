@@ -8,6 +8,8 @@ type PassBookChoiceDialogProps = {
   open: boolean;
   mode: PassBookChoiceMode;
   pass: MemberPassSummary;
+  /** Z10: Online-Pflicht — „Vor Ort“ entfällt, „Online bezahlen“ statt dessen. */
+  onlineRequired?: boolean;
   busy?: boolean;
   onConfirm: (usePass: boolean) => void;
   onCancel: () => void;
@@ -15,12 +17,14 @@ type PassBookChoiceDialogProps = {
 
 /**
  * Auswahl vor Selbstanmeldung: mit Karte oder vor Ort (Platz),
- * bzw. Intent „mit Karte beim Nachrücken“ (Warteliste).
+ * bzw. bei Online-Pflicht mit Karte oder online bezahlen;
+ * Warteliste: Intent „mit Karte beim Nachrücken“.
  */
 const PassBookChoiceDialog: React.FC<PassBookChoiceDialogProps> = ({
   open,
   mode,
   pass,
+  onlineRequired = false,
   busy = false,
   onConfirm,
   onCancel,
@@ -45,6 +49,7 @@ const PassBookChoiceDialog: React.FC<PassBookChoiceDialogProps> = ({
 
   const title = mode === 'waitlist' ? 'Auf die Warteliste' : 'Anmelden';
   const confirmLabel = mode === 'waitlist' ? 'Auf die Warteliste' : 'Anmelden';
+  const seatOnline = mode === 'seat' && onlineRequired;
 
   return (
     <div
@@ -82,7 +87,11 @@ const PassBookChoiceDialog: React.FC<PassBookChoiceDialogProps> = ({
                 className="mt-1 h-4 w-4 accent-[color:var(--color-brand)]"
               />
               <span className="min-w-0">
-                <span className="block text-[15px] font-medium text-text">Mit Karte bezahlen</span>
+                <span className="block text-[15px] font-medium text-text">
+                  {seatOnline
+                    ? `Mit deiner Karte „${pass.name}“`
+                    : 'Mit Karte bezahlen'}
+                </span>
                 <span className="mt-0.5 block text-[13px] text-textMuted tabular-nums">
                   {usablePassChoiceLabel(pass)}
                 </span>
@@ -100,7 +109,9 @@ const PassBookChoiceDialog: React.FC<PassBookChoiceDialogProps> = ({
                 onChange={() => setUsePass(false)}
                 className="mt-1 h-4 w-4 accent-[color:var(--color-brand)]"
               />
-              <span className="text-[15px] font-medium text-text">Vor Ort bezahlen</span>
+              <span className="text-[15px] font-medium text-text">
+                {seatOnline ? 'Online bezahlen' : 'Vor Ort bezahlen'}
+              </span>
             </label>
           </fieldset>
         ) : (

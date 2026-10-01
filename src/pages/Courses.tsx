@@ -133,7 +133,7 @@ const Courses: React.FC = () => {
         if (userProfile && canSelfEnrollInCourses(userProfile)) {
           const { data: regData, error: regError } = await supabase
             .from('registrations')
-            .select('course_id, status, is_waitlist, waitlist_position')
+            .select('id, course_id, status, is_waitlist, waitlist_position, coverage_status, cancellation_deadline, hold_expires_at')
             .eq('user_id', userProfile.id)
             .is('cancellation_timestamp', null);
 

@@ -4,6 +4,7 @@
  */
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { formatDate } from '../../lib/format';
+import { paymentsClientConfig } from '../../lib/paymentsClientConfig';
 import AccentPill from '../../components/ui/AccentPill';
 import { copy, STRIPE_DASHBOARD_URL } from './paymentSetupCopy';
 import { readDevMockStatus } from './paymentSetupTypes';
@@ -13,22 +14,13 @@ const StripeAccountOnboarding = lazy(() => import('./StripeAccountOnboarding'));
 
 function publishableKeyOrNull(): string | null {
   const mock = readDevMockStatus();
-  const key = (import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined)?.trim() ?? '';
-  if (mock) {
-    // DEV-Mock für Screenshots: Abschnitt auch ohne echten Key zeigen (Formular braucht trotzdem pk_test_).
-    return key || 'pk_test_dev_mock';
+  const config = paymentsClientConfig();
+  if (config.enabled && config.publishableKey) return config.publishableKey;
+  // DEV-Screenshot-Mock: Abschnitt nur mit Mock-Param zeigen, wenn Config sonst aus.
+  if (mock && import.meta.env.DEV) {
+    return config.publishableKey || 'pk_test_dev_mock';
   }
-  if (!key) {
-    console.info('[payments] VITE_STRIPE_PUBLISHABLE_KEY fehlt — Online-Zahlung-Abschnitt ausgeblendet.');
-    return null;
-  }
-  if (import.meta.env.DEV && !key.startsWith('pk_test_')) {
-    console.info(
-      '[payments] VITE_STRIPE_PUBLISHABLE_KEY beginnt auf DEV nicht mit pk_test_ — Abschnitt ausgeblendet.',
-    );
-    return null;
-  }
-  return key;
+  return null;
 }
 
 function dueDateLabel(iso: string | null): string {

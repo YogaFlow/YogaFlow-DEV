@@ -13,6 +13,8 @@ import {
   passRefundStatusLine,
 } from '../../lib/passRefundInfo';
 import { RELEASE_SEAT_LABEL } from '../../lib/pendingPaymentLabel';
+import { PAY_NOW_LABEL } from '../../lib/paymentTexts';
+import { paymentsClientConfig } from '../../lib/paymentsClientConfig';
 import {
   applyPassToRegistration,
   findUsablePass,
@@ -30,6 +32,8 @@ interface EnrollmentCardsProps {
   onFeedback?: (message: string, type: 'success' | 'error') => void;
   /** Platz freigeben bei pending_payment (Meine Anmeldungen). */
   onReleaseSeat?: (registration: Registration) => void;
+  /** Online bezahlen bei pending_payment. */
+  onPayNow?: (registration: Registration) => void;
   releasingCourseId?: string | null;
 }
 
@@ -67,10 +71,12 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({
   onCoverageChanged,
   onFeedback,
   onReleaseSeat,
+  onPayNow,
   releasingCourseId = null,
 }) => {
   const [busyId, setBusyId] = useState<string | null>(null);
   const forcePending = isDevPendingPaymentMock();
+  const canPayOnline = paymentsClientConfig().enabled;
 
   const applyPass = async (registration: Registration) => {
     if (busyId) return;
@@ -170,15 +176,28 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({
                 ) : (
                   <span />
                 )}
-                {paymentPending && onReleaseSeat && !courseCancelled ? (
-                  <button
-                    type="button"
-                    disabled={releasingCourseId === course.id}
-                    onClick={() => onReleaseSeat(registration)}
-                    className="inline-flex h-11 items-center rounded-full border border-border bg-surface px-4 text-[13px] font-medium text-textMuted active:bg-surfaceSunken disabled:opacity-50"
-                  >
-                    {releasingCourseId === course.id ? '…' : RELEASE_SEAT_LABEL}
-                  </button>
+                {paymentPending && !courseCancelled ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {onReleaseSeat ? (
+                      <button
+                        type="button"
+                        disabled={releasingCourseId === course.id}
+                        onClick={() => onReleaseSeat(registration)}
+                        className="inline-flex h-11 items-center rounded-full border border-border bg-surface px-4 text-[13px] font-medium text-textMuted active:bg-surfaceSunken disabled:opacity-50"
+                      >
+                        {releasingCourseId === course.id ? '…' : RELEASE_SEAT_LABEL}
+                      </button>
+                    ) : null}
+                    {canPayOnline && onPayNow ? (
+                      <button
+                        type="button"
+                        onClick={() => onPayNow(registration)}
+                        className="inline-flex h-11 items-center rounded-full bg-brand px-4 text-[13px] font-medium text-onBrand active:bg-brandPressed"
+                      >
+                        {PAY_NOW_LABEL}
+                      </button>
+                    ) : null}
+                  </div>
                 ) : null}
                 {usable ? (
                   <button

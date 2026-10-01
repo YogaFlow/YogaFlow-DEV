@@ -134,7 +134,7 @@ export type AdminRegisterCoverage =
 
 export type BookingCoverageResult = 'pass' | 'open' | 'not_required' | 'paid';
 
-/** Rückgabe von register_for_course (A6-2: coverage / pass_remaining). */
+/** Rückgabe von register_for_course (A6-2: coverage / pass_remaining; 2.2b: status/hold). */
 export interface RegisterForCourseResult {
   success: boolean;
   message?: string;
@@ -143,6 +143,10 @@ export interface RegisterForCourseResult {
   waitlist_position?: number;
   coverage?: BookingCoverageResult;
   pass_remaining?: number;
+  /** registered | pending_payment | waitlist — von der RPC geliefert. */
+  status?: RegistrationStatus | string;
+  registration_id?: string;
+  hold_expires_at?: string;
 }
 
 /** Rückgabe von admin_register_user_for_course. */

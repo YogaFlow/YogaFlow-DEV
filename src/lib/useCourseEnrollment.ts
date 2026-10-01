@@ -19,6 +19,7 @@ export type EnrollmentFeedbackDialog = {
 /** Spalten, die die Kursliste für die eigene Anmeldung wirklich lädt. */
 type OwnCourseRegistration = Pick<
   Registration,
+  | 'id'
   | 'course_id'
   | 'status'
   | 'is_waitlist'
@@ -28,7 +29,15 @@ type OwnCourseRegistration = Pick<
   | 'hold_expires_at'
 >;
 
-export function useCourseEnrollment(onAfterSuccess: () => void) {
+export function useCourseEnrollment(
+  onAfterSuccess: () => void,
+  options?: {
+    onPendingPayment?: (info: {
+      registrationId: string;
+      holdExpiresAt?: string | null;
+    }) => void;
+  },
+) {
   const { userProfile } = useAuth();
   const [registrations, setRegistrations] = useState<OwnCourseRegistration[]>([]);
   const [feedbackDialog, setFeedbackDialog] = useState<EnrollmentFeedbackDialog | null>(null);
@@ -74,7 +83,7 @@ export function useCourseEnrollment(onAfterSuccess: () => void) {
       const { data, error } = await supabase
         .from('registrations')
         .select(
-          'course_id, status, is_waitlist, waitlist_position, coverage_status, cancellation_deadline, hold_expires_at',
+          'id, course_id, status, is_waitlist, waitlist_position, coverage_status, cancellation_deadline, hold_expires_at',
         )
         .eq('user_id', userProfile.id)
         .is('cancellation_timestamp', null);
@@ -115,6 +124,14 @@ export function useCourseEnrollment(onAfterSuccess: () => void) {
 
       onAfterSuccess();
       fetchUserRegistrations();
+
+      if (result?.status === 'pending_payment' && result.registration_id) {
+        options?.onPendingPayment?.({
+          registrationId: result.registration_id,
+          holdExpiresAt: result.hold_expires_at ?? null,
+        });
+        return true;
+      }
 
       if (result?.waitlist_position) {
         showFeedbackDialog(
