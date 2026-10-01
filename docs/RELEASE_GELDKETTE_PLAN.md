@@ -54,6 +54,8 @@ PROD hat zuletzt `20260926160500` (`security_handle_new_user_role_from_trusted_s
 
 **Release-Hinweis 2.2a-1:** Keine Edge Function / kein Stripe-Aufruf in dieser Migration. `dispatch-emails` kennt die neuen `kind`-Werte noch nicht (S6d-Anpassung in 2.2a-4). CSV-Export-Bezeichnung `psp_clearing` = „Verrechnung Stripe“ liegt im Frontend (`ledgerExport.ts`).
 
+**Release-Hinweis 2.2a-3:** Edge Function `payments-checkout` deployen (`verify_jwt = false`). Danach `payments-onboarding` erneut deployen (Domain-Registrierung beim `refresh`). Für jedes Studio mit aktivem Stripe-Konto die Payment-Method-Domain registrieren (`{slug}.{APP_BASE_DOMAIN}`; DEV-Skript `scripts/dev/register_payment_domain.mjs`). `APP_BASE_DOMAIN` muss als Function-Secret gesetzt sein (`omlify-dev.de` / `omlify.de`).
+
 **Release-Hinweis 2.1b-a:** Zwei Migrationen in dieser Reihenfolge. Neuer Cron-Job `yogaflow_expire_payment_holds` jede Minute — Extension `pg_cron` nicht neu anlegen (bereits A6-3). Client-Typen für `pending_payment` gehören in denselben Release; UI-Zweige folgen in 2.1b-b. `succeeded` und Hauptbuch-`card` bleiben 2.2a.
 
 **Release-Hinweis 2.1b-b B2 (Versand):** Auf PROD zusätzlich zu den Migrationen: Extension `pg_net` aktivieren (liegt in `20260929160000`), Vault-Einträge `email_dispatch_url` und `email_dispatch_secret` setzen (PROD-eigene Werte, Skript-Analog zu DEV), `EMAIL_DISPATCH_SECRET` in `supabase/.env.prod` und `npm run secrets:prod`, Edge Function `dispatch-emails` deployen. Fehlt der Vault-Eintrag, ruft der Job nichts auf. Absender bleibt global „Omlify“ (S6h).

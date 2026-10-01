@@ -61,6 +61,9 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
       rausgehen („mindestens einmal“). Bewusst akzeptiert; kein Idempotenz-Token beim
       SMTP-Versand.
 - [ ] **Bezahlen-Knopf für `pending_payment` → 2.2b.** In 2.1b-b bewusst nicht gebaut (S7).
+- [ ] **Apple Pay im Web (Domain-Verifizierung).** Prüfen, ob Stripe für Direct-Charge-Konten
+      eine Datei unter `/.well-known/` verlangt; falls ja, liefert sie der Worker für jede
+      Subdomain aus (C11 / `registerPaymentDomain`).
 
 ## Stripe (Story 1.2a und folgende)
 

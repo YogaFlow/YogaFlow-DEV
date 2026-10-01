@@ -968,4 +968,17 @@ Story 2.2a-1: Schema und RPCs für Direct-Charge-Abschluss (ohne Stripe-API / Ed
 | Q6 | Nachlesen (W3) | Webhook und Function verlassen sich nie auf den Event-Inhalt, sondern lesen über `retrievePayment` nach. |
 | Q7 | Erstattung | Nur voll (C4), Idempotency-Key = `payment_id`. Teilerstattung kommt mit 3.2. |
 | Q8 | Domain (C11) | `registerPaymentDomain(accountRef, domain)` legt die Domain beim Studio-Konto an (Stripe-Account-Header). Existiert sie schon → Erfolg (idempotent). |
+
+### Edge Function Checkout (2.2a-3, 01.10.2026)
+
+| # | Frage | Entscheidung |
+|---|---|---|
+| F1 | Aufbau | Eine Function `payments-checkout` mit drei Aktionen im Body: `prepare`, `confirm`, `status`. Muster wie `payments-onboarding`: `verify_jwt = false`, `initService` (Nutzer-JWT + `x-omlify-tenant`), dünnes `index.ts`, Logik in `handler.ts` mit injizierten Abhängigkeiten. |
+| F2 | prepare | Eingabe: `registration_id`. → `prepare_online_payment`. Ohne `pi_…`: `createPaymentIntent` (Idempotency-Key = Versuchs-ID) → `attach_payment_ref`. Ältere failed/canceled Versuche mit `pi_…`: `cancelPaymentIntent` best effort. Rückgabe: `attempt_id`, `amount_cents`, `currency`, `hold_expires_at`, `account_ref` (für Stripe.js). Kein `client_secret`. |
+| F3 | confirm | Eingabe: `attempt_id`, `confirmation_token`. → `check_before_confirm` → `confirmPaymentIntent` mit serverseitiger `return_url` (`https://{slug}.{APP_BASE_DOMAIN}/my-registrations?payment=return`, lokal mit `?tenant=`). Nie URL aus dem Browser. `succeeded` → `retrievePayment` + `complete_online_payment`; `failed` → `mark_online_payment_failed`; `requires_action` → `client_secret` einmalig. |
+| F4 | status | Eingabe: `attempt_id`. Nach 3-D-Secure / Abfrage: `retrievePayment` → bei Erfolg `complete_online_payment`, bei Fehler `mark_online_payment_failed`. Rückgabe: Buchungsstatus + Versuchsstatus aus der DB. |
+| F5 | Rechte | Mitglied des Studios aus dem Header; Buchung/Versuch gehört dieser Person. Sonst 403 `FORBIDDEN`. `account_ref` und Beträge nur aus der Datenbank. |
+| F6 | Fehler an den Browser | Nur Codes: `HOLD_EXPIRED`, `NOT_PENDING`, `ONLINE_DISABLED`, `CARD_DECLINED`, `AUTHENTICATION_REQUIRED`, `PROVIDER_UNAVAILABLE` (HTTP 503), `FORBIDDEN`, `INVALID_REQUEST`. Keine Stripe-Texte. |
+| F7 | Domain (C11) | In `payments-onboarding` beim `refresh`: Konto `active` → `registerPaymentDomain(accountRef, "{slug}.{APP_BASE_DOMAIN}")`. Idempotent, Fehler nur loggen. DEV-Skript `scripts/dev/register_payment_domain.mjs <slug>`. |
+| F8 | Logs | `createServiceLogger`: Aktion, `attempt_id`, `pi_…`, Ergebnis-Code. Nie `client_secret`, Confirmation Token, `acct_…`, E-Mail. |
 |

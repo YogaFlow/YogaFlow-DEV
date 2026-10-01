@@ -111,7 +111,15 @@ Nur als Supabase-Secret im jeweiligen Projekt, eingespielt aus `supabase/.env.de
 |--------|-----|------|-----------|
 | `EMAIL_DISPATCH_SECRET` | Zufallswert aus `scripts/dev/email_dispatch_secret.mjs` | eigener Zufallswert (nicht DEV kopieren) | Header `X-Email-Dispatch-Secret` für `dispatch-emails`. Parallel als Vault-Eintrag `email_dispatch_secret` (Cron/`pg_net`). |
 | `INTERNAL_EMAIL_SECRET` | wie bisher | wie bisher | Weiterhin für `send-email`; `dispatch-emails` ruft `send-email` damit auf. |
-| `APP_BASE_DOMAIN` | `omlify-dev.de` | `omlify.de` | Link `https://{slug}.{APP_BASE_DOMAIN}/my-registrations` in der Nachrück-Mail. |
+| `APP_BASE_DOMAIN` | `omlify-dev.de` | `omlify.de` | Link `https://{slug}.{APP_BASE_DOMAIN}/my-registrations` in der Nachrück-Mail; dieselbe Basis für `payments-checkout` `return_url` und Domain-Registrierung (C11). |
+
+### Edge Function `payments-checkout` (Geldkette 2.2a-3)
+
+- `verify_jwt = false` in `config.toml`; Auth über `initService` (Nutzer-JWT + `x-omlify-tenant`).
+- Aktionen: `prepare` / `confirm` / `status` (POST, Body ≤ 16 KB).
+- Braucht dieselben Zahlungs-Secrets wie oben plus `APP_BASE_DOMAIN` (bereits für E-Mail gesetzt).
+- Deploy DEV: `npx.cmd supabase functions deploy payments-checkout --project-ref mufxhtctutfpzklwqnze` (danach `payments-onboarding` wegen Domain-Refresh).
+- Bestehende Studios: `node scripts/dev/register_payment_domain.mjs <slug>` (nur DEV).
 
 Vault (nur DB, nicht Edge-Secret):
 
