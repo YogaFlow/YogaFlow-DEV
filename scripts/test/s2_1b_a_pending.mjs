@@ -13,6 +13,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createClient } from '@supabase/supabase-js';
+import { warteBis } from './_helpers.mjs';
 
 const ERLAUBTE_REF = 'mufxhtctutfpzklwqnze';
 const SLUG = 's21bapend';
@@ -433,13 +434,16 @@ async function main() {
     ok('Zweiter Versuch → ACTIVE_ATTEMPT_EXISTS', /ACTIVE_ATTEMPT_EXISTS/i.test(error?.message ?? ''));
   }
   {
-    const { data: aReg } = await admin
+    const { data: aReg, error: aRegErr } = await admin
       .from('registrations')
       .select('id')
       .eq('course_id', courseId)
       .eq('user_id', a.id)
       .eq('status', 'registered')
       .single();
+    if (aRegErr || !aReg?.id) {
+      abbruch('A registered fehlt für NOT_PENDING: ' + (aRegErr?.message || JSON.stringify(aReg)));
+    }
     const { error } = await admin.rpc('create_payment_attempt', {
       p_registration: aReg.id,
       p_provider: 'stripe',
@@ -454,7 +458,7 @@ async function main() {
       .select('amount_cents')
       .eq('id', attemptId)
       .single();
-    if (beforeErr) abbruch('amount vor Negativtest: ' + beforeErr.message);
+    if (beforeErr || !before) abbruch('amount vor Negativtest: ' + (beforeErr?.message || 'keine Zeile'));
     const amountVorher = before.amount_cents;
 
     const { error } = await admin
@@ -480,7 +484,7 @@ async function main() {
       .select('amount_cents')
       .eq('id', attemptId)
       .single();
-    if (afterErr) abbruch('amount nach Negativtest: ' + afterErr.message);
+    if (afterErr || !after) abbruch('amount nach Negativtest: ' + (afterErr?.message || 'keine Zeile'));
     ok('amount_cents unverändert', after.amount_cents === amountVorher, String(after.amount_cents));
   }
   {
@@ -510,6 +514,7 @@ async function main() {
       p_livemode: false,
     });
     ok('neuer Versuch nach failed', Boolean(attempt2) && !error, error?.message);
+    if (!attempt2) abbruch('neuer Versuch nach failed fehlt: ' + (error?.message || 'null'));
     // für Abmelden behalten
     globalThis.__attempt2 = attempt2;
   }
@@ -634,7 +639,8 @@ async function main() {
     ok('E promotion_expired', eRow?.cancel_reason === 'promotion_expired');
   }
 
-  // E2: Hold läuft ab mit aktivem Versuch (kurz warten; Cron kann schon vorher greifen)
+  // E2: Hold läuft ab mit aktivem Versuch.
+  // PC-/DB-Uhr können abweichen → warteBis statt fester Sleep-Zeit.
   const e2User = await nutzerAnlegen(admin, {
     email: SLUG + '.e2@example.com',
     vorname: 'E2',
@@ -658,11 +664,19 @@ async function main() {
   });
   if (e2ae) abbruch('E2 attempt: ' + e2ae.message);
   ok('E2 Versuch angelegt', Boolean(e2Attempt));
-  await new Promise((r) => setTimeout(r, 4_000));
-  {
-    const { error } = await admin.rpc('expire_payment_holds');
-    if (error) abbruch('E2 expire: ' + error.message);
-  }
+
+  await warteBis(
+    async () => {
+      const { data: e2Row } = await admin
+        .from('registrations')
+        .select('status, cancel_reason')
+        .eq('id', e2RegId)
+        .single();
+      return e2Row?.status === 'cancelled' && e2Row?.cancel_reason === 'payment_expired';
+    },
+    { admin, maxMs: 70_000, schrittMs: 2_000, label: 'E2 hold expire' },
+  );
+
   {
     const { data: e2Row } = await admin
       .from('registrations')
@@ -733,13 +747,16 @@ async function main() {
     if (error) abbruch('Freg register: ' + error.message);
     ok('Freg registered', data?.success === true && data?.is_waitlist === false);
   }
-  const { data: fRegOpenId } = await admin
+  const { data: fRegOpenId, error: fRegOpenErr } = await admin
     .from('registrations')
     .select('id')
     .eq('course_id', courseId)
     .eq('user_id', fRegUser.id)
     .eq('status', 'registered')
     .single();
+  if (fRegOpenErr || !fRegOpenId?.id) {
+    abbruch('Freg registered fehlt: ' + (fRegOpenErr?.message || JSON.stringify(fRegOpenId)));
+  }
   const { data: fRegId, error: fpe } = await admin.rpc('create_pending_registration', {
     p_course: courseId,
     p_user: fPendUser.id,
@@ -747,11 +764,15 @@ async function main() {
     p_hold_expires_at: holdFuture,
   });
   if (fpe) abbruch('Fpend pending: ' + fpe.message);
-  const { data: fAttempt } = await admin.rpc('create_payment_attempt', {
+  if (!fRegId) abbruch('Fpend pending: keine registration_id');
+  const { data: fAttempt, error: fAttemptErr } = await admin.rpc('create_payment_attempt', {
     p_registration: fRegId,
     p_provider: 'stripe',
     p_livemode: false,
   });
+  if (fAttemptErr || !fAttempt) {
+    abbruch('F Versuch: ' + (fAttemptErr?.message || JSON.stringify(fAttempt)));
+  }
   {
     const { data, error } = await ownerClient.rpc('cancel_course', {
       p_course_id: courseId,
@@ -821,12 +842,14 @@ async function main() {
       .is('cancellation_timestamp', null);
     // Kurs active again after uncancel — may have restored C etc. Free a seat if needed.
     if (count >= 2) {
-      const { data: seats } = await admin
+      const { data: seats, error: seatsErr } = await admin
         .from('registrations')
         .select('user_id, status')
         .eq('course_id', courseId)
         .in('status', ['registered', 'pending_payment'])
         .is('cancellation_timestamp', null);
+      if (seatsErr) abbruch('Sitze für G freimachen: ' + seatsErr.message);
+      if (!seats) abbruch('Sitze für G freimachen: keine Zeilen geladen');
       const victim = seats.find((s) => s.user_id !== gUser.id);
       if (victim) {
         await ownerClient.rpc('admin_unregister_user_from_course', {
@@ -929,6 +952,19 @@ async function main() {
     const { data: req } = await admin.rpc('online_payment_required', { p_tenant: tenantId });
     ok('P10 required true', req === true);
   }
+  // P10 lässt Online-Pflicht an (onsite aus). Fall 12 erwartet registered + Kassieren —
+  // seit 2.2a-1 liefert register_for_course bei Online-Pflicht pending_payment.
+  // Schalter zurück, damit das alte Verhalten wieder gilt.
+  {
+    const { data, error } = await ownerClient.rpc('set_allow_onsite_payment', { p_allow: true });
+    if (error) abbruch('P10 reset onsite: ' + error.message);
+    if (!data?.success) abbruch('P10 reset onsite: ' + JSON.stringify(data));
+  }
+  {
+    const { data, error } = await ownerClient.rpc('set_online_payments_enabled', { p_enabled: false });
+    if (error) abbruch('P10 reset online: ' + error.message);
+    if (!data?.success) abbruch('P10 reset online: ' + JSON.stringify(data));
+  }
 
   // Unverändert: normales Buchen
   const hUser = await nutzerAnlegen(admin, {
@@ -941,13 +977,25 @@ async function main() {
   });
   const hClient = await login(url, anon, hUser.email, password);
   {
+    const { data: setup, error: setupErr } = await ownerClient.rpc('get_payment_setup_status');
+    if (setupErr) abbruch('Fall 12 get_payment_setup_status: ' + setupErr.message);
+    if (!setup?.success) abbruch('Fall 12 get_payment_setup_status: ' + JSON.stringify(setup));
+    // online_payment_required ≈ Studio-Online an und vor Ort aus (vgl. P10).
+    const onlinePaymentRequired =
+      setup.online_payments_enabled === true && setup.allow_onsite_payment === false;
+    if (onlinePaymentRequired) {
+      abbruch(
+        'Fall 12 erwartet online_payment_required=false, aber online an und vor Ort aus',
+      );
+    }
     // free seat
-    const { data: seats } = await admin
+    const { data: seats, error: seatsErr } = await admin
       .from('registrations')
       .select('user_id')
       .eq('course_id', courseId)
       .in('status', ['registered', 'pending_payment'])
       .is('cancellation_timestamp', null);
+    if (seatsErr) abbruch('Sitze für H freimachen: ' + seatsErr.message);
     for (const s of seats || []) {
       await ownerClient.rpc('admin_unregister_user_from_course', {
         p_user_id: s.user_id,
@@ -959,13 +1007,19 @@ async function main() {
     });
     if (error) abbruch('H register: ' + error.message);
     ok('normales Buchen ok', data?.success === true);
-    const { data: regs } = await admin
+    const { data: regs, error: regsErr } = await admin
       .from('registrations')
       .select('id, coverage_status')
       .eq('course_id', courseId)
       .eq('user_id', hUser.id)
       .eq('status', 'registered')
       .single();
+    if (regsErr || !regs?.id) {
+      abbruch(
+        'H registered fehlt (erwartet ohne Online-Pflicht): '
+          + (regsErr?.message || JSON.stringify(regs)),
+      );
+    }
     const { data: pay, error: pe } = await ownerClient.rpc('record_manual_payment', {
       p_registration_id: regs.id,
       p_method: 'cash',

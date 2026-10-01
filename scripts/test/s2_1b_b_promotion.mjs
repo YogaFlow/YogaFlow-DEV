@@ -13,6 +13,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createClient } from '@supabase/supabase-js';
+import { warteBis } from './_helpers.mjs';
 
 const ERLAUBTE_REF = 'mufxhtctutfpzklwqnze';
 const SLUG = 's21bbprom';
@@ -791,16 +792,14 @@ async function main() {
       const rC = await cClient.rpc('register_for_course', { p_course_id: kurs.id });
       ok('F6 C Warteliste', rC.data?.success === true && rC.data?.is_waitlist === true);
 
-      const deadline = Date.now() + 15_000;
-      let expired = 0;
-      while (Date.now() < deadline) {
-        const { data: n, error } = await admin.rpc('expire_payment_holds');
-        if (error) abbruch('expire_payment_holds: ' + error.message);
-        expired += Number(n) || 0;
-        const rowB = await regRow(admin, kurs.id, b.id, { cancelled: true });
-        if (rowB?.status === 'cancelled' && rowB?.cancel_reason === 'promotion_expired') break;
-        await sleep(500);
-      }
+      // PC-/DB-Uhr können abweichen → warteBis statt fester Deadline.
+      await warteBis(
+        async () => {
+          const rowB = await regRow(admin, kurs.id, b.id, { cancelled: true });
+          return rowB?.status === 'cancelled' && rowB?.cancel_reason === 'promotion_expired';
+        },
+        { admin, maxMs: 70_000, schrittMs: 2_000, label: 'F6 promotion expire' },
+      );
       const rowB = await regRow(admin, kurs.id, b.id, { cancelled: true });
       ok(
         'F6 B promotion_expired',
@@ -808,7 +807,6 @@ async function main() {
         JSON.stringify(rowB)
       );
       void bRegId;
-      void expired;
       const rowC = await regRow(admin, kurs.id, c.id);
       ok(
         'F6 C pending_payment',

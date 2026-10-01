@@ -38,6 +38,7 @@ const SKRIPTE = [
   's1_2a_provider_schema.mjs',
   's2_1b_a_pending.mjs',
   's2_1b_b_promotion.mjs',
+  's2_2a_1_online_payment.mjs',
 ];
 
 function sleepMs(ms) {
