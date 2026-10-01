@@ -981,4 +981,19 @@ Story 2.2a-1: Schema und RPCs für Direct-Charge-Abschluss (ohne Stripe-API / Ed
 | F6 | Fehler an den Browser | Nur Codes: `HOLD_EXPIRED`, `NOT_PENDING`, `ONLINE_DISABLED`, `CARD_DECLINED`, `AUTHENTICATION_REQUIRED`, `PROVIDER_UNAVAILABLE` (HTTP 503), `FORBIDDEN`, `INVALID_REQUEST`. Keine Stripe-Texte. |
 | F7 | Domain (C11) | In `payments-onboarding` beim `refresh`: Konto `active` → `registerPaymentDomain(accountRef, "{slug}.{APP_BASE_DOMAIN}")`. Idempotent, Fehler nur loggen. DEV-Skript `scripts/dev/register_payment_domain.mjs <slug>`. |
 | F8 | Logs | `createServiceLogger`: Aktion, `attempt_id`, `pi_…`, Ergebnis-Code. Nie `client_secret`, Confirmation Token, `acct_…`, E-Mail. |
+
+### Provider-Jobs Outbox (2.2a-4, 01.10.2026) — gelten für 4a–4c
+
+| # | Frage | Entscheidung |
+|---|---|---|
+| W1 | Wer spricht mit Stripe, wenn SQL etwas auslöst? | Outbox wie bei E-Mails (S6): Tabelle `provider_jobs`. SQL legt Aufträge an, Cron jede Minute → `pg_net` → Function `payments-jobs`. Träger für Ablauf-Job, `remove_member` und `complete_online_payment` (SQL erreicht Stripe nicht selbst). Auftrag in derselben Transaktion geht nicht verloren. |
+| W2 | Abbrechen offener PaymentIntents | Eine Stelle: Trigger auf `payment_attempts`. Statuswechsel auf `failed`/`canceled` mit `provider_ref` und ohne `payment_id` → Auftrag `cancel_payment_intent`. Deckt Ablauf, SUPERSEDED, Ablehnung, MEMBER_REMOVED. Direkter Abbruch in prepare (F2) entfällt in 4b. |
+| W3 | Automatische Erstattung (C4) | `complete_online_payment` legt bei `REFUND_REQUIRED` denselben Transaktions-Auftrag `refund_payment` an (eindeutig je `payment_id`). Job erstattet voll (Idempotency-Key = `payment_id`, Q7) und ruft `record_online_refund`. Gebucht sobald Stripe die Erstattung annimmt (`pending`/`succeeded`). `refund.failed` → 3.2. |
+| W4 | Wiederholen | Rückoff 1 · 5 · 15 · 60 Min., danach stündlich, höchstens 10 Versuche → `failed` + Log `provider_job.failed`. Abholen mit `FOR UPDATE SKIP LOCKED`; `running` länger als 10 Min. darf neu abgeholt werden. |
+| W5 | Personen entfernen | Versuch mit `provider_ref` → anonymisieren statt löschen. Aktive Versuche → `canceled`/`MEMBER_REMOVED` → W2 legt Cancel an. Versuche mit `pi_…` nie löschen. |
+| W6 | Haltefelder | `COMPLETED` leert `hold_expires_at`/`hold_reason` nicht mehr (Verlauf). Leser filtern nach Status, nicht nach „Haltefeld gesetzt“. |
+| W7 | Webhook (4b) | Jedes `payment.updated` → `retrievePayment` (Q6) → `complete_online_payment` / `mark_online_payment_failed`. Beide Ziele; Doppelte fängt Idempotenz über `pi_…`. Unbekannte `pi_…` mit `succeeded` → Log `payment.orphan`, 200. Vorübergehende Fehler → 500. |
+| W8 | Antwort von `payments-checkout` (4b) | Geschäftscode durchreichen (`COMPLETED`, `RESTORED`, `REFUND_REQUIRED`, `ALREADY_COMPLETED`). Text in 2.2b für `REFUND_REQUIRED`: „Zahlung eingegangen, aber der Platz war inzwischen vergeben. Du bekommst den Betrag automatisch zurück.“ |
+| W9 | Bestätigung (4b) | RPCs bleiben einzige Schreiber von Glocke und Outbox (D15). `dispatch-emails` lernt `payment_succeeded` und `payment_refunded` mit eigener Gültigkeitsprüfung. Bei `REFUND_REQUIRED` keine Erfolgs-Mail, nur Erstattungs-Mail nach `record_online_refund`. |
+| W10 | Schnitt | 4a Datenbank → 4b Functions (`payments-jobs`, Webhook-Zweig, Checkout-Codes, E-Mails) → 4c Deploy + Rauchtests. Jeweils STOPP. |
 |

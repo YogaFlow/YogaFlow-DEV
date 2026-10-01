@@ -36,9 +36,17 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Geldkette 2.1b / 2.2
 
-- [ ] **Erstattung nach `payment.refund_required` (2.2a-3/4).** Schema 2.2a-1 verbucht die
-      Spätzahlung und markiert `REFUND_REQUIRED`; die Stripe-Erstattung selbst kommt in der Function.
+- [ ] **Erstattung nach `payment.refund_required` (2.2a-4).** Schema 2.2a-1 verbucht die
+      Spätzahlung und markiert `REFUND_REQUIRED`; 4a legt den Outbox-Auftrag `refund_payment` an,
+      4b/`payments-jobs` führt die Stripe-Erstattung aus und ruft `record_online_refund`.
       **Teilerstattung → 3.2** (Entscheidung 09 Q7: in 1a nur volle Erstattung).
+- [ ] **`refund.failed` → 3.2.** Spätere Fehlschläge einer bereits angenommenen Erstattung
+      (Stripe `refund.failed`) sind in 1a nicht gebucht; Monitoring/Nacharbeit in 3.2.
+- [ ] **`payment.orphan` (manuelle Erstattung).** Unbekannte `pi_…` mit `succeeded` im Webhook
+      (4b): Log-Fehler `payment.orphan`, HTTP 200; manuelle Erstattung + Monitoring offen.
+- [ ] **Studio löschen mit offenen PaymentIntents.** `delete_tenant_complete` löscht
+      `provider_jobs` mit; offene Stripe-PaymentIntents bleiben beim Connect-Konto stehen
+      (kein Cancel beim Studio-Löschen in 4a).
 - [ ] **„Mit Karte statt online bezahlen“ bei `pending_payment`.** Später; Geld-Aktionen
       lehnen pending heute ab (`PAYMENT_PENDING`).
 - [x] **Hauptbuch `card` → `psp_clearing`.** Erledigt in 2.2a-1 (`ledger_money_account`).
