@@ -93,15 +93,17 @@ Nur als Supabase-Secret im jeweiligen Projekt, eingespielt aus `supabase/.env.de
 
 `VITE_STRIPE_PUBLISHABLE_KEY` (`pk_test_…`): lokal in `.env` und in den Cloudflare-Build-Variablen für DEV setzen (Story 1.3b). **PROD: vorerst nicht setzen**; Live-Key erst beim Einschalten.
 
-### Webhook-Endpunkt (Geldkette 1.4)
+### Webhook-Endpunkt (Geldkette 1.4 / erweitert 2.2a-4c)
 
-- Ein Endpunkt im Stripe-Dashboard, Testmodus, Typ **„Connected accounts“** (Ereignisse verbundener Konten),
+- Ein Endpunkt im Stripe-Dashboard, Testmodus, Typ **„Connected accounts“** / **„Verbundene Konten“**,
   Nutzlast-Stil **Snapshot**. Ein Plattform-Endpunkt ist vorerst nicht nötig (Nachtrag 5c, W1).
 - Zweites Ziel (optional) mit Nutzlast-Stil **Thin/Schlank** für v2-Kontoereignisse; Secret
   `STRIPE_WEBHOOK_SECRET_THIN`. Welcher Geltungsbereich wirklich zustellt, klärt der E2E-Test (V4).
 - URL (beide): `https://<DEV_REF>.supabase.co/functions/v1/payments-webhook`
-- Snapshot vorerst: `account.updated` und `account.application.deauthorized`. Thin: Typen
-  `v2.core.account…` (Nachlesen wie W3). Zahlungsereignisse kommen mit 2.2.
+- Snapshot-Ereignisse (DEV Stand nach 4c): `account.updated`, `account.application.deauthorized`,
+  sowie **`payment_intent.succeeded`**, **`payment_intent.payment_failed`**, **`payment_intent.canceled`**.
+  Fehlen die drei PaymentIntent-Ereignisse, kann der Webhook-Rauchtest Fall 1 nicht grün werden.
+- Thin: Typen `v2.core.account…` (Nachlesen wie W3).
 - Signing Secrets in `supabase/.env.dev`, danach `npm run secrets:dev`.
 - PROD: Live-Endpunkt und Live-Secret erst beim Einschalten (siehe `docs/RELEASE_GELDKETTE_PLAN.md`).
 
@@ -110,7 +112,7 @@ Nur als Supabase-Secret im jeweiligen Projekt, eingespielt aus `supabase/.env.de
 | Secret | DEV | PROD | Bedeutung |
 |--------|-----|------|-----------|
 | `EMAIL_DISPATCH_SECRET` | Zufallswert aus `scripts/dev/email_dispatch_secret.mjs` | eigener Zufallswert (nicht DEV kopieren) | Header `X-Email-Dispatch-Secret` für `dispatch-emails`. Parallel als Vault-Eintrag `email_dispatch_secret` (Cron/`pg_net`). |
-| `PROVIDER_JOBS_SECRET` | Zufallswert aus `scripts/dev/provider_jobs_secret.mjs` | eigener Zufallswert (nicht DEV kopieren) | `Authorization: Bearer …` für `payments-jobs`. Parallel als Vault-Eintrag `provider_jobs_secret`. |
+| `PROVIDER_JOBS_SECRET` | 32-Byte-Zufall in `supabase/.env.dev`, dann Vault via `provider_jobs_secret.mjs` (wiederverwendet vorhandenen Wert) | eigener Zufallswert (nicht DEV kopieren) | `Authorization: Bearer …` für `payments-jobs`. Parallel als Vault-Eintrag `provider_jobs_secret`. |
 | `INTERNAL_EMAIL_SECRET` | wie bisher | wie bisher | Weiterhin für `send-email`; `dispatch-emails` ruft `send-email` damit auf. |
 | `APP_BASE_DOMAIN` | `omlify-dev.de` | `omlify.de` | Link `https://{slug}.{APP_BASE_DOMAIN}/my-registrations` in der Nachrück-Mail; dieselbe Basis für `payments-checkout` `return_url` und Domain-Registrierung (C11). |
 
@@ -131,11 +133,18 @@ Vault (nur DB, nicht Edge-Secret):
 
 DEV-Einrichtung: `node scripts/dev/email_dispatch_secret.mjs` (Ref-Prüfung, schreibt Vault + `supabase/.env.dev`, gibt das Secret nie aus) → `npm run secrets:dev` → Function deployen. Fehlt ein Vault-Eintrag, tut der Cron-Job nichts.
 
-### Edge Function `payments-jobs` (Geldkette 2.2a-4b)
+### Edge Function `payments-jobs` (Geldkette 2.2a-4b / Deploy 4c)
 
 - `verify_jwt = false` in `config.toml`; Auth über `Authorization: Bearer <PROVIDER_JOBS_SECRET>` (Cron/`pg_net` aus Vault).
 - Secret-Name (Edge): `PROVIDER_JOBS_SECRET` — nur der Name, Wert nie ins Repo.
-- Deploy DEV: `npx.cmd supabase functions deploy payments-jobs --project-ref mufxhtctutfpzklwqnze`.
+- Deploy DEV (einzeln, Reihenfolge 4c / D1 — Vault **zuletzt**, sonst ruft der Cron eine fehlende Function):
+  1. `PROVIDER_JOBS_SECRET` in `supabase/.env.dev` (32 Byte, Wert nie ausgeben)
+  2. `npm run secrets:dev`
+  3. `npx.cmd supabase functions deploy dispatch-emails --project-ref mufxhtctutfpzklwqnze`
+  4. `npx.cmd supabase functions deploy payments-checkout --project-ref mufxhtctutfpzklwqnze`
+  5. `npx.cmd supabase functions deploy payments-webhook --project-ref mufxhtctutfpzklwqnze`
+  6. `npx.cmd supabase functions deploy payments-jobs --project-ref mufxhtctutfpzklwqnze`
+  7. `node scripts/dev/provider_jobs_secret.mjs` (Vault; nutzt vorhandenes Secret aus `.env.dev`)
 
 Vault (nur DB):
 
@@ -144,4 +153,6 @@ Vault (nur DB):
 | `provider_jobs_url` | `https://<REF>.supabase.co/functions/v1/payments-jobs` |
 | `provider_jobs_secret` | derselbe Wert wie `PROVIDER_JOBS_SECRET` |
 
-DEV-Einrichtung: `node scripts/dev/provider_jobs_secret.mjs` → `npm run secrets:dev` → Function deployen. Fehlt ein Vault-Eintrag, loggt der Cron nur und ruft nichts auf.
+Fehlt ein Vault-Eintrag, loggt der Cron nur und ruft nichts auf. Nach Vault: Cron `yogaflow_process_provider_jobs` scharf; vorhandene `pending`-Aufträge auf DEV werden abgearbeitet (gewollt).
+
+Rauchtests (nur DEV, demoalpha): `scripts/test/s2_2a_4c_webhook_smoke.mjs` (Cron) und dasselbe mit `--direkt`; danach `s2_2a_3_checkout_smoke.mjs`.

@@ -3,11 +3,12 @@
  * DEV only: Vault-Einträge für yogaflow_process_provider_jobs + PROVIDER_JOBS_SECRET
  * in supabase/.env.dev schreiben. Das Secret wird nie ausgegeben.
  *
- * DB-Zugang wie scripts/db.mjs: .env.deploy DEV_REF / DEV_DB_HOST / DEV_DB_PASSWORD.
- * Function payments-jobs kommt erst in 2.2a-4b/4c — bis dahin loggt der Cron nur
- * „Vault-Eintrag fehlt“, wenn dieses Skript noch nicht lief.
+ * Wenn PROVIDER_JOBS_SECRET bereits in supabase/.env.dev steht (4c / D2), wird
+ * genau dieser Wert in den Vault geschrieben — sonst neu erzeugt.
  *
- * Verwendung: node scripts/dev/provider_jobs_secret.mjs
+ * DB-Zugang wie scripts/db.mjs: .env.deploy DEV_REF / DEV_DB_HOST / DEV_DB_PASSWORD.
+ *
+ * Verwendung (4c, Vault zuletzt): node scripts/dev/provider_jobs_secret.mjs
  */
 import { readFileSync, writeFileSync, existsSync, mkdtempSync, unlinkSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
@@ -59,7 +60,11 @@ if (ref !== ERLAUBTE_REF) {
 }
 
 const functionUrl = `https://${ref}.supabase.co/functions/v1/payments-jobs`;
-const secret = randomBytes(32).toString('base64url');
+// D2 / 4c: vorhandenen Wert aus .env.dev wiederverwenden (Edge-Secret und Vault gleich).
+const envDevPath = join(root, 'supabase', '.env.dev');
+const existing = (ladeEnv(envDevPath).PROVIDER_JOBS_SECRET || '').trim();
+const reused = existing.length > 0;
+const secret = reused ? existing : randomBytes(32).toString('base64url');
 
 const dbUrl =
   `postgresql://postgres.${ref}:${encodeURIComponent(password)}` +
@@ -120,9 +125,13 @@ if (!/^1\|1\b/m.test(out) && !/1\|1/.test(out)) {
   fail('Vault-Einträge nicht bestätigt (url_ok/secret_ok)');
 }
 
-upsertEnvLine(join(root, 'supabase', '.env.dev'), 'PROVIDER_JOBS_SECRET', secret);
+upsertEnvLine(envDevPath, 'PROVIDER_JOBS_SECRET', secret);
 
 console.log('  Vault-Einträge provider_jobs_url / provider_jobs_secret gesetzt (DEV).');
-console.log('  PROVIDER_JOBS_SECRET in supabase/.env.dev geschrieben.');
-console.log('  Als Nächstes (4c): Function payments-jobs deployen + npm run secrets:dev');
+if (reused) {
+  console.log('  Bestehendes PROVIDER_JOBS_SECRET aus supabase/.env.dev für Vault verwendet.');
+} else {
+  console.log('  PROVIDER_JOBS_SECRET neu erzeugt und in supabase/.env.dev geschrieben.');
+}
+console.log('  Reihenfolge 4c: Secret in .env.dev → npm run secrets:dev → Functions deployen → dieses Skript (Vault zuletzt).');
 console.log('  Secret wird nicht ausgegeben.');

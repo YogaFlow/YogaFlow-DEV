@@ -54,7 +54,16 @@ PROD hat zuletzt `20260926160500` (`security_handle_new_user_role_from_trusted_s
 | `20261001100000` | `stripe_2_2a_4a_provider_jobs.sql` | 2.2a-4a: `provider_jobs`, Cancel-Trigger, Auto-Erstattung-Auftrag, `claim`/`finish`, Cron `yogaflow_process_provider_jobs` |
 | `20261001110000` | `k7_remove_member_attempt_refs.sql` | K7: `remove_member` behält Buchungen mit `pi_…`-Versuch |
 
-**Release-Hinweis 2.2a-4b (Functions):** Nach Schema 4a: Edge Function `payments-jobs` deployen (`verify_jwt = false`, Secret `PROVIDER_JOBS_SECRET`), Vault `provider_jobs_url` / `provider_jobs_secret` setzen (`scripts/dev/provider_jobs_secret.mjs` auf DEV), danach prüfen, dass der Cron `yogaflow_process_provider_jobs` läuft. Zusätzlich redeploy: `payments-webhook` (Zweig `payment.updated`), `payments-checkout` (Codes durchreichen, F2-Abbruch entfernt), `dispatch-emails` (`payment_succeeded` / `payment_refunded`). Reihenfolge und Rauchtests: 4c.
+**Release-Hinweis 2.2a-4b (Functions):** Code für `payments-jobs`, Webhook-Zweig `payment.updated`, Checkout-Codes, `dispatch-emails` (`payment_succeeded` / `payment_refunded`). Deploy und Rauchtests: **2.2a-4c**.
+
+**Release-Hinweis 2.2a-4c (Deploy DEV → Muster für PROD):** Reihenfolge strikt (D1) — erst Functions, **Vault zuletzt** (erst der Vault-Eintrag schaltet den Cron scharf):
+
+1. `PROVIDER_JOBS_SECRET` setzen (Edge-Secret via `secrets:dev` / `secrets:prod`; eigener Zufallswert je Umgebung, nie DEV→PROD kopieren)
+2. Deploy einzeln: `dispatch-emails` → `payments-checkout` → `payments-webhook` → `payments-jobs`
+3. Vault `provider_jobs_url` / `provider_jobs_secret` (DEV: `scripts/dev/provider_jobs_secret.mjs`; PROD-Analog mit PROD-Werten)
+4. **Prüfpunkt:** Cron `yogaflow_process_provider_jobs` ruft `payments-jobs` erfolgreich auf (Logs / `provider_jobs` → `done`)
+5. Stripe-Webhook „Verbundene Konten“: `payment_intent.succeeded`, `.payment_failed`, `.canceled` müssen am Ziel hängen
+6. Rauchtests: `s2_2a_4c_webhook_smoke.mjs`, `s2_2a_4c_webhook_smoke.mjs --direkt`, `s2_2a_3_checkout_smoke.mjs`, danach `npm run test:geldkette`
 
 **Release-Hinweis 2.2a-1:** Keine Edge Function / kein Stripe-Aufruf in dieser Migration. `dispatch-emails` kennt die neuen `kind`-Werte noch nicht (S6d-Anpassung in 2.2a-4). CSV-Export-Bezeichnung `psp_clearing` = „Verrechnung Stripe“ liegt im Frontend (`ledgerExport.ts`).
 
