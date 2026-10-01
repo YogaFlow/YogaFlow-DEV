@@ -996,4 +996,25 @@ Story 2.2a-1: Schema und RPCs für Direct-Charge-Abschluss (ohne Stripe-API / Ed
 | W8 | Antwort von `payments-checkout` (4b) | Geschäftscode durchreichen (`COMPLETED`, `RESTORED`, `REFUND_REQUIRED`, `ALREADY_COMPLETED`). Text in 2.2b für `REFUND_REQUIRED`: „Zahlung eingegangen, aber der Platz war inzwischen vergeben. Du bekommst den Betrag automatisch zurück.“ |
 | W9 | Bestätigung (4b) | RPCs bleiben einzige Schreiber von Glocke und Outbox (D15). `dispatch-emails` lernt `payment_succeeded` und `payment_refunded` mit eigener Gültigkeitsprüfung. Bei `REFUND_REQUIRED` keine Erfolgs-Mail, nur Erstattungs-Mail nach `record_online_refund`. |
 | W10 | Schnitt | 4a Datenbank → 4b Functions (`payments-jobs`, Webhook-Zweig, Checkout-Codes, E-Mails) → 4c Deploy + Rauchtests. Jeweils STOPP. |
+
+### Edge Functions Outbox / Webhook / Checkout / E-Mails (2.2a-4b, 01.10.2026)
+
+| # | Frage | Entscheidung |
+|---|---|---|
+| J1 | Aufruf `payments-jobs` | Wie `dispatch-emails`: `verify_jwt = false`, Prüfung eines geteilten Secrets. Vault `provider_jobs_secret` = Function-Secret `PROVIDER_JOBS_SECRET`. Cron sendet `Authorization: Bearer …` (Migration 4a); Vergleich mit konstanter Zeit. Ohne gültiges Secret → 401, nichts tun. Nur POST. |
+| J2 | Ablauf je Lauf | `claim_provider_jobs(20)` → Aufträge nacheinander → `finish_provider_job`. Zeitbudget ca. 25 s: danach keine neuen Aufträge anfassen; nicht angefasste mit `retry` zurückgeben. |
+| J3 | `cancel_payment_intent` | `cancelPaymentIntent(accountRef, pi)`. Ergebnis `canceled` → `done`. Ergebnis `succeeded` (doch bezahlt) → `retrievePayment` + `complete_online_payment` (idempotent: RESTORED/REFUND_REQUIRED/ALREADY_COMPLETED) → `done`, Log `provider_job.cancel_too_late`. |
+| J4 | `refund_payment` | `refundPayment({ accountRef, ref: pi, idempotencyKey: payment_id })` → `pending`/`succeeded` → `record_online_refund(payment_id, re_…, Betrag, jetzt)` → `done` (`ALREADY_REFUNDED` ebenfalls `done`). `failed` → `failed` + Log. |
+| J5 | Fehler → Ergebnis | `PROVIDER_UNAVAILABLE`, `RATE_LIMITED`, DB vorübergehend → `retry`. `NOT_FOUND`, `INVALID_REQUEST`, Konto fehlt/getrennt → sofort `failed`. Unerwartet → `retry` mit Code `UNEXPECTED`. |
+| J6 | Webhook `payment.updated` (W7) | Versuch über `(stripe, pi_…)`. Mandanten-Schutz: Event-Konto = Stripe-Konto genau des Studios des Versuchs; sonst Log `payment.account_mismatch`, 200, nichts. Dann `retrievePayment` (Q6): `succeeded` → `complete_online_payment` · Fehlversuch → `mark_online_payment_failed(pi, code)` · `canceled` → `mark_online_payment_failed(pi, 'CANCELED', 'canceled')` · `processing`/`requires_action` → nichts. Bereits beendet → no-op. |
+| J7 | Unbekannte `pi_…` | Kein Versuch: bei `succeeded` → Log-Fehler `payment.orphan` (mit `pi_…`, ohne `acct_…`), sonst Info. Immer 200. |
+| J8 | Antwortcodes Webhook | Vorübergehende Fehler (Stripe/DB) → 500. Fachliche Ergebnisse → 200 + `markProcessed`. |
+| J9 | `payments-checkout` | `confirm` und `status` geben zusätzlich `code` aus `complete_online_payment` zurück (`COMPLETED`, `RESTORED`, `REFUND_REQUIRED`, `ALREADY_COMPLETED`). Direkter Abbruch älterer PaymentIntents in prepare (F2) entfällt (W2 übernimmt das über den Trigger). |
+| J10 | E-Mails (W9) | `dispatch-emails` lernt `payment_succeeded` und `payment_refunded`. Gültigkeit: `payment_succeeded` nur bei Buchung `registered`/`paid` und Zahlung nicht erstattet; `payment_refunded` nur, wenn die Erstattung existiert. Sonst `skipped` mit Code. Promotion unverändert. |
+
+**E-Mail-Texte (Du-Form)**
+
+- **payment_succeeded** — Betreff: „Zahlung eingegangen – dein Platz ist sicher“. Text: „Deine Zahlung über {Betrag} für „{Kurs}“ am {Datum} um {Uhrzeit} ist eingegangen. Dein Platz ist gebucht.“ Knopf „Meine Anmeldungen“.
+- **payment_refunded** — Betreff: „Zahlung erstattet“. Text: „Wir haben dir {Betrag} für „{Kurs}“ am {Datum} erstattet.“ Bei bekanntem Grund `REFUND_REQUIRED` davor: „Dein Platz war leider inzwischen vergeben.“ Danach: „Je nach Bank dauert die Gutschrift einige Werktage.“
+- Beträge deutsch (`24,00 €`), Zeiten Europe/Berlin. Studioname/Branding wie Nachrücker-Mail. Keine Kartendaten, keine `pi_…`.
 |

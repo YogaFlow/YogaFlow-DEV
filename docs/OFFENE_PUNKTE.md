@@ -1,6 +1,6 @@
 # Offene Punkte
 
-**Stand:** 30.09.2026
+**Stand:** 01.10.2026
 Ausführliche Begründungen stehen im Claude-Projekt „Omlify" in
 `Landingpage_Neubau_September_2026.md` und
 `Rechtstexte_Datenschutz_und_Betrieb_September_2026.md`.
@@ -38,8 +38,13 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 - [ ] **Erstattung nach `payment.refund_required` (2.2a-4).** Schema 2.2a-1 verbucht die
       Spätzahlung und markiert `REFUND_REQUIRED`; 4a legt den Outbox-Auftrag `refund_payment` an,
-      4b/`payments-jobs` führt die Stripe-Erstattung aus und ruft `record_online_refund`.
+      4b/`payments-jobs` führt die Stripe-Erstattung aus und ruft `record_online_refund`
+      (Code 01.10.2026, Deploy/Rauchtests → 4c).
       **Teilerstattung → 3.2** (Entscheidung 09 Q7: in 1a nur volle Erstattung).
+- [ ] **Claim-Tests: fremde Zeilen „zurückgeben ohne zu zählen“.** Parallel-Claims in
+      `s2_1b_b_promotion` / `s2_2a_4a_provider_jobs` geben fremde Claims per `finish`/`retry`
+      bzw. `mark_email_delivery`/`TEST_YIELD` zurück und erhöhen dabei `tries`/`attempts`
+      fremder Studios. Später eine RPC-Variante oder Test-Helfer ohne Zählung.
 - [ ] **`refund.failed` → 3.2.** Spätere Fehlschläge einer bereits angenommenen Erstattung
       (Stripe `refund.failed`) sind in 1a nicht gebucht; Monitoring/Nacharbeit in 3.2.
 - [ ] **`payment.orphan` (manuelle Erstattung).** Unbekannte `pi_…` mit `succeeded` im Webhook

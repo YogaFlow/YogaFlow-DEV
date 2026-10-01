@@ -51,6 +51,10 @@ PROD hat zuletzt `20260926160500` (`security_handle_new_user_role_from_trusted_s
 | `20260929151000` | `s2_1b_b_k3_promote_to_pending.sql` | K3: Helfer `promote_to_pending_payment`, Glockentext mit Frist |
 | `20260929160000` | `s2_1b_b2_dispatch_emails.sql` | 2.1b-b B2: `pg_net`, Cron `yogaflow_dispatch_emails` → Edge Function `dispatch-emails` |
 | `20260930100000` | `s2_2a_1_online_payment.sql` | 2.2a-1: `card`→`psp_clearing`, Guard `succeeded`, `register_for_course`→`pending_payment` bei Online-Pflicht, RPCs `prepare_online_payment` / `attach_payment_ref` / `check_before_confirm` / `complete_online_payment` / `record_online_refund` / `mark_online_payment_failed` (nur `service_role`); Outbox-Arten `payment_succeeded` / `payment_refunded` |
+| `20261001100000` | `stripe_2_2a_4a_provider_jobs.sql` | 2.2a-4a: `provider_jobs`, Cancel-Trigger, Auto-Erstattung-Auftrag, `claim`/`finish`, Cron `yogaflow_process_provider_jobs` |
+| `20261001110000` | `k7_remove_member_attempt_refs.sql` | K7: `remove_member` behält Buchungen mit `pi_…`-Versuch |
+
+**Release-Hinweis 2.2a-4b (Functions):** Nach Schema 4a: Edge Function `payments-jobs` deployen (`verify_jwt = false`, Secret `PROVIDER_JOBS_SECRET`), Vault `provider_jobs_url` / `provider_jobs_secret` setzen (`scripts/dev/provider_jobs_secret.mjs` auf DEV), danach prüfen, dass der Cron `yogaflow_process_provider_jobs` läuft. Zusätzlich redeploy: `payments-webhook` (Zweig `payment.updated`), `payments-checkout` (Codes durchreichen, F2-Abbruch entfernt), `dispatch-emails` (`payment_succeeded` / `payment_refunded`). Reihenfolge und Rauchtests: 4c.
 
 **Release-Hinweis 2.2a-1:** Keine Edge Function / kein Stripe-Aufruf in dieser Migration. `dispatch-emails` kennt die neuen `kind`-Werte noch nicht (S6d-Anpassung in 2.2a-4). CSV-Export-Bezeichnung `psp_clearing` = „Verrechnung Stripe“ liegt im Frontend (`ledgerExport.ts`).
 

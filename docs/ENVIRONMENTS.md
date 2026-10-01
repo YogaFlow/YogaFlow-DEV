@@ -110,6 +110,7 @@ Nur als Supabase-Secret im jeweiligen Projekt, eingespielt aus `supabase/.env.de
 | Secret | DEV | PROD | Bedeutung |
 |--------|-----|------|-----------|
 | `EMAIL_DISPATCH_SECRET` | Zufallswert aus `scripts/dev/email_dispatch_secret.mjs` | eigener Zufallswert (nicht DEV kopieren) | Header `X-Email-Dispatch-Secret` für `dispatch-emails`. Parallel als Vault-Eintrag `email_dispatch_secret` (Cron/`pg_net`). |
+| `PROVIDER_JOBS_SECRET` | Zufallswert aus `scripts/dev/provider_jobs_secret.mjs` | eigener Zufallswert (nicht DEV kopieren) | `Authorization: Bearer …` für `payments-jobs`. Parallel als Vault-Eintrag `provider_jobs_secret`. |
 | `INTERNAL_EMAIL_SECRET` | wie bisher | wie bisher | Weiterhin für `send-email`; `dispatch-emails` ruft `send-email` damit auf. |
 | `APP_BASE_DOMAIN` | `omlify-dev.de` | `omlify.de` | Link `https://{slug}.{APP_BASE_DOMAIN}/my-registrations` in der Nachrück-Mail; dieselbe Basis für `payments-checkout` `return_url` und Domain-Registrierung (C11). |
 
@@ -129,3 +130,18 @@ Vault (nur DB, nicht Edge-Secret):
 | `email_dispatch_secret` | derselbe Wert wie `EMAIL_DISPATCH_SECRET` |
 
 DEV-Einrichtung: `node scripts/dev/email_dispatch_secret.mjs` (Ref-Prüfung, schreibt Vault + `supabase/.env.dev`, gibt das Secret nie aus) → `npm run secrets:dev` → Function deployen. Fehlt ein Vault-Eintrag, tut der Cron-Job nichts.
+
+### Edge Function `payments-jobs` (Geldkette 2.2a-4b)
+
+- `verify_jwt = false` in `config.toml`; Auth über `Authorization: Bearer <PROVIDER_JOBS_SECRET>` (Cron/`pg_net` aus Vault).
+- Secret-Name (Edge): `PROVIDER_JOBS_SECRET` — nur der Name, Wert nie ins Repo.
+- Deploy DEV: `npx.cmd supabase functions deploy payments-jobs --project-ref mufxhtctutfpzklwqnze`.
+
+Vault (nur DB):
+
+| Name | Inhalt |
+|------|--------|
+| `provider_jobs_url` | `https://<REF>.supabase.co/functions/v1/payments-jobs` |
+| `provider_jobs_secret` | derselbe Wert wie `PROVIDER_JOBS_SECRET` |
+
+DEV-Einrichtung: `node scripts/dev/provider_jobs_secret.mjs` → `npm run secrets:dev` → Function deployen. Fehlt ein Vault-Eintrag, loggt der Cron nur und ruft nichts auf.
