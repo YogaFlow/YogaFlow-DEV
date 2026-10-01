@@ -66,7 +66,15 @@ function runSkript(datei) {
   const code = ergebnis.status ?? 1;
   const ok = code === 0 && !ergebnis.error;
   const output = stdout + stderr + (ergebnis.error?.message ?? '');
-  return { ok, code, rateLimit: !ok && isRateLimit(output) };
+  return { ok, code, rateLimit: !ok && isRateLimit(output), output };
+}
+
+/** Ab erstem FAIL ~40 Zeilen (sonst letzte 40). */
+function failTail(output, maxLines = 40) {
+  const lines = (output ?? '').split(/\r?\n/);
+  const idx = lines.findIndex((l) => /\bFAIL\b/.test(l));
+  const start = idx >= 0 ? idx : Math.max(0, lines.length - maxLines);
+  return lines.slice(start, start + maxLines).join('\n');
 }
 
 /** @type {{ datei: string, label: string }[]} */
@@ -106,6 +114,12 @@ for (let i = 0; i < SKRIPTE.length; i++) {
   } else {
     ergebnisse.push({ datei, label: 'rot' });
     console.error(`\n  Abbruch bei ${datei} (Exit ${lauf.code})\n`);
+    const tail = failTail(lauf.output);
+    if (tail.trim()) {
+      console.error('── Ausgabe ab erstem FAIL (max. ~40 Zeilen) ──\n');
+      console.error(tail);
+      console.error('');
+    }
     break;
   }
 }
