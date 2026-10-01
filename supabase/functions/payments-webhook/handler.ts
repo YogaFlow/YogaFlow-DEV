@@ -45,6 +45,19 @@ export type RecordEventResult =
 export type UpsertAccountResult = { ok: true } | { ok: false; code: string };
 export type MarkDisconnectedResult = { ok: true; changed: boolean } | { ok: false; code: string };
 
+export type PaymentAttemptLookup =
+  | {
+    found: true;
+    attemptId: string;
+    tenantId: string;
+    /** Stripe-Konto des Studios (provider_accounts), nicht aus dem Event. */
+    studioAccountRef: string | null;
+  }
+  | { found: false };
+
+export type CompletePaymentResult = { ok: true; code: string | null } | { ok: false; code: string };
+export type MarkFailedPaymentResult = { ok: true } | { ok: false; code: string };
+
 /** Jede Methode wirft bei vorübergehenden Fehlern (Datenbank nicht erreichbar). */
 export interface WebhookStore {
   recordEvent(input: RecordEventInput): Promise<RecordEventResult>;
@@ -52,6 +65,20 @@ export interface WebhookStore {
   markFailed(id: string): Promise<void>;
   upsertAccount(tenantId: string, provider: ProviderId, state: ProviderAccountState): Promise<UpsertAccountResult>;
   markDisconnected(provider: ProviderId, accountRef: string): Promise<MarkDisconnectedResult>;
+  /** Versuch über (stripe, pi_…) inkl. Studio-Konto. */
+  findPaymentAttempt(provider: ProviderId, providerRef: string): Promise<PaymentAttemptLookup>;
+  completeOnlinePayment(input: {
+    providerRef: string;
+    amountCents: number;
+    currency: string;
+    receivedAt: string;
+    livemode: boolean;
+  }): Promise<CompletePaymentResult>;
+  markOnlinePaymentFailed(
+    providerRef: string,
+    failureCode: string,
+    status?: string,
+  ): Promise<MarkFailedPaymentResult>;
 }
 
 export interface WebhookDeps {
@@ -278,6 +305,134 @@ export async function handleWebhook(req: Request, deps: WebhookDeps): Promise<Re
     }
     if (!marked.ok) {
       processingError = ERROR_CODE_RE.test(marked.code) ? marked.code : "DISCONNECT_FAILED";
+    }
+  } else if (domain?.type === "payment.updated") {
+    // J6–J8: retrievePayment (Q6), dann nach Stripe-Stand handeln.
+    let lookup: PaymentAttemptLookup;
+    try {
+      lookup = await store.findPaymentAttempt(provider.id, domain.ref);
+    } catch {
+      return await failTransient("DB_ERROR");
+    }
+
+    if (!lookup.found) {
+      let retrieved;
+      try {
+        retrieved = await provider.retrievePayment(domain.accountRef, domain.ref);
+      } catch (err) {
+        if (err instanceof ProviderError && err.code === "PROVIDER_UNAVAILABLE") {
+          return await failTransient("PROVIDER_UNAVAILABLE");
+        }
+        if (err instanceof ProviderError && err.code === "RATE_LIMITED") {
+          return await failTransient("RATE_LIMITED");
+        }
+        log.info("payments-webhook", {
+          type: event.type,
+          event_id: event.id,
+          result: "payment.unknown",
+          ref: domain.ref,
+        });
+        try {
+          await store.markProcessed(recordId, null);
+        } catch {
+          return await failTransient("DB_ERROR");
+        }
+        logResult("PROCESSED", event);
+        return received();
+      }
+      if (retrieved.status === "succeeded") {
+        log.error("payments-webhook", {
+          type: event.type,
+          event_id: event.id,
+          result: "payment.orphan",
+          ref: domain.ref,
+        });
+      } else {
+        log.info("payments-webhook", {
+          type: event.type,
+          event_id: event.id,
+          result: "payment.unknown",
+          ref: domain.ref,
+        });
+      }
+      try {
+        await store.markProcessed(recordId, retrieved.status === "succeeded" ? "ORPHAN" : null);
+      } catch {
+        return await failTransient("DB_ERROR");
+      }
+      logResult(retrieved.status === "succeeded" ? "ORPHAN" : "PROCESSED", event);
+      return received();
+    } else {
+      // Mandanten-Schutz: Event-Konto = Studio-Konto
+      if (
+        !lookup.studioAccountRef ||
+        lookup.studioAccountRef !== domain.accountRef
+      ) {
+        log.warn("payments-webhook", {
+          type: event.type,
+          event_id: event.id,
+          result: "payment.account_mismatch",
+          ref: domain.ref,
+        });
+        try {
+          await store.markProcessed(recordId, "ACCOUNT_MISMATCH");
+        } catch {
+          return await failTransient("DB_ERROR");
+        }
+        logResult("ACCOUNT_MISMATCH", event);
+        return received();
+      }
+
+      let retrieved;
+      try {
+        retrieved = await provider.retrievePayment(domain.accountRef, domain.ref);
+      } catch (err) {
+        if (err instanceof ProviderError && (err.code === "PROVIDER_UNAVAILABLE" || err.code === "RATE_LIMITED")) {
+          return await failTransient(err.code);
+        }
+        processingError = err instanceof ProviderError ? err.code : "PROVIDER_UNAVAILABLE";
+        try {
+          await store.markProcessed(recordId, processingError);
+        } catch {
+          return await failTransient("DB_ERROR");
+        }
+        logResult(processingError, event);
+        return received();
+      }
+
+      if (retrieved.status === "succeeded") {
+        let complete: CompletePaymentResult;
+        try {
+          complete = await store.completeOnlinePayment({
+            providerRef: domain.ref,
+            amountCents: retrieved.amountCents,
+            currency: retrieved.currency,
+            receivedAt: retrieved.receivedAt ?? new Date().toISOString(),
+            livemode: retrieved.livemode,
+          });
+        } catch {
+          return await failTransient("DB_ERROR");
+        }
+        if (!complete.ok) {
+          // Fachlicher Fehler → 200
+          processingError = ERROR_CODE_RE.test(complete.code) ? complete.code : "COMPLETE_FAILED";
+        }
+      } else if (retrieved.status === "failed") {
+        const raw = retrieved.failureCode ?? "PAYMENT_FAILED";
+        const code = raw.toUpperCase().replace(/[^A-Z0-9_]/g, "_");
+        try {
+          await store.markOnlinePaymentFailed(domain.ref, code || "PAYMENT_FAILED");
+        } catch {
+          return await failTransient("DB_ERROR");
+        }
+      } else if (retrieved.status === "canceled") {
+        try {
+          await store.markOnlinePaymentFailed(domain.ref, "CANCELED", "canceled");
+        } catch {
+          return await failTransient("DB_ERROR");
+        }
+      }
+      // processing / requires_action → nichts
     }
   }
 

@@ -14,13 +14,17 @@ import {
   handleWebhook,
   MAX_BODY_BYTES,
   readWebhookSecrets,
+  type CompletePaymentResult,
   type MarkDisconnectedResult,
+  type MarkFailedPaymentResult,
+  type PaymentAttemptLookup,
   type RecordEventInput,
   type RecordEventResult,
   type UpsertAccountResult,
   type WebhookDeps,
   type WebhookStore,
 } from "./handler.ts";
+import * as piFx from "../_shared/payments/stripe/fixtures/payment_intents.ts";
 
 const TENANT = "00000000-0000-4000-8000-0000000014a1";
 const SECOND_SECRET = "whsec_fake_omlify_rotation";
@@ -104,6 +108,45 @@ class MemoryStore implements WebhookStore {
     return Promise.resolve(this.disconnectResult);
   }
 
+  /** provider_ref â†’ attempt lookup */
+  attempts = new Map<string, { attemptId: string; tenantId: string; studioAccountRef: string | null }>();
+  completes: unknown[] = [];
+  markFailedCalls: { providerRef: string; failureCode: string; status?: string }[] = [];
+  completeResult: CompletePaymentResult = { ok: true, code: "COMPLETED" };
+  completeSequence: CompletePaymentResult[] = [];
+
+  findPaymentAttempt(_provider: string, providerRef: string): Promise<PaymentAttemptLookup> {
+    this.writes += 1;
+    const row = this.attempts.get(providerRef);
+    if (!row) return Promise.resolve({ found: false });
+    return Promise.resolve({ found: true, ...row });
+  }
+
+  completeOnlinePayment(input: {
+    providerRef: string;
+    amountCents: number;
+    currency: string;
+    receivedAt: string;
+    livemode: boolean;
+  }): Promise<CompletePaymentResult> {
+    this.writes += 1;
+    this.completes.push(input);
+    if (this.completeSequence.length > 0) {
+      return Promise.resolve(this.completeSequence.shift()!);
+    }
+    return Promise.resolve(structuredClone(this.completeResult));
+  }
+
+  markOnlinePaymentFailed(
+    providerRef: string,
+    failureCode: string,
+    status?: string,
+  ): Promise<MarkFailedPaymentResult> {
+    this.writes += 1;
+    this.markFailedCalls.push({ providerRef, failureCode, status });
+    return Promise.resolve({ ok: true });
+  }
+
   only(): Row {
     assertEquals(this.rows.size, 1, "genau eine Rohzeile");
     return [...this.rows.values()][0];
@@ -119,11 +162,23 @@ class MemoryStore implements WebhookStore {
 class SpyProvider extends FakePaymentProvider {
   getAccountStateCalls = 0;
   unavailable = false;
+  retrieveUnavailable = false;
+  retrieveOverride: import("../_shared/payments/port.ts").RetrievedPayment | null = null;
 
   override getAccountState(ref: string): Promise<ProviderAccountState> {
     this.getAccountStateCalls += 1;
     if (this.unavailable) return Promise.reject(new ProviderError("PROVIDER_UNAVAILABLE", "StripeConnectionError"));
     return super.getAccountState(ref);
+  }
+
+  override retrievePayment(accountRef: string, ref: string) {
+    if (this.retrieveUnavailable) {
+      return Promise.reject(new ProviderError("PROVIDER_UNAVAILABLE", "StripeConnectionError"));
+    }
+    if (this.retrieveOverride) {
+      return Promise.resolve({ ...this.retrieveOverride, ref });
+    }
+    return super.retrievePayment(accountRef, ref);
   }
 }
 
@@ -531,4 +586,154 @@ Deno.test("Webhook Thin: fremder Typ â†’ ohne Wirkung", async () => {
   assertEquals(store.upserts.length, 0);
   const row = store.only();
   assertEquals([row.eventType, row.processingError], ["v2.core.event_destination.ping", null]);
+});
+
+Deno.test("9. payment.updated succeeded ? complete aus retrievePayment", async () => {
+  const s = setup();
+  const ref = await connectedAccount(s);
+  const pi = "pi_fixture_succeeded";
+  s.store.attempts.set(pi, { attemptId: "att1", tenantId: TENANT, studioAccountRef: ref });
+  s.provider.retrieveOverride = {
+    ref: pi,
+    status: "succeeded",
+    amountCents: 1800,
+    currency: "EUR",
+    livemode: false,
+    receivedAt: "2026-10-01T10:00:00.000Z",
+  };
+  const body = JSON.stringify(piFx.evtPiSucceeded(ref));
+  const res = await handleWebhook(await signed(s, body), s.deps);
+  assertEquals(res.status, 200);
+  assertEquals(s.store.completes.length, 1);
+  const c = s.store.completes[0] as { amountCents: number; receivedAt: string; providerRef: string };
+  assertEquals(c.amountCents, 1800);
+  assertEquals(c.receivedAt, "2026-10-01T10:00:00.000Z");
+  assertEquals(c.providerRef, pi);
+});
+
+Deno.test("10. doppeltes Event (zwei evt_…, gleiche pi_…) ? zweimal complete, zweites ALREADY_COMPLETED, beide 200", async () => {
+  const s = setup();
+  const ref = await connectedAccount(s);
+  const pi = "pi_fixture_succeeded";
+  s.store.attempts.set(pi, { attemptId: "att1", tenantId: TENANT, studioAccountRef: ref });
+  s.provider.retrieveOverride = {
+    ref: pi,
+    status: "succeeded",
+    amountCents: 1800,
+    currency: "EUR",
+    livemode: false,
+    receivedAt: "2026-10-01T10:00:00.000Z",
+  };
+  s.store.completeSequence = [
+    { ok: true, code: "COMPLETED" },
+    { ok: true, code: "ALREADY_COMPLETED" },
+  ];
+  const r1 = await handleWebhook(await signed(s, JSON.stringify(piFx.evtPiSucceeded(ref, "evt_a"))), s.deps);
+  const r2 = await handleWebhook(await signed(s, JSON.stringify(piFx.evtPiSucceeded(ref, "evt_b"))), s.deps);
+  assertEquals(r1.status, 200);
+  assertEquals(r2.status, 200);
+  assertEquals(s.store.completes.length, 2);
+});
+
+Deno.test("11. Fehlversuch ? mark_failed mit Code; canceled ? p_status canceled", async () => {
+  const s = setup();
+  const ref = await connectedAccount(s);
+  const piFail = "pi_fixture_rpm_failed";
+  s.store.attempts.set(piFail, { attemptId: "att1", tenantId: TENANT, studioAccountRef: ref });
+  s.provider.retrieveOverride = {
+    ref: piFail,
+    status: "failed",
+    amountCents: 1800,
+    currency: "EUR",
+    livemode: false,
+    failureCode: "card_declined",
+  };
+  let res = await handleWebhook(await signed(s, JSON.stringify(piFx.evtPiFailed(ref))), s.deps);
+  assertEquals(res.status, 200);
+  assertEquals(s.store.markFailedCalls[0]?.failureCode, "CARD_DECLINED");
+  assertEquals(s.store.completes.length, 0);
+
+  const piCan = "pi_fixture_canceled";
+  s.store.attempts.set(piCan, { attemptId: "att2", tenantId: TENANT, studioAccountRef: ref });
+  s.provider.retrieveOverride = {
+    ref: piCan,
+    status: "canceled",
+    amountCents: 1800,
+    currency: "EUR",
+    livemode: false,
+  };
+  res = await handleWebhook(await signed(s, JSON.stringify(piFx.evtPiCanceled(ref))), s.deps);
+  assertEquals(res.status, 200);
+  assertEquals(s.store.markFailedCalls[1]?.failureCode, "CANCELED");
+  assertEquals(s.store.markFailedCalls[1]?.status, "canceled");
+});
+
+Deno.test("12. processing ? kein RPC", async () => {
+  const s = setup();
+  const ref = await connectedAccount(s);
+  const pi = "pi_fixture_processing";
+  s.store.attempts.set(pi, { attemptId: "att1", tenantId: TENANT, studioAccountRef: ref });
+  s.provider.retrieveOverride = {
+    ref: pi,
+    status: "processing",
+    amountCents: 1800,
+    currency: "EUR",
+    livemode: false,
+  };
+  const body = JSON.stringify({
+    id: "evt_proc",
+    type: "payment_intent.succeeded",
+    account: ref,
+    livemode: false,
+    data: { object: piFx.piProcessing },
+  });
+  const res = await handleWebhook(await signed(s, body), s.deps);
+  assertEquals(res.status, 200);
+  assertEquals(s.store.completes.length, 0);
+  assertEquals(s.store.markFailedCalls.length, 0);
+});
+
+Deno.test("13. Konto im Event ? Studio-Konto ? kein RPC, Log account_mismatch, 200", async () => {
+  const s = setup();
+  const ref = await connectedAccount(s);
+  const pi = "pi_fixture_succeeded";
+  s.store.attempts.set(pi, {
+    attemptId: "att1",
+    tenantId: TENANT,
+    studioAccountRef: "acct_other_studio",
+  });
+  const res = await handleWebhook(await signed(s, JSON.stringify(piFx.evtPiSucceeded(ref))), s.deps);
+  assertEquals(res.status, 200);
+  assertEquals(s.store.completes.length, 0);
+  assert(s.log.lines.some((l) => l.includes("account_mismatch")), "Log account_mismatch");
+});
+
+Deno.test("14. Unbekannte pi_… + succeeded ? Log payment.orphan, 200", async () => {
+  const s = setup();
+  const ref = await connectedAccount(s);
+  s.provider.retrieveOverride = {
+    ref: "pi_fixture_succeeded",
+    status: "succeeded",
+    amountCents: 1800,
+    currency: "EUR",
+    livemode: false,
+    receivedAt: "2026-10-01T10:00:00.000Z",
+  };
+  const res = await handleWebhook(await signed(s, JSON.stringify(piFx.evtPiSucceeded(ref))), s.deps);
+  assertEquals(res.status, 200);
+  assertEquals(s.store.completes.length, 0);
+  assert(s.log.lines.some((l) => l.includes("payment.orphan")), "Log orphan");
+  // kein acct_ im Log
+  assert(!s.log.lines.join("\n").includes("acct_"), "kein acct_");
+});
+
+Deno.test("15. Stripe nicht erreichbar ? 500", async () => {
+  const s = setup();
+  const ref = await connectedAccount(s);
+  const pi = "pi_fixture_succeeded";
+  s.store.attempts.set(pi, { attemptId: "att1", tenantId: TENANT, studioAccountRef: ref });
+  s.provider.retrieveUnavailable = true;
+  const res = await handleWebhook(await signed(s, JSON.stringify(piFx.evtPiSucceeded(ref))), s.deps);
+  assertEquals(res.status, 500);
+  assertEquals(await readJson(res), { code: "PROVIDER_UNAVAILABLE" });
 });

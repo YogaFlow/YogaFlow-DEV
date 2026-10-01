@@ -34,11 +34,6 @@ export type CheckResult = { ok: true } | { ok: false; code: string };
 export type CompleteResult = { ok: true; code: string | null } | { ok: false; code: string };
 export type MarkFailedResult = { ok: true } | { ok: false; code: string };
 
-export interface CancelableAttempt {
-  attemptId: string;
-  providerRef: string;
-}
-
 export interface AttemptStatusView {
   attemptId: string;
   registrationId: string;
@@ -63,7 +58,6 @@ export interface CheckoutStore {
     livemode: boolean;
   }): Promise<CompleteResult>;
   markOnlinePaymentFailed(providerRef: string, failureCode: string): Promise<MarkFailedResult>;
-  listCancelableAttempts(registrationId: string, excludeAttemptId: string): Promise<CancelableAttempt[]>;
   getAttemptForMember(
     attemptId: string,
     memberId: string,
@@ -262,30 +256,7 @@ async function handlePrepare(
     return respondCode(deps, prepared.code);
   }
 
-  // Ältere failed/canceled Versuche mit pi_… best effort stornieren (F2).
-  try {
-    const old = await store.listCancelableAttempts(registrationId, prepared.attemptId);
-    for (const row of old) {
-      try {
-        await provider.cancelPaymentIntent(prepared.accountRef, row.providerRef);
-        log.info("payments-checkout", {
-          action: "prepare",
-          result: "CANCEL_OLD",
-          attempt_id: row.attemptId,
-          ref: row.providerRef,
-        });
-      } catch (err) {
-        log.warn("payments-checkout", {
-          action: "prepare",
-          result: err instanceof ProviderError ? err.code : "CANCEL_OLD_FAILED",
-          attempt_id: row.attemptId,
-          ref: row.providerRef,
-        });
-      }
-    }
-  } catch {
-    log.warn("payments-checkout", { action: "prepare", result: "LIST_OLD_FAILED" });
-  }
+  // F2-Abbruch entfällt (W2 / Trigger → provider_jobs → payments-jobs).
 
   let providerRef = prepared.providerRef;
   if (!providerRef) {
@@ -442,6 +413,7 @@ async function handleConfirm(
   }
 
   if (confirmed.status === "succeeded" || confirmed.status === "processing") {
+    let completionCode: string | null = null;
     if (confirmed.status === "succeeded") {
       let retrieved;
       try {
@@ -457,13 +429,23 @@ async function handleConfirm(
       }
       if (retrieved.status === "succeeded") {
         try {
-          await store.completeOnlinePayment({
+          const completed = await store.completeOnlinePayment({
             providerRef: view.providerRef,
             amountCents: retrieved.amountCents,
             currency: retrieved.currency,
             receivedAt: retrieved.receivedAt ?? new Date().toISOString(),
             livemode: retrieved.livemode,
           });
+          if (completed.ok) completionCode = completed.code;
+          else {
+            log.error("payments-checkout", {
+              action: "confirm",
+              result: completed.code,
+              attempt_id: attemptId,
+              ref: view.providerRef,
+            });
+            return deps.errorResponse(500, "DB_ERROR", "Ein Fehler ist aufgetreten");
+          }
         } catch {
           log.error("payments-checkout", {
             action: "confirm",
@@ -485,7 +467,7 @@ async function handleConfirm(
 
     log.info("payments-checkout", {
       action: "confirm",
-      result: confirmed.status === "succeeded" ? "SUCCEEDED" : "PROCESSING",
+      result: confirmed.status === "succeeded" ? (completionCode ?? "SUCCEEDED") : "PROCESSING",
       attempt_id: attemptId,
       ref: view.providerRef,
     });
@@ -495,6 +477,7 @@ async function handleConfirm(
       attempt_id: attemptId,
       attempt_status: after?.attemptStatus ?? null,
       registration_status: after?.registrationStatus ?? null,
+      code: completionCode,
     }, corsHeaders);
   }
 
@@ -551,15 +534,26 @@ async function handleStatus(
       return mapProviderHttp(err, deps);
     }
 
+    let completionCode: string | null = null;
     if (retrieved.status === "succeeded") {
       try {
-        await store.completeOnlinePayment({
+        const completed = await store.completeOnlinePayment({
           providerRef: view.providerRef,
           amountCents: retrieved.amountCents,
           currency: retrieved.currency,
           receivedAt: retrieved.receivedAt ?? new Date().toISOString(),
           livemode: retrieved.livemode,
         });
+        if (completed.ok) completionCode = completed.code;
+        else {
+          log.error("payments-checkout", {
+            action: "status",
+            result: completed.code,
+            attempt_id: attemptId,
+            ref: view.providerRef,
+          });
+          return deps.errorResponse(500, "DB_ERROR", "Ein Fehler ist aufgetreten");
+        }
       } catch {
         log.error("payments-checkout", {
           action: "status",
@@ -585,6 +579,20 @@ async function handleStatus(
     } catch {
       // keep previous view
     }
+
+    log.info("payments-checkout", {
+      action: "status",
+      result: "OK",
+      attempt_id: attemptId,
+      ref: view.providerRef ?? undefined,
+    });
+
+    return jsonOk({
+      attempt_id: attemptId,
+      attempt_status: view.attemptStatus,
+      registration_status: view.registrationStatus,
+      code: completionCode,
+    }, corsHeaders);
   }
 
   log.info("payments-checkout", {
@@ -598,5 +606,6 @@ async function handleStatus(
     attempt_id: attemptId,
     attempt_status: view.attemptStatus,
     registration_status: view.registrationStatus,
+    code: null,
   }, corsHeaders);
 }

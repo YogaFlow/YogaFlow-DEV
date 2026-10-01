@@ -8,7 +8,6 @@ import {
   handleCheckout,
   type AttemptStatusView,
   type AttachResult,
-  type CancelableAttempt,
   type CheckResult,
   type CheckoutDeps,
   type CheckoutStore,
@@ -42,7 +41,6 @@ class MemoryStore implements CheckoutStore {
   checkCalls: string[] = [];
   completeCalls: unknown[] = [];
   markFailedCalls: { providerRef: string; failureCode: string }[] = [];
-  cancelable: CancelableAttempt[] = [];
   view: AttemptStatusView | null = {
     attemptId: ATTEMPT,
     registrationId: REG,
@@ -55,6 +53,7 @@ class MemoryStore implements CheckoutStore {
     accountRef: ACCOUNT,
   };
   checkResult: CheckResult = { ok: true };
+  completeResult: CompleteResult = { ok: true, code: "COMPLETED" };
   sequence: string[] = [];
 
   prepareOnlinePayment(registrationId: string, userId: string): Promise<PrepareResult> {
@@ -101,7 +100,7 @@ class MemoryStore implements CheckoutStore {
         registrationStatus: "registered",
       };
     }
-    return Promise.resolve({ ok: true, code: null });
+    return Promise.resolve(structuredClone(this.completeResult));
   }
 
   markOnlinePaymentFailed(providerRef: string, failureCode: string): Promise<MarkFailedResult> {
@@ -109,13 +108,6 @@ class MemoryStore implements CheckoutStore {
     this.markFailedCalls.push({ providerRef, failureCode });
     if (this.view) this.view = { ...this.view, attemptStatus: "failed" };
     return Promise.resolve({ ok: true });
-  }
-
-  listCancelableAttempts(registrationId: string, excludeAttemptId: string): Promise<CancelableAttempt[]> {
-    this.sequence.push("list_old");
-    void registrationId;
-    void excludeAttemptId;
-    return Promise.resolve(structuredClone(this.cancelable));
   }
 
   getAttemptForMember(
@@ -243,14 +235,11 @@ Deno.test("Checkout prepare: zweiter Aufruf → kein zweiter PaymentIntent", asy
   assertEquals(firstPi.startsWith("pi_"), true);
 });
 
-Deno.test("Checkout prepare: älterer failed-Versuch → cancel + neuer PI", async () => {
+Deno.test("Checkout prepare: ruft kein cancelPaymentIntent mehr (J9 / W2)", async () => {
   const s = setup();
-  s.store.cancelable = [{ attemptId: "old-attempt", providerRef: "pi_old_failed_1" }];
-  // Seed old PI in fake so cancel finds it? Fake cancel needs payment in map.
-  // cancelPaymentIntent on missing → NOT_FOUND; best effort logs — still called.
   const res = await handleCheckout(post({ action: "prepare", registration_id: REG }), CALLER, s.deps);
   assertEquals(res.status, 200);
-  assertEquals(s.provider.cancelCalls, ["pi_old_failed_1"]);
+  assertEquals(s.provider.cancelCalls, []);
   assertEquals(s.provider.createCalls, 1);
 });
 
@@ -429,4 +418,19 @@ Deno.test("Checkout: unbekannte action → 400", async () => {
   const res = await handleCheckout(post({ action: "pay" }), CALLER, s.deps);
   assertEquals(res.status, 400);
   assertEquals((await readJson(res)).code, "INVALID_REQUEST");
+});
+
+Deno.test("16. confirm liefert code; REFUND_REQUIRED wird durchgereicht", async () => {
+  const s = setup();
+  assertEquals((await handleCheckout(post({ action: "prepare", registration_id: REG }), CALLER, s.deps)).status, 200);
+  s.store.completeResult = { ok: true, code: "REFUND_REQUIRED" };
+  const res = await handleCheckout(
+    post({ action: "confirm", attempt_id: ATTEMPT, confirmation_token: "ctoken_ok" }),
+    CALLER,
+    s.deps,
+  );
+  assertEquals(res.status, 200);
+  const body = await readJson(res);
+  assertEquals(body.status, "succeeded");
+  assertEquals(body.code, "REFUND_REQUIRED");
 });

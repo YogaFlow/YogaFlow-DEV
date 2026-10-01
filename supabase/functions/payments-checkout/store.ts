@@ -6,7 +6,6 @@ import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
 import type {
   AttemptStatusView,
   AttachResult,
-  CancelableAttempt,
   CheckResult,
   CheckoutStore,
   CompleteResult,
@@ -108,25 +107,6 @@ export function createCheckoutStore(serviceClient: SupabaseClient): CheckoutStor
         return { ok: false, code: typeof row.error === "string" ? row.error : "INVALID_REQUEST" };
       }
       return { ok: true };
-    },
-
-    async listCancelableAttempts(registrationId, excludeAttemptId): Promise<CancelableAttempt[]> {
-      const { data, error } = await serviceClient
-        .from("payment_attempts")
-        .select("id, provider_ref, status")
-        .eq("registration_id", registrationId)
-        .in("status", ["failed", "canceled"])
-        .not("provider_ref", "is", null);
-      if (error) throw new StoreError("list_cancelable_attempts");
-      const rows = Array.isArray(data) ? data : [];
-      const out: CancelableAttempt[] = [];
-      for (const row of rows) {
-        if (!isObject(row)) continue;
-        if (row.id === excludeAttemptId) continue;
-        if (typeof row.provider_ref !== "string" || !row.provider_ref.startsWith("pi_")) continue;
-        out.push({ attemptId: String(row.id), providerRef: row.provider_ref });
-      }
-      return out;
     },
 
     async getAttemptForMember(attemptId, memberId, tenantId): Promise<AttemptStatusView | null> {
