@@ -294,12 +294,16 @@ async function main() {
 
     const { data: regDone } = await admin
       .from('registrations')
-      .select('status, coverage_status, hold_expires_at')
+      .select('status, coverage_status, hold_expires_at, hold_reason')
       .eq('id', regAId)
       .single();
+    // W6 (2.2a-4a): COMPLETED leert Haltefelder nicht mehr (Verlauf).
     ok(
-      'Buchung registered/paid',
-      regDone?.status === 'registered' && regDone.coverage_status === 'paid' && regDone.hold_expires_at == null,
+      'Buchung registered/paid (Holds bleiben)',
+      regDone?.status === 'registered'
+        && regDone.coverage_status === 'paid'
+        && regDone.hold_expires_at != null
+        && !!regDone.hold_reason,
       JSON.stringify(regDone),
     );
 

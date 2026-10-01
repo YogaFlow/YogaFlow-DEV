@@ -39,6 +39,7 @@ const SKRIPTE = [
   's2_1b_a_pending.mjs',
   's2_1b_b_promotion.mjs',
   's2_2a_1_online_payment.mjs',
+  's2_2a_4a_provider_jobs.mjs',
 ];
 
 function sleepMs(ms) {
