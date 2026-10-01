@@ -416,8 +416,8 @@ der Frist → +1, außerhalb → 0. Verfall am Stichtag → Rest 0, Event. Nachr
 *Als Studio möchte ich, dass jeder Geldvorgang eine unveränderliche Buchungszeile erzeugt.*
 
 - Wie 4.1 im Epic, erzeugt ausschließlich aus Events
-- Logische Konten für Sprint A: `cash`, `bank`, `paypal_clearing`, `revenue_standard`,
-  `revenue_small_business`, `vat_output`
+- Logische Konten für Sprint A: `cash`, `bank`, `paypal_clearing`, `psp_clearing`
+  („Verrechnung Stripe“, ab 2.2a), `revenue_standard`, `revenue_small_business`, `vat_output`
 - **Kartenverkauf:** Umsatz und USt **beim Verkauf** (Einzweckgutschein, Briefing Abschnitt 10). Einlösung
   erzeugt **keine** Buchungszeile
 - **Vermerk zu einer Kursbuchung:** Buchung beim Zahlungseingang
@@ -934,4 +934,25 @@ Umsetzung E2 (Nachrücken mit Zahlungspflicht). Migrationen `20260929150000` (B1
 | S8 | Abmelden bei pending? | Wortlaut „Platz freigeben“. |
 | K3 | Helfer? | `promote_to_pending_payment`; Glockentext mit Frist. |
 | E2 | Epic-Regel | Umgesetzt in `promote_from_waitlist` (Zahlungspflicht + Frist + Benachrichtigung). |
+
+---
+
+## 10. Entscheidung 09 – Checkout Karte (30.09.2026)
+
+Story 2.2a-1: Schema und RPCs für Direct-Charge-Abschluss (ohne Stripe-API / Edge Function in diesem Schritt). Migration `20260930100000_s2_2a_1_online_payment.sql`.
+
+| # | Frage | Entscheidung |
+|---|---|---|
+| C1 | Charge-Modell | PaymentIntent als Direct Charge; Payment Element (Web) bzw. PaymentSheet (App); ein Backend für beide. |
+| C2 | Direktbuchung bei Online-Pflicht | Reservierung `pending_payment`, `hold_reason = checkout`, 15 Minuten. |
+| C3 | Checkout-Sitzungen | Entfällt (nur für Checkout-Sitzungen). |
+| C4 | Zahlung nach Ablauf | Platz frei → neue Buchung `registered` + `paid` (`RESTORED`); sonst Zahlung verbuchen und `payment.refund_required` (Erstattung löst Function in 2.2a-3/4 aus). |
+| C5 | Hauptbuch `card` | Logisches Konto `psp_clearing` („Verrechnung Stripe“). Keine Gebühren in 1a → 1b. |
+| C6 | `provider_customers` | Nicht bauen (überholt P5 „erst in 2.2a“). |
+| C7 | Bestätigung | Glocke und Outbox-E-Mail (`payment_succeeded` / `payment_refunded`). |
+| C8 | Karte vs. Online-Pflicht | `register_for_course` mit `p_use_pass = true` bleibt wie heute; nur ohne Karte greift die Online-Pflicht. |
+| C9 | Referenz | Versuch und Zahlung tragen dieselbe Referenz `pi_…`. |
+| C10 | Vor Bestätigen | Function prüft die Reservierung serverseitig (`check_before_confirm`). |
+| C11 | Subdomain | Wird automatisch beim Studio-Konto registriert, sobald es aktiv ist; umgesetzt in 2.2a-3. |
+| C12 | `acct_…`-Regel | Angepasst: `prepare_online_payment` liefert `account_ref` nur an `service_role` (Edge Function); Client bekommt die Referenz weiterhin nicht. |
 |

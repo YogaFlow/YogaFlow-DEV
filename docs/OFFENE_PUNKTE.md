@@ -1,6 +1,6 @@
 # Offene Punkte
 
-**Stand:** 29.09.2026
+**Stand:** 30.09.2026
 Ausführliche Begründungen stehen im Claude-Projekt „Omlify" in
 `Landingpage_Neubau_September_2026.md` und
 `Rechtstexte_Datenschutz_und_Betrieb_September_2026.md`.
@@ -36,19 +36,21 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Geldkette 2.1b / 2.2
 
-- [ ] **Zahlung erfolgreich nach Ablauf der Reservierung (2.2a).** Platz noch frei →
-      buchen; sonst automatisch erstatten (`payment.refund_required`).
+- [ ] **Erstattung nach `payment.refund_required` (2.2a-3/4).** Schema 2.2a-1 verbucht die
+      Spätzahlung und markiert `REFUND_REQUIRED`; die Stripe-Erstattung selbst kommt in der Function.
 - [ ] **„Mit Karte statt online bezahlen“ bei `pending_payment`.** Später; Geld-Aktionen
       lehnen pending heute ab (`PAYMENT_PENDING`).
-- [ ] **Hauptbuch `card` bleibt Blocker für 2.2a.** `ledger_money_account` kennt `card`
-      nicht → `UNSUPPORTED_PAYMENT` und 5-Min-Retry ohne Log-Zeile.
+- [x] **Hauptbuch `card` → `psp_clearing`.** Erledigt in 2.2a-1 (`ledger_money_account`).
+      Gebühren im Hauptbuch → **1b** (C5).
 - [ ] **Mindest-Zahlzeit beim Nachrücken.** Heute reicht eine Frist knapp in der Zukunft
       (`promotion_hold_deadline`); ob ein Mindestfenster (z. B. 15 Min.) nötig ist, offen.
 - [ ] **E-Mail-Vorlage Nachrücken / Zahlungspflicht vom Anwalt prüfen lassen**
       (Rechts-Epic). Betreff und Text stehen in `dispatch-emails`.
-- [ ] **Test-Helfer nach `scripts/test/_helpers.mjs` auslagern.** Die DEV-Rauchtests
-      (u. a. `a6_1_foundation.mjs`, `s2_1b_b2_dispatch_smoke.mjs`) duplizieren Env-Laden,
-      Ref-Prüfung und Client-Helfer. Vor dem nächsten größeren Testpaket zusammenziehen.
+- [x] **Test-Helfer nach `scripts/test/_helpers.mjs` auslagern.** Erledigt 2.2a-1; neue
+      Skripte nutzen die Datei, bestehende bleiben unverändert.
+- [x] **`provider_customers`.** Entscheidung 09 C6: nicht bauen (überholt P5).
+- [ ] **`acct_…`-Regel (C12).** `prepare_online_payment` liefert `account_ref` an
+      `service_role`; Client weiterhin ohne `acct_…`. Edge Function 2.2a-2 muss das so halten.
 - [ ] **`pk_test_`-Prüfung nur im Dev-Modus.** `OnlinePaymentSection` prüft den Prefix nur bei
       `import.meta.env.DEV`. Ein Production-Build (auch `omlify-dev.de`) akzeptiert jeden
       gesetzten `VITE_STRIPE_PUBLISHABLE_KEY`. In **2.2** den Key im Build gegen
@@ -109,9 +111,8 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 - [ ] **Erstattungen im Stripe-Dashboard des Studios.** Mit vollständigem Dashboard (P7)
       können Studios selbst erstatten. Solche Erstattungen muss 3.2 per Webhook
       (`charge.refunded`) erkennen und buchen.
-- [ ] **`card` im Hauptbuch → Endlosschleife `UNSUPPORTED_PAYMENT`.** Eine Zahlung mit
-      `method = card` hat kein Geldkonto in `ledger_money_account`; der Job würde sie
-      bei jedem Lauf erneut versuchen. Fix in 2.2a (Konto für Kartenzahlungen).
+- [x] **`card` im Hauptbuch → Endlosschleife `UNSUPPORTED_PAYMENT`.** Behoben 2.2a-1
+      (`psp_clearing`).
 - [ ] **Namenskollision „Checkout“.** In der App heißt die Kassier-Ansicht umgangssprachlich
       Kasse/Checkout, Stripe nennt den Bezahlschritt Checkout. Vor 2.2 Begriffe festlegen.
 - [ ] **Online aus und vor Ort aus zugleich.** 1.2a erlaubt beides (Ausschalten ist immer
@@ -262,6 +263,8 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Erledigt
 
+- 30.09.2026 — 2.2a-1 geschrieben (nicht angewendet): `psp_clearing`, Checkout-RPCs,
+  `register_for_course`→`pending_payment`, Test `_helpers.mjs` + `s2_2a_1_online_payment.mjs`.
 - 29.09.2026 — 2.1b-b: S1–S8, S6a–h, K3, E2 auf DEV (Outbox, `dispatch-emails`, UI
   `pending_payment`). Bezahlen-Knopf bewusst offen → 2.2b.
 - 29.09.2026 — Abbildung V2: frisches Konto mit `past_due` + `awaiting_action_from=user`
