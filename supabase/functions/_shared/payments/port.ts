@@ -1,11 +1,10 @@
 /**
- * Zahlungs-Port (Geldkette 1.2b). Anbieterfreie Schnittstelle für Edge Functions.
+ * Zahlungs-Port (Geldkette 1.2b / 2.2a-2). Anbieterfreie Schnittstelle für Edge Functions.
  *
  * Regel I8: Kein Typ und kein Import des Anbieter-SDK außerhalb von
  * `_shared/payments/stripe/`. Geprüft in CI durch scripts/check_provider_boundary.mjs.
  *
- * Umfang bis 3.2: Konto anlegen, Kontostand lesen, Webhook prüfen und übersetzen.
- * createPayment (2.2) und refund (3.2) sind Gerüst und werfen NOT_IMPLEMENTED.
+ * Zahlung: create → confirm (Q1); Erstattung nur voll (Q7); Domain-Registrierung (Q8).
  * Keine Off-Session-Zahlung, keine Auszahlungen, keine Gebühren (SEPA bzw. 1b).
  */
 
@@ -32,40 +31,75 @@ export interface ProviderAccountState {
   capabilities: { card: CapabilityStatus };
 }
 
+/** Status nach Q4 (confirm / retrieve / cancel). */
+export type PaymentIntentStatus =
+  | "succeeded"
+  | "processing"
+  | "requires_action"
+  | "failed"
+  | "canceled";
+
 /**
  * Beträge in Cent, immer vom Server (price_cents_at_booking), nie aus dem Request
- * des Clients. Gerüst für 2.2.
+ * des Clients.
  */
-export interface CreatePaymentCommand {
-  tenantId: string;
+export interface CreatePaymentIntentCommand {
   accountRef: string;
   amountCents: number;
   currency: "EUR";
-  method: "card";
-  /** Versuchs-ID aus payment_attempts (2.1b-a). */
   attemptId: string;
+  tenantId: string;
   registrationId: string;
   idempotencyKey: string;
 }
 
-export interface PaymentRef {
+export interface CreatePaymentIntentResult {
   ref: string;
-  /** Für das Payment Element im Browser; nie loggen. */
-  clientSecret: string;
 }
 
-/** Betrag in Cent, serverseitig gegen den erstattbaren Rest geprüft. Gerüst für 3.2. */
-export interface RefundCommand {
-  tenantId: string;
+export interface ConfirmPaymentIntentCommand {
   accountRef: string;
-  paymentRef: string;
+  ref: string;
+  confirmationToken: string;
+  returnUrl: string;
+}
+
+export interface ConfirmPaymentIntentResult {
+  status: PaymentIntentStatus;
+  /** Nur bei requires_action; nie speichern, nie loggen (Q5). */
+  clientSecret?: string;
+  failureCode?: string;
+}
+
+export interface RetrievedPayment {
+  ref: string;
+  status: PaymentIntentStatus;
   amountCents: number;
+  currency: "EUR";
+  livemode: boolean;
+  /** Aus Metadaten attempt_id. */
+  attemptId?: string;
+  /** Zeitpunkt der erfolgreichen Belastung (ISO 8601). */
+  receivedAt?: string;
+  failureCode?: string;
+}
+
+/** Volle Erstattung (Q7); Idempotency-Key = payment_id. */
+export interface RefundPaymentCommand {
+  accountRef: string;
+  ref: string;
   idempotencyKey: string;
 }
 
-export interface RefundRef {
-  ref: string;
+export interface RefundPaymentResult {
+  refundRef: string;
+  status: "succeeded" | "pending" | "failed";
+  amountCents: number;
 }
+
+export type RegisterPaymentDomainResult = {
+  status: "registered" | "already_registered";
+};
 
 /** Geprüftes Anbieter-Event, ohne Anbieter-Typen. */
 export interface ProviderEvent {
@@ -98,8 +132,21 @@ export interface ProviderAccountDisconnectedEvent {
   livemode: boolean;
 }
 
-/** Zahlungstypen kommen mit 2.2. */
-export type DomainEvent = ProviderAccountUpdatedEvent | ProviderAccountDisconnectedEvent;
+/**
+ * Zahlung geändert. Kein Status aus dem Event (Q6) — Function/Webhook lesen per
+ * retrievePayment nach.
+ */
+export interface PaymentUpdatedEvent {
+  type: "payment.updated";
+  accountRef: string;
+  ref: string;
+  livemode: boolean;
+}
+
+export type DomainEvent =
+  | ProviderAccountUpdatedEvent
+  | ProviderAccountDisconnectedEvent
+  | PaymentUpdatedEvent;
 
 export interface CreateConnectedAccountOptions {
   /**
@@ -117,10 +164,13 @@ export interface PaymentProvider {
     options?: CreateConnectedAccountOptions,
   ): Promise<ProviderAccountState>;
   getAccountState(ref: string): Promise<ProviderAccountState>;
-  /** Gerüst, wirft NOT_IMPLEMENTED bis 2.2. */
-  createPayment(cmd: CreatePaymentCommand): Promise<PaymentRef>;
-  /** Gerüst, wirft NOT_IMPLEMENTED bis 3.2. */
-  refund(cmd: RefundCommand): Promise<RefundRef>;
+  createPaymentIntent(cmd: CreatePaymentIntentCommand): Promise<CreatePaymentIntentResult>;
+  confirmPaymentIntent(cmd: ConfirmPaymentIntentCommand): Promise<ConfirmPaymentIntentResult>;
+  retrievePayment(accountRef: string, ref: string): Promise<RetrievedPayment>;
+  /** Idempotent: schon storniert/erfolgreich → Status zurück, kein Fehler. */
+  cancelPaymentIntent(accountRef: string, ref: string): Promise<{ status: PaymentIntentStatus }>;
+  refundPayment(cmd: RefundPaymentCommand): Promise<RefundPaymentResult>;
+  registerPaymentDomain(accountRef: string, domain: string): Promise<RegisterPaymentDomainResult>;
   verifyWebhook(rawBody: string, signature: string, secret: string): Promise<ProviderEvent>;
   /** null = bewusst ignorieren. */
   toDomainEvent(e: ProviderEvent): DomainEvent | null;
@@ -133,7 +183,12 @@ export type ProviderErrorCode =
   | "INVALID_EVENT"
   | "LIVEMODE_MISMATCH"
   | "NOT_IMPLEMENTED"
-  | "CONFIG_ERROR";
+  | "CONFIG_ERROR"
+  | "CARD_DECLINED"
+  | "AUTHENTICATION_REQUIRED"
+  | "RATE_LIMITED"
+  | "INVALID_REQUEST"
+  | "NOT_FOUND";
 
 const PROVIDER_ERROR_MESSAGES: Record<ProviderErrorCode, string> = {
   PROVIDER_UNAVAILABLE: "Zahlungsanbieter nicht erreichbar",
@@ -143,12 +198,17 @@ const PROVIDER_ERROR_MESSAGES: Record<ProviderErrorCode, string> = {
   LIVEMODE_MISMATCH: "Modus passt nicht zur Umgebung",
   NOT_IMPLEMENTED: "Noch nicht umgesetzt",
   CONFIG_ERROR: "Zahlungen sind nicht konfiguriert",
+  CARD_DECLINED: "Karte abgelehnt",
+  AUTHENTICATION_REQUIRED: "Zusätzliche Authentifizierung nötig",
+  RATE_LIMITED: "Zu viele Anfragen beim Zahlungsanbieter",
+  INVALID_REQUEST: "Ungültige Zahlungsanfrage",
+  NOT_FOUND: "Zahlungsobjekt nicht gefunden",
 };
 
 /**
- * Einziger Fehlertyp des Ports. Die Meldung ist fest je Code; Texte des Anbieters
- * werden nie übernommen. `detail` trägt höchstens Fehlertyp/-code des Anbieters
- * (z. B. `StripeInvalidRequestError/resource_missing`) für interne Logs.
+ * Einziger Fehlertyp des Ports (PaymentProviderError). Die Meldung ist fest je Code;
+ * Texte des Anbieters werden nie übernommen. `detail` trägt höchstens Fehlertyp/-code
+ * des Anbieters (z. B. `StripeInvalidRequestError/resource_missing`) für interne Logs.
  */
 export class ProviderError extends Error {
   readonly code: ProviderErrorCode;
@@ -161,6 +221,9 @@ export class ProviderError extends Error {
     this.detail = detail;
   }
 }
+
+/** Alias laut Port-Sprache; dieselbe Klasse wie ProviderError. */
+export { ProviderError as PaymentProviderError };
 
 /** Idempotency-Key für das Anlegen des verbundenen Kontos, einer je Studio. */
 export function connectedAccountIdempotencyKey(tenantId: string): string {

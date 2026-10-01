@@ -76,3 +76,41 @@ export function toProviderError(err: unknown): ProviderError {
   }
   return new ProviderError("PROVIDER_UNAVAILABLE");
 }
+
+/**
+ * Fehler-Mapping für Zahlungsaufrufe (Port: PaymentProviderError-Codes).
+ * Keine Stripe-Meldungstexte nach außen.
+ */
+export function toPaymentError(err: unknown): ProviderError {
+  if (err instanceof ProviderError) return err;
+  if (err instanceof Stripe.errors.StripeRateLimitError) {
+    return new ProviderError("RATE_LIMITED", err.type);
+  }
+  if (err instanceof Stripe.errors.StripeCardError) {
+    const detail = err.code ? `${err.type}/${err.code}` : err.type;
+    if (err.code === "authentication_required") {
+      return new ProviderError("AUTHENTICATION_REQUIRED", detail);
+    }
+    return new ProviderError("CARD_DECLINED", detail);
+  }
+  if (err instanceof Stripe.errors.StripeInvalidRequestError) {
+    const detail = err.code ? `${err.type}/${err.code}` : err.type;
+    if (err.code === "resource_missing") {
+      return new ProviderError("NOT_FOUND", detail);
+    }
+    return new ProviderError("INVALID_REQUEST", detail);
+  }
+  if (err instanceof Stripe.errors.StripeError) {
+    const detail = err.code ? `${err.type}/${err.code}` : err.type;
+    switch (err.type) {
+      case "StripeAuthenticationError":
+      case "StripePermissionError":
+        return new ProviderError("CONFIG_ERROR", detail);
+      case "StripeIdempotencyError":
+        return new ProviderError("INVALID_REQUEST", detail);
+      default:
+        return new ProviderError("PROVIDER_UNAVAILABLE", detail);
+    }
+  }
+  return new ProviderError("PROVIDER_UNAVAILABLE");
+}

@@ -17,6 +17,8 @@ export interface StubCall {
   jsonBody: unknown | null;
   query: URLSearchParams;
   idempotencyKey: string | null;
+  /** Direct Charge: Stripe-Account-Header (acct_…). */
+  stripeAccount: string | null;
 }
 
 export type StubAccount = {
@@ -90,10 +92,46 @@ function freshAccount(id: string, tenantId: string): StubAccount {
   };
 }
 
-export function createStripeStub(options: { failWithStatus?: number } = {}) {
+type StubPaymentIntent = {
+  id: string;
+  object: "payment_intent";
+  amount: number;
+  currency: string;
+  status: string;
+  livemode: boolean;
+  client_secret: string | null;
+  metadata: Record<string, string>;
+  description: string | null;
+  last_payment_error: { code: string } | null;
+  latest_charge: string | { id: string; object: "charge"; created: number; amount: number } | null;
+};
+
+type StubRefund = {
+  id: string;
+  object: "refund";
+  amount: number;
+  currency: string;
+  status: string;
+  payment_intent: string;
+};
+
+export type StripeStubOptions = {
+  failWithStatus?: number;
+  /** Steuert confirm: succeed | decline | requires_action | rate_limit | network_5xx */
+  confirmOutcome?: "succeed" | "decline" | "requires_action" | "rate_limit" | "network_5xx";
+  /** cancel wirft zuerst INVALID_REQUEST (bereits canceled/succeeded), dann retrieve. */
+  cancelAlreadyFinal?: "canceled" | "succeeded";
+  domainAlreadyExists?: boolean;
+};
+
+export function createStripeStub(options: StripeStubOptions = {}) {
   const calls: StubCall[] = [];
   const accounts = new Map<string, StubAccount>();
   const idempotent = new Map<string, string>();
+  const payments = new Map<string, StubPaymentIntent>();
+  const paymentIdempotent = new Map<string, string>();
+  const refundIdempotent = new Map<string, StubRefund>();
+  const domains = new Set<string>();
   let counter = 0;
 
   const fetchFn: typeof fetch = async (input, init) => {
@@ -120,6 +158,7 @@ export function createStripeStub(options: { failWithStatus?: number } = {}) {
       jsonBody,
       query: url.searchParams,
       idempotencyKey: headers.get("idempotency-key"),
+      stripeAccount: headers.get("stripe-account"),
     });
     await Promise.resolve();
 
@@ -170,6 +209,166 @@ export function createStripeStub(options: { failWithStatus?: number } = {}) {
       });
     }
 
+    if (method === "POST" && url.pathname === "/v1/payment_intents") {
+      const key = headers.get("idempotency-key");
+      const known = key ? paymentIdempotent.get(key) : undefined;
+      if (known) return json(200, payments.get(known));
+      counter += 1;
+      const id = `pi_stub${String(counter).padStart(6, "0")}`;
+      const meta: Record<string, string> = {};
+      for (const [k, v] of params.entries()) {
+        const mm = k.match(/^metadata\[(.+)\]$/);
+        if (mm) meta[mm[1]] = v;
+      }
+      const pi: StubPaymentIntent = {
+        id,
+        object: "payment_intent",
+        amount: Number(params.get("amount") ?? 0),
+        currency: params.get("currency") ?? "eur",
+        status: "requires_payment_method",
+        livemode: false,
+        client_secret: `${id}_secret_stub`,
+        metadata: meta,
+        description: params.get("description"),
+        last_payment_error: null,
+        latest_charge: null,
+      };
+      payments.set(id, pi);
+      if (key) paymentIdempotent.set(key, id);
+      return json(200, pi);
+    }
+
+    const confirmMatch = url.pathname.match(/^\/v1\/payment_intents\/(pi_[A-Za-z0-9_]+)\/confirm$/);
+    if (method === "POST" && confirmMatch) {
+      if (options.confirmOutcome === "rate_limit") {
+        return json(429, {
+          error: { type: "rate_limit_error", message: "Rate limit intern" },
+        });
+      }
+      if (options.confirmOutcome === "network_5xx") {
+        return json(500, {
+          error: { type: "api_error", message: "Interner Stripe-Text" },
+        });
+      }
+      if (options.confirmOutcome === "decline") {
+        return json(402, {
+          error: {
+            type: "card_error",
+            code: "card_declined",
+            message: "Your card was declined (intern)",
+            payment_intent: {
+              id: confirmMatch[1],
+              object: "payment_intent",
+              status: "requires_payment_method",
+              last_payment_error: { code: "card_declined" },
+            },
+          },
+        });
+      }
+      const pi = payments.get(confirmMatch[1]);
+      if (!pi) {
+        return json(404, {
+          error: { type: "invalid_request_error", code: "resource_missing", message: "No such payment_intent" },
+        });
+      }
+      if (options.confirmOutcome === "requires_action") {
+        pi.status = "requires_action";
+        pi.client_secret = `${pi.id}_secret_action`;
+        return json(200, pi);
+      }
+      pi.status = "succeeded";
+      pi.last_payment_error = null;
+      pi.latest_charge = {
+        id: `ch_stub_${pi.id}`,
+        object: "charge",
+        created: 1_700_000_100,
+        amount: pi.amount,
+      };
+      return json(200, pi);
+    }
+
+    const cancelMatch = url.pathname.match(/^\/v1\/payment_intents\/(pi_[A-Za-z0-9_]+)\/cancel$/);
+    if (method === "POST" && cancelMatch) {
+      const pi = payments.get(cancelMatch[1]);
+      if (!pi) {
+        return json(404, {
+          error: { type: "invalid_request_error", code: "resource_missing", message: "No such payment_intent" },
+        });
+      }
+      if (options.cancelAlreadyFinal) {
+        pi.status = options.cancelAlreadyFinal;
+        return json(400, {
+          error: {
+            type: "invalid_request_error",
+            code: "payment_intent_unexpected_state",
+            message: `You cannot cancel this PaymentIntent because it has a status of ${options.cancelAlreadyFinal}`,
+          },
+        });
+      }
+      pi.status = "canceled";
+      return json(200, pi);
+    }
+
+    const retrieveMatch = url.pathname.match(/^\/v1\/payment_intents\/(pi_[A-Za-z0-9_]+)$/);
+    if (method === "GET" && retrieveMatch) {
+      const pi = payments.get(retrieveMatch[1]);
+      if (!pi) {
+        return json(404, {
+          error: { type: "invalid_request_error", code: "resource_missing", message: "No such payment_intent" },
+        });
+      }
+      const expand = url.searchParams.getAll("expand[]").concat(url.searchParams.getAll("expand[0]"));
+      const body = { ...pi };
+      if (!expand.some((e) => e === "latest_charge") && typeof body.latest_charge === "object") {
+        body.latest_charge = body.latest_charge?.id ?? null;
+      }
+      return json(200, body);
+    }
+
+    if (method === "POST" && url.pathname === "/v1/refunds") {
+      const key = headers.get("idempotency-key");
+      if (key && refundIdempotent.has(key)) return json(200, refundIdempotent.get(key));
+      const piRef = params.get("payment_intent") ?? "";
+      const pi = payments.get(piRef);
+      if (!pi) {
+        return json(404, {
+          error: { type: "invalid_request_error", code: "resource_missing", message: "No such payment_intent" },
+        });
+      }
+      counter += 1;
+      const refund: StubRefund = {
+        id: `re_stub${String(counter).padStart(6, "0")}`,
+        object: "refund",
+        amount: pi.amount,
+        currency: pi.currency,
+        status: "succeeded",
+        payment_intent: piRef,
+      };
+      if (key) refundIdempotent.set(key, refund);
+      return json(200, refund);
+    }
+
+    if (method === "POST" && url.pathname === "/v1/payment_method_domains") {
+      const domain = params.get("domain_name") ?? "";
+      if (options.domainAlreadyExists || domains.has(domain)) {
+        return json(400, {
+          error: {
+            type: "invalid_request_error",
+            code: "resource_already_exists",
+            message: "A payment method domain with this domain name already exists.",
+          },
+        });
+      }
+      domains.add(domain);
+      counter += 1;
+      return json(200, {
+        id: `pmd_stub${String(counter).padStart(6, "0")}`,
+        object: "payment_method_domain",
+        domain_name: domain,
+        livemode: false,
+      });
+    }
+
     return json(404, { error: { type: "invalid_request_error", message: "unbekannter Stub-Pfad" } });
   };
 
@@ -177,6 +376,10 @@ export function createStripeStub(options: { failWithStatus?: number } = {}) {
     fetchFn,
     calls,
     accounts,
+    payments,
+    seedPayment(pi: StubPaymentIntent) {
+      payments.set(pi.id, pi);
+    },
     activate(ref: string) {
       const acc = accounts.get(ref);
       if (!acc) throw new Error(`Stub: Konto ${ref} fehlt`);

@@ -104,11 +104,22 @@ export function definePortContract(name: string, makeHarness: () => PortHarness)
     }
   });
 
-  t("anderes Event → null", async (h) => {
+  t("unbekanntes Event → null", async (h) => {
+    const { ref } = await h.provider.createConnectedAccount(TENANT, connectedAccountIdempotencyKey(TENANT));
+    const { rawBody, signature } = await h.signedEvent("charge.succeeded", ref);
+    const ev = await h.provider.verifyWebhook(rawBody, signature, h.webhookSecret);
+    assertEquals(h.provider.toDomainEvent(ev), null);
+  });
+
+  t("payment_intent.succeeded → payment.updated ohne Status", async (h) => {
     const { ref } = await h.provider.createConnectedAccount(TENANT, connectedAccountIdempotencyKey(TENANT));
     const { rawBody, signature } = await h.signedEvent("payment_intent.succeeded", ref);
     const ev = await h.provider.verifyWebhook(rawBody, signature, h.webhookSecret);
-    assertEquals(h.provider.toDomainEvent(ev), null);
+    const d = h.provider.toDomainEvent(ev);
+    assert(d !== null, "Domain-Event erwartet");
+    assert(d.type === "payment.updated", "Typ payment.updated");
+    assertEquals([d.accountRef, d.livemode], [ref, false]);
+    assert(d.ref.startsWith("pi_"), "ref beginnt mit pi_");
   });
 
   t("falsches Secret → INVALID_SIGNATURE", async (h) => {
@@ -129,31 +140,4 @@ export function definePortContract(name: string, makeHarness: () => PortHarness)
     );
   });
 
-  t("createPayment und refund → NOT_IMPLEMENTED", async (h) => {
-    await assertProviderError(
-      () =>
-        h.provider.createPayment({
-          tenantId: TENANT,
-          accountRef: "acct_x",
-          amountCents: 1500,
-          currency: "EUR",
-          method: "card",
-          attemptId: "a",
-          registrationId: "r",
-          idempotencyKey: "k",
-        }),
-      "NOT_IMPLEMENTED",
-    );
-    await assertProviderError(
-      () =>
-        h.provider.refund({
-          tenantId: TENANT,
-          accountRef: "acct_x",
-          paymentRef: "pi_x",
-          amountCents: 1500,
-          idempotencyKey: "k",
-        }),
-      "NOT_IMPLEMENTED",
-    );
-  });
 }

@@ -11,15 +11,22 @@
  */
 import {
   type CapabilityStatus,
+  type ConfirmPaymentIntentCommand,
+  type ConfirmPaymentIntentResult,
   type CreateConnectedAccountOptions,
+  type CreatePaymentIntentCommand,
+  type CreatePaymentIntentResult,
   type DomainEvent,
   type OnboardingStatus,
+  type PaymentIntentStatus,
   type PaymentProvider,
-  type PaymentRef,
   type ProviderAccountState,
   ProviderError,
   type ProviderEvent,
-  type RefundRef,
+  type RefundPaymentCommand,
+  type RefundPaymentResult,
+  type RegisterPaymentDomainResult,
+  type RetrievedPayment,
 } from "../port.ts";
 
 export const FAKE_WEBHOOK_SECRET = "whsec_fake_omlify_test";
@@ -28,9 +35,45 @@ export const FAKE_WEBHOOK_TOLERANCE_SECONDS = 300;
 const ONBOARDING_STATUSES: readonly OnboardingStatus[] = ["in_progress", "in_review", "active", "action_required"];
 const CAPABILITY_STATUSES: readonly CapabilityStatus[] = ["active", "inactive", "pending"];
 
+const PAYMENT_EVENT_TYPES = new Set([
+  "payment_intent.succeeded",
+  "payment_intent.payment_failed",
+  "payment_intent.canceled",
+]);
+
+export type FakePaymentBehavior =
+  | "succeed"
+  | "decline"
+  | "requires_action"
+  | "provider_unavailable"
+  | "already_canceled";
+
 export interface FakeProviderOptions {
   /** Unix-Sekunden; für Tests mit festem Zeitpunkt. */
   now?: () => number;
+}
+
+/** Aufrufprotokoll ohne Secrets (kein client_secret, Confirmation Token, acct_…). */
+export type FakePaymentCall = {
+  method: string;
+  ref?: string;
+  idempotencyKey?: string;
+  amountCents?: number;
+  domain?: string;
+};
+
+interface FakePaymentRecord {
+  ref: string;
+  amountCents: number;
+  currency: "EUR";
+  livemode: false;
+  attemptId: string;
+  tenantId: string;
+  registrationId: string;
+  status: PaymentIntentStatus;
+  failureCode?: string;
+  receivedAt?: string;
+  clientSecret?: string;
 }
 
 const encoder = new TextEncoder();
@@ -85,11 +128,22 @@ export class FakePaymentProvider implements PaymentProvider {
   readonly id = "stripe" as const;
   private readonly accounts = new Map<string, ProviderAccountState>();
   private readonly byIdempotencyKey = new Map<string, string>();
+  private readonly payments = new Map<string, FakePaymentRecord>();
+  private readonly paymentByIdempotency = new Map<string, string>();
+  private readonly refundByIdempotency = new Map<string, RefundPaymentResult>();
+  private readonly domains = new Set<string>();
   private readonly now: () => number;
   private counter = 0;
+  private behavior: FakePaymentBehavior = "succeed";
+  /** Aufrufe ohne Secrets — für Assertions. */
+  readonly paymentCalls: FakePaymentCall[] = [];
 
   constructor(options: FakeProviderOptions = {}) {
     this.now = options.now ?? (() => Math.floor(Date.now() / 1000));
+  }
+
+  setPaymentBehavior(behavior: FakePaymentBehavior): void {
+    this.behavior = behavior;
   }
 
   createConnectedAccount(
@@ -128,12 +182,146 @@ export class FakePaymentProvider implements PaymentProvider {
     return Promise.resolve(structuredClone(state));
   }
 
-  createPayment(): Promise<PaymentRef> {
-    return Promise.reject(new ProviderError("NOT_IMPLEMENTED", "createPayment"));
+  createPaymentIntent(cmd: CreatePaymentIntentCommand): Promise<CreatePaymentIntentResult> {
+    this.paymentCalls.push({
+      method: "createPaymentIntent",
+      idempotencyKey: cmd.idempotencyKey,
+      amountCents: cmd.amountCents,
+    });
+    if (this.behavior === "provider_unavailable") {
+      return Promise.reject(new ProviderError("PROVIDER_UNAVAILABLE"));
+    }
+    if (!cmd.accountRef || !cmd.idempotencyKey || !cmd.attemptId) {
+      return Promise.reject(new ProviderError("INVALID_REQUEST", "missing_input"));
+    }
+    const known = this.paymentByIdempotency.get(cmd.idempotencyKey);
+    if (known) return Promise.resolve({ ref: known });
+
+    this.counter += 1;
+    const ref = `pi_fake${String(this.counter).padStart(6, "0")}`;
+    this.payments.set(ref, {
+      ref,
+      amountCents: cmd.amountCents,
+      currency: "EUR",
+      livemode: false,
+      attemptId: cmd.attemptId,
+      tenantId: cmd.tenantId,
+      registrationId: cmd.registrationId,
+      status: "processing",
+    });
+    this.paymentByIdempotency.set(cmd.idempotencyKey, ref);
+    return Promise.resolve({ ref });
   }
 
-  refund(): Promise<RefundRef> {
-    return Promise.reject(new ProviderError("NOT_IMPLEMENTED", "refund"));
+  confirmPaymentIntent(cmd: ConfirmPaymentIntentCommand): Promise<ConfirmPaymentIntentResult> {
+    this.paymentCalls.push({ method: "confirmPaymentIntent", ref: cmd.ref });
+    if (this.behavior === "provider_unavailable") {
+      return Promise.reject(new ProviderError("PROVIDER_UNAVAILABLE"));
+    }
+    const payment = this.payments.get(cmd.ref);
+    if (!payment) return Promise.reject(new ProviderError("NOT_FOUND", "resource_missing"));
+
+    if (this.behavior === "decline") {
+      payment.status = "failed";
+      payment.failureCode = "card_declined";
+      return Promise.resolve({ status: "failed", failureCode: "card_declined" });
+    }
+    if (this.behavior === "requires_action") {
+      payment.status = "requires_action";
+      payment.clientSecret = `pi_fake_secret_${cmd.ref}`;
+      return Promise.resolve({
+        status: "requires_action",
+        clientSecret: payment.clientSecret,
+      });
+    }
+
+    payment.status = "succeeded";
+    payment.receivedAt = new Date(this.now() * 1000).toISOString();
+    payment.failureCode = undefined;
+    payment.clientSecret = undefined;
+    return Promise.resolve({ status: "succeeded" });
+  }
+
+  retrievePayment(accountRef: string, ref: string): Promise<RetrievedPayment> {
+    void accountRef;
+    this.paymentCalls.push({ method: "retrievePayment", ref });
+    if (this.behavior === "provider_unavailable") {
+      return Promise.reject(new ProviderError("PROVIDER_UNAVAILABLE"));
+    }
+    const payment = this.payments.get(ref);
+    if (!payment) return Promise.reject(new ProviderError("NOT_FOUND", "resource_missing"));
+    return Promise.resolve({
+      ref: payment.ref,
+      status: payment.status,
+      amountCents: payment.amountCents,
+      currency: payment.currency,
+      livemode: payment.livemode,
+      attemptId: payment.attemptId,
+      receivedAt: payment.receivedAt,
+      failureCode: payment.failureCode,
+    });
+  }
+
+  cancelPaymentIntent(accountRef: string, ref: string): Promise<{ status: PaymentIntentStatus }> {
+    void accountRef;
+    this.paymentCalls.push({ method: "cancelPaymentIntent", ref });
+    if (this.behavior === "provider_unavailable") {
+      return Promise.reject(new ProviderError("PROVIDER_UNAVAILABLE"));
+    }
+    const payment = this.payments.get(ref);
+    if (!payment) return Promise.reject(new ProviderError("NOT_FOUND", "resource_missing"));
+
+    if (this.behavior === "already_canceled" || payment.status === "canceled") {
+      payment.status = "canceled";
+      return Promise.resolve({ status: "canceled" });
+    }
+    if (payment.status === "succeeded") {
+      return Promise.resolve({ status: "succeeded" });
+    }
+    payment.status = "canceled";
+    return Promise.resolve({ status: "canceled" });
+  }
+
+  refundPayment(cmd: RefundPaymentCommand): Promise<RefundPaymentResult> {
+    this.paymentCalls.push({
+      method: "refundPayment",
+      ref: cmd.ref,
+      idempotencyKey: cmd.idempotencyKey,
+    });
+    if (this.behavior === "provider_unavailable") {
+      return Promise.reject(new ProviderError("PROVIDER_UNAVAILABLE"));
+    }
+    const known = this.refundByIdempotency.get(cmd.idempotencyKey);
+    if (known) return Promise.resolve({ ...known });
+
+    const payment = this.payments.get(cmd.ref);
+    if (!payment) return Promise.reject(new ProviderError("NOT_FOUND", "resource_missing"));
+    if (payment.status !== "succeeded") {
+      return Promise.reject(new ProviderError("INVALID_REQUEST", "not_succeeded"));
+    }
+
+    this.counter += 1;
+    const result: RefundPaymentResult = {
+      refundRef: `re_fake${String(this.counter).padStart(6, "0")}`,
+      status: "succeeded",
+      amountCents: payment.amountCents,
+    };
+    this.refundByIdempotency.set(cmd.idempotencyKey, result);
+    return Promise.resolve({ ...result });
+  }
+
+  registerPaymentDomain(accountRef: string, domain: string): Promise<RegisterPaymentDomainResult> {
+    void accountRef;
+    this.paymentCalls.push({ method: "registerPaymentDomain", domain });
+    if (this.behavior === "provider_unavailable") {
+      return Promise.reject(new ProviderError("PROVIDER_UNAVAILABLE"));
+    }
+    if (!domain) return Promise.reject(new ProviderError("INVALID_REQUEST", "missing_input"));
+    if (this.domains.has(domain)) {
+      return Promise.resolve({ status: "already_registered" });
+    }
+    this.domains.add(domain);
+    return Promise.resolve({ status: "registered" });
   }
 
   async verifyWebhook(rawBody: string, signature: string, secret: string): Promise<ProviderEvent> {
@@ -177,6 +365,20 @@ export class FakePaymentProvider implements PaymentProvider {
         type: "provider_account.disconnected",
         id: e.id,
         accountRef: e.accountRef,
+        livemode: e.livemode,
+      };
+    }
+
+    if (PAYMENT_EVENT_TYPES.has(e.type)) {
+      if (!e.accountRef) throw new ProviderError("INVALID_EVENT", "missing_account");
+      const payload = e.payload as { id?: unknown } | null;
+      if (typeof payload?.id !== "string" || !payload.id.startsWith("pi_")) {
+        throw new ProviderError("INVALID_EVENT", "missing_payment_ref");
+      }
+      return {
+        type: "payment.updated",
+        accountRef: e.accountRef,
+        ref: payload.id,
         livemode: e.livemode,
       };
     }
@@ -227,7 +429,11 @@ export class FakePaymentProvider implements PaymentProvider {
   buildEvent(type: string, accountRef: string | null, options: { livemode?: boolean; object?: unknown } = {}): string {
     this.counter += 1;
     const object = options.object ??
-      (type === "account.updated" && accountRef ? this.accounts.get(accountRef) : { id: `obj_fake${this.counter}` });
+      (type === "account.updated" && accountRef
+        ? this.accounts.get(accountRef)
+        : PAYMENT_EVENT_TYPES.has(type)
+        ? { id: `pi_fake${String(this.counter).padStart(6, "0")}`, object: "payment_intent" }
+        : { id: `obj_fake${this.counter}` });
     return JSON.stringify({
       id: `evt_fake${String(this.counter).padStart(6, "0")}`,
       type,
