@@ -48,11 +48,15 @@ export interface OnboardingDeps {
   /** CORS/JSON-Helfer aus initService. */
   errorResponse: (status: number, code: string, message: string) => Response;
   corsHeaders: Record<string, string>;
+  /** z. B. omlify-dev.de — für registerPaymentDomain (F7). */
+  appBaseDomain: string;
 }
 
 export interface OnboardingCaller {
   tenantId: string;
   memberId: string;
+  /** Studio-Slug für Domain-Registrierung (F7 / C11). */
+  tenantSlug: string;
 }
 
 function jsonOk(body: Record<string, unknown>, corsHeaders: Record<string, string>): Response {
@@ -212,7 +216,9 @@ async function handleRefresh(
   caller: OnboardingCaller,
   deps: OnboardingDeps,
 ): Promise<Response> {
-  const { log, errorResponse, corsHeaders, store, provider } = deps;
+  const { log, errorResponse, corsHeaders, store, provider, appBaseDomain } = deps;
+
+  let refreshedState: ProviderAccountState | null = null;
 
   if (ctx.accountRef) {
     if (ctx.onboardingStatus === "disconnected") {
@@ -229,6 +235,8 @@ async function handleRefresh(
         return mapProviderHttp(err, errorResponse);
       }
 
+      refreshedState = state;
+
       let upsert: UpsertResult;
       try {
         upsert = await store.upsertAccount(caller.tenantId, provider.id, state);
@@ -240,6 +248,23 @@ async function handleRefresh(
         // ACCOUNT_DISCONNECTED o. ä.: trotzdem den Setup-Status liefern.
         log.warn("payments-onboarding", { result: upsert.code, action: "refresh" });
       }
+    }
+  }
+
+  // F7 / C11: Domain beim aktiven Studio-Konto registrieren (idempotent, best effort).
+  if (refreshedState?.status === "active" && refreshedState.ref && appBaseDomain.trim()) {
+    const domain = `${caller.tenantSlug}.${appBaseDomain.trim().toLowerCase()}`;
+    try {
+      const reg = await provider.registerPaymentDomain(refreshedState.ref, domain);
+      log.info("payments-onboarding", {
+        action: "refresh",
+        result: reg.status === "already_registered" ? "DOMAIN_ALREADY" : "DOMAIN_REGISTERED",
+      });
+    } catch (err) {
+      log.warn("payments-onboarding", {
+        action: "refresh",
+        result: err instanceof ProviderError ? err.code : "DOMAIN_FAILED",
+      });
     }
   }
 

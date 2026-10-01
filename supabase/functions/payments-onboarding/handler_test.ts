@@ -18,7 +18,9 @@ import {
 
 const TENANT = "00000000-0000-4000-8000-0000000013a1";
 const MEMBER = "00000000-0000-4000-8000-0000000013a2";
+const SLUG = "demoalpha";
 const CORS = { "Access-Control-Allow-Origin": "*" };
+const CALLER = { tenantId: TENANT, memberId: MEMBER, tenantSlug: SLUG };
 
 class MemoryStore implements OnboardingStore {
   ctx: OwnerPaymentContext = {
@@ -77,7 +79,9 @@ class MemoryStore implements OnboardingStore {
 class SpyProvider extends FakePaymentProvider {
   createCalls = 0;
   getCalls = 0;
+  domainCalls: string[] = [];
   unavailable = false;
+  domainFails = false;
 
   override createConnectedAccount(
     tenantId: string,
@@ -93,6 +97,12 @@ class SpyProvider extends FakePaymentProvider {
     this.getCalls += 1;
     if (this.unavailable) return Promise.reject(new ProviderError("PROVIDER_UNAVAILABLE"));
     return super.getAccountState(ref);
+  }
+
+  override registerPaymentDomain(accountRef: string, domain: string) {
+    this.domainCalls.push(domain);
+    if (this.domainFails) return Promise.reject(new ProviderError("PROVIDER_UNAVAILABLE"));
+    return super.registerPaymentDomain(accountRef, domain);
   }
 }
 
@@ -123,6 +133,7 @@ function setup() {
         headers: { ...CORS, "Content-Type": "application/json" },
       }),
     corsHeaders: CORS,
+    appBaseDomain: "omlify-dev.de",
   };
   return { provider, store, sessions, logLines, deps };
 }
@@ -147,7 +158,7 @@ function assertNoAcct(body: Record<string, unknown>) {
 Deno.test("Onboarding: Nicht-Owner → 403", async () => {
   const s = setup();
   s.store.ctx.isOwner = false;
-  const res = await handleOnboarding(post("start"), { tenantId: TENANT, memberId: MEMBER }, s.deps);
+  const res = await handleOnboarding(post("start"), CALLER, s.deps);
   assertEquals(res.status, 403);
   assertEquals((await readJson(res)).code, "FORBIDDEN");
   assertEquals(s.provider.createCalls, 0);
@@ -156,7 +167,7 @@ Deno.test("Onboarding: Nicht-Owner → 403", async () => {
 Deno.test("Onboarding: Plattform aus → 409 PLATFORM_DISABLED", async () => {
   const s = setup();
   s.store.ctx.platformEnabled = false;
-  const res = await handleOnboarding(post("start"), { tenantId: TENANT, memberId: MEMBER }, s.deps);
+  const res = await handleOnboarding(post("start"), CALLER, s.deps);
   assertEquals(res.status, 409);
   assertEquals((await readJson(res)).code, "PLATFORM_DISABLED");
   assertEquals(s.provider.createCalls, 0);
@@ -164,7 +175,7 @@ Deno.test("Onboarding: Plattform aus → 409 PLATFORM_DISABLED", async () => {
 
 Deno.test("Onboarding: erstes start legt Konto an und speichert es", async () => {
   const s = setup();
-  const res = await handleOnboarding(post("start"), { tenantId: TENANT, memberId: MEMBER }, s.deps);
+  const res = await handleOnboarding(post("start"), CALLER, s.deps);
   assertEquals(res.status, 200);
   const body = await readJson(res);
   assertEquals(typeof body.client_secret, "string");
@@ -183,13 +194,13 @@ Deno.test("Onboarding: erstes start legt Konto an und speichert es", async () =>
 
 Deno.test("Onboarding: zweites start legt kein neues Konto an", async () => {
   const s = setup();
-  assertEquals((await handleOnboarding(post("start"), { tenantId: TENANT, memberId: MEMBER }, s.deps)).status, 200);
+  assertEquals((await handleOnboarding(post("start"), CALLER, s.deps)).status, 200);
   const firstRef = s.store.ctx.accountRef;
   assert(firstRef !== null, "Konto-Referenz nach erstem start");
 
   // Kontext behält das Konto (wie get_owner_payment_context nach dem ersten Speichern).
   s.provider.createCalls = 0;
-  const res = await handleOnboarding(post("start"), { tenantId: TENANT, memberId: MEMBER }, s.deps);
+  const res = await handleOnboarding(post("start"), CALLER, s.deps);
   assertEquals(res.status, 200);
   assertEquals(s.provider.createCalls, 0, "kein zweites createConnectedAccount");
   assertEquals(s.store.upserts.length, 1);
@@ -206,7 +217,7 @@ Deno.test("Onboarding: disconnected → 409 ACCOUNT_DISCONNECTED", async () => {
     accountRef: "acct_fake_disconnected",
     onboardingStatus: "disconnected",
   };
-  const res = await handleOnboarding(post("start"), { tenantId: TENANT, memberId: MEMBER }, s.deps);
+  const res = await handleOnboarding(post("start"), CALLER, s.deps);
   assertEquals(res.status, 409);
   assertEquals((await readJson(res)).code, "ACCOUNT_DISCONNECTED");
   assertEquals(s.provider.createCalls, 0);
@@ -224,7 +235,7 @@ Deno.test("Onboarding: refresh speichert den nachgelesenen Stand", async () => {
   };
   s.provider.activateAccount(ref);
 
-  const res = await handleOnboarding(post("refresh"), { tenantId: TENANT, memberId: MEMBER }, s.deps);
+  const res = await handleOnboarding(post("refresh"), CALLER, s.deps);
   assertEquals(res.status, 200);
   const body = await readJson(res);
   assertEquals(body.success, true);
@@ -238,7 +249,7 @@ Deno.test("Onboarding: refresh speichert den nachgelesenen Stand", async () => {
 Deno.test("Onboarding: Speicherfehler nach Anlegen → 500", async () => {
   const s = setup();
   s.store.upsertThrows = true;
-  const res = await handleOnboarding(post("start"), { tenantId: TENANT, memberId: MEMBER }, s.deps);
+  const res = await handleOnboarding(post("start"), CALLER, s.deps);
   assertEquals(res.status, 500);
   assertEquals((await readJson(res)).code, "DB_ERROR");
   assertEquals(s.provider.createCalls, 1);
@@ -248,20 +259,40 @@ Deno.test("Onboarding: Speicherfehler nach Anlegen → 500", async () => {
 Deno.test("Onboarding: PROVIDER_UNAVAILABLE → 503", async () => {
   const s = setup();
   s.provider.unavailable = true;
-  const res = await handleOnboarding(post("start"), { tenantId: TENANT, memberId: MEMBER }, s.deps);
+  const res = await handleOnboarding(post("start"), CALLER, s.deps);
   assertEquals(res.status, 503);
   assertEquals((await readJson(res)).code, "PROVIDER_UNAVAILABLE");
 });
 
 Deno.test("Onboarding: Antwort enthält nie acct_", async () => {
   const s = setup();
-  const start = await handleOnboarding(post("start"), { tenantId: TENANT, memberId: MEMBER }, s.deps);
+  const start = await handleOnboarding(post("start"), CALLER, s.deps);
   assertNoAcct(await readJson(start));
 
   s.provider.activateAccount(s.store.ctx.accountRef!);
-  const refresh = await handleOnboarding(post("refresh"), { tenantId: TENANT, memberId: MEMBER }, s.deps);
+  const refresh = await handleOnboarding(post("refresh"), CALLER, s.deps);
   assertNoAcct(await readJson(refresh));
 
   const all = s.logLines.join("\n");
   assert(!/\bacct_[A-Za-z0-9_]+\b/.test(all), "Log enthält acct_");
+});
+
+Deno.test("Onboarding: refresh mit aktivem Konto → registerPaymentDomain", async () => {
+  const s = setup();
+  assertEquals((await handleOnboarding(post("start"), CALLER, s.deps)).status, 200);
+  s.provider.activateAccount(s.store.ctx.accountRef!);
+  const res = await handleOnboarding(post("refresh"), CALLER, s.deps);
+  assertEquals(res.status, 200);
+  assertEquals(s.provider.domainCalls, ["demoalpha.omlify-dev.de"]);
+});
+
+Deno.test("Onboarding: Domain-Fehler bricht refresh nicht ab", async () => {
+  const s = setup();
+  assertEquals((await handleOnboarding(post("start"), CALLER, s.deps)).status, 200);
+  s.provider.activateAccount(s.store.ctx.accountRef!);
+  s.provider.domainFails = true;
+  const res = await handleOnboarding(post("refresh"), CALLER, s.deps);
+  assertEquals(res.status, 200);
+  assertEquals((await readJson(res)).success, true);
+  assertEquals(s.provider.domainCalls.length, 1);
 });

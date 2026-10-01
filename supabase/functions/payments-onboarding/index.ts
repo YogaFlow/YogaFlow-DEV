@@ -54,6 +54,7 @@ Deno.serve(async (req: Request) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const appBaseDomain = Deno.env.get("APP_BASE_DOMAIN")?.trim() ?? "";
     if (!supabaseUrl || !serviceKey) {
       log.error("payments-onboarding", { result: "CONFIG_ERROR" });
       return errorResponse(500, "CONFIG_ERROR", "Dienst nicht konfiguriert");
@@ -76,7 +77,7 @@ Deno.serve(async (req: Request) => {
 
     return await handleOnboarding(
       req,
-      { tenantId: memberRow.tenant_id, memberId: memberRow.id },
+      { tenantId: memberRow.tenant_id, memberId: memberRow.id, tenantSlug },
       {
         provider,
         store: createOnboardingStore(serviceClient, supabase),
@@ -88,6 +89,7 @@ Deno.serve(async (req: Request) => {
         log,
         errorResponse,
         corsHeaders,
+        appBaseDomain,
       },
     );
   } catch (cause) {
