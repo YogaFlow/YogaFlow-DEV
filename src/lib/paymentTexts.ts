@@ -1,0 +1,88 @@
+/** Zentrale Texte für Online-Zahlung (2.2b). */
+
+export const PAYMENT_SHEET_TITLE = 'Online bezahlen';
+
+export const PAY_NOW_LABEL = 'Jetzt bezahlen';
+
+export const ONLINE_REQUIRED_HINT = 'Online-Zahlung erforderlich';
+
+export const REGISTER_AND_PAY_LABEL = 'Anmelden und bezahlen';
+
+/** `formattedAmount` z. B. aus formatCents — „24,00 € bezahlen“. */
+export function payAmountLabel(formattedAmount: string): string {
+  const amount = formattedAmount.trim();
+  return amount ? `${amount} bezahlen` : 'Bezahlen';
+}
+
+export function paymentSecureHint(studioName: string): string {
+  const name = studioName.trim() || 'dein Studio';
+  return `Sichere Zahlung über Stripe. Das Geld geht direkt an ${name}.`;
+}
+
+export function paymentHoldHint(timeHm: string, minutesLeft: number): string {
+  const n = Math.max(0, Math.floor(minutesLeft));
+  return `Dein Platz ist bis ${timeHm} Uhr reserviert (noch ${n} Min.).`;
+}
+
+export const PAYMENT_PROCESSING = 'Zahlung wird geprüft …';
+
+export const PAYMENT_PROCESSING_TIMEOUT =
+  'Wir melden uns per E-Mail, sobald die Zahlung bestätigt ist';
+
+export const PAYMENT_SUCCESS =
+  'Bezahlt – dein Platz ist sicher. Eine Bestätigung kommt per E-Mail.';
+
+export const PAYMENT_REFUND_REQUIRED =
+  'Zahlung eingegangen, aber der Platz war inzwischen vergeben. Du bekommst den Betrag automatisch zurück.';
+
+export const PAYMENT_HOLD_EXPIRED =
+  'Die Reservierung ist abgelaufen. Der Platz ist wieder frei – melde dich neu an, falls noch Plätze da sind.';
+
+export const PAYMENT_CARD_DECLINED =
+  'Die Zahlung wurde abgelehnt. Bitte prüfe die Angaben oder nimm eine andere Karte.';
+
+export const PAYMENT_AUTH_FAILED =
+  'Die Bestätigung bei deiner Bank hat nicht geklappt. Bitte versuch es noch einmal.';
+
+export const PAYMENT_PROVIDER_UNAVAILABLE =
+  'Der Zahlungsdienst ist gerade nicht erreichbar. Bitte versuch es gleich noch einmal.';
+
+export const PAYMENT_ONLINE_DISABLED =
+  'Online-Zahlung ist bei diesem Studio gerade nicht möglich. Bitte wende dich an das Studio.';
+
+export const PAYMENT_NOT_PENDING =
+  'Für diese Anmeldung ist keine Zahlung mehr offen.';
+
+export const PAYMENT_GENERIC_ERROR =
+  'Das hat nicht geklappt. Bitte lade die Seite neu.';
+
+/** Text zu Browser-/Geschäftscode (prepare/confirm/status). */
+export function paymentMessageForCode(code: string | null | undefined): string {
+  switch (code) {
+    case 'COMPLETED':
+    case 'ALREADY_COMPLETED':
+    case 'RESTORED':
+      return PAYMENT_SUCCESS;
+    case 'REFUND_REQUIRED':
+      return PAYMENT_REFUND_REQUIRED;
+    case 'HOLD_EXPIRED':
+      return PAYMENT_HOLD_EXPIRED;
+    case 'CARD_DECLINED':
+      return PAYMENT_CARD_DECLINED;
+    case 'AUTHENTICATION_REQUIRED':
+      return PAYMENT_AUTH_FAILED;
+    case 'PROVIDER_UNAVAILABLE':
+      return PAYMENT_PROVIDER_UNAVAILABLE;
+    case 'ONLINE_DISABLED':
+      return PAYMENT_ONLINE_DISABLED;
+    case 'NOT_PENDING':
+      return PAYMENT_NOT_PENDING;
+    case 'PROCESSING_TIMEOUT':
+      return PAYMENT_PROCESSING_TIMEOUT;
+    case 'FORBIDDEN':
+    case 'INVALID_REQUEST':
+      return PAYMENT_GENERIC_ERROR;
+    default:
+      return PAYMENT_GENERIC_ERROR;
+  }
+}
