@@ -453,7 +453,13 @@ async function main() {
       p_livemode: false,
     });
     ok('U COMPLETED', doneU.data?.code === 'COMPLETED', JSON.stringify(doneU.data));
-    await admin2.rpc('process_ledger', { p_limit: 50 });
+    const ledU = await admin2.rpc('process_ledger', { p_limit: 50 });
+    if (ledU.error) abbruch('process_ledger U: ' + ledU.error.message);
+    ok(
+      'process_ledger U failed 0',
+      ledU.data?.failed === 0 || ledU.data?.failed == null,
+      JSON.stringify(ledU.data),
+    );
     const { data: entU } = await admin2
       .from('ledger_entries')
       .select('account, debit_cents, credit_cents')
@@ -461,6 +467,9 @@ async function main() {
     const psp = entU?.find((e) => e.account === 'psp_clearing');
     const rev = entU?.find((e) => e.account === 'revenue_standard');
     const vat = entU?.find((e) => e.account === 'vat_output');
+    const sollU = (entU || []).reduce((s, r) => s + (r.debit_cents || 0), 0);
+    const habenU = (entU || []).reduce((s, r) => s + (r.credit_cents || 0), 0);
+    ok('U Soll=Haben', sollU === habenU && sollU === 2400, JSON.stringify(entU));
     ok(
       '2400 / 2017 / 383',
       psp?.debit_cents === 2400 && rev?.credit_cents === 2017 && vat?.credit_cents === 383,
@@ -772,12 +781,21 @@ async function main() {
     });
     ok('ALREADY_REFUNDED', refunded2.data?.code === 'ALREADY_REFUNDED');
 
-    await admin.rpc('process_ledger', { p_limit: 100 });
+    const ledRefund = await admin.rpc('process_ledger', { p_limit: 100 });
+    if (ledRefund.error) abbruch('process_ledger Erstattung: ' + ledRefund.error.message);
+    ok(
+      'process_ledger Erstattung failed 0',
+      ledRefund.data?.failed === 0 || ledRefund.data?.failed == null,
+      JSON.stringify(ledRefund.data),
+    );
     const { data: revEntries } = await admin
       .from('ledger_entries')
       .select('account, debit_cents, credit_cents')
       .eq('payment_id', refunded.data.payment_id);
     const back = revEntries?.find((e) => e.account === 'psp_clearing');
+    const sollRe = (revEntries || []).reduce((s, r) => s + (r.debit_cents || 0), 0);
+    const habenRe = (revEntries || []).reduce((s, r) => s + (r.credit_cents || 0), 0);
+    ok('Erstattung Soll=Haben', sollRe === habenRe && sollRe > 0, JSON.stringify(revEntries));
     ok(
       'Hauptbuch Erstattung psp_clearing zurück',
       back?.credit_cents === 2400 && back?.debit_cents === 0,

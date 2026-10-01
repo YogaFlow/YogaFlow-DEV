@@ -20,6 +20,8 @@ const SLUG = 's13asmoke';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 let stripeAccountsCreated = 0;
+/** @type {boolean | null} */
+let platformWas = null;
 
 function ladeEnv(datei) {
   const out = {};
@@ -113,6 +115,16 @@ async function plattform(admin, enabled) {
   if (error || !data?.success) abbruch('set_platform_flag: ' + (error?.message || JSON.stringify(data)));
 }
 
+async function plattformStand(admin) {
+  const { data, error } = await admin
+    .from('platform_flags')
+    .select('enabled')
+    .eq('key', 'online_payments')
+    .single();
+  if (error) abbruch('platform_flags lesen: ' + error.message);
+  return Boolean(data.enabled);
+}
+
 async function nutzerAnlegen(admin, { email, vorname, nachname, rolle, tenantId, password }) {
   const { data, error } = await admin.auth.admin.createUser({
     email,
@@ -182,6 +194,7 @@ async function main() {
 
   const password = seedPasswort();
   const admin = clientMitTenant(url, service, SLUG);
+  platformWas = await plattformStand(admin);
   await resteEntfernen(admin);
   await plattform(admin, true);
 
@@ -317,7 +330,7 @@ main()
       const env = ladeEnv('.env');
       const admin = clientMitTenant(env.VITE_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, SLUG);
       await resteEntfernen(admin);
-      await plattform(admin, false);
+      if (platformWas !== null) await plattform(admin, platformWas);
     } catch (e) {
       console.error(e.message || e);
       process.exitCode = 1;

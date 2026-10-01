@@ -4,7 +4,7 @@
  *
  * Nicht ausführen, bevor 20260928231500_s1_3a_onboarding.sql auf DEV liegt.
  * Gegen PROD nie. Studio s13atest, am Ende delete_tenant_complete und
- * Plattform-Schalter online_payments auf false.
+ * Plattform-Schalter online_payments auf den Ausgangswert zurück.
  *
  * Verwendung: node scripts/test/s1_3a_onboarding_schema.mjs
  */
@@ -16,6 +16,9 @@ import { createClient } from '@supabase/supabase-js';
 
 const ERLAUBTE_REF = 'mufxhtctutfpzklwqnze';
 const SLUG = 's13atest';
+
+/** @type {boolean | null} */
+let platformWas = null;
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -105,6 +108,16 @@ async function plattform(admin, enabled) {
   if (error || !data?.success) abbruch('set_platform_flag: ' + (error?.message || JSON.stringify(data)));
 }
 
+async function plattformStand(admin) {
+  const { data, error } = await admin
+    .from('platform_flags')
+    .select('enabled')
+    .eq('key', 'online_payments')
+    .single();
+  if (error) abbruch('platform_flags lesen: ' + error.message);
+  return Boolean(data.enabled);
+}
+
 async function nutzerAnlegen(admin, { email, vorname, nachname, rolle, tenantId, password }) {
   const { data, error } = await admin.auth.admin.createUser({
     email,
@@ -150,6 +163,7 @@ async function main() {
 
   const password = seedPasswort();
   const admin = clientMitTenant(url, service, SLUG);
+  platformWas = await plattformStand(admin);
   await resteEntfernen(admin);
   await plattform(admin, false);
 
@@ -285,7 +299,7 @@ main()
       const env = ladeEnv();
       const admin = clientMitTenant(env.VITE_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, SLUG);
       await resteEntfernen(admin);
-      await plattform(admin, false);
+      if (platformWas !== null) await plattform(admin, platformWas);
     } catch (e) {
       console.error(e.message || e);
       process.exitCode = 1;

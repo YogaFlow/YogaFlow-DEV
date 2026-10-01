@@ -5,7 +5,7 @@
  * Nicht ausführen, bevor 20260928203500_s1_2a_provider_schema.sql auf DEV liegt.
  * Gegen PROD nie. Studios `s12atest` und `s12afremd`, am Ende
  * delete_tenant_complete und auth.admin.deleteUser für beide.
- * Setzt den Plattform-Schalter online_payments am Ende auf false zurück.
+ * Setzt den Plattform-Schalter online_payments am Ende auf den Ausgangswert zurück.
  *
  * Verwendung: node scripts/test/s1_2a_provider_schema.mjs
  */
@@ -138,6 +138,16 @@ async function plattform(admin, enabled) {
   return data;
 }
 
+async function plattformStand(admin) {
+  const { data, error } = await admin
+    .from('platform_flags')
+    .select('enabled')
+    .eq('key', 'online_payments')
+    .single();
+  if (error) abbruch('platform_flags lesen: ' + error.message);
+  return Boolean(data.enabled);
+}
+
 async function nutzerAnlegen(admin, { email, vorname, nachname, rolle, tenantId, password }) {
   const { data, error } = await admin.auth.admin.createUser({
     email,
@@ -235,6 +245,7 @@ async function main() {
 
   const password = seedPasswort();
   const admin = clientMitTenant(url, service, SLUG);
+  const platformWas = await plattformStand(admin);
   await resteEntfernen(admin);
   await plattform(admin, false);
 
@@ -743,7 +754,7 @@ async function main() {
 
     console.log('\n  S1 1.2a Provider-Schema: alle Fälle grün.\n');
   } finally {
-    await plattform(admin, false);
+    await plattform(admin, platformWas);
     await resteEntfernen(admin);
   }
 }

@@ -234,6 +234,36 @@ async function zeilen(admin, tenantId, paymentId = null) {
   return data || [];
 }
 
+/** Globales process_ledger-Ergebnis: nur failed prüfen (fremde Studios können mitbuchen). */
+function okJobFailedNull(jobResult, label = 'process_ledger failed 0') {
+  ok(label, (jobResult?.failed ?? 0) === 0, JSON.stringify(jobResult));
+}
+
+function okSollHaben(rows, label) {
+  const soll = rows.reduce((s, r) => s + (r.debit_cents || 0), 0);
+  const haben = rows.reduce((s, r) => s + (r.credit_cents || 0), 0);
+  ok(label + ' Soll=Haben', soll === haben && soll > 0, `Soll ${soll} Haben ${haben}`);
+}
+
+/** Zeilenzahl je event_id für ein Studio (Idempotenz). */
+async function zeilenJeEvent(admin, tenantId) {
+  const rows = await zeilen(admin, tenantId);
+  const map = {};
+  for (const r of rows) {
+    const key = r.event_id || '(null)';
+    map[key] = (map[key] || 0) + 1;
+  }
+  return map;
+}
+
+function mapsEqual(a, b) {
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  for (const k of keys) {
+    if ((a[k] || 0) !== (b[k] || 0)) return false;
+  }
+  return true;
+}
+
 function zeile(rows, account) {
   return rows.find((r) => r.account === account) || null;
 }
@@ -408,9 +438,8 @@ async function main() {
 
   console.log('\n1) Ohne Steuerstatus → Job wählt Studio nicht');
   const j1 = await job(admin);
-  ok('booked 0', j1?.booked === 0, JSON.stringify(j1));
-  ok('waiting 0 (nicht angewählt)', j1?.waiting === 0, JSON.stringify(j1));
-  ok('keine Zeilen', (await zeilen(admin, tenant.id)).length === 0);
+  okJobFailedNull(j1);
+  ok('keine Zeilen (eigenes Studio)', (await zeilen(admin, tenant.id)).length === 0);
 
   console.log('\n2) BEFORE_FIRST_PAYMENT + Admin FORBIDDEN + Owner setzt Status');
   const { data: beforeFirst } = await asOwner.rpc('set_tax_setting', {
@@ -452,9 +481,10 @@ async function main() {
   console.log('\n3) Barzahlung buchen + Verhungern verhindern');
   // Rechenweg: 1800 × 10000 / 11900 = 1512,605… → 1513; USt 1800 − 1513 = 287
   const j2 = await job(admin);
-  ok('booked ≥ 1', (j2?.booked ?? 0) >= 1, JSON.stringify(j2));
+  okJobFailedNull(j2);
   const rowsCash = await zeilen(admin, tenant.id, payCash1.payment_id);
   ok('3 Zeilen Bar', rowsCash.length === 3, JSON.stringify(rowsCash));
+  okSollHaben(rowsCash, 'Bar');
   ok('cash Soll 1800', zeile(rowsCash, 'cash')?.debit_cents === 1800 && zeile(rowsCash, 'cash')?.credit_cents === 0);
   ok(
     'revenue_standard Haben 1513',
@@ -540,9 +570,10 @@ async function main() {
   const regB = await buchung(admin, kursB, userB.id);
   const payB = await vermerk(asOwner, regB.id, 'cash');
   const jStarve = await job(admin, 2);
-  ok('Verhungern: B gebucht', (jStarve?.booked ?? 0) >= 1, JSON.stringify(jStarve));
+  okJobFailedNull(jStarve, 'Verhungern: failed 0');
   const rowsB = await zeilen(admin, tenant.id, payB.payment_id);
   ok('Studio B hat Zeilen trotz Limit 2', rowsB.length === 3, JSON.stringify(rowsB));
+  okSollHaben(rowsB, 'Verhungern B');
   ok('Starve-Studio weiterhin 0 Zeilen', (await zeilen(adminStv, tenantStv.id)).length === 0);
 
   console.log('\n4) Kartenverkauf 150 € bar');
@@ -564,9 +595,11 @@ async function main() {
 
   const beforePassLines = (await zeilen(admin, tenant.id)).length;
   const j3 = await job(admin);
-  ok('Karte gebucht', (j3?.booked ?? 0) >= 1, JSON.stringify(j3));
+  okJobFailedNull(j3, 'Karte: failed 0');
   const rowsPass = await zeilen(admin, tenant.id, sell.payment_id);
   // 15000 × 10000 / 11900 = 12605,042… → 12605; USt 2395
+  ok('3 Zeilen Karte', rowsPass.length === 3, JSON.stringify(rowsPass));
+  okSollHaben(rowsPass, 'Karte');
   ok('cash 15000', zeile(rowsPass, 'cash')?.debit_cents === 15000);
   ok('revenue_standard 12605', zeile(rowsPass, 'revenue_standard')?.credit_cents === 12605);
   ok('vat_output 2395', zeile(rowsPass, 'vat_output')?.credit_cents === 2395);
@@ -595,11 +628,14 @@ async function main() {
   await anmelden(asC, kursBank);
   const regBank = await buchung(admin, kursBank, userC.id);
   const payBank = await vermerk(asOwner, regBank.id, 'bank_transfer');
-  await job(admin);
+  const jPpBank = await job(admin);
+  okJobFailedNull(jPpBank, 'PayPal/Überweisung: failed 0');
   const rowsPp = await zeilen(admin, tenant.id, payPp.payment_id);
   const rowsBank = await zeilen(admin, tenant.id, payBank.payment_id);
   ok('paypal_clearing', Boolean(zeile(rowsPp, 'paypal_clearing')));
+  okSollHaben(rowsPp, 'PayPal');
   ok('bank', Boolean(zeile(rowsBank, 'bank')));
+  okSollHaben(rowsBank, 'Überweisung');
 
   console.log('\n6) Einlösung, Erlass, Korrektur → keine Zeilen');
   const linesBeforeSide = (await zeilen(admin, tenant.id)).length;
@@ -626,8 +662,8 @@ async function main() {
   ok('Korrektur ok', adj?.success === true, JSON.stringify(adj));
 
   const jSide = await job(admin);
-  ok('keine Side-Buchungen', (jSide?.booked ?? 0) === 0, JSON.stringify(jSide));
-  ok('Zeilenzahl unverändert', (await zeilen(admin, tenant.id)).length === linesBeforeSide);
+  okJobFailedNull(jSide, 'Side: failed 0');
+  ok('Zeilenzahl unverändert (keine Side-Buchungen)', (await zeilen(admin, tenant.id)).length === linesBeforeSide);
 
   const { data: sideEvents } = await admin
     .from('events')
@@ -643,17 +679,24 @@ async function main() {
   }
 
   console.log('\n7) Idempotenz');
-  const countBefore = (await zeilen(admin, tenant.id)).length;
+  const countsBefore = await zeilenJeEvent(admin, tenant.id);
   const jIdem = await job(admin);
-  ok('zweite Lauf booked 0', jIdem?.booked === 0, JSON.stringify(jIdem));
-  ok('Zeilen gleich', (await zeilen(admin, tenant.id)).length === countBefore);
+  okJobFailedNull(jIdem, 'Idempotenz: failed 0');
+  const countsAfter = await zeilenJeEvent(admin, tenant.id);
+  ok(
+    'eigene Ereignisse: keine zusätzlichen Zeilen je event_id',
+    mapsEqual(countsBefore, countsAfter),
+    JSON.stringify({ before: countsBefore, after: countsAfter }),
+  );
 
   console.log('\n8) Storno spiegelt');
   const rev = await ruecknahme(asOwner, payCash1.payment_id);
   ok('Rücknahme', rev?.success === true, JSON.stringify(rev));
-  await job(admin);
+  const jRev = await job(admin);
+  okJobFailedNull(jRev, 'Storno: failed 0');
   const rowsRev = await zeilen(admin, tenant.id, rev.payment_id);
   ok('Storno 3 Zeilen', rowsRev.length === 3);
+  okSollHaben(rowsRev, 'Storno');
   ok('Storno cash Haben 1800', zeile(rowsRev, 'cash')?.credit_cents === 1800);
   ok('Storno revenue Soll 1513', zeile(rowsRev, 'revenue_standard')?.debit_cents === 1513);
   ok('Storno vat Soll 287', zeile(rowsRev, 'vat_output')?.debit_cents === 287);
@@ -683,8 +726,10 @@ async function main() {
   await anmelden(asA, kurs2);
   const reg2 = await buchung(admin, kurs2, userA.id);
   const pay2 = await vermerk(asOwner, reg2.id, 'cash');
-  await job(admin);
+  const jPay2 = await job(admin);
+  okJobFailedNull(jPay2, 'Zahlung vor Wechsel: failed 0');
   const rowsPay2 = await zeilen(admin, tenant.id, pay2.payment_id);
+  okSollHaben(rowsPay2, 'Zahlung vor Wechsel');
   ok('Zahlung vor Wechsel 19 %', zeile(rowsPay2, 'vat_output')?.credit_cents === 287);
 
   const { data: tooEarly } = await asOwner.rpc('set_tax_setting', {
@@ -707,8 +752,10 @@ async function main() {
 
   const rev2 = await ruecknahme(asOwner, pay2.payment_id);
   ok('Storno nach Wechsel', rev2?.success === true, JSON.stringify(rev2));
-  await job(admin);
+  const jRev2 = await job(admin);
+  okJobFailedNull(jRev2, 'Storno nach Wechsel: failed 0');
   const rowsRev2 = await zeilen(admin, tenant.id, rev2.payment_id);
+  okSollHaben(rowsRev2, 'Storno nach Wechsel');
   ok(
     'Storno spiegelt 19 %',
     rowsRev2.every((r) => r.tax_regime === 'regular' && r.vat_rate_bp === 1900)
@@ -777,9 +824,11 @@ async function main() {
   await anmelden(asUserKu, kursKu);
   const regKu = await buchung(adminKu, kursKu, userKu.id);
   const payKu = await vermerk(asOwnerKu, regKu.id, 'cash');
-  await job(adminKu);
+  const jKu = await job(adminKu);
+  okJobFailedNull(jKu, 'KU: failed 0');
   const rowsKu = await zeilen(adminKu, tenantKu.id, payKu.payment_id);
   ok('KU 2 Zeilen', rowsKu.length === 2, JSON.stringify(rowsKu));
+  okSollHaben(rowsKu, 'KU');
   ok('KU cash 1800', zeile(rowsKu, 'cash')?.debit_cents === 1800);
   ok(
     'KU revenue_small_business 1800',

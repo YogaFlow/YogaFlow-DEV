@@ -289,8 +289,36 @@ async function main() {
   });
   if (taxErr || !tax?.success) abbruch('Steuerstatus: ' + (taxErr?.message || JSON.stringify(tax)));
 
-  const booked = await job(admin);
-  ok('Job bucht', (booked?.booked ?? 0) >= 1, JSON.stringify(booked));
+  const jobResult = await job(admin);
+  ok(
+    'process_ledger failed 0',
+    (jobResult?.failed ?? 0) === 0,
+    JSON.stringify(jobResult),
+  );
+
+  const { data: ownEntries, error: ownErr } = await admin
+    .from('ledger_entries')
+    .select('account, debit_cents, credit_cents, payment_id')
+    .eq('tenant_id', tenant.id)
+    .eq('payment_id', pay.payment_id);
+  if (ownErr) abbruch('ledger_entries: ' + ownErr.message);
+  const sollSum = (ownEntries || []).reduce((s, r) => s + (r.debit_cents || 0), 0);
+  const habenSum = (ownEntries || []).reduce((s, r) => s + (r.credit_cents || 0), 0);
+  ok(
+    'eigene Zahlung gebucht (Soll=Haben)',
+    (ownEntries || []).length >= 2 && sollSum === habenSum && sollSum === 1800,
+    JSON.stringify(ownEntries),
+  );
+  ok(
+    'cash Soll 1800',
+    (ownEntries || []).some((r) => r.account === 'cash' && r.debit_cents === 1800),
+  );
+  ok(
+    'revenue_small_business Haben 1800',
+    (ownEntries || []).some(
+      (r) => r.account === 'revenue_small_business' && r.credit_cents === 1800,
+    ),
+  );
 
   console.log('\n1) Owner und Admin bekommen Zeilen');
   const { data: ownerRows, error: ownerErr } = await asOwner.rpc('export_ledger', {
