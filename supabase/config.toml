@@ -56,3 +56,8 @@ verify_jwt = false
 # Gateway-JWT wäre unsinnig (pg_net hat kein Nutzer-JWT).
 [functions.dispatch-emails]
 verify_jwt = false
+
+# payments-jobs (2.2a-4b): Aufruf nur mit Authorization Bearer = PROVIDER_JOBS_SECRET
+# (Vault provider_jobs_secret / Cron pg_net). Gateway-JWT wäre unsinnig.
+[functions.payments-jobs]
+verify_jwt = false
