@@ -65,18 +65,16 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 - [x] **`provider_customers`.** Entscheidung 09 C6: nicht bauen (überholt P5).
 - [ ] **`acct_…`-Regel (C12).** `prepare_online_payment` liefert `account_ref` an
       `service_role`; Client weiterhin ohne `acct_…`. Edge Function 2.2a-2 muss das so halten.
-- [ ] **`pk_test_`-Prüfung nur im Dev-Modus.** `OnlinePaymentSection` prüft den Prefix nur bei
-      `import.meta.env.DEV`. Ein Production-Build (auch `omlify-dev.de`) akzeptiert jeden
-      gesetzten `VITE_STRIPE_PUBLISHABLE_KEY`. In **2.2** den Key im Build gegen
-      `PAYMENTS_MODE` absichern (test → `pk_test_`, live → `pk_live_`).
+- [x] **`pk_test_`-Prüfung nur im Dev-Modus.** Erledigt 2.2b-1: `VITE_PAYMENTS_MODE` +
+      `paymentsClientConfig()` in jedem Build (test↔`pk_test_`, live↔`pk_live_`).
 - [ ] **S6g — doppelte Zustellung möglich.** Stürzt `dispatch-emails` nach dem SMTP-Versand,
       aber vor `mark_email_delivery(..., sent)` ab, kann dieselbe Aufforderung erneut
       rausgehen („mindestens einmal“). Bewusst akzeptiert; kein Idempotenz-Token beim
       SMTP-Versand.
-- [ ] **Bezahlen-Knopf für `pending_payment` → 2.2b.** In 2.1b-b bewusst nicht gebaut (S7).
-- [ ] **Apple Pay im Web (Domain-Verifizierung).** Prüfen, ob Stripe für Direct-Charge-Konten
-      eine Datei unter `/.well-known/` verlangt; falls ja, liefert sie der Worker für jede
-      Subdomain aus (C11 / `registerPaymentDomain`).
+- [x] **Bezahlen-Knopf für `pending_payment` → 2.2b.** Gebaut in 2.2b-1 (Logik); Gestaltung 2.2b-2.
+- [ ] **Freiwillig online bezahlen ohne Online-Pflicht.** Später; heute nur bei Pflicht bzw. pending.
+- [ ] **Apple Pay im Web (Domain-Verifizierung).** Stripe Payment Method Domains (C11) deckt
+      Direct Charges ab; eigene `/.well-known/`-Datei laut Doku nicht nötig. Beobachten.
 
 ## Stripe (Story 1.2a und folgende)
 

@@ -73,7 +73,8 @@ Datenbank, mit der zuletzt verlinkt wurde, und dieser Zustand lag unsichtbar in 
 |----------|--------------|
 | `VITE_SUPABASE_URL` | Supabase-Projekt-URL (z.B. `https://xxxx.supabase.co`) |
 | `VITE_SUPABASE_ANON_KEY` | Öffentlicher Anon-Key (für Browser/Frontend) |
-| `VITE_STRIPE_PUBLISHABLE_KEY` | Stripe Publishable Key für Embedded Onboarding (1.3b). Lokal und in den Cloudflare-Build-Variablen für **DEV**: `pk_test_…`. Für **PROD vorerst nicht setzen** (erst beim Einschalten: `pk_live_…`). Fehlt der Key, bleibt der Abschnitt Online-Zahlung unsichtbar. Die Client-Prüfung „muss mit `pk_test_` beginnen“ gilt nur im Vite-Dev-Modus (`import.meta.env.DEV`); im Production-Build (auch `omlify-dev.de`) greift sie nicht — Absicherung gegen `PAYMENTS_MODE` folgt in 2.2. |
+| `VITE_STRIPE_PUBLISHABLE_KEY` | Stripe Publishable Key. Lokal und Cloudflare-DEV: `pk_test_…`. PROD vorerst leer (erst mit `pk_live_…` beim Einschalten). |
+| `VITE_PAYMENTS_MODE` | `test` oder `live`. Muss zum Key passen (`pk_test_` / `pk_live_`), sonst sind Bezahlen und Owner-Abschnitt Online-Zahlung ausgeblendet (`paymentsClientConfig`). **DEV / omlify-dev:** `test`. **PROD vorerst leer** → Bezahlen aus. |
 
 Weitere Supabase-Keys (z.B. Service Role Key) werden nur serverseitig (Supabase Edge Functions, Skripte) genutzt und gehören **nicht** in die Frontend-Env-Variablen.
 

@@ -1017,4 +1017,24 @@ Story 2.2a-1: Schema und RPCs für Direct-Charge-Abschluss (ohne Stripe-API / Ed
 - **payment_succeeded** — Betreff: „Zahlung eingegangen – dein Platz ist sicher“. Text: „Deine Zahlung über {Betrag} für „{Kurs}“ am {Datum} um {Uhrzeit} ist eingegangen. Dein Platz ist gebucht.“ Knopf „Meine Anmeldungen“.
 - **payment_refunded** — Betreff: „Zahlung erstattet“. Text: „Wir haben dir {Betrag} für „{Kurs}“ am {Datum} erstattet.“ Bei bekanntem Grund `REFUND_REQUIRED` davor: „Dein Platz war leider inzwischen vergeben.“ Danach: „Je nach Bank dauert die Gutschrift einige Werktage.“
 - Beträge deutsch (`24,00 €`), Zeiten Europe/Berlin. Studioname/Branding wie Nachrücker-Mail. Keine Kartendaten, keine `pi_…`.
+
+### Story 2.2b — Bezahlformular (01.10.2026), Z1–Z13
+
+| # | Frage | Entscheidung |
+|---|---|---|
+| Z1 | Form | Sheet über der Seite (mobil von unten, Desktop mittig), Muster `PassBookChoiceDialog`. Keine eigene Route. |
+| Z2 | Nach dem Buchen | Bei `pending_payment` öffnet sich das Sheet sofort. Nie „Erfolgreich angemeldet.“ Client-Typ um `status`, `registration_id`, `hold_expires_at` (RPC liefert sie schon). |
+| Z3 | Knopf „Jetzt bezahlen“ | Primär in Meine Anmeldungen und Kursdetail; Kursliste/Dashboard nur Status. |
+| Z4 | Ablauf im Sheet | prepare → loadStripe(pk, { stripeAccount }) → Payment Element deferred → Confirmation Token → confirm → ggf. handleNextAction → status. |
+| Z5 | 3-D-Secure-Rückkehr | `attempt_id` in sessionStorage je Buchung; `/my-registrations?payment=return` ruft status. |
+| Z6 | processing | Poll alle 3 s, max. 60 s; danach Timeout-Text, Sheet schließbar. |
+| Z7 | Frist im Sheet | Text mit Uhrzeit und Restminuten; nach Ablauf HOLD_EXPIRED, Knopf gesperrt. |
+| Z8 | Schlüssel-Sperre | `VITE_PAYMENTS_MODE` (test/live) + Key müssen passen; sonst ausgeblendet. Zentral `paymentsClientConfig()`. |
+| Z9 | Grenze | `@stripe/stripe-js` / `@stripe/react-stripe-js` nur in `StripePaymentForm.tsx`; Boundary-Ausnahme. |
+| Z10 | C8 bei Online-Pflicht + Karte | „Mit deiner Karte …“ oder „Online bezahlen“; „Vor Ort“ entfällt. |
+| Z11 | Doppelklick | busy sperrt Knopf und Schließen während confirm/handleNextAction. |
+| Z12 | Owner-Anzeige | `method = card` → „online“ (Umsetzung 2.2b-2). |
+| Z13 | RPC | `public.booking_payment_options()` → nur `{ online_required }`; Migration `20261001120000`. |
+
+**Texte:** `src/lib/paymentTexts.ts` (Titel „Online bezahlen“, Betragsknopf, Stripe-Hinweis, Codes inkl. REFUND_REQUIRED / HOLD_EXPIRED / …).
 |
