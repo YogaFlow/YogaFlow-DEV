@@ -955,4 +955,17 @@ Story 2.2a-1: Schema und RPCs für Direct-Charge-Abschluss (ohne Stripe-API / Ed
 | C10 | Vor Bestätigen | Function prüft die Reservierung serverseitig (`check_before_confirm`). |
 | C11 | Subdomain | Wird automatisch beim Studio-Konto registriert, sobald es aktiv ist; umgesetzt in 2.2a-3. |
 | C12 | `acct_…`-Regel | Angepasst: `prepare_online_payment` liefert `account_ref` nur an `service_role` (Edge Function); Client bekommt die Referenz weiterhin nicht. |
+
+### Port / Adapter (2.2a-2, 01.10.2026)
+
+| # | Frage | Entscheidung |
+|---|---|---|
+| Q1 | Ablauf Bezahlen (C10) | Zwei Schritte auf dem Server: (1) PaymentIntent unbestätigt anlegen (Idempotency-Key = Versuchs-ID) → Function hängt die `pi_…` an den Versuch → (2) mit dem Confirmation Token aus dem Formular bestätigen. So gibt es nie einen PaymentIntent bei Stripe, den unsere Datenbank nicht kennt. |
+| Q2 | Zahlungsarten | `payment_method_types: ['card']`. Apple Pay und Google Pay laufen über `card`. Kein Link, kein Klarna, kein SEPA (P3). Das Formular in 2.2b nutzt dieselbe Einstellung. |
+| Q3 | Metadaten am PaymentIntent | `attempt_id`, `tenant_id`, `registration_id`. Keine Namen, E-Mails, Kurstitel. `description`: „Omlify Kursbuchung“ (fest). Kein `receipt_email` (C7). |
+| Q4 | Status-Abbildung | `requires_payment_method` nach Fehlversuch → `failed` (mit `last_payment_error.code`); `requires_action` → `processing` + Rückgabe des `client_secret` nur für den 3-D-Secure-Schritt im Browser; `processing` → `processing`; `succeeded` → `succeeded`; `canceled` → `canceled`. |
+| Q5 | `client_secret` | Wird nie gespeichert und nie geloggt. Nur einmal an den Browser zurückgegeben, wenn Stripe eine Aktion verlangt. |
+| Q6 | Nachlesen (W3) | Webhook und Function verlassen sich nie auf den Event-Inhalt, sondern lesen über `retrievePayment` nach. |
+| Q7 | Erstattung | Nur voll (C4), Idempotency-Key = `payment_id`. Teilerstattung kommt mit 3.2. |
+| Q8 | Domain (C11) | `registerPaymentDomain(accountRef, domain)` legt die Domain beim Studio-Konto an (Stripe-Account-Header). Existiert sie schon → Erfolg (idempotent). |
 |

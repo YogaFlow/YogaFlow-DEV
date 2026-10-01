@@ -38,6 +38,7 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 - [ ] **Erstattung nach `payment.refund_required` (2.2a-3/4).** Schema 2.2a-1 verbucht die
       Spätzahlung und markiert `REFUND_REQUIRED`; die Stripe-Erstattung selbst kommt in der Function.
+      **Teilerstattung → 3.2** (Entscheidung 09 Q7: in 1a nur volle Erstattung).
 - [ ] **„Mit Karte statt online bezahlen“ bei `pending_payment`.** Später; Geld-Aktionen
       lehnen pending heute ab (`PAYMENT_PENDING`).
 - [x] **Hauptbuch `card` → `psp_clearing`.** Erledigt in 2.2a-1 (`ledger_money_account`).
