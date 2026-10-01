@@ -46,6 +46,12 @@ verify_jwt = false
 [functions.payments-onboarding]
 verify_jwt = false
 
+# payments-checkout (Geldkette 2.2a-3) prueft JWT und Tenant selbst ueber initService
+# (klare Codes). Gateway-verify_jwt=true wuerde fehlende Auth mit einem anderen
+# 401-Body abfangen — gleiches Muster wie payments-onboarding.
+[functions.payments-checkout]
+verify_jwt = false
+
 # dispatch-emails (2.1b-b B2): Aufruf nur mit X-Email-Dispatch-Secret aus dem Vault/Cron.
 # Gateway-JWT wäre unsinnig (pg_net hat kein Nutzer-JWT).
 [functions.dispatch-emails]
