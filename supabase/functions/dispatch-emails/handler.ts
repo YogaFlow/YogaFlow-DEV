@@ -1,9 +1,11 @@
 /**
- * dispatch-emails — Outbox-Versand (2.1b-b B2 / S6e–S6d).
+ * dispatch-emails — Outbox-Versand (2.1b-b B2 / S6e–S6d / 2.2a-4b J10).
  *
  * verify_jwt = false; Aufruf nur mit Header X-Email-Dispatch-Secret
  * (= EMAIL_DISPATCH_SECRET). Holt claim_email_deliveries (max. 20),
- * prüft S6d, baut HTML, sendet über send-email.
+ * prüft je kind, baut HTML, sendet über send-email.
+ *
+ * kinds: waitlist_promoted_payment_required | payment_succeeded | payment_refunded
  *
  * Logs: delivery_id, kind, Ergebnis-Code — nie Adresse oder Inhalt.
  */
@@ -33,6 +35,12 @@ export type DeliveryContext = {
   recipientEmail: string | null;
   anonymizedAt: string | null;
   authUserId: string | null;
+  /** Betrag der (Original-)Zahlung in Cent; für payment_succeeded / payment_refunded. */
+  amountCents: number | null;
+  /** Es existiert eine Erstattungszeile (reverses_payment_id). */
+  hasRefund: boolean;
+  /** Event payment.refund_required zum Original — Platz war vergeben. */
+  refundRequired: boolean;
 };
 
 export type DispatchDeps = {
@@ -78,7 +86,6 @@ function berlinParts(iso: string | Date): { date: string; time: string } {
 
 function courseDateText(dateStr: string | null): string {
   if (!dateStr) return "";
-  // courses.date = "YYYY-MM-DD"
   const [y, m, d] = dateStr.split("-");
   if (!y || !m || !d) return dateStr;
   return `${d}.${m}.${y}`;
@@ -87,6 +94,12 @@ function courseDateText(dateStr: string | null): string {
 function courseTimeText(timeStr: string | null): string {
   if (!timeStr) return "";
   return timeStr.slice(0, 5);
+}
+
+/** 2400 → „24,00 €“ */
+export function formatEurCents(cents: number): string {
+  const n = (Math.abs(cents) / 100).toFixed(2).replace(".", ",");
+  return `${n} €`;
 }
 
 export function buildMyRegistrationsLink(
@@ -147,6 +160,75 @@ export function buildPromotionEmail(input: {
   return { subject, html };
 }
 
+export function buildPaymentSucceededEmail(input: {
+  courseTitle: string;
+  courseDate: string;
+  courseTime: string;
+  studioName: string;
+  amountLabel: string;
+  link: string;
+}): { subject: string; html: string } {
+  const subject = "Zahlung eingegangen – dein Platz ist sicher";
+  const html = `<!DOCTYPE html>
+<html lang="de">
+  <head><meta charset="utf-8" /></head>
+  <body style="margin:0;padding:0;background:#F5F3EF;font-family:system-ui,sans-serif;">
+    <div style="max-width:560px;margin:24px auto;padding:24px;background:#ffffff;border-radius:8px;">
+      <p style="margin:0 0 12px 0;color:#2F5A4E;font-size:14px;">${escapeHtml(input.studioName)}</p>
+      <h1 style="margin:0 0 16px 0;color:#111827;font-size:20px;line-height:1.3;">
+        Zahlung eingegangen
+      </h1>
+      <p style="margin:0 0 16px 0;color:#374151;font-size:16px;line-height:1.5;">
+        Deine Zahlung über <strong>${escapeHtml(input.amountLabel)}</strong> für
+        „${escapeHtml(input.courseTitle)}“ am ${escapeHtml(input.courseDate)} um
+        ${escapeHtml(input.courseTime)} ist eingegangen. Dein Platz ist gebucht.
+      </p>
+      <p style="margin:0 0 24px 0;">
+        <a href="${escapeHtml(input.link)}"
+           style="display:inline-block;padding:12px 18px;background-color:#2F5A4E;color:#ffffff;text-decoration:none;border-radius:6px;font-size:15px;font-weight:600;">
+          Meine Anmeldungen
+        </a>
+      </p>
+    </div>
+  </body>
+</html>`;
+  return { subject, html };
+}
+
+export function buildPaymentRefundedEmail(input: {
+  courseTitle: string;
+  courseDate: string;
+  studioName: string;
+  amountLabel: string;
+  refundRequired: boolean;
+}): { subject: string; html: string } {
+  const subject = "Zahlung erstattet";
+  const seatLine = input.refundRequired
+    ? `<p style="margin:0 0 16px 0;color:#374151;font-size:16px;line-height:1.5;">Dein Platz war leider inzwischen vergeben.</p>`
+    : "";
+  const html = `<!DOCTYPE html>
+<html lang="de">
+  <head><meta charset="utf-8" /></head>
+  <body style="margin:0;padding:0;background:#F5F3EF;font-family:system-ui,sans-serif;">
+    <div style="max-width:560px;margin:24px auto;padding:24px;background:#ffffff;border-radius:8px;">
+      <p style="margin:0 0 12px 0;color:#2F5A4E;font-size:14px;">${escapeHtml(input.studioName)}</p>
+      <h1 style="margin:0 0 16px 0;color:#111827;font-size:20px;line-height:1.3;">
+        Zahlung erstattet
+      </h1>
+      ${seatLine}
+      <p style="margin:0 0 16px 0;color:#374151;font-size:16px;line-height:1.5;">
+        Wir haben dir ${escapeHtml(input.amountLabel)} für „${escapeHtml(input.courseTitle)}“ am
+        ${escapeHtml(input.courseDate)} erstattet.
+      </p>
+      <p style="margin:0;color:#374151;font-size:16px;line-height:1.5;">
+        Je nach Bank dauert die Gutschrift einige Werktage.
+      </p>
+    </div>
+  </body>
+</html>`;
+  return { subject, html };
+}
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, "&amp;")
@@ -155,14 +237,41 @@ function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-/** S6d: vor dem Versand. */
+function recipientGone(ctx: DeliveryContext | null): boolean {
+  if (!ctx) return true;
+  if (ctx.anonymizedAt != null || ctx.authUserId == null) return true;
+  if (!ctx.recipientEmail || !ctx.recipientEmail.trim()) return true;
+  return false;
+}
+
+/** S6d: Promotion vor dem Versand. */
 export function classifyDelivery(
   ctx: DeliveryContext | null,
 ): "ok" | "NOT_PENDING" | "RECIPIENT_GONE" {
-  if (!ctx) return "RECIPIENT_GONE";
-  if (ctx.anonymizedAt != null || ctx.authUserId == null) return "RECIPIENT_GONE";
-  if (!ctx.recipientEmail || !ctx.recipientEmail.trim()) return "RECIPIENT_GONE";
-  if (ctx.registrationStatus !== "pending_payment") return "NOT_PENDING";
+  if (recipientGone(ctx)) return "RECIPIENT_GONE";
+  if (ctx!.registrationStatus !== "pending_payment") return "NOT_PENDING";
+  return "ok";
+}
+
+/** J10: payment_succeeded. */
+export function classifyPaymentSucceeded(
+  ctx: DeliveryContext | null,
+): "ok" | "RECIPIENT_GONE" | "NOT_REGISTERED" | "ALREADY_REFUNDED" | "AMOUNT_MISSING" {
+  if (recipientGone(ctx)) return "RECIPIENT_GONE";
+  const status = ctx!.registrationStatus;
+  if (status !== "registered" && status !== "paid") return "NOT_REGISTERED";
+  if (ctx!.hasRefund) return "ALREADY_REFUNDED";
+  if (ctx!.amountCents == null || ctx!.amountCents <= 0) return "AMOUNT_MISSING";
+  return "ok";
+}
+
+/** J10: payment_refunded. */
+export function classifyPaymentRefunded(
+  ctx: DeliveryContext | null,
+): "ok" | "RECIPIENT_GONE" | "REFUND_MISSING" | "AMOUNT_MISSING" {
+  if (recipientGone(ctx)) return "RECIPIENT_GONE";
+  if (!ctx!.hasRefund) return "REFUND_MISSING";
+  if (ctx!.amountCents == null || ctx!.amountCents <= 0) return "AMOUNT_MISSING";
   return "ok";
 }
 
@@ -172,64 +281,101 @@ export async function runDispatch(deps: DispatchDeps): Promise<DispatchResult> {
 
   for (const row of rows) {
     const ctx = await deps.loadContext(row.registration_id);
-    const gate = classifyDelivery(ctx);
 
-    if (gate === "NOT_PENDING") {
-      await deps.markDelivery(row.id, "skipped", "NOT_PENDING");
-      deps.log.info("dispatch", { delivery_id: row.id, kind: row.kind, code: "NOT_PENDING" });
-      results.push({ deliveryId: row.id, kind: row.kind, code: "NOT_PENDING" });
-      continue;
-    }
-    if (gate === "RECIPIENT_GONE") {
-      await deps.markDelivery(row.id, "skipped", "RECIPIENT_GONE");
-      deps.log.info("dispatch", { delivery_id: row.id, kind: row.kind, code: "RECIPIENT_GONE" });
-      results.push({ deliveryId: row.id, kind: row.kind, code: "RECIPIENT_GONE" });
-      continue;
-    }
-
-    if (row.kind !== "waitlist_promoted_payment_required") {
-      await deps.markDelivery(row.id, "skipped", "UNKNOWN_KIND");
-      deps.log.info("dispatch", { delivery_id: row.id, kind: row.kind, code: "UNKNOWN_KIND" });
-      results.push({ deliveryId: row.id, kind: row.kind, code: "UNKNOWN_KIND" });
-      continue;
-    }
-
-    const courseDate = courseDateText(ctx!.courseDate);
-    const courseTime = courseTimeText(ctx!.courseTime);
-    const holdIso = ctx!.holdExpiresAt ?? new Date().toISOString();
-    const link = buildMyRegistrationsLink(
-      ctx!.studioSlug,
-      deps.env("APP_BASE_DOMAIN"),
-    );
-    const { subject, html } = buildPromotionEmail({
-      courseTitle: ctx!.courseTitle ?? "Kurs",
-      courseDate,
-      courseTime,
-      studioName: ctx!.studioName ?? "Studio",
-      holdExpiresAt: holdIso,
-      link,
-    });
-
-    const sent = await deps.sendEmail({
-      to: ctx!.recipientEmail!.trim(),
-      subject,
-      html,
-    });
-
-    if (!sent.ok) {
-      await deps.markDelivery(row.id, "failed", sent.errorCode);
-      deps.log.info("dispatch", {
-        delivery_id: row.id,
-        kind: row.kind,
-        code: sent.errorCode,
+    if (row.kind === "waitlist_promoted_payment_required") {
+      const gate = classifyDelivery(ctx);
+      if (gate !== "ok") {
+        await deps.markDelivery(row.id, "skipped", gate);
+        deps.log.info("dispatch", { delivery_id: row.id, kind: row.kind, code: gate });
+        results.push({ deliveryId: row.id, kind: row.kind, code: gate });
+        continue;
+      }
+      const courseDate = courseDateText(ctx!.courseDate);
+      const courseTime = courseTimeText(ctx!.courseTime);
+      const holdIso = ctx!.holdExpiresAt ?? new Date().toISOString();
+      const link = buildMyRegistrationsLink(ctx!.studioSlug, deps.env("APP_BASE_DOMAIN"));
+      const { subject, html } = buildPromotionEmail({
+        courseTitle: ctx!.courseTitle ?? "Kurs",
+        courseDate,
+        courseTime,
+        studioName: ctx!.studioName ?? "Studio",
+        holdExpiresAt: holdIso,
+        link,
       });
-      results.push({ deliveryId: row.id, kind: row.kind, code: sent.errorCode });
+      const sent = await deps.sendEmail({ to: ctx!.recipientEmail!.trim(), subject, html });
+      if (!sent.ok) {
+        await deps.markDelivery(row.id, "failed", sent.errorCode);
+        deps.log.info("dispatch", { delivery_id: row.id, kind: row.kind, code: sent.errorCode });
+        results.push({ deliveryId: row.id, kind: row.kind, code: sent.errorCode });
+        continue;
+      }
+      await deps.markDelivery(row.id, "sent", null);
+      deps.log.info("dispatch", { delivery_id: row.id, kind: row.kind, code: "SENT" });
+      results.push({ deliveryId: row.id, kind: row.kind, code: "SENT" });
       continue;
     }
 
-    await deps.markDelivery(row.id, "sent", null);
-    deps.log.info("dispatch", { delivery_id: row.id, kind: row.kind, code: "SENT" });
-    results.push({ deliveryId: row.id, kind: row.kind, code: "SENT" });
+    if (row.kind === "payment_succeeded") {
+      const gate = classifyPaymentSucceeded(ctx);
+      if (gate !== "ok") {
+        await deps.markDelivery(row.id, "skipped", gate);
+        deps.log.info("dispatch", { delivery_id: row.id, kind: row.kind, code: gate });
+        results.push({ deliveryId: row.id, kind: row.kind, code: gate });
+        continue;
+      }
+      const link = buildMyRegistrationsLink(ctx!.studioSlug, deps.env("APP_BASE_DOMAIN"));
+      const { subject, html } = buildPaymentSucceededEmail({
+        courseTitle: ctx!.courseTitle ?? "Kurs",
+        courseDate: courseDateText(ctx!.courseDate),
+        courseTime: courseTimeText(ctx!.courseTime),
+        studioName: ctx!.studioName ?? "Studio",
+        amountLabel: formatEurCents(ctx!.amountCents!),
+        link,
+      });
+      const sent = await deps.sendEmail({ to: ctx!.recipientEmail!.trim(), subject, html });
+      if (!sent.ok) {
+        await deps.markDelivery(row.id, "failed", sent.errorCode);
+        deps.log.info("dispatch", { delivery_id: row.id, kind: row.kind, code: sent.errorCode });
+        results.push({ deliveryId: row.id, kind: row.kind, code: sent.errorCode });
+        continue;
+      }
+      await deps.markDelivery(row.id, "sent", null);
+      deps.log.info("dispatch", { delivery_id: row.id, kind: row.kind, code: "SENT" });
+      results.push({ deliveryId: row.id, kind: row.kind, code: "SENT" });
+      continue;
+    }
+
+    if (row.kind === "payment_refunded") {
+      const gate = classifyPaymentRefunded(ctx);
+      if (gate !== "ok") {
+        await deps.markDelivery(row.id, "skipped", gate);
+        deps.log.info("dispatch", { delivery_id: row.id, kind: row.kind, code: gate });
+        results.push({ deliveryId: row.id, kind: row.kind, code: gate });
+        continue;
+      }
+      const { subject, html } = buildPaymentRefundedEmail({
+        courseTitle: ctx!.courseTitle ?? "Kurs",
+        courseDate: courseDateText(ctx!.courseDate),
+        studioName: ctx!.studioName ?? "Studio",
+        amountLabel: formatEurCents(ctx!.amountCents!),
+        refundRequired: ctx!.refundRequired,
+      });
+      const sent = await deps.sendEmail({ to: ctx!.recipientEmail!.trim(), subject, html });
+      if (!sent.ok) {
+        await deps.markDelivery(row.id, "failed", sent.errorCode);
+        deps.log.info("dispatch", { delivery_id: row.id, kind: row.kind, code: sent.errorCode });
+        results.push({ deliveryId: row.id, kind: row.kind, code: sent.errorCode });
+        continue;
+      }
+      await deps.markDelivery(row.id, "sent", null);
+      deps.log.info("dispatch", { delivery_id: row.id, kind: row.kind, code: "SENT" });
+      results.push({ deliveryId: row.id, kind: row.kind, code: "SENT" });
+      continue;
+    }
+
+    await deps.markDelivery(row.id, "skipped", "UNKNOWN_KIND");
+    deps.log.info("dispatch", { delivery_id: row.id, kind: row.kind, code: "UNKNOWN_KIND" });
+    results.push({ deliveryId: row.id, kind: row.kind, code: "UNKNOWN_KIND" });
   }
 
   return { processed: results.length, results };

@@ -295,7 +295,9 @@ export type UserNotificationType =
   | 'waitlist_promoted'
   | 'course_canceled'
   | 'course_uncanceled'
-  | 'password_changed';
+  | 'password_changed'
+  | 'payment_succeeded'
+  | 'payment_refunded';
 
 export interface UserNotification {
   id: string;

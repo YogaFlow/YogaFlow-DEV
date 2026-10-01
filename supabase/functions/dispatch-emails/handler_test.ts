@@ -5,8 +5,13 @@ import {
   SECRET_HEADER,
   authorizeDispatch,
   buildMyRegistrationsLink,
+  buildPaymentRefundedEmail,
+  buildPaymentSucceededEmail,
   buildPromotionEmail,
   classifyDelivery,
+  classifyPaymentRefunded,
+  classifyPaymentSucceeded,
+  formatEurCents,
   handleDispatchRequest,
   runDispatch,
   type DeliveryContext,
@@ -48,6 +53,9 @@ Deno.test("classifyDelivery S6d", () => {
     recipientEmail: "person@example.com",
     anonymizedAt: null,
     authUserId: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    amountCents: null,
+    hasRefund: false,
+    refundRequired: false,
   };
   assertEquals(classifyDelivery(base), "ok");
   assertEquals(
@@ -126,6 +134,9 @@ const pendingCtx: DeliveryContext = {
   recipientEmail: "berta@example.com",
   anonymizedAt: null,
   authUserId: "11111111-1111-4111-8111-111111111111",
+  amountCents: null,
+  hasRefund: false,
+  refundRequired: false,
 };
 
 const row = (id: string, regId: string): DeliveryRow => ({
@@ -237,4 +248,104 @@ Deno.test("Logger ohne Adresse und Inhalt", async () => {
   assert(joined.includes("SENT"), "Log mit Code");
   // Maskierer würde Adressen ohnehin ersetzen — Doppelcheck
   assertEquals(maskSensitiveText("x berta@example.com y").includes("@"), false);
+});
+
+const paidCtx: DeliveryContext = {
+  ...pendingCtx,
+  registrationStatus: "registered",
+  amountCents: 2400,
+  hasRefund: false,
+  refundRequired: false,
+};
+
+Deno.test("18. payment_succeeded: gueltig gesendet; erstattet skipped", async () => {
+  const amount = formatEurCents(2400);
+  assertEquals(amount, "24,00 \u20AC");
+  const { subject, html } = buildPaymentSucceededEmail({
+    courseTitle: "Yin",
+    courseDate: "05.10.2026",
+    courseTime: "18:00",
+    studioName: "Om Studio",
+    amountLabel: amount,
+    link: "https://omstudio.omlify-dev.de/my-registrations",
+  });
+  assert(subject.includes("Zahlung eingegangen"), "Betreff");
+  assert(html.includes(amount) && html.includes("Yin") && html.includes("05.10.2026"), "Text");
+
+  const { deps, mails, marks } = makeDeps({
+    rows: [{
+      id: "ps1",
+      tenant_id: "t1",
+      event_id: "e1",
+      kind: "payment_succeeded",
+      registration_id: "r1",
+      status: "sending",
+      attempts: 0,
+    }],
+    ctxByReg: { r1: paidCtx },
+  });
+  const out = await runDispatch(deps);
+  assertEquals(out.results[0]?.code, "SENT");
+  assertEquals(mails.length, 1);
+  assert(mails[0]!.html.includes(amount), "Betrag");
+  assert(mails[0]!.html.includes("Flow"), "Kurs");
+  assertEquals(marks[0]?.status, "sent");
+
+  const refunded = makeDeps({
+    rows: [{
+      id: "ps2",
+      tenant_id: "t1",
+      event_id: "e2",
+      kind: "payment_succeeded",
+      registration_id: "r2",
+      status: "sending",
+      attempts: 0,
+    }],
+    ctxByReg: { r2: { ...paidCtx, hasRefund: true } },
+  });
+  const out2 = await runDispatch(refunded.deps);
+  assertEquals(out2.results[0]?.code, "ALREADY_REFUNDED");
+  assertEquals(refunded.mails.length, 0);
+  assertEquals(classifyPaymentSucceeded({ ...paidCtx, hasRefund: true }), "ALREADY_REFUNDED");
+});
+
+Deno.test("19. payment_refunded mit und ohne REFUND_REQUIRED", async () => {
+  const amount = formatEurCents(2400);
+  const withReason = buildPaymentRefundedEmail({
+    courseTitle: "Yin",
+    courseDate: "05.10.2026",
+    studioName: "Om",
+    amountLabel: amount,
+    refundRequired: true,
+  });
+  assert(withReason.html.includes("Platz war leider inzwischen vergeben"), "REFUND_REQUIRED Text");
+  assert(withReason.html.includes(amount), "Betrag");
+
+  const without = buildPaymentRefundedEmail({
+    courseTitle: "Yin",
+    courseDate: "05.10.2026",
+    studioName: "Om",
+    amountLabel: amount,
+    refundRequired: false,
+  });
+  assert(!without.html.includes("inzwischen vergeben"), "ohne Platz-Hinweis");
+
+  const { deps, mails } = makeDeps({
+    rows: [{
+      id: "pr1",
+      tenant_id: "t1",
+      event_id: "e1",
+      kind: "payment_refunded",
+      registration_id: "r1",
+      status: "sending",
+      attempts: 0,
+    }],
+    ctxByReg: {
+      r1: { ...paidCtx, hasRefund: true, refundRequired: true, amountCents: 2400 },
+    },
+  });
+  const out = await runDispatch(deps);
+  assertEquals(out.results[0]?.code, "SENT");
+  assert(mails[0]!.html.includes("inzwischen vergeben"), "Mail mit Grund");
+  assertEquals(classifyPaymentRefunded({ ...paidCtx, hasRefund: false }), "REFUND_MISSING");
 });

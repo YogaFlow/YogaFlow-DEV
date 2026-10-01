@@ -53,6 +53,33 @@ Deno.serve(async (req: Request) => {
           .maybeSingle(),
       ]);
 
+      const { data: payments } = await supabase
+        .from("payments")
+        .select("id, amount_cents, reverses_payment_id, provider, status")
+        .eq("registration_id", registrationId);
+
+      const rows = Array.isArray(payments) ? payments : [];
+      const originals = rows.filter((p) => p && p.reverses_payment_id == null && (p.amount_cents ?? 0) > 0);
+      const refunds = rows.filter((p) => p && p.reverses_payment_id != null);
+      const original = originals[0] ?? null;
+      const hasRefund = refunds.length > 0;
+      const amountCents = hasRefund
+        ? Math.abs(Number(refunds[0]?.amount_cents ?? original?.amount_cents ?? 0)) || null
+        : (original ? Number(original.amount_cents) : null);
+
+      let refundRequired = false;
+      if (original?.id) {
+        const { data: ev } = await supabase
+          .from("events")
+          .select("id")
+          .eq("type", "payment.refund_required")
+          .eq("subject_type", "payment")
+          .eq("subject_id", original.id)
+          .limit(1)
+          .maybeSingle();
+        refundRequired = !!ev;
+      }
+
       const ctx: DeliveryContext = {
         registrationStatus: reg.status ?? null,
         holdExpiresAt: reg.hold_expires_at ?? null,
@@ -64,6 +91,9 @@ Deno.serve(async (req: Request) => {
         recipientEmail: user?.email ?? null,
         anonymizedAt: user?.anonymized_at ?? null,
         authUserId: user?.auth_user_id ?? null,
+        amountCents: amountCents && amountCents > 0 ? amountCents : null,
+        hasRefund,
+        refundRequired,
       };
       return ctx;
     },
