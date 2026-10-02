@@ -5,7 +5,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { paymentsClientConfig } from '../../lib/paymentsClientConfig';
-import { shouldRefreshRegistrationsOnSheetClose } from '../../lib/checkoutPhaseMachine';
+import {
+  resolveOpenSheetHoldExpiry,
+  shouldRefreshRegistrationsOnSheetClose,
+} from '../../lib/checkoutPhaseMachine';
 import {
   PAYMENT_RETRY_LABEL,
   paymentHoldHint,
@@ -114,8 +117,31 @@ const PaymentSheet: React.FC<Props> = ({
 
   const holdIso = checkout.prepare?.holdExpiresAt ?? holdExpiresAt ?? null;
   void tick;
+  const expiry = resolveOpenSheetHoldExpiry({
+    sheetOpen: open && !outcomeMode,
+    phase: checkout.phase,
+    code: checkout.code,
+    holdExpiresAt: holdIso,
+    nowMs: Date.now(),
+  });
   const mins = minutesUntil(holdIso);
-  const holdExpired = Boolean(holdIso) && mins <= 0 && !outcomeMode;
+  const holdExpired = expiry.code === 'HOLD_EXPIRED';
+
+  useEffect(() => {
+    if (!open || outcomeMode || !holdIso) return;
+    const ms = new Date(holdIso).getTime() - Date.now();
+    if (!Number.isFinite(ms) || ms <= 0) return;
+    const t = window.setTimeout(() => setTick((n) => n + 1), ms);
+    return () => window.clearTimeout(t);
+  }, [open, outcomeMode, holdIso]);
+
+  useEffect(() => {
+    if (!open || outcomeMode) return;
+    if (expiry.code !== 'HOLD_EXPIRED') return;
+    if (checkout.code === 'HOLD_EXPIRED') return;
+    checkout.fail('HOLD_EXPIRED');
+  }, [open, outcomeMode, expiry.code, checkout.code, checkout.fail]);
+
   const timeHm = clockHm(holdIso);
   const holdHint =
     holdIso && !holdExpired && timeHm ? paymentHoldHint(timeHm, mins) : null;

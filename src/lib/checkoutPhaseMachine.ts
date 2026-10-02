@@ -89,6 +89,64 @@ export function sheetRemainsOpenAfterRegistrationChange(
   return sheetOpen;
 }
 
+const HOLD_CLOCK_RETRYABLE = new Set([
+  'CARD_DECLINED',
+  'AUTHENTICATION_REQUIRED',
+  'PROVIDER_UNAVAILABLE',
+]);
+
+function holdClockApplies(phase: CheckoutPhase, code: string | null | undefined): boolean {
+  if (phase === 'ready' || phase === 'retrying') return true;
+  if (phase !== 'error') return false;
+  return code == null || HOLD_CLOCK_RETRYABLE.has(code);
+}
+
+/**
+ * Z7: Bei offenem Sheet führt der Ablauf der Frist zu HOLD_EXPIRED.
+ * Das Sheet bleibt offen, Bezahlen ist gesperrt.
+ * Ein geschlossenes Sheet wird dadurch nicht geöffnet.
+ * Erfolg, laufende Bestätigung und schon gesetzte Fachfehler (z. B. NOT_PENDING) bleiben.
+ */
+export function resolveOpenSheetHoldExpiry(input: {
+  sheetOpen: boolean;
+  phase: CheckoutPhase;
+  code?: string | null;
+  holdExpiresAt: string | null | undefined;
+  nowMs: number;
+}): {
+  sheetOpen: boolean;
+  phase: CheckoutPhase;
+  code: 'HOLD_EXPIRED' | null;
+  payLocked: boolean;
+} {
+  if (!input.sheetOpen) {
+    return {
+      sheetOpen: false,
+      phase: input.phase,
+      code: null,
+      payLocked: false,
+    };
+  }
+  const expiresMs = input.holdExpiresAt
+    ? new Date(input.holdExpiresAt).getTime()
+    : Number.NaN;
+  const expired = Number.isFinite(expiresMs) && expiresMs <= input.nowMs;
+  if (!expired || !holdClockApplies(input.phase, input.code)) {
+    return {
+      sheetOpen: true,
+      phase: input.phase,
+      code: null,
+      payLocked: false,
+    };
+  }
+  return {
+    sheetOpen: true,
+    phase: reduceCheckoutPhase(input.phase, { type: 'HOLD_EXPIRED' }),
+    code: 'HOLD_EXPIRED',
+    payLocked: true,
+  };
+}
+
 /**
  * L2: Nach fehlgeschlagenem Versuch nie dieselbe attempt_id für confirm nutzen.
  * prepare liefert eine neue ID; HOLD_EXPIRED aus prepare bleibt Fehler.

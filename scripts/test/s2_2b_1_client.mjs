@@ -8,6 +8,7 @@ import { test } from 'node:test';
 import {
   attemptIdAfterRetryPrepare,
   reduceCheckoutPhase,
+  resolveOpenSheetHoldExpiry,
   sheetRemainsOpenAfterRegistrationChange,
   shouldRefreshRegistrationsOnSheetClose,
 } from '../../src/lib/checkoutPhaseMachine.ts';
@@ -117,6 +118,73 @@ test('Automat: processing Timeout', () => {
 test('Automat: HOLD_EXPIRED', () => {
   const p = reduceCheckoutPhase('ready', { type: 'HOLD_EXPIRED' });
   assert.equal(p, 'error');
+});
+
+test('Z7: offenes Sheet bleibt bei Ablauf offen und wird HOLD_EXPIRED', () => {
+  const now = Date.parse('2026-10-02T14:00:00.000Z');
+  const result = resolveOpenSheetHoldExpiry({
+    sheetOpen: true,
+    phase: 'ready',
+    holdExpiresAt: '2026-10-02T13:59:00.000Z',
+    nowMs: now,
+  });
+  assert.equal(result.sheetOpen, true);
+  assert.equal(result.phase, 'error');
+  assert.equal(result.code, 'HOLD_EXPIRED');
+  assert.equal(result.payLocked, true);
+});
+
+test('Z7: Ablauf öffnet ein geschlossenes Sheet nicht', () => {
+  const result = resolveOpenSheetHoldExpiry({
+    sheetOpen: false,
+    phase: 'ready',
+    holdExpiresAt: '2026-10-02T13:59:00.000Z',
+    nowMs: Date.parse('2026-10-02T14:00:00.000Z'),
+  });
+  assert.equal(result.sheetOpen, false);
+  assert.equal(result.code, null);
+  assert.equal(result.payLocked, false);
+});
+
+test('Z7: abgelehnte Karte im offenen Sheet wird bei Ablauf HOLD_EXPIRED', () => {
+  const result = resolveOpenSheetHoldExpiry({
+    sheetOpen: true,
+    phase: 'error',
+    code: 'CARD_DECLINED',
+    holdExpiresAt: '2026-10-02T13:59:00.000Z',
+    nowMs: Date.parse('2026-10-02T14:00:00.000Z'),
+  });
+  assert.equal(result.sheetOpen, true);
+  assert.equal(result.phase, 'error');
+  assert.equal(result.code, 'HOLD_EXPIRED');
+  assert.equal(result.payLocked, true);
+});
+
+test('Z7: NOT_PENDING bleibt, das Sheet bleibt offen', () => {
+  const result = resolveOpenSheetHoldExpiry({
+    sheetOpen: true,
+    phase: 'error',
+    code: 'NOT_PENDING',
+    holdExpiresAt: '2026-10-02T13:59:00.000Z',
+    nowMs: Date.parse('2026-10-02T14:00:00.000Z'),
+  });
+  assert.equal(result.sheetOpen, true);
+  assert.equal(result.phase, 'error');
+  assert.equal(result.code, null);
+  assert.equal(result.payLocked, false);
+});
+
+test('Z7: vor Ablauf bleibt das offene Sheet bezahlbar', () => {
+  const result = resolveOpenSheetHoldExpiry({
+    sheetOpen: true,
+    phase: 'ready',
+    holdExpiresAt: '2026-10-02T14:10:00.000Z',
+    nowMs: Date.parse('2026-10-02T14:00:00.000Z'),
+  });
+  assert.equal(result.sheetOpen, true);
+  assert.equal(result.phase, 'ready');
+  assert.equal(result.code, null);
+  assert.equal(result.payLocked, false);
 });
 
 test('L1: Endzustand bleibt bei Statuswechsel sichtbar', () => {
