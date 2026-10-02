@@ -260,11 +260,11 @@ export async function alsAngemeldet(page: Page, session: unknown) {
   );
 }
 
-export async function screenshot(page: Page, name: string) {
+export async function screenshot(page: Page, name: string, folder = '3_2c') {
   for (const width of [360, 1280]) {
     await page.setViewportSize({ width, height: width === 360 ? 780 : 900 });
     await page.screenshot({
-      path: join(root, 'docs', 'screenshots', '3_2c', `${name}-${width}.png`),
+      path: join(root, 'docs', 'screenshots', folder, `${name}-${width}.png`),
       fullPage: false,
     });
   }
