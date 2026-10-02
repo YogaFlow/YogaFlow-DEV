@@ -1,10 +1,11 @@
 /**
  * Bezahl-Sheet (Z1): mobil von unten, Desktop mittig.
- * Gestaltung 2.2b-2 — Checkout-Hook unverändert.
+ * L1: Reload erst beim Schließen. L2: Retry mit neuem prepare/attempt.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { paymentsClientConfig } from '../../lib/paymentsClientConfig';
+import { shouldRefreshRegistrationsOnSheetClose } from '../../lib/checkoutPhaseMachine';
 import {
   PAYMENT_RETRY_LABEL,
   paymentHoldHint,
@@ -41,6 +42,7 @@ type Props = {
   /** Ergebnis nach 3-D-Secure-Return — kein prepare. */
   outcome?: PaymentSheetOutcome | null;
   onClose: () => void;
+  /** L1: erst beim Schließen nach Endzustand — nicht schon bei Erfolg im Sheet. */
   onFinished: () => void;
 };
 
@@ -134,19 +136,29 @@ const PaymentSheet: React.FC<Props> = ({
   const requestClose = useCallback(() => {
     if (!canClose) return;
     if (registrationId && !outcomeMode) clearPaymentAttempt(registrationId);
-    const wasDone = phase === 'done';
+    const shouldRefresh = shouldRefreshRegistrationsOnSheetClose(
+      phase === 'processing' && code === 'PROCESSING_TIMEOUT' ? 'done' : phase,
+      true,
+    );
     if (!outcomeMode) checkout.reset();
     onClose();
-    if (wasDone) onFinished();
+    if (shouldRefresh) onFinished();
   }, [
     canClose,
     registrationId,
     outcomeMode,
     phase,
+    code,
     checkout,
     onClose,
     onFinished,
   ]);
+
+  const onRetry = async () => {
+    if (!registrationId) return;
+    clearPaymentAttempt(registrationId);
+    await checkout.runRetryPrepare(registrationId);
+  };
 
   const onSubmitToken = async (tokenId: string) => {
     if (!registrationId || !checkout.prepare || !config.publishableKey) return;
@@ -154,8 +166,11 @@ const PaymentSheet: React.FC<Props> = ({
       checkout.fail('HOLD_EXPIRED');
       return;
     }
+    // L2: nie confirm mit failed/canceled attempt — prepare muss ready sein.
+    if (checkout.phase !== 'ready') return;
     storePaymentAttempt(registrationId, checkout.prepare.attemptId);
-    const result = await checkout.runConfirm(checkout.prepare.attemptId, tokenId);
+    const attemptId = checkout.prepare.attemptId;
+    const result = await checkout.runConfirm(attemptId, tokenId);
     if (result.kind === 'error') return;
     if (result.kind === 'requires_action') {
       const next = await handleStripeNextAction(
@@ -167,10 +182,10 @@ const PaymentSheet: React.FC<Props> = ({
         checkout.markAuthFailed();
         return;
       }
-      await checkout.pollUntilDone(checkout.prepare.attemptId);
+      await checkout.pollUntilDone(attemptId);
     }
     clearPaymentAttempt(registrationId);
-    onFinished();
+    // L1: kein onFinished hier — Reload erst beim Schließen.
   };
 
   const amountCents = checkout.prepare?.amountCents ?? null;
@@ -179,13 +194,15 @@ const PaymentSheet: React.FC<Props> = ({
     (phase === 'ready' ||
       phase === 'submitting' ||
       phase === 'action' ||
+      phase === 'retrying' ||
       (phase === 'error' &&
         (code === 'CARD_DECLINED' ||
           code === 'AUTHENTICATION_REQUIRED' ||
           code === 'PROVIDER_UNAVAILABLE'))) &&
     checkout.prepare &&
     config.publishableKey &&
-    !holdExpired;
+    !holdExpired &&
+    code !== 'HOLD_EXPIRED';
 
   const formAlert =
     phase === 'error' &&
@@ -241,6 +258,7 @@ const PaymentSheet: React.FC<Props> = ({
             studioName={studioName}
             alertMessage={formAlert}
             submitLabel={submitLabel}
+            onRetry={formAlert ? onRetry : undefined}
             onSubmitToken={onSubmitToken}
           />
         ) : undefined

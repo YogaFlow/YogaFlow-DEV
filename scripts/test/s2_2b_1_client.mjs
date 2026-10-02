@@ -5,7 +5,12 @@
  */
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { reduceCheckoutPhase } from '../../src/lib/checkoutPhaseMachine.ts';
+import {
+  attemptIdAfterRetryPrepare,
+  reduceCheckoutPhase,
+  sheetRemainsOpenAfterRegistrationChange,
+  shouldRefreshRegistrationsOnSheetClose,
+} from '../../src/lib/checkoutPhaseMachine.ts';
 import { resolvePaymentsClientConfig } from '../../src/lib/paymentsClientConfig.ts';
 import {
   PAYMENT_AUTH_FAILED,
@@ -112,4 +117,57 @@ test('Automat: processing Timeout', () => {
 test('Automat: HOLD_EXPIRED', () => {
   const p = reduceCheckoutPhase('ready', { type: 'HOLD_EXPIRED' });
   assert.equal(p, 'error');
+});
+
+test('L1: Endzustand bleibt bei Statuswechsel sichtbar', () => {
+  assert.equal(
+    sheetRemainsOpenAfterRegistrationChange(true, 'registered'),
+    true,
+  );
+  assert.equal(
+    sheetRemainsOpenAfterRegistrationChange(true, 'pending_payment'),
+    true,
+  );
+  assert.equal(sheetRemainsOpenAfterRegistrationChange(false, 'registered'), false);
+});
+
+test('L1: Reload erst beim Schließen', () => {
+  assert.equal(shouldRefreshRegistrationsOnSheetClose('done', false), false);
+  assert.equal(shouldRefreshRegistrationsOnSheetClose('error', false), false);
+  assert.equal(shouldRefreshRegistrationsOnSheetClose('ready', true), false);
+  assert.equal(shouldRefreshRegistrationsOnSheetClose('done', true), true);
+  assert.equal(shouldRefreshRegistrationsOnSheetClose('error', true), true);
+  assert.equal(shouldRefreshRegistrationsOnSheetClose('processing', true), false);
+});
+
+test('L2: Ablehnung → Retry → neue attempt_id → Erfolg', () => {
+  let p = reduceCheckoutPhase('ready', { type: 'CONFIRM_START' });
+  p = reduceCheckoutPhase(p, { type: 'CONFIRM_FAILED', code: 'CARD_DECLINED' });
+  assert.equal(p, 'error');
+  p = reduceCheckoutPhase(p, { type: 'RETRY_START' });
+  assert.equal(p, 'retrying');
+  p = reduceCheckoutPhase(p, { type: 'PREPARE_OK' });
+  assert.equal(p, 'ready');
+  const ids = attemptIdAfterRetryPrepare('attempt-old', {
+    ok: true,
+    attemptId: 'attempt-new',
+  });
+  assert.equal(ids.attemptId, 'attempt-new');
+  assert.equal(ids.code, null);
+  p = reduceCheckoutPhase(p, { type: 'CONFIRM_START' });
+  p = reduceCheckoutPhase(p, { type: 'CONFIRM_SUCCEEDED', code: 'COMPLETED' });
+  assert.equal(p, 'done');
+});
+
+test('L2: Retry nach Ablauf → HOLD_EXPIRED', () => {
+  let p = reduceCheckoutPhase('error', { type: 'RETRY_START' });
+  assert.equal(p, 'retrying');
+  p = reduceCheckoutPhase(p, { type: 'PREPARE_FAIL', code: 'HOLD_EXPIRED' });
+  assert.equal(p, 'error');
+  const ids = attemptIdAfterRetryPrepare('attempt-old', {
+    ok: false,
+    code: 'HOLD_EXPIRED',
+  });
+  assert.equal(ids.attemptId, null);
+  assert.equal(ids.code, 'HOLD_EXPIRED');
 });

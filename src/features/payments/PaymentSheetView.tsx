@@ -33,6 +33,7 @@ export type PaymentSheetViewPhase =
   | 'submitting'
   | 'action'
   | 'processing'
+  | 'retrying'
   | 'done'
   | 'error';
 
@@ -155,6 +156,7 @@ const PaymentSheetView: React.FC<PaymentSheetViewProps> = ({
     (phase === 'ready' ||
       phase === 'submitting' ||
       phase === 'action' ||
+      phase === 'retrying' ||
       (phase === 'error' && isRetryablePayError(code)));
 
   const showQuietError =
@@ -180,6 +182,7 @@ const PaymentSheetView: React.FC<PaymentSheetViewProps> = ({
     !showPreparing &&
     phase !== 'submitting' &&
     phase !== 'action' &&
+    phase !== 'retrying' &&
     (showSuccess ||
       showRefund ||
       showQuietError ||

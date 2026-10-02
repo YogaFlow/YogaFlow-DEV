@@ -14,6 +14,7 @@ export type CheckoutPhase =
   | 'submitting'
   | 'action'
   | 'processing'
+  | 'retrying'
   | 'done'
   | 'error';
 
@@ -70,11 +71,16 @@ export function usePaymentCheckout() {
   }, []);
 
   const runPrepare = useCallback(
-    async (registrationId: string): Promise<PrepareOk | null> => {
-      setPhase('preparing');
+    async (
+      registrationId: string,
+      options?: { mode?: 'initial' | 'retry' },
+    ): Promise<PrepareOk | null> => {
+      const retry = options?.mode === 'retry';
+      setPhase(retry ? 'retrying' : 'preparing');
       setCode(null);
       setMessage(null);
-      setPrepare(null);
+      // L2: beim Retry prepare nicht leeren — Payment Element bleibt gemountet.
+      if (!retry) setPrepare(null);
 
       const { data, error } = await supabase.functions.invoke('payments-checkout', {
         body: { action: 'prepare', registration_id: registrationId },
@@ -123,6 +129,14 @@ export function usePaymentCheckout() {
       return next;
     },
     [fail],
+  );
+
+  /** L2: Nach Ablehnung/3DS-Fehler neuen Versuch vorbereiten (neue attempt_id). */
+  const runRetryPrepare = useCallback(
+    async (registrationId: string): Promise<PrepareOk | null> => {
+      return runPrepare(registrationId, { mode: 'retry' });
+    },
+    [runPrepare],
   );
 
   const applyStatusBody = useCallback(
@@ -316,7 +330,8 @@ export function usePaymentCheckout() {
     phase === 'preparing' ||
     phase === 'submitting' ||
     phase === 'action' ||
-    phase === 'processing';
+    phase === 'processing' ||
+    phase === 'retrying';
 
   return {
     phase,
@@ -327,6 +342,7 @@ export function usePaymentCheckout() {
     busy,
     reset,
     runPrepare,
+    runRetryPrepare,
     runConfirm,
     runStatus,
     pollUntilDone,

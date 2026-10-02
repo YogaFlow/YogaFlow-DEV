@@ -33,6 +33,8 @@ type FormProps = {
   studioName: string;
   alertMessage?: string | null;
   submitLabel?: string;
+  /** L2: nach Ablehnung neuen prepare-Versuch starten (statt confirm). */
+  onRetry?: () => Promise<void>;
   onSubmitToken: (confirmationTokenId: string) => Promise<void>;
 };
 
@@ -43,6 +45,7 @@ function PaymentFormInner({
   studioName,
   alertMessage,
   submitLabel,
+  onRetry,
   onSubmitToken,
 }: FormProps) {
   const stripe = useStripe();
@@ -50,11 +53,26 @@ function PaymentFormInner({
   const [localError, setLocalError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const locked = disabled || holdExpired || submitting || !stripe || !elements;
+  const needsRetry = Boolean(onRetry && alertMessage);
+  const locked =
+    holdExpired ||
+    submitting ||
+    disabled ||
+    (!needsRetry && (!stripe || !elements));
   const alertText = localError ?? alertMessage ?? null;
   const buttonLabel = submitLabel ?? payAmountLabel(formatCents(amountCents));
 
   const onPay = async () => {
+    if (needsRetry && onRetry) {
+      setLocalError(null);
+      setSubmitting(true);
+      try {
+        await onRetry();
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
     if (!stripe || !elements || locked) return;
     setLocalError(null);
     setSubmitting(true);
@@ -128,6 +146,7 @@ type Props = {
   studioName: string;
   alertMessage?: string | null;
   submitLabel?: string;
+  onRetry?: () => Promise<void>;
   onSubmitToken: (confirmationTokenId: string) => Promise<void>;
 };
 
@@ -141,6 +160,7 @@ export default function StripePaymentForm({
   studioName,
   alertMessage,
   submitLabel,
+  onRetry,
   onSubmitToken,
 }: Props) {
   const [stripePromise, setStripePromise] = useState<Promise<Stripe | null> | null>(
@@ -201,6 +221,7 @@ export default function StripePaymentForm({
         studioName={studioName}
         alertMessage={alertMessage}
         submitLabel={submitLabel}
+        onRetry={onRetry}
         onSubmitToken={onSubmitToken}
       />
     </Elements>

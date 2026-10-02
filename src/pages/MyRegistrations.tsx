@@ -146,7 +146,8 @@ const MyRegistrations: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [registrations]);
 
-  // Z5: Rückkehr nach 3-D-Secure — Ergebnis als Sheet (nicht FeedbackDialog)
+  // Z5: Rückkehr nach 3-D-Secure — Ergebnis als Sheet (nicht FeedbackDialog).
+  // L1: kein loadRegistrations solange das Ergebnis-Sheet offen ist.
   useEffect(() => {
     if (searchParams.get('payment') !== 'return') return;
     const next = new URLSearchParams(searchParams);
@@ -162,7 +163,6 @@ const MyRegistrations: React.FC = () => {
     void (async () => {
       const status = await returnCheckout.runStatus(stored.attemptId);
       clearPaymentAttempt(stored.registrationId);
-      void loadRegistrations();
 
       const finishOutcome = (
         kind: 'done' | 'error',
@@ -188,7 +188,6 @@ const MyRegistrations: React.FC = () => {
           },
         });
         const polled = await returnCheckout.pollUntilDone(stored.attemptId);
-        void loadRegistrations();
         const done =
           polled.code === 'COMPLETED' ||
           polled.code === 'ALREADY_COMPLETED' ||
