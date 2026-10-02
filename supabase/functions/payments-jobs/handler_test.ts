@@ -19,6 +19,7 @@ import {
 const ACCOUNT = "acct_fake_jobs_1";
 const PI = "pi_fake_jobs_1";
 const PAYMENT = "00000000-0000-4000-8000-00000000j001";
+const REFUND = "00000000-0000-4000-8000-00000000r001";
 const JOB1 = "00000000-0000-4000-8000-00000000j101";
 const JOB2 = "00000000-0000-4000-8000-00000000j102";
 
@@ -27,6 +28,7 @@ class MemoryStore implements JobsStore {
   finishes: { jobId: string; outcome: string; code: string | null | undefined }[] = [];
   completes: unknown[] = [];
   refunds: unknown[] = [];
+  markFailed: unknown[] = [];
   claimCalls = 0;
   completeResult: { ok: true; code: string | null } = { ok: true, code: "RESTORED" };
   refundResult: { ok: true; code: string | null } = { ok: true, code: "REFUNDED" };
@@ -58,22 +60,32 @@ class MemoryStore implements JobsStore {
     refundRef: string;
     amountCents: number;
     receivedAt: string;
+    refundId: string | null;
   }) {
     this.refunds.push(input);
     return Promise.resolve(structuredClone(this.refundResult));
+  }
+
+  markRefundFailed(input: {
+    refundId: string | null;
+    refundRef?: string | null;
+    failureCode: string;
+  }) {
+    this.markFailed.push(input);
+    return Promise.resolve({ ok: true as const });
   }
 }
 
 class SpyProvider extends FakePaymentProvider {
   cancelStatus: "canceled" | "succeeded" | null = null;
   refundStatus: "pending" | "succeeded" | "failed" = "pending";
+  refundAmountCents = 1000;
   throwOnCancel: ProviderError | null = null;
   throwOnRefund: ProviderError | null = null;
 
   override cancelPaymentIntent(accountRef: string, ref: string) {
     if (this.throwOnCancel) return Promise.reject(this.throwOnCancel);
     if (this.cancelStatus === "succeeded") {
-      // Seed payment as succeeded so retrieve works
       return this.createPaymentIntent({
         accountRef,
         amountCents: 2400,
@@ -83,9 +95,7 @@ class SpyProvider extends FakePaymentProvider {
         registrationId: "r",
         idempotencyKey: ref,
       }).then(async (created) => {
-        // Use the known ref by confirming a payment we control
         void created;
-        // Directly set via confirm path: create under PI key
         return { status: "succeeded" as const };
       });
     }
@@ -106,25 +116,24 @@ class SpyProvider extends FakePaymentProvider {
 
   override refundPayment(cmd: Parameters<FakePaymentProvider["refundPayment"]>[0]) {
     if (this.throwOnRefund) return Promise.reject(this.throwOnRefund);
+    this.paymentCalls.push({
+      method: "refundPayment",
+      ref: cmd.ref,
+      idempotencyKey: cmd.idempotencyKey,
+      amountCents: cmd.amountCents,
+      refundId: cmd.refundId,
+    });
     if (this.refundStatus === "failed") {
       return Promise.resolve({
         refundRef: "re_failed",
         status: "failed" as const,
-        amountCents: 2400,
+        amountCents: cmd.amountCents,
       });
     }
     return Promise.resolve({
       refundRef: "re_test_abc",
       status: this.refundStatus,
-      amountCents: 2400,
-      // expose idempotency via call log
-    }).then((r) => {
-      this.paymentCalls.push({
-        method: "refundPayment",
-        ref: cmd.ref,
-        idempotencyKey: cmd.idempotencyKey,
-      });
-      return r;
+      amountCents: cmd.amountCents,
     });
   }
 }
@@ -137,6 +146,7 @@ function cancelJob(overrides: Partial<ProviderJobRow> = {}): ProviderJobRow {
     account_ref: ACCOUNT,
     provider_ref: PI,
     payment_id: null,
+    refund_id: null,
     amount_cents: null,
     ...overrides,
   };
@@ -150,7 +160,8 @@ function refundJob(overrides: Partial<ProviderJobRow> = {}): ProviderJobRow {
     account_ref: ACCOUNT,
     provider_ref: PI,
     payment_id: PAYMENT,
-    amount_cents: 2400,
+    refund_id: REFUND,
+    amount_cents: 1000,
     ...overrides,
   };
 }
@@ -229,18 +240,50 @@ Deno.test("cancel → succeeded → retrieve + complete → done, Log cancel_too
   assert(s.logLines.some((l) => l.includes("cancel_too_late")), "Log cancel_too_late");
 });
 
-Deno.test("refund → pending → record mit re_… und Idempotency-Key = payment_id → done", async () => {
+Deno.test("refund → pending → record mit re_…, Betrag und refund_id → done", async () => {
   const s = setup();
   s.provider.refundStatus = "pending";
-  s.store.claimed = [refundJob()];
+  s.store.claimed = [refundJob({ amount_cents: 1000 })];
   const out = await runJobs(s.deps);
   assertEquals(out.results[0]?.outcome, "done");
   assertEquals(s.store.refunds.length, 1);
-  const rec = s.store.refunds[0] as { paymentId: string; refundRef: string };
+  const rec = s.store.refunds[0] as {
+    paymentId: string;
+    refundRef: string;
+    amountCents: number;
+    refundId: string | null;
+  };
   assertEquals(rec.paymentId, PAYMENT);
+  assertEquals(rec.refundId, REFUND);
+  assertEquals(rec.amountCents, 1000);
   assert(rec.refundRef.startsWith("re_"), "re_…");
   const call = s.provider.paymentCalls.find((c) => c.method === "refundPayment");
-  assertEquals(call?.idempotencyKey, PAYMENT);
+  assertEquals(call?.idempotencyKey, REFUND);
+  assertEquals(call?.amountCents, 1000);
+  assertEquals(call?.refundId, REFUND);
+});
+
+Deno.test("refund → failed Status → mark_refund_failed → failed", async () => {
+  const s = setup();
+  s.provider.refundStatus = "failed";
+  s.store.claimed = [refundJob()];
+  const out = await runJobs(s.deps);
+  assertEquals(out.results[0]?.outcome, "failed");
+  assertEquals(out.results[0]?.code, "REFUND_FAILED");
+  assertEquals(s.store.markFailed.length, 1);
+  assertEquals((s.store.markFailed[0] as { refundId: string }).refundId, REFUND);
+  assertEquals(s.store.refunds.length, 0);
+});
+
+Deno.test("refund → NOT_FOUND → mark_refund_failed → failed ohne Wiederholung", async () => {
+  const s = setup();
+  s.provider.throwOnRefund = new ProviderError("NOT_FOUND");
+  s.store.claimed = [refundJob()];
+  const out = await runJobs(s.deps);
+  assertEquals(out.results[0]?.outcome, "failed");
+  assertEquals(out.results[0]?.code, "NOT_FOUND");
+  assertEquals(s.store.markFailed.length, 1);
+  assertEquals((s.store.markFailed[0] as { failureCode: string }).failureCode, "NOT_FOUND");
 });
 
 Deno.test("refund → ALREADY_REFUNDED → done", async () => {

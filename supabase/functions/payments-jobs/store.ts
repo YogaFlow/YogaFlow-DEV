@@ -1,11 +1,12 @@
 /**
- * JobsStore über service_role-RPCs (claim/finish/complete/record).
+ * JobsStore über service_role-RPCs (claim/finish/complete/record/mark_refund_failed).
  * Fehlertexte der DB werden nie weitergereicht.
  */
 import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
 import type {
   CompleteResult,
   JobsStore,
+  MarkRefundFailedResult,
   ProviderJobRow,
   RefundRecordResult,
 } from "./handler.ts";
@@ -34,6 +35,7 @@ function mapJob(row: Record<string, unknown>): ProviderJobRow {
     account_ref: typeof row.account_ref === "string" ? row.account_ref : null,
     provider_ref: typeof row.provider_ref === "string" ? row.provider_ref : null,
     payment_id: typeof row.payment_id === "string" ? row.payment_id : null,
+    refund_id: typeof row.refund_id === "string" ? row.refund_id : null,
     amount_cents: typeof row.amount_cents === "number" ? row.amount_cents : null,
   };
 }
@@ -80,9 +82,24 @@ export function createJobsStore(client: SupabaseClient): JobsStore {
         p_refund_ref: input.refundRef,
         p_amount_cents: input.amountCents,
         p_received_at: input.receivedAt,
+        p_refund_id: input.refundId,
       });
       if (error) throw new StoreError("record_online_refund");
       const row = asRpcObject(data, "record_online_refund");
+      if (row.success !== true) {
+        return { ok: false, code: typeof row.error === "string" ? row.error : "INVALID_REQUEST" };
+      }
+      return { ok: true, code: typeof row.code === "string" ? row.code : null };
+    },
+
+    async markRefundFailed(input): Promise<MarkRefundFailedResult> {
+      const { data, error } = await client.rpc("mark_refund_failed", {
+        p_refund_id: input.refundId,
+        p_refund_ref: input.refundRef ?? null,
+        p_failure_code: input.failureCode,
+      });
+      if (error) throw new StoreError("mark_refund_failed");
+      const row = asRpcObject(data, "mark_refund_failed");
       if (row.success !== true) {
         return { ok: false, code: typeof row.error === "string" ? row.error : "INVALID_REQUEST" };
       }

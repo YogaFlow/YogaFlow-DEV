@@ -113,6 +113,18 @@ type StubRefund = {
   currency: string;
   status: string;
   payment_intent: string;
+  created: number;
+  metadata: Record<string, string>;
+};
+
+type StubDispute = {
+  id: string;
+  object: "dispute";
+  amount: number;
+  currency: string;
+  status: string;
+  charge: { id: string; object: "charge"; payment_intent: string };
+  payment_intent: string;
 };
 
 export type StripeStubOptions = {
@@ -131,6 +143,8 @@ export function createStripeStub(options: StripeStubOptions = {}) {
   const payments = new Map<string, StubPaymentIntent>();
   const paymentIdempotent = new Map<string, string>();
   const refundIdempotent = new Map<string, StubRefund>();
+  const refundsByPi = new Map<string, StubRefund[]>();
+  const disputes = new Map<string, StubDispute>();
   const domains = new Set<string>();
   let counter = 0;
 
@@ -335,17 +349,46 @@ export function createStripeStub(options: StripeStubOptions = {}) {
           error: { type: "invalid_request_error", code: "resource_missing", message: "No such payment_intent" },
         });
       }
+      const amountRaw = params.get("amount");
+      const amount = amountRaw != null ? Number(amountRaw) : pi.amount;
+      const metadata: Record<string, string> = {};
+      for (const [k, v] of params.entries()) {
+        const m = /^metadata\[(.+)\]$/.exec(k);
+        if (m) metadata[m[1]] = v;
+      }
       counter += 1;
       const refund: StubRefund = {
         id: `re_stub${String(counter).padStart(6, "0")}`,
         object: "refund",
-        amount: pi.amount,
+        amount: Number.isFinite(amount) ? amount : pi.amount,
         currency: pi.currency,
         status: "succeeded",
         payment_intent: piRef,
+        created: 1_700_000_200,
+        metadata,
       };
       if (key) refundIdempotent.set(key, refund);
+      const list = refundsByPi.get(piRef) ?? [];
+      list.push(refund);
+      refundsByPi.set(piRef, list);
       return json(200, refund);
+    }
+
+    if (method === "GET" && url.pathname === "/v1/refunds") {
+      const piRef = url.searchParams.get("payment_intent") ?? "";
+      const data = refundsByPi.get(piRef) ?? [];
+      return json(200, { object: "list", data, has_more: false });
+    }
+
+    const disputeMatch = url.pathname.match(/^\/v1\/disputes\/(dp_[A-Za-z0-9_]+)$/);
+    if (method === "GET" && disputeMatch) {
+      const row = disputes.get(disputeMatch[1]);
+      if (!row) {
+        return json(404, {
+          error: { type: "invalid_request_error", code: "resource_missing", message: "No such dispute" },
+        });
+      }
+      return json(200, row);
     }
 
     if (method === "POST" && url.pathname === "/v1/payment_method_domains") {
@@ -377,8 +420,18 @@ export function createStripeStub(options: StripeStubOptions = {}) {
     calls,
     accounts,
     payments,
+    refundsByPi,
+    disputes,
     seedPayment(pi: StubPaymentIntent) {
       payments.set(pi.id, pi);
+    },
+    seedRefund(refund: StubRefund) {
+      const list = refundsByPi.get(refund.payment_intent) ?? [];
+      list.push(refund);
+      refundsByPi.set(refund.payment_intent, list);
+    },
+    seedDispute(dispute: StubDispute) {
+      disputes.set(dispute.id, dispute);
     },
     activate(ref: string) {
       const acc = accounts.get(ref);

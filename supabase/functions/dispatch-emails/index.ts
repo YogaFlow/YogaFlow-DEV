@@ -63,9 +63,13 @@ Deno.serve(async (req: Request) => {
       const refunds = rows.filter((p) => p && p.reverses_payment_id != null);
       const original = originals[0] ?? null;
       const hasRefund = refunds.length > 0;
+      const originalAmountCents = original ? Number(original.amount_cents) : null;
+      const refundAmountCents = hasRefund
+        ? Math.abs(Number(refunds[0]?.amount_cents ?? 0)) || null
+        : null;
       const amountCents = hasRefund
-        ? Math.abs(Number(refunds[0]?.amount_cents ?? original?.amount_cents ?? 0)) || null
-        : (original ? Number(original.amount_cents) : null);
+        ? refundAmountCents
+        : (originalAmountCents && originalAmountCents > 0 ? originalAmountCents : null);
 
       let refundRequired = false;
       if (original?.id) {
@@ -80,6 +84,19 @@ Deno.serve(async (req: Request) => {
         refundRequired = !!ev;
       }
 
+      let refundReason: string | null = null;
+      if (original?.id) {
+        const { data: pr } = await supabase
+          .from("payment_refunds")
+          .select("reason")
+          .eq("payment_id", original.id)
+          .neq("status", "failed")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (pr && typeof pr.reason === "string") refundReason = pr.reason;
+      }
+
       const ctx: DeliveryContext = {
         registrationStatus: reg.status ?? null,
         holdExpiresAt: reg.hold_expires_at ?? null,
@@ -92,6 +109,9 @@ Deno.serve(async (req: Request) => {
         anonymizedAt: user?.anonymized_at ?? null,
         authUserId: user?.auth_user_id ?? null,
         amountCents: amountCents && amountCents > 0 ? amountCents : null,
+        refundAmountCents,
+        originalAmountCents,
+        refundReason,
         hasRefund,
         refundRequired,
       };

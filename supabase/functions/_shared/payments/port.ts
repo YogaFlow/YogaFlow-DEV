@@ -4,7 +4,7 @@
  * Regel I8: Kein Typ und kein Import des Anbieter-SDK außerhalb von
  * `_shared/payments/stripe/`. Geprüft in CI durch scripts/check_provider_boundary.mjs.
  *
- * Zahlung: create → confirm (Q1); Erstattung nur voll (Q7); Domain-Registrierung (Q8).
+ * Zahlung: create → confirm (Q1); Erstattung mit Betrag + refund_id (E1); Domain-Registrierung (Q8).
  * Keine Off-Session-Zahlung, keine Auszahlungen, keine Gebühren (SEPA bzw. 1b).
  */
 
@@ -84,16 +84,44 @@ export interface RetrievedPayment {
   failureCode?: string;
 }
 
-/** Volle Erstattung (Q7); Idempotency-Key = payment_id. */
+/**
+ * Erstattung (3.2b E1). Betrag und Idempotency-Key = refund_id (nicht payment_id).
+ * Metadata beim Anbieter: refund_id, tenant_id, payment_id — kein reason-Freitext.
+ */
 export interface RefundPaymentCommand {
   accountRef: string;
   ref: string;
+  amountCents: number;
+  refundId: string;
+  /** Immer = refundId. */
   idempotencyKey: string;
+  tenantId: string;
+  paymentId: string;
 }
 
 export interface RefundPaymentResult {
   refundRef: string;
   status: "succeeded" | "pending" | "failed";
+  amountCents: number;
+}
+
+/** Eine Erstattung am Anbieter (listRefunds / Webhook R5). */
+export interface RetrievedRefund {
+  refundRef: string;
+  paymentRef: string;
+  status: "succeeded" | "pending" | "failed" | "canceled";
+  amountCents: number;
+  /** ISO 8601, wenn der Anbieter einen Zeitpunkt liefert. */
+  receivedAt?: string;
+  /** metadata.refund_id (UUID) oder null bei Dashboard-Erstattung. */
+  refundId: string | null;
+}
+
+/** Dispute am Anbieter (R6). */
+export interface RetrievedDispute {
+  disputeRef: string;
+  paymentRef: string;
+  status: string;
   amountCents: number;
 }
 
@@ -143,10 +171,34 @@ export interface PaymentUpdatedEvent {
   livemode: boolean;
 }
 
+/**
+ * Erstattungen geändert (charge.refunded / refund.*). Webhook liest per
+ * listRefunds nach (E3) — kein Status aus dem Event.
+ */
+export interface PaymentRefundsChangedEvent {
+  type: "payment.refunds_changed";
+  accountRef: string;
+  /** PaymentIntent-Ref (pi_…). */
+  ref: string;
+  livemode: boolean;
+}
+
+/**
+ * Dispute geändert (charge.dispute.*). Webhook liest per retrieveDispute nach (E4).
+ */
+export interface PaymentDisputeChangedEvent {
+  type: "payment.dispute_changed";
+  accountRef: string;
+  disputeRef: string;
+  livemode: boolean;
+}
+
 export type DomainEvent =
   | ProviderAccountUpdatedEvent
   | ProviderAccountDisconnectedEvent
-  | PaymentUpdatedEvent;
+  | PaymentUpdatedEvent
+  | PaymentRefundsChangedEvent
+  | PaymentDisputeChangedEvent;
 
 export interface CreateConnectedAccountOptions {
   /**
@@ -170,6 +222,9 @@ export interface PaymentProvider {
   /** Idempotent: schon storniert/erfolgreich → Status zurück, kein Fehler. */
   cancelPaymentIntent(accountRef: string, ref: string): Promise<{ status: PaymentIntentStatus }>;
   refundPayment(cmd: RefundPaymentCommand): Promise<RefundPaymentResult>;
+  /** Alle Erstattungen eines PaymentIntents (Webhook R5). */
+  listRefunds(accountRef: string, paymentRef: string): Promise<RetrievedRefund[]>;
+  retrieveDispute(accountRef: string, disputeRef: string): Promise<RetrievedDispute>;
   registerPaymentDomain(accountRef: string, domain: string): Promise<RegisterPaymentDomainResult>;
   verifyWebhook(rawBody: string, signature: string, secret: string): Promise<ProviderEvent>;
   /** null = bewusst ignorieren. */

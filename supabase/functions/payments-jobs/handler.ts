@@ -24,11 +24,13 @@ export type ProviderJobRow = {
   account_ref: string | null;
   provider_ref: string | null;
   payment_id: string | null;
+  refund_id: string | null;
   amount_cents: number | null;
 };
 
 export type CompleteResult = { ok: true; code: string | null } | { ok: false; code: string };
 export type RefundRecordResult = { ok: true; code: string | null } | { ok: false; code: string };
+export type MarkRefundFailedResult = { ok: true; code?: string | null } | { ok: false; code: string };
 
 export interface JobsStore {
   claimJobs(limit: number): Promise<ProviderJobRow[]>;
@@ -49,7 +51,13 @@ export interface JobsStore {
     refundRef: string;
     amountCents: number;
     receivedAt: string;
+    refundId: string | null;
   }): Promise<RefundRecordResult>;
+  markRefundFailed(input: {
+    refundId: string | null;
+    refundRef?: string | null;
+    failureCode: string;
+  }): Promise<MarkRefundFailedResult>;
 }
 
 export type JobsDeps = {
@@ -246,8 +254,12 @@ async function processRefund(
     await finishFailed(deps, job, "ACCOUNT_MISSING", results);
     return;
   }
-  if (!job.provider_ref || !job.payment_id) {
+  if (!job.provider_ref || !job.payment_id || !job.refund_id) {
     await finishFailed(deps, job, "NOT_FOUND", results);
+    return;
+  }
+  if (job.amount_cents == null || !Number.isInteger(job.amount_cents) || job.amount_cents <= 0) {
+    await finishFailed(deps, job, "INVALID_AMOUNT", results);
     return;
   }
 
@@ -257,19 +269,46 @@ async function processRefund(
     refund = await provider.refundPayment({
       accountRef: job.account_ref,
       ref: job.provider_ref,
-      idempotencyKey: job.payment_id,
+      amountCents: job.amount_cents,
+      refundId: job.refund_id,
+      idempotencyKey: job.refund_id,
+      tenantId: job.tenant_id,
+      paymentId: job.payment_id,
     });
   } catch (err) {
+    if (err instanceof ProviderError && isImmediateFailProvider(err.code)) {
+      try {
+        await deps.store.markRefundFailed({
+          refundId: job.refund_id,
+          failureCode: err.code,
+        });
+      } catch {
+        await finishRetry(deps, job, "DB_ERROR", results);
+        return;
+      }
+      await finishFailed(deps, job, err.code, results);
+      return;
+    }
     await handleProviderError(deps, job, err, results);
     return;
   }
 
   if (refund.status === "failed") {
+    try {
+      await deps.store.markRefundFailed({
+        refundId: job.refund_id,
+        refundRef: refund.refundRef,
+        failureCode: "REFUND_FAILED",
+      });
+    } catch {
+      await finishRetry(deps, job, "DB_ERROR", results);
+      return;
+    }
     await finishFailed(deps, job, "REFUND_FAILED", results);
     return;
   }
 
-  // pending / succeeded → record
+  // pending / succeeded → record (E2)
   let recorded: RefundRecordResult;
   try {
     recorded = await deps.store.recordOnlineRefund({
@@ -277,6 +316,7 @@ async function processRefund(
       refundRef: refund.refundRef,
       amountCents: refund.amountCents,
       receivedAt: new Date().toISOString(),
+      refundId: job.refund_id,
     });
   } catch {
     await finishRetry(deps, job, "DB_ERROR", results);
@@ -292,7 +332,6 @@ async function processRefund(
     return;
   }
 
-  // ALREADY_REFUNDED / REFUNDED → done
   await finishDone(deps, job, results, recorded.code ?? undefined);
 }
 

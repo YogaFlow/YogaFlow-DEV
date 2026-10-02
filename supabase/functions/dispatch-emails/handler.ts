@@ -35,11 +35,17 @@ export type DeliveryContext = {
   recipientEmail: string | null;
   anonymizedAt: string | null;
   authUserId: string | null;
-  /** Betrag der (Original-)Zahlung in Cent; für payment_succeeded / payment_refunded. */
+  /** Betrag der (Original-)Zahlung in Cent; für payment_succeeded. */
   amountCents: number | null;
+  /** Erstattungsbetrag in Cent (payment_refunded). */
+  refundAmountCents: number | null;
+  /** Originalbetrag für Teilerstattung-Text. */
+  originalAmountCents: number | null;
+  /** payment_refunds.reason */
+  refundReason: string | null;
   /** Es existiert eine Erstattungszeile (reverses_payment_id). */
   hasRefund: boolean;
-  /** Event payment.refund_required zum Original — Platz war vergeben. */
+  /** Event payment.refund_required zum Original — Platz war vergeben (Fallback). */
   refundRequired: boolean;
 };
 
@@ -199,13 +205,23 @@ export function buildPaymentRefundedEmail(input: {
   courseTitle: string;
   courseDate: string;
   studioName: string;
-  amountLabel: string;
-  refundRequired: boolean;
+  refundAmountCents: number;
+  originalAmountCents: number | null;
+  reason: string | null;
 }): { subject: string; html: string } {
   const subject = "Zahlung erstattet";
-  const seatLine = input.refundRequired
-    ? `<p style="margin:0 0 16px 0;color:#374151;font-size:16px;line-height:1.5;">Dein Platz war leider inzwischen vergeben.</p>`
+  const refundLabel = formatEurCents(input.refundAmountCents);
+  const original = input.originalAmountCents;
+  const isPartial = original != null && original > input.refundAmountCents;
+  const amountSentence = isPartial
+    ? `Wir haben dir ${escapeHtml(refundLabel)} von ${escapeHtml(formatEurCents(original!))} erstattet.`
+    : `Wir haben dir ${escapeHtml(refundLabel)} für „${escapeHtml(input.courseTitle)}“ am ${escapeHtml(input.courseDate)} erstattet.`;
+
+  const reasonLine = refundReasonSentence(input.reason);
+  const reasonHtml = reasonLine
+    ? `<p style="margin:0 0 16px 0;color:#374151;font-size:16px;line-height:1.5;">${escapeHtml(reasonLine)}</p>`
     : "";
+
   const html = `<!DOCTYPE html>
 <html lang="de">
   <head><meta charset="utf-8" /></head>
@@ -215,10 +231,9 @@ export function buildPaymentRefundedEmail(input: {
       <h1 style="margin:0 0 16px 0;color:#111827;font-size:20px;line-height:1.3;">
         Zahlung erstattet
       </h1>
-      ${seatLine}
+      ${reasonHtml}
       <p style="margin:0 0 16px 0;color:#374151;font-size:16px;line-height:1.5;">
-        Wir haben dir ${escapeHtml(input.amountLabel)} für „${escapeHtml(input.courseTitle)}“ am
-        ${escapeHtml(input.courseDate)} erstattet.
+        ${amountSentence}
       </p>
       <p style="margin:0;color:#374151;font-size:16px;line-height:1.5;">
         Je nach Bank dauert die Gutschrift einige Werktage.
@@ -227,6 +242,23 @@ export function buildPaymentRefundedEmail(input: {
   </body>
 </html>`;
   return { subject, html };
+}
+
+/** E5: Grund-Satz je reason; manual/provider_dashboard ohne Satz. */
+export function refundReasonSentence(reason: string | null | undefined): string | null {
+  switch (reason) {
+    case "course_cancelled":
+      return "Der Kurs wurde abgesagt.";
+    case "self_cancel_in_window":
+      return "Du hast dich rechtzeitig abgemeldet.";
+    case "staff_unregister":
+    case "member_removed":
+      return "Das Studio hat deine Anmeldung storniert.";
+    case "late_payment":
+      return "Dein Platz war leider inzwischen vergeben.";
+    default:
+      return null;
+  }
 }
 
 function escapeHtml(s: string): string {
@@ -271,7 +303,8 @@ export function classifyPaymentRefunded(
 ): "ok" | "RECIPIENT_GONE" | "REFUND_MISSING" | "AMOUNT_MISSING" {
   if (recipientGone(ctx)) return "RECIPIENT_GONE";
   if (!ctx!.hasRefund) return "REFUND_MISSING";
-  if (ctx!.amountCents == null || ctx!.amountCents <= 0) return "AMOUNT_MISSING";
+  const amount = ctx!.refundAmountCents ?? ctx!.amountCents;
+  if (amount == null || amount <= 0) return "AMOUNT_MISSING";
   return "ok";
 }
 
@@ -353,12 +386,16 @@ export async function runDispatch(deps: DispatchDeps): Promise<DispatchResult> {
         results.push({ deliveryId: row.id, kind: row.kind, code: gate });
         continue;
       }
+      const refundCents = ctx!.refundAmountCents ?? ctx!.amountCents!;
+      const reason = ctx!.refundReason ??
+        (ctx!.refundRequired ? "late_payment" : null);
       const { subject, html } = buildPaymentRefundedEmail({
         courseTitle: ctx!.courseTitle ?? "Kurs",
         courseDate: courseDateText(ctx!.courseDate),
         studioName: ctx!.studioName ?? "Studio",
-        amountLabel: formatEurCents(ctx!.amountCents!),
-        refundRequired: ctx!.refundRequired,
+        refundAmountCents: refundCents,
+        originalAmountCents: ctx!.originalAmountCents,
+        reason,
       });
       const sent = await deps.sendEmail({ to: ctx!.recipientEmail!.trim(), subject, html });
       if (!sent.ok) {

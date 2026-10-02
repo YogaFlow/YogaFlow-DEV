@@ -11,9 +11,13 @@ import type {
   CompletePaymentResult,
   MarkDisconnectedResult,
   MarkFailedPaymentResult,
+  MarkRefundFailedResult,
   PaymentAttemptLookup,
+  PaymentLookup,
+  RecordDisputeResult,
   RecordEventInput,
   RecordEventResult,
+  RefundRecordResult,
   UpsertAccountResult,
   WebhookStore,
 } from "./handler.ts";
@@ -130,6 +134,39 @@ export function createSupabaseWebhookStore(client: SupabaseClient): WebhookStore
       };
     },
 
+    async findPaymentByProviderRef(provider, providerRef): Promise<PaymentLookup> {
+      const { data: payment, error } = await client
+        .from("payments")
+        .select("id, tenant_id")
+        .eq("provider", provider)
+        .eq("provider_ref", providerRef)
+        .is("reverses_payment_id", null)
+        .gt("amount_cents", 0)
+        .order("received_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw new StoreError("find_payment");
+      if (!isObject(payment) || typeof payment.id !== "string" || typeof payment.tenant_id !== "string") {
+        return { found: false };
+      }
+      const { data: account, error: accErr } = await client
+        .from("provider_accounts")
+        .select("provider_ref")
+        .eq("tenant_id", payment.tenant_id)
+        .eq("provider", provider)
+        .is("disconnected_at", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (accErr) throw new StoreError("find_studio_account");
+      return {
+        found: true,
+        paymentId: payment.id,
+        tenantId: payment.tenant_id,
+        studioAccountRef: typeof account?.provider_ref === "string" ? account.provider_ref : null,
+      };
+    },
+
     async completeOnlinePayment(input): Promise<CompletePaymentResult> {
       const { data, error } = await client.rpc("complete_online_payment", {
         p_provider_ref: input.providerRef,
@@ -156,6 +193,48 @@ export function createSupabaseWebhookStore(client: SupabaseClient): WebhookStore
         return { ok: false, code: typeof data.error === "string" ? data.error : "UNKNOWN" };
       }
       return { ok: true };
+    },
+
+    async recordOnlineRefund(input): Promise<RefundRecordResult> {
+      const { data, error } = await client.rpc("record_online_refund", {
+        p_payment_id: input.paymentId,
+        p_refund_ref: input.refundRef,
+        p_amount_cents: input.amountCents,
+        p_received_at: input.receivedAt,
+        p_refund_id: input.refundId,
+      });
+      if (error || !isObject(data)) throw new StoreError("record_online_refund");
+      if (data.success !== true) {
+        return { ok: false, code: typeof data.error === "string" ? data.error : "UNKNOWN" };
+      }
+      return { ok: true, code: typeof data.code === "string" ? data.code : null };
+    },
+
+    async markRefundFailed(input): Promise<MarkRefundFailedResult> {
+      const { data, error } = await client.rpc("mark_refund_failed", {
+        p_refund_id: input.refundId,
+        p_refund_ref: input.refundRef,
+        p_failure_code: input.failureCode,
+      });
+      if (error || !isObject(data)) throw new StoreError("mark_refund_failed");
+      if (data.success !== true) {
+        return { ok: false, code: typeof data.error === "string" ? data.error : "UNKNOWN" };
+      }
+      return { ok: true };
+    },
+
+    async recordPaymentDispute(input): Promise<RecordDisputeResult> {
+      const { data, error } = await client.rpc("record_payment_dispute", {
+        p_payment_id: input.paymentId,
+        p_provider_ref: input.providerRef,
+        p_amount_cents: input.amountCents,
+        p_status: input.status,
+      });
+      if (error || !isObject(data)) throw new StoreError("record_payment_dispute");
+      if (data.success !== true) {
+        return { ok: false, code: typeof data.error === "string" ? data.error : "UNKNOWN" };
+      }
+      return { ok: true, code: typeof data.code === "string" ? data.code : null };
     },
   };
 }

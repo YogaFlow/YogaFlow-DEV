@@ -587,7 +587,7 @@ Deno.test("retrievePayment: Expand latest_charge, receivedAt, stripeAccount", as
   assert(!("clientSecret" in got), "kein clientSecret in retrieve");
 });
 
-Deno.test("refundPayment: Idempotency-Key und stripeAccount", async () => {
+Deno.test("refundPayment: Teilbetrag, Idempotency = refund_id, Metadata", async () => {
   const { stub, provider } = setup();
   stub.seedPayment({
     id: "pi_stub_refund",
@@ -602,22 +602,37 @@ Deno.test("refundPayment: Idempotency-Key und stripeAccount", async () => {
     last_payment_error: null,
     latest_charge: null,
   });
-  const paymentId = "pay_db_uuid_as_idem";
+  const refundId = "00000000-0000-4000-8000-00000000r099";
+  const paymentId = "00000000-0000-4000-8000-00000000p099";
+  const tenantId = "00000000-0000-4000-8000-00000000t099";
   const a = await provider.refundPayment({
     accountRef: ACCOUNT,
     ref: "pi_stub_refund",
-    idempotencyKey: paymentId,
+    amountCents: 1000,
+    refundId,
+    idempotencyKey: refundId,
+    tenantId,
+    paymentId,
   });
   const b = await provider.refundPayment({
     accountRef: ACCOUNT,
     ref: "pi_stub_refund",
-    idempotencyKey: paymentId,
+    amountCents: 1000,
+    refundId,
+    idempotencyKey: refundId,
+    tenantId,
+    paymentId,
   });
   assertEquals(a.refundRef, b.refundRef);
   assertEquals(a.status, "succeeded");
+  assertEquals(a.amountCents, 1000);
   assertEquals(stub.calls[0].stripeAccount, ACCOUNT);
-  assertEquals(stub.calls[0].idempotencyKey, paymentId);
+  assertEquals(stub.calls[0].idempotencyKey, refundId);
   assertEquals(stub.calls[0].params.get("payment_intent"), "pi_stub_refund");
+  assertEquals(stub.calls[0].params.get("amount"), "1000");
+  assertEquals(stub.calls[0].params.get("metadata[refund_id]"), refundId);
+  assertEquals(stub.calls[0].params.get("metadata[tenant_id]"), tenantId);
+  assertEquals(stub.calls[0].params.get("metadata[payment_id]"), paymentId);
 });
 
 Deno.test("cancelPaymentIntent: schon erfolgreich → Status zurück, kein Fehler", async () => {
@@ -673,7 +688,15 @@ Deno.test("Zahlungsaufrufe setzen stripeAccount (Spion)", async () => {
     returnUrl: "https://example.test/r",
   });
   await provider.retrievePayment(ACCOUNT, ref);
-  await provider.refundPayment({ accountRef: ACCOUNT, ref, idempotencyKey: "pay-spy" });
+  await provider.refundPayment({
+    accountRef: ACCOUNT,
+    ref,
+    amountCents: 900,
+    refundId: "00000000-0000-4000-8000-00000000r0spy",
+    idempotencyKey: "00000000-0000-4000-8000-00000000r0spy",
+    tenantId: TENANT_PAY,
+    paymentId: "00000000-0000-4000-8000-00000000p0spy",
+  });
   await provider.registerPaymentDomain(ACCOUNT, "spy.example.test");
   const paymentCalls = stub.calls.filter((c) =>
     c.path.includes("payment_intent") || c.path.includes("refunds") || c.path.includes("payment_method_domains")

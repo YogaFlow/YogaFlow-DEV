@@ -26,7 +26,9 @@ import {
   type RefundPaymentCommand,
   type RefundPaymentResult,
   type RegisterPaymentDomainResult,
+  type RetrievedDispute,
   type RetrievedPayment,
+  type RetrievedRefund,
 } from "../port.ts";
 
 export const FAKE_WEBHOOK_SECRET = "whsec_fake_omlify_test";
@@ -40,6 +42,22 @@ const PAYMENT_EVENT_TYPES = new Set([
   "payment_intent.payment_failed",
   "payment_intent.canceled",
 ]);
+
+const REFUND_EVENT_TYPES = new Set([
+  "charge.refunded",
+  "refund.created",
+  "refund.updated",
+  "refund.failed",
+]);
+
+const DISPUTE_EVENT_TYPES = new Set([
+  "charge.dispute.created",
+  "charge.dispute.updated",
+  "charge.dispute.closed",
+]);
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export type FakePaymentBehavior =
   | "succeed"
@@ -59,6 +77,7 @@ export type FakePaymentCall = {
   ref?: string;
   idempotencyKey?: string;
   amountCents?: number;
+  refundId?: string;
   domain?: string;
 };
 
@@ -74,6 +93,22 @@ interface FakePaymentRecord {
   failureCode?: string;
   receivedAt?: string;
   clientSecret?: string;
+}
+
+interface FakeRefundRecord {
+  refundRef: string;
+  paymentRef: string;
+  status: RetrievedRefund["status"];
+  amountCents: number;
+  refundId: string | null;
+  receivedAt?: string;
+}
+
+interface FakeDisputeRecord {
+  disputeRef: string;
+  paymentRef: string;
+  status: string;
+  amountCents: number;
 }
 
 const encoder = new TextEncoder();
@@ -131,6 +166,8 @@ export class FakePaymentProvider implements PaymentProvider {
   private readonly payments = new Map<string, FakePaymentRecord>();
   private readonly paymentByIdempotency = new Map<string, string>();
   private readonly refundByIdempotency = new Map<string, RefundPaymentResult>();
+  private readonly refundsByPayment = new Map<string, FakeRefundRecord[]>();
+  private readonly disputes = new Map<string, FakeDisputeRecord>();
   private readonly domains = new Set<string>();
   private readonly now: () => number;
   private counter = 0;
@@ -144,6 +181,17 @@ export class FakePaymentProvider implements PaymentProvider {
 
   setPaymentBehavior(behavior: FakePaymentBehavior): void {
     this.behavior = behavior;
+  }
+
+  /** Test-Hilfe: Erstattung ohne Stripe-Aufruf einspielen (Webhook vor Job). */
+  seedRefund(record: FakeRefundRecord): void {
+    const list = this.refundsByPayment.get(record.paymentRef) ?? [];
+    list.push({ ...record });
+    this.refundsByPayment.set(record.paymentRef, list);
+  }
+
+  seedDispute(record: FakeDisputeRecord): void {
+    this.disputes.set(record.disputeRef, { ...record });
   }
 
   createConnectedAccount(
@@ -287,9 +335,18 @@ export class FakePaymentProvider implements PaymentProvider {
       method: "refundPayment",
       ref: cmd.ref,
       idempotencyKey: cmd.idempotencyKey,
+      amountCents: cmd.amountCents,
+      refundId: cmd.refundId,
     });
     if (this.behavior === "provider_unavailable") {
       return Promise.reject(new ProviderError("PROVIDER_UNAVAILABLE"));
+    }
+    if (
+      !cmd.accountRef || !cmd.ref || !cmd.idempotencyKey || !cmd.refundId ||
+      !cmd.tenantId || !cmd.paymentId ||
+      !Number.isInteger(cmd.amountCents) || cmd.amountCents <= 0
+    ) {
+      return Promise.reject(new ProviderError("INVALID_REQUEST", "missing_input"));
     }
     const known = this.refundByIdempotency.get(cmd.idempotencyKey);
     if (known) return Promise.resolve({ ...known });
@@ -304,10 +361,52 @@ export class FakePaymentProvider implements PaymentProvider {
     const result: RefundPaymentResult = {
       refundRef: `re_fake${String(this.counter).padStart(6, "0")}`,
       status: "succeeded",
-      amountCents: payment.amountCents,
+      amountCents: cmd.amountCents,
     };
     this.refundByIdempotency.set(cmd.idempotencyKey, result);
+    const list = this.refundsByPayment.get(cmd.ref) ?? [];
+    list.push({
+      refundRef: result.refundRef,
+      paymentRef: cmd.ref,
+      status: "succeeded",
+      amountCents: cmd.amountCents,
+      refundId: UUID_RE.test(cmd.refundId) ? cmd.refundId : null,
+      receivedAt: new Date(this.now() * 1000).toISOString(),
+    });
+    this.refundsByPayment.set(cmd.ref, list);
     return Promise.resolve({ ...result });
+  }
+
+  listRefunds(accountRef: string, paymentRef: string): Promise<RetrievedRefund[]> {
+    this.paymentCalls.push({ method: "listRefunds", ref: paymentRef });
+    if (!accountRef || !paymentRef) {
+      return Promise.reject(new ProviderError("INVALID_REQUEST", "missing_input"));
+    }
+    if (this.behavior === "provider_unavailable") {
+      return Promise.reject(new ProviderError("PROVIDER_UNAVAILABLE"));
+    }
+    const list = this.refundsByPayment.get(paymentRef) ?? [];
+    return Promise.resolve(list.map((r) => ({
+      refundRef: r.refundRef,
+      paymentRef: r.paymentRef,
+      status: r.status,
+      amountCents: r.amountCents,
+      receivedAt: r.receivedAt,
+      refundId: r.refundId,
+    })));
+  }
+
+  retrieveDispute(accountRef: string, disputeRef: string): Promise<RetrievedDispute> {
+    this.paymentCalls.push({ method: "retrieveDispute", ref: disputeRef });
+    if (!accountRef || !disputeRef) {
+      return Promise.reject(new ProviderError("INVALID_REQUEST", "missing_input"));
+    }
+    if (this.behavior === "provider_unavailable") {
+      return Promise.reject(new ProviderError("PROVIDER_UNAVAILABLE"));
+    }
+    const row = this.disputes.get(disputeRef);
+    if (!row) return Promise.reject(new ProviderError("NOT_FOUND", "resource_missing"));
+    return Promise.resolve({ ...row });
   }
 
   registerPaymentDomain(accountRef: string, domain: string): Promise<RegisterPaymentDomainResult> {
@@ -379,6 +478,40 @@ export class FakePaymentProvider implements PaymentProvider {
         type: "payment.updated",
         accountRef: e.accountRef,
         ref: payload.id,
+        livemode: e.livemode,
+      };
+    }
+
+    if (REFUND_EVENT_TYPES.has(e.type)) {
+      if (!e.accountRef) throw new ProviderError("INVALID_EVENT", "missing_account");
+      const payload = e.payload as Record<string, unknown> | null;
+      let pi: string | null = null;
+      if (e.type === "charge.refunded") {
+        const raw = payload?.payment_intent;
+        if (typeof raw === "string" && raw.startsWith("pi_")) pi = raw;
+      } else {
+        const raw = payload?.payment_intent;
+        if (typeof raw === "string" && raw.startsWith("pi_")) pi = raw;
+      }
+      if (!pi) throw new ProviderError("INVALID_EVENT", "missing_payment_ref");
+      return {
+        type: "payment.refunds_changed",
+        accountRef: e.accountRef,
+        ref: pi,
+        livemode: e.livemode,
+      };
+    }
+
+    if (DISPUTE_EVENT_TYPES.has(e.type)) {
+      if (!e.accountRef) throw new ProviderError("INVALID_EVENT", "missing_account");
+      const id = (e.payload as { id?: unknown } | null)?.id;
+      if (typeof id !== "string" || !id.startsWith("dp_")) {
+        throw new ProviderError("INVALID_EVENT", "missing_dispute_ref");
+      }
+      return {
+        type: "payment.dispute_changed",
+        accountRef: e.accountRef,
+        disputeRef: id,
         livemode: e.livemode,
       };
     }

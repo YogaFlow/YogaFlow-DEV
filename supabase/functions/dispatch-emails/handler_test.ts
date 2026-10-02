@@ -54,6 +54,9 @@ Deno.test("classifyDelivery S6d", () => {
     anonymizedAt: null,
     authUserId: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
     amountCents: null,
+    refundAmountCents: null,
+    originalAmountCents: null,
+    refundReason: null,
     hasRefund: false,
     refundRequired: false,
   };
@@ -135,6 +138,9 @@ const pendingCtx: DeliveryContext = {
   anonymizedAt: null,
   authUserId: "11111111-1111-4111-8111-111111111111",
   amountCents: null,
+  refundAmountCents: null,
+  originalAmountCents: null,
+  refundReason: null,
   hasRefund: false,
   refundRequired: false,
 };
@@ -254,6 +260,9 @@ const paidCtx: DeliveryContext = {
   ...pendingCtx,
   registrationStatus: "registered",
   amountCents: 2400,
+  refundAmountCents: null,
+  originalAmountCents: 2400,
+  refundReason: null,
   hasRefund: false,
   refundRequired: false,
 };
@@ -309,26 +318,61 @@ Deno.test("18. payment_succeeded: gueltig gesendet; erstattet skipped", async ()
   assertEquals(classifyPaymentSucceeded({ ...paidCtx, hasRefund: true }), "ALREADY_REFUNDED");
 });
 
-Deno.test("19. payment_refunded mit und ohne REFUND_REQUIRED", async () => {
-  const amount = formatEurCents(2400);
-  const withReason = buildPaymentRefundedEmail({
+Deno.test("19. payment_refunded: Texte je reason, Voll- und Teilerstattung", async () => {
+  const full = buildPaymentRefundedEmail({
     courseTitle: "Yin",
     courseDate: "05.10.2026",
     studioName: "Om",
-    amountLabel: amount,
-    refundRequired: true,
+    refundAmountCents: 2400,
+    originalAmountCents: 2400,
+    reason: "late_payment",
   });
-  assert(withReason.html.includes("Platz war leider inzwischen vergeben"), "REFUND_REQUIRED Text");
-  assert(withReason.html.includes(amount), "Betrag");
+  assert(full.html.includes("Platz war leider inzwischen vergeben"), "late_payment");
+  assert(full.html.includes("24,00"), "Vollbetrag");
+  assert(full.html.includes("Je nach Bank"), "Bank-Hinweis");
 
-  const without = buildPaymentRefundedEmail({
+  const course = buildPaymentRefundedEmail({
     courseTitle: "Yin",
     courseDate: "05.10.2026",
     studioName: "Om",
-    amountLabel: amount,
-    refundRequired: false,
+    refundAmountCents: 2400,
+    originalAmountCents: 2400,
+    reason: "course_cancelled",
   });
-  assert(!without.html.includes("inzwischen vergeben"), "ohne Platz-Hinweis");
+  assert(course.html.includes("Der Kurs wurde abgesagt."), "course_cancelled");
+
+  const self = buildPaymentRefundedEmail({
+    courseTitle: "Yin",
+    courseDate: "05.10.2026",
+    studioName: "Om",
+    refundAmountCents: 2400,
+    originalAmountCents: 2400,
+    reason: "self_cancel_in_window",
+  });
+  assert(self.html.includes("rechtzeitig abgemeldet"), "self_cancel");
+
+  const staff = buildPaymentRefundedEmail({
+    courseTitle: "Yin",
+    courseDate: "05.10.2026",
+    studioName: "Om",
+    refundAmountCents: 2400,
+    originalAmountCents: 2400,
+    reason: "staff_unregister",
+  });
+  assert(staff.html.includes("Studio hat deine Anmeldung storniert"), "staff");
+
+  const partial = buildPaymentRefundedEmail({
+    courseTitle: "Yin",
+    courseDate: "05.10.2026",
+    studioName: "Om",
+    refundAmountCents: 1000,
+    originalAmountCents: 2400,
+    reason: "manual",
+  });
+  assert(partial.html.includes("10,00"), "Teilbetrag");
+  assert(partial.html.includes("von 24,00"), "von Original");
+  assert(!partial.html.includes("Der Kurs"), "manual ohne Grund-Satz");
+  assert(!partial.html.includes("Anmeldung storniert"), "manual ohne Studio-Satz");
 
   const { deps, mails } = makeDeps({
     rows: [{
@@ -341,7 +385,15 @@ Deno.test("19. payment_refunded mit und ohne REFUND_REQUIRED", async () => {
       attempts: 0,
     }],
     ctxByReg: {
-      r1: { ...paidCtx, hasRefund: true, refundRequired: true, amountCents: 2400 },
+      r1: {
+        ...paidCtx,
+        hasRefund: true,
+        refundRequired: false,
+        refundReason: "late_payment",
+        refundAmountCents: 2400,
+        originalAmountCents: 2400,
+        amountCents: 2400,
+      },
     },
   });
   const out = await runDispatch(deps);

@@ -18,6 +18,7 @@ import {
   type MarkDisconnectedResult,
   type MarkFailedPaymentResult,
   type PaymentAttemptLookup,
+  type PaymentLookup,
   type RecordEventInput,
   type RecordEventResult,
   type UpsertAccountResult,
@@ -27,6 +28,8 @@ import {
 import * as piFx from "../_shared/payments/stripe/fixtures/payment_intents.ts";
 
 const TENANT = "00000000-0000-4000-8000-0000000014a1";
+const PAYMENT = "00000000-0000-4000-8000-00000000p001";
+const REFUND_A = "00000000-0000-4000-8000-00000000r0a1";
 const SECOND_SECRET = "whsec_fake_omlify_rotation";
 
 interface Row {
@@ -43,7 +46,7 @@ interface Row {
 
 class MemoryStore implements WebhookStore {
   readonly rows = new Map<string, Row>();
-  /** provider_accounts: provider_ref → tenant_id */
+  /** provider_accounts: provider_ref â tenant_id */
   readonly accounts = new Map<string, string>();
   readonly upserts: { tenantId: string; state: ProviderAccountState }[] = [];
   readonly disconnects: string[] = [];
@@ -110,14 +113,27 @@ class MemoryStore implements WebhookStore {
 
   /** provider_ref → attempt lookup */
   attempts = new Map<string, { attemptId: string; tenantId: string; studioAccountRef: string | null }>();
+  /** provider_ref (pi_) → payment lookup */
+  payments = new Map<string, { paymentId: string; tenantId: string; studioAccountRef: string | null }>();
   completes: unknown[] = [];
+  refunds: unknown[] = [];
+  markRefundFailedCalls: unknown[] = [];
+  disputes: unknown[] = [];
   markFailedCalls: { providerRef: string; failureCode: string; status?: string }[] = [];
   completeResult: CompletePaymentResult = { ok: true, code: "COMPLETED" };
   completeSequence: CompletePaymentResult[] = [];
+  refundResult: { ok: true; code: string | null } = { ok: true, code: "REFUNDED" };
 
   findPaymentAttempt(_provider: string, providerRef: string): Promise<PaymentAttemptLookup> {
     this.writes += 1;
     const row = this.attempts.get(providerRef);
+    if (!row) return Promise.resolve({ found: false });
+    return Promise.resolve({ found: true, ...row });
+  }
+
+  findPaymentByProviderRef(_provider: string, providerRef: string): Promise<PaymentLookup> {
+    this.writes += 1;
+    const row = this.payments.get(providerRef);
     if (!row) return Promise.resolve({ found: false });
     return Promise.resolve({ found: true, ...row });
   }
@@ -147,6 +163,39 @@ class MemoryStore implements WebhookStore {
     return Promise.resolve({ ok: true });
   }
 
+  recordOnlineRefund(input: {
+    paymentId: string;
+    refundRef: string;
+    amountCents: number;
+    receivedAt: string;
+    refundId: string | null;
+  }) {
+    this.writes += 1;
+    this.refunds.push(input);
+    return Promise.resolve(structuredClone(this.refundResult));
+  }
+
+  markRefundFailed(input: {
+    refundId: string | null;
+    refundRef: string | null;
+    failureCode: string;
+  }) {
+    this.writes += 1;
+    this.markRefundFailedCalls.push(input);
+    return Promise.resolve({ ok: true as const });
+  }
+
+  recordPaymentDispute(input: {
+    paymentId: string;
+    providerRef: string;
+    amountCents: number;
+    status: string;
+  }) {
+    this.writes += 1;
+    this.disputes.push(input);
+    return Promise.resolve({ ok: true as const });
+  }
+
   only(): Row {
     assertEquals(this.rows.size, 1, "genau eine Rohzeile");
     return [...this.rows.values()][0];
@@ -163,6 +212,7 @@ class SpyProvider extends FakePaymentProvider {
   getAccountStateCalls = 0;
   unavailable = false;
   retrieveUnavailable = false;
+  listRefundsUnavailable = false;
   retrieveOverride: import("../_shared/payments/port.ts").RetrievedPayment | null = null;
 
   override getAccountState(ref: string): Promise<ProviderAccountState> {
@@ -179,6 +229,13 @@ class SpyProvider extends FakePaymentProvider {
       return Promise.resolve({ ...this.retrieveOverride, ref });
     }
     return super.retrievePayment(accountRef, ref);
+  }
+
+  override listRefunds(accountRef: string, paymentRef: string) {
+    if (this.listRefundsUnavailable) {
+      return Promise.reject(new ProviderError("PROVIDER_UNAVAILABLE", "StripeConnectionError"));
+    }
+    return super.listRefunds(accountRef, paymentRef);
   }
 }
 
@@ -224,7 +281,7 @@ async function readJson(res: Response): Promise<Record<string, unknown>> {
   return await res.json();
 }
 
-/** Studio mit verbundenem Konto; event trägt den Stand zum Zeitpunkt des Baus. */
+/** Studio mit verbundenem Konto; event trÃ¤gt den Stand zum Zeitpunkt des Baus. */
 async function connectedAccount(s: Setup): Promise<string> {
   const { ref } = await s.provider.createConnectedAccount(TENANT, `acct-create-${TENANT}`);
   s.store.accounts.set(ref, TENANT);
@@ -235,7 +292,7 @@ async function signed(s: Setup, body: string, secret = FAKE_WEBHOOK_SECRET): Pro
   return post(body, await s.provider.signWebhook(body, secret));
 }
 
-Deno.test("Webhook: ungültige Signatur → 400, keine DB-Schreibung", async () => {
+Deno.test("Webhook: ungÃ¼ltige Signatur â 400, keine DB-Schreibung", async () => {
   const s = setup();
   const ref = await connectedAccount(s);
   const body = s.provider.buildEvent("account.updated", ref);
@@ -246,14 +303,14 @@ Deno.test("Webhook: ungültige Signatur → 400, keine DB-Schreibung", async () 
   assertEquals(s.store.rows.size, 0);
 });
 
-Deno.test("Webhook: GET → 405", async () => {
+Deno.test("Webhook: GET â 405", async () => {
   const s = setup();
   const res = await handleWebhook(new Request("https://dev.example.test/", { method: "GET" }), s.deps);
   assertEquals(res.status, 405);
   assertEquals(s.store.writes, 0);
 });
 
-Deno.test("Webhook: Body über 1 MB → 413 (Content-Length und Stream)", async () => {
+Deno.test("Webhook: Body Ã¼ber 1 MB â 413 (Content-Length und Stream)", async () => {
   const s = setup();
   const big = "x".repeat(MAX_BODY_BYTES + 1);
 
@@ -273,7 +330,7 @@ Deno.test("Webhook: Body über 1 MB → 413 (Content-Length und Stream)", async 
   assertEquals(s.store.writes, 0);
 });
 
-Deno.test("Webhook: fehlender Header stripe-signature → 400", async () => {
+Deno.test("Webhook: fehlender Header stripe-signature â 400", async () => {
   const s = setup();
   const ref = await connectedAccount(s);
   const res = await handleWebhook(post(s.provider.buildEvent("account.updated", ref)), s.deps);
@@ -282,7 +339,7 @@ Deno.test("Webhook: fehlender Header stripe-signature → 400", async () => {
   assertEquals(s.store.writes, 0);
 });
 
-Deno.test("Webhook: Konfiguration fehlt → 500 CONFIG_ERROR", async () => {
+Deno.test("Webhook: Konfiguration fehlt â 500 CONFIG_ERROR", async () => {
   const cases: Record<string, string>[] = [
     { PAYMENTS_MODE: "" },
     { STRIPE_WEBHOOK_SECRET: "" },
@@ -297,10 +354,10 @@ Deno.test("Webhook: Konfiguration fehlt → 500 CONFIG_ERROR", async () => {
   }
 });
 
-Deno.test("Webhook: account.updated mit bekanntem Studio → Stand nachgelesen, upsert, verarbeitet", async () => {
+Deno.test("Webhook: account.updated mit bekanntem Studio â Stand nachgelesen, upsert, verarbeitet", async () => {
   const s = setup();
   const ref = await connectedAccount(s);
-  // Event trägt den alten Stand (in_progress); beim Anbieter ist das Konto inzwischen bereit.
+  // Event trÃ¤gt den alten Stand (in_progress); beim Anbieter ist das Konto inzwischen bereit.
   const body = s.provider.buildEvent("account.updated", ref);
   s.provider.activateAccount(ref);
 
@@ -322,7 +379,7 @@ Deno.test("Webhook: account.updated mit bekanntem Studio → Stand nachgelesen, 
   assertEquals([row.processingError, row.attempts, row.tenantId], [null, 1, TENANT]);
 });
 
-Deno.test("Webhook: dasselbe Event zweimal → beim zweiten Mal kein Nachlesen, 200", async () => {
+Deno.test("Webhook: dasselbe Event zweimal â beim zweiten Mal kein Nachlesen, 200", async () => {
   const s = setup();
   const ref = await connectedAccount(s);
   const body = s.provider.buildEvent("account.updated", ref);
@@ -336,7 +393,7 @@ Deno.test("Webhook: dasselbe Event zweimal → beim zweiten Mal kein Nachlesen, 
   assertEquals(s.store.only().attempts, 1);
 });
 
-Deno.test("Webhook: früherer Fehlschlag (nicht verarbeitet) → wird erneut verarbeitet", async () => {
+Deno.test("Webhook: frÃ¼herer Fehlschlag (nicht verarbeitet) â wird erneut verarbeitet", async () => {
   const s = setup();
   const ref = await connectedAccount(s);
   const body = s.provider.buildEvent("account.updated", ref);
@@ -356,7 +413,7 @@ Deno.test("Webhook: früherer Fehlschlag (nicht verarbeitet) → wird erneut ver
   assertEquals(s.store.upserts.length, 1);
 });
 
-Deno.test("Webhook: Studio unbekannt → TENANT_NOT_RESOLVED, 200, kein Nachlesen", async () => {
+Deno.test("Webhook: Studio unbekannt â TENANT_NOT_RESOLVED, 200, kein Nachlesen", async () => {
   const s = setup();
   const { ref } = await s.provider.createConnectedAccount(TENANT, "k-unbekannt");
   const res = await handleWebhook(await signed(s, s.provider.buildEvent("account.updated", ref)), s.deps);
@@ -365,11 +422,11 @@ Deno.test("Webhook: Studio unbekannt → TENANT_NOT_RESOLVED, 200, kein Nachlese
   assertEquals(s.provider.getAccountStateCalls, 0);
   assertEquals(s.store.upserts.length, 0);
   const row = s.store.only();
-  assert(row.processedAt !== null, "abschließend behandelt");
+  assert(row.processedAt !== null, "abschlieÃend behandelt");
   assertEquals([row.tenantId, row.processingError], [null, "TENANT_NOT_RESOLVED"]);
 });
 
-Deno.test("Webhook: upsert liefert ACCOUNT_TENANT_MISMATCH → Code gespeichert, 200", async () => {
+Deno.test("Webhook: upsert liefert ACCOUNT_TENANT_MISMATCH â Code gespeichert, 200", async () => {
   const s = setup();
   const ref = await connectedAccount(s);
   s.store.upsertResult = { ok: false, code: "ACCOUNT_TENANT_MISMATCH" };
@@ -380,7 +437,7 @@ Deno.test("Webhook: upsert liefert ACCOUNT_TENANT_MISMATCH → Code gespeichert,
   assertEquals(row.processingError, "ACCOUNT_TENANT_MISMATCH");
 });
 
-Deno.test("Webhook: Anbieter beim Nachlesen nicht erreichbar → mark_provider_event_failed, 500", async () => {
+Deno.test("Webhook: Anbieter beim Nachlesen nicht erreichbar â mark_provider_event_failed, 500", async () => {
   const s = setup();
   const ref = await connectedAccount(s);
   s.provider.unavailable = true;
@@ -392,7 +449,7 @@ Deno.test("Webhook: Anbieter beim Nachlesen nicht erreichbar → mark_provider_e
   assertEquals(s.store.upserts.length, 0);
 });
 
-Deno.test("Webhook: payment_intent.succeeded → verarbeitet ohne Wirkung, 200", async () => {
+Deno.test("Webhook: payment_intent.succeeded â verarbeitet ohne Wirkung, 200", async () => {
   const s = setup();
   const ref = await connectedAccount(s);
   const res = await handleWebhook(await signed(s, s.provider.buildEvent("payment_intent.succeeded", ref)), s.deps);
@@ -404,7 +461,7 @@ Deno.test("Webhook: payment_intent.succeeded → verarbeitet ohne Wirkung, 200",
   assertEquals([row.eventType, row.processingError, row.tenantId], ["payment_intent.succeeded", null, TENANT]);
 });
 
-Deno.test("Webhook: zweites Secret (Rotation) passt → 200", async () => {
+Deno.test("Webhook: zweites Secret (Rotation) passt â 200", async () => {
   const s = setup({ STRIPE_WEBHOOK_SECRET: "whsec_fake_omlify_alt", STRIPE_WEBHOOK_SECRET_2: SECOND_SECRET });
   const ref = await connectedAccount(s);
   const res = await handleWebhook(await signed(s, s.provider.buildEvent("account.updated", ref), SECOND_SECRET), s.deps);
@@ -412,7 +469,7 @@ Deno.test("Webhook: zweites Secret (Rotation) passt → 200", async () => {
   assertEquals(s.store.upserts.length, 1);
 });
 
-Deno.test("Webhook: livemode passt nicht → 400, nichts gespeichert", async () => {
+Deno.test("Webhook: livemode passt nicht â 400, nichts gespeichert", async () => {
   // Adapter lehnt ein Live-Event im Testmodus ab.
   const s = setup();
   const ref = await connectedAccount(s);
@@ -421,7 +478,7 @@ Deno.test("Webhook: livemode passt nicht → 400, nichts gespeichert", async () 
   assertEquals(res.status, 400);
   assertEquals(await readJson(res), { code: "LIVEMODE_MISMATCH" });
 
-  // Eigene Prüfung der Function: Testevent bei PAYMENTS_MODE=live.
+  // Eigene PrÃ¼fung der Function: Testevent bei PAYMENTS_MODE=live.
   const l = setup({ PAYMENTS_MODE: "live" });
   const ref2 = await connectedAccount(l);
   const res2 = await handleWebhook(await signed(l, l.provider.buildEvent("account.updated", ref2)), l.deps);
@@ -447,13 +504,13 @@ Deno.test("Webhook: Logger bekommt weder Payload noch Signatur", async () => {
   assert(s.log.lines.length >= 4, "es wurde geloggt");
   const all = s.log.lines.join("\n");
   for (const forbidden of [body, signature, signature.split("v1=")[1], ref, FAKE_WEBHOOK_SECRET, "capabilities", "chargesEnabled"]) {
-    assert(!all.includes(forbidden), `Log enthält verbotenen Inhalt: ${forbidden.slice(0, 20)}`);
+    assert(!all.includes(forbidden), `Log enthÃ¤lt verbotenen Inhalt: ${forbidden.slice(0, 20)}`);
   }
   assert(all.includes(eventId), "Event-ID steht im Log");
   assert(all.includes("account.updated"), "Event-Typ steht im Log");
 });
 
-Deno.test("Webhook: account.application.deauthorized bekannt → markDisconnected, 200", async () => {
+Deno.test("Webhook: account.application.deauthorized bekannt â markDisconnected, 200", async () => {
   const s = setup();
   const ref = await connectedAccount(s);
   const res = await handleWebhook(
@@ -469,7 +526,7 @@ Deno.test("Webhook: account.application.deauthorized bekannt → markDisconnecte
   assertEquals(row.processingError, null);
 });
 
-Deno.test("Webhook: account.application.deauthorized unbekannt → NOT_FOUND in Rohzeile, 200", async () => {
+Deno.test("Webhook: account.application.deauthorized unbekannt â NOT_FOUND in Rohzeile, 200", async () => {
   const s = setup();
   const { ref } = await s.provider.createConnectedAccount(TENANT, "k-deauth-unknown");
   s.store.disconnectResult = { ok: false, code: "NOT_FOUND" };
@@ -480,7 +537,7 @@ Deno.test("Webhook: account.application.deauthorized unbekannt → NOT_FOUND in 
   assertEquals(res.status, 200);
   assertEquals(s.store.disconnects, [ref]);
   const row = s.store.only();
-  assert(row.processedAt !== null, "abschließend behandelt");
+  assert(row.processedAt !== null, "abschlieÃend behandelt");
   assertEquals(row.processingError, "NOT_FOUND");
 });
 
@@ -514,7 +571,7 @@ Deno.test("readWebhookSecrets: _THIN wird mitgelesen", () => {
   );
 });
 
-Deno.test("Webhook Thin: gültig → Nachlesen und upsert", async () => {
+Deno.test("Webhook Thin: gÃ¼ltig â Nachlesen und upsert", async () => {
   const stub = createStripeStub();
   const stripe = new StripePaymentProvider({ secretKey: TEST_SECRET_KEY, mode: "test", fetchFn: stub.fetchFn });
   const { ref } = await stripe.createConnectedAccount(TENANT, `acct-create-${TENANT}`);
@@ -546,7 +603,7 @@ Deno.test("Webhook Thin: gültig → Nachlesen und upsert", async () => {
   assert(row.processedAt !== null, "verarbeitet");
 });
 
-Deno.test("Webhook Thin: falsche Signatur → 400", async () => {
+Deno.test("Webhook Thin: falsche Signatur â 400", async () => {
   const stub = createStripeStub();
   const stripe = new StripePaymentProvider({ secretKey: TEST_SECRET_KEY, mode: "test", fetchFn: stub.fetchFn });
   const store = new MemoryStore();
@@ -567,7 +624,7 @@ Deno.test("Webhook Thin: falsche Signatur → 400", async () => {
   assertEquals(store.writes, 0);
 });
 
-Deno.test("Webhook Thin: fremder Typ → ohne Wirkung", async () => {
+Deno.test("Webhook Thin: fremder Typ â ohne Wirkung", async () => {
   const stub = createStripeStub();
   const stripe = new StripePaymentProvider({ secretKey: TEST_SECRET_KEY, mode: "test", fetchFn: stub.fetchFn });
   const store = new MemoryStore();
@@ -611,7 +668,7 @@ Deno.test("9. payment.updated succeeded ? complete aus retrievePayment", async (
   assertEquals(c.providerRef, pi);
 });
 
-Deno.test("10. doppeltes Event (zwei evt_�, gleiche pi_�) ? zweimal complete, zweites ALREADY_COMPLETED, beide 200", async () => {
+Deno.test("10. doppeltes Event (zwei evt_, gleiche pi_) ? zweimal complete, zweites ALREADY_COMPLETED, beide 200", async () => {
   const s = setup();
   const ref = await connectedAccount(s);
   const pi = "pi_fixture_succeeded";
@@ -708,7 +765,7 @@ Deno.test("13. Konto im Event ? Studio-Konto ? kein RPC, Log account_mismatch, 2
   assert(s.log.lines.some((l) => l.includes("account_mismatch")), "Log account_mismatch");
 });
 
-Deno.test("14. Unbekannte pi_� + succeeded ? Log payment.orphan, 200", async () => {
+Deno.test("14. Unbekannte pi_ + succeeded ? Log payment.orphan, 200", async () => {
   const s = setup();
   const ref = await connectedAccount(s);
   s.provider.retrieveOverride = {
@@ -734,6 +791,197 @@ Deno.test("15. Stripe nicht erreichbar ? 500", async () => {
   s.store.attempts.set(pi, { attemptId: "att1", tenantId: TENANT, studioAccountRef: ref });
   s.provider.retrieveUnavailable = true;
   const res = await handleWebhook(await signed(s, JSON.stringify(piFx.evtPiSucceeded(ref))), s.deps);
+  assertEquals(res.status, 500);
+  assertEquals(await readJson(res), { code: "PROVIDER_UNAVAILABLE" });
+});
+
+function chargeRefundedBody(account: string, pi: string, id = "evt_refund_1") {
+  return {
+    id,
+    type: "charge.refunded",
+    account,
+    livemode: false,
+    data: { object: { id: "ch_1", object: "charge", payment_intent: pi } },
+  };
+}
+
+function refundFailedBody(account: string, pi: string, re: string, id = "evt_refund_failed") {
+  return {
+    id,
+    type: "refund.failed",
+    account,
+    livemode: false,
+    data: {
+      object: {
+        id: re,
+        object: "refund",
+        payment_intent: pi,
+        amount: 1000,
+        status: "failed",
+        metadata: { refund_id: REFUND_A },
+      },
+    },
+  };
+}
+
+function disputeBody(
+  type: "charge.dispute.created" | "charge.dispute.closed",
+  account: string,
+  dp: string,
+  id = "evt_dispute_1",
+) {
+  return {
+    id,
+    type,
+    account,
+    livemode: false,
+    data: { object: { id: dp, object: "dispute", amount: 2400, status: "needs_response" } },
+  };
+}
+
+Deno.test("16. charge.refunded mit 2 Teil-Erstattungen → zwei record_online_refund", async () => {
+  const s = setup();
+  const ref = await connectedAccount(s);
+  const pi = "pi_refund_two";
+  s.store.payments.set(pi, { paymentId: PAYMENT, tenantId: TENANT, studioAccountRef: ref });
+  s.provider.seedRefund({
+    refundRef: "re_with_meta",
+    paymentRef: pi,
+    status: "succeeded",
+    amountCents: 1000,
+    refundId: REFUND_A,
+  });
+  s.provider.seedRefund({
+    refundRef: "re_dashboard",
+    paymentRef: pi,
+    status: "succeeded",
+    amountCents: 1400,
+    refundId: null,
+  });
+  const res = await handleWebhook(await signed(s, JSON.stringify(chargeRefundedBody(ref, pi))), s.deps);
+  assertEquals(res.status, 200);
+  assertEquals(s.store.refunds.length, 2);
+  const a = s.store.refunds[0] as { refundRef: string; refundId: string | null; amountCents: number };
+  const b = s.store.refunds[1] as { refundRef: string; refundId: string | null; amountCents: number };
+  assertEquals(a.refundRef, "re_with_meta");
+  assertEquals(a.refundId, REFUND_A);
+  assertEquals(a.amountCents, 1000);
+  assertEquals(b.refundRef, "re_dashboard");
+  assertEquals(b.refundId, null);
+  assertEquals(b.amountCents, 1400);
+});
+
+Deno.test("17. Webhook vor Job: ALREADY_REFUNDED → kein zweiter Fehler, 200", async () => {
+  const s = setup();
+  const ref = await connectedAccount(s);
+  const pi = "pi_refund_early";
+  s.store.payments.set(pi, { paymentId: PAYMENT, tenantId: TENANT, studioAccountRef: ref });
+  s.store.refundResult = { ok: true, code: "ALREADY_REFUNDED" };
+  s.provider.seedRefund({
+    refundRef: "re_early",
+    paymentRef: pi,
+    status: "succeeded",
+    amountCents: 2400,
+    refundId: REFUND_A,
+  });
+  const res = await handleWebhook(await signed(s, JSON.stringify(chargeRefundedBody(ref, pi, "evt_early"))), s.deps);
+  assertEquals(res.status, 200);
+  assertEquals(s.store.refunds.length, 1);
+  assertEquals((s.store.refunds[0] as { refundId: string }).refundId, REFUND_A);
+});
+
+Deno.test("18. refund.failed → mark_refund_failed", async () => {
+  const s = setup();
+  const ref = await connectedAccount(s);
+  const pi = "pi_refund_fail";
+  s.store.payments.set(pi, { paymentId: PAYMENT, tenantId: TENANT, studioAccountRef: ref });
+  s.provider.seedRefund({
+    refundRef: "re_failed_1",
+    paymentRef: pi,
+    status: "failed",
+    amountCents: 1000,
+    refundId: REFUND_A,
+  });
+  const res = await handleWebhook(
+    await signed(s, JSON.stringify(refundFailedBody(ref, pi, "re_failed_1"))),
+    s.deps,
+  );
+  assertEquals(res.status, 200);
+  assertEquals(s.store.refunds.length, 0);
+  assertEquals(s.store.markRefundFailedCalls.length, 1);
+  assertEquals(
+    (s.store.markRefundFailedCalls[0] as { refundRef: string; failureCode: string }).refundRef,
+    "re_failed_1",
+  );
+});
+
+Deno.test("19. Konto-Mismatch bei Erstattung → nichts gebucht", async () => {
+  const s = setup();
+  const ref = await connectedAccount(s);
+  const pi = "pi_refund_mismatch";
+  s.store.payments.set(pi, {
+    paymentId: PAYMENT,
+    tenantId: TENANT,
+    studioAccountRef: "acct_other",
+  });
+  s.provider.seedRefund({
+    refundRef: "re_x",
+    paymentRef: pi,
+    status: "succeeded",
+    amountCents: 500,
+    refundId: null,
+  });
+  const res = await handleWebhook(await signed(s, JSON.stringify(chargeRefundedBody(ref, pi, "evt_mm"))), s.deps);
+  assertEquals(res.status, 200);
+  assertEquals(s.store.refunds.length, 0);
+  assert(s.log.lines.some((l) => l.includes("account_mismatch")), "Log mismatch");
+});
+
+Deno.test("20. Dispute created/closed → record_payment_dispute", async () => {
+  const s = setup();
+  const ref = await connectedAccount(s);
+  const pi = "pi_dispute_1";
+  const dp = "dp_test_1";
+  s.store.payments.set(pi, { paymentId: PAYMENT, tenantId: TENANT, studioAccountRef: ref });
+  s.provider.seedDispute({
+    disputeRef: dp,
+    paymentRef: pi,
+    status: "needs_response",
+    amountCents: 2400,
+  });
+  let res = await handleWebhook(
+    await signed(s, JSON.stringify(disputeBody("charge.dispute.created", ref, dp, "evt_d1"))),
+    s.deps,
+  );
+  assertEquals(res.status, 200);
+  assertEquals(s.store.disputes.length, 1);
+  assertEquals((s.store.disputes[0] as { providerRef: string }).providerRef, dp);
+
+  s.provider.seedDispute({
+    disputeRef: dp,
+    paymentRef: pi,
+    status: "won",
+    amountCents: 2400,
+  });
+  res = await handleWebhook(
+    await signed(s, JSON.stringify(disputeBody("charge.dispute.closed", ref, dp, "evt_d2"))),
+    s.deps,
+  );
+  assertEquals(res.status, 200);
+  assertEquals(s.store.disputes.length, 2);
+  assertEquals((s.store.disputes[1] as { status: string }).status, "won");
+});
+
+Deno.test("21. listRefunds nicht erreichbar → 500", async () => {
+  const s = setup();
+  const ref = await connectedAccount(s);
+  const pi = "pi_refund_down";
+  s.store.payments.set(pi, { paymentId: PAYMENT, tenantId: TENANT, studioAccountRef: ref });
+  s.provider.listRefundsUnavailable = true;
+  const res = await handleWebhook(
+    await signed(s, JSON.stringify(chargeRefundedBody(ref, pi, "evt_down"))),
+    s.deps,
+  );
   assertEquals(res.status, 500);
   assertEquals(await readJson(res), { code: "PROVIDER_UNAVAILABLE" });
 });

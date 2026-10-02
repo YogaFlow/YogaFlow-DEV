@@ -22,7 +22,9 @@ import {
   type RefundPaymentCommand,
   type RefundPaymentResult,
   type RegisterPaymentDomainResult,
+  type RetrievedDispute,
   type RetrievedPayment,
+  type RetrievedRefund,
 } from "../port.ts";
 import { mapStripeAccount, parseAccountSnapshot } from "./account_status.ts";
 import {
@@ -91,6 +93,22 @@ const PAYMENT_EVENT_TYPES = new Set([
   "payment_intent.payment_failed",
   "payment_intent.canceled",
 ]);
+
+const REFUND_EVENT_TYPES = new Set([
+  "charge.refunded",
+  "refund.created",
+  "refund.updated",
+  "refund.failed",
+]);
+
+const DISPUTE_EVENT_TYPES = new Set([
+  "charge.dispute.created",
+  "charge.dispute.updated",
+  "charge.dispute.closed",
+]);
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 /** v2.core.account…, nicht account_link / account_person. */
 export function isV2CoreAccountEventType(type: string): boolean {
@@ -189,6 +207,57 @@ function mapRefundStatus(status: string | null): RefundPaymentResult["status"] {
   if (status === "succeeded" || status === "pending" || status === "failed") return status;
   if (status === "canceled") return "failed";
   return "pending";
+}
+
+function mapListedRefundStatus(
+  status: string | null,
+): RetrievedRefund["status"] {
+  if (
+    status === "succeeded" || status === "pending" || status === "failed" ||
+    status === "canceled"
+  ) {
+    return status;
+  }
+  return "pending";
+}
+
+function parseRefundIdMeta(meta: unknown): string | null {
+  if (typeof meta !== "object" || meta === null) return null;
+  const raw = (meta as Record<string, unknown>).refund_id;
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  return UUID_RE.test(trimmed) ? trimmed : null;
+}
+
+function paymentIntentRefFromPayload(
+  type: string,
+  payload: unknown,
+): string | null {
+  if (typeof payload !== "object" || payload === null) return null;
+  const obj = payload as Record<string, unknown>;
+  if (type === "charge.refunded") {
+    const pi = obj.payment_intent;
+    if (typeof pi === "string" && pi.startsWith("pi_")) return pi;
+    if (typeof pi === "object" && pi !== null && typeof (pi as { id?: unknown }).id === "string") {
+      const id = (pi as { id: string }).id;
+      return id.startsWith("pi_") ? id : null;
+    }
+    return null;
+  }
+  // refund.created / .updated / .failed
+  const pi = obj.payment_intent;
+  if (typeof pi === "string" && pi.startsWith("pi_")) return pi;
+  if (typeof pi === "object" && pi !== null && typeof (pi as { id?: unknown }).id === "string") {
+    const id = (pi as { id: string }).id;
+    return id.startsWith("pi_") ? id : null;
+  }
+  return null;
+}
+
+function disputeRefFromPayload(payload: unknown): string | null {
+  if (typeof payload !== "object" || payload === null) return null;
+  const id = (payload as { id?: unknown }).id;
+  return typeof id === "string" && id.startsWith("dp_") ? id : null;
 }
 
 function isDomainAlreadyRegistered(err: unknown): boolean {
@@ -390,18 +459,31 @@ export class StripePaymentProvider implements PaymentProvider {
   }
 
   async refundPayment(cmd: RefundPaymentCommand): Promise<RefundPaymentResult> {
-    if (!cmd.accountRef || !cmd.ref || !cmd.idempotencyKey) {
+    if (
+      !cmd.accountRef || !cmd.ref || !cmd.idempotencyKey || !cmd.refundId ||
+      !cmd.tenantId || !cmd.paymentId ||
+      !Number.isInteger(cmd.amountCents) || cmd.amountCents <= 0
+    ) {
       throw new ProviderError("INVALID_REQUEST", "missing_input");
     }
     try {
       const refund = await this.client.refunds.create(
-        { payment_intent: cmd.ref },
+        {
+          payment_intent: cmd.ref,
+          amount: cmd.amountCents,
+          metadata: {
+            refund_id: cmd.refundId,
+            tenant_id: cmd.tenantId,
+            payment_id: cmd.paymentId,
+          },
+        },
         accountOpts(cmd.accountRef, cmd.idempotencyKey),
       );
       const status = mapRefundStatus(refund.status);
       this.logPayment("refundPayment", {
         ref: cmd.ref,
         refundRef: refund.id,
+        amountCents: String(cmd.amountCents),
         result: status,
       });
       return {
@@ -410,6 +492,73 @@ export class StripePaymentProvider implements PaymentProvider {
         amountCents: refund.amount,
       };
     } catch (err) {
+      throw toPaymentError(err);
+    }
+  }
+
+  async listRefunds(accountRef: string, paymentRef: string): Promise<RetrievedRefund[]> {
+    if (!accountRef || !paymentRef) throw new ProviderError("INVALID_REQUEST", "missing_input");
+    try {
+      const listed = await this.client.refunds.list(
+        { payment_intent: paymentRef, limit: 100 },
+        accountOpts(accountRef),
+      );
+      const out: RetrievedRefund[] = [];
+      for (const r of listed.data) {
+        const pi = typeof r.payment_intent === "string"
+          ? r.payment_intent
+          : (r.payment_intent && typeof r.payment_intent === "object" && "id" in r.payment_intent
+            ? String((r.payment_intent as { id: string }).id)
+            : paymentRef);
+        out.push({
+          refundRef: r.id,
+          paymentRef: pi,
+          status: mapListedRefundStatus(r.status),
+          amountCents: r.amount,
+          receivedAt: typeof r.created === "number"
+            ? new Date(r.created * 1000).toISOString()
+            : undefined,
+          refundId: parseRefundIdMeta(r.metadata),
+        });
+      }
+      this.logPayment("listRefunds", { ref: paymentRef, count: String(out.length) });
+      return out;
+    } catch (err) {
+      throw toPaymentError(err);
+    }
+  }
+
+  async retrieveDispute(accountRef: string, disputeRef: string): Promise<RetrievedDispute> {
+    if (!accountRef || !disputeRef) throw new ProviderError("INVALID_REQUEST", "missing_input");
+    try {
+      const dispute = await this.client.disputes.retrieve(
+        disputeRef,
+        { expand: ["charge"] },
+        accountOpts(accountRef),
+      );
+      let paymentRef: string | null = null;
+      const charge = dispute.charge;
+      if (typeof charge === "object" && charge !== null && "payment_intent" in charge) {
+        const pi = (charge as { payment_intent?: unknown }).payment_intent;
+        if (typeof pi === "string" && pi.startsWith("pi_")) paymentRef = pi;
+        else if (typeof pi === "object" && pi !== null && typeof (pi as { id?: unknown }).id === "string") {
+          const id = (pi as { id: string }).id;
+          if (id.startsWith("pi_")) paymentRef = id;
+        }
+      }
+      if (!paymentRef && typeof dispute.payment_intent === "string" && dispute.payment_intent.startsWith("pi_")) {
+        paymentRef = dispute.payment_intent;
+      }
+      if (!paymentRef) throw new ProviderError("INVALID_EVENT", "missing_payment_ref");
+      this.logPayment("retrieveDispute", { disputeRef, ref: paymentRef, result: dispute.status });
+      return {
+        disputeRef: dispute.id,
+        paymentRef,
+        status: dispute.status ?? "needs_response",
+        amountCents: dispute.amount,
+      };
+    } catch (err) {
+      if (err instanceof ProviderError) throw err;
       throw toPaymentError(err);
     }
   }
@@ -524,6 +673,30 @@ export class StripePaymentProvider implements PaymentProvider {
         type: "payment.updated",
         accountRef: e.accountRef,
         ref: payload.id,
+        livemode: e.livemode,
+      };
+    }
+
+    if (REFUND_EVENT_TYPES.has(e.type)) {
+      if (!e.accountRef) throw new ProviderError("INVALID_EVENT", "missing_account");
+      const pi = paymentIntentRefFromPayload(e.type, e.payload);
+      if (!pi) throw new ProviderError("INVALID_EVENT", "missing_payment_ref");
+      return {
+        type: "payment.refunds_changed",
+        accountRef: e.accountRef,
+        ref: pi,
+        livemode: e.livemode,
+      };
+    }
+
+    if (DISPUTE_EVENT_TYPES.has(e.type)) {
+      if (!e.accountRef) throw new ProviderError("INVALID_EVENT", "missing_account");
+      const disputeRef = disputeRefFromPayload(e.payload);
+      if (!disputeRef) throw new ProviderError("INVALID_EVENT", "missing_dispute_ref");
+      return {
+        type: "payment.dispute_changed",
+        accountRef: e.accountRef,
+        disputeRef,
         livemode: e.livemode,
       };
     }

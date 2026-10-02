@@ -57,6 +57,18 @@ export type PaymentAttemptLookup =
 
 export type CompletePaymentResult = { ok: true; code: string | null } | { ok: false; code: string };
 export type MarkFailedPaymentResult = { ok: true } | { ok: false; code: string };
+export type RefundRecordResult = { ok: true; code: string | null } | { ok: false; code: string };
+export type MarkRefundFailedResult = { ok: true } | { ok: false; code: string };
+export type RecordDisputeResult = { ok: true; code?: string | null } | { ok: false; code: string };
+
+export type PaymentLookup =
+  | {
+    found: true;
+    paymentId: string;
+    tenantId: string;
+    studioAccountRef: string | null;
+  }
+  | { found: false };
 
 /** Jede Methode wirft bei vorübergehenden Fehlern (Datenbank nicht erreichbar). */
 export interface WebhookStore {
@@ -67,6 +79,8 @@ export interface WebhookStore {
   markDisconnected(provider: ProviderId, accountRef: string): Promise<MarkDisconnectedResult>;
   /** Versuch über (stripe, pi_…) inkl. Studio-Konto. */
   findPaymentAttempt(provider: ProviderId, providerRef: string): Promise<PaymentAttemptLookup>;
+  /** Original-Zahlung über payments.provider_ref (pi_…). */
+  findPaymentByProviderRef(provider: ProviderId, providerRef: string): Promise<PaymentLookup>;
   completeOnlinePayment(input: {
     providerRef: string;
     amountCents: number;
@@ -79,6 +93,24 @@ export interface WebhookStore {
     failureCode: string,
     status?: string,
   ): Promise<MarkFailedPaymentResult>;
+  recordOnlineRefund(input: {
+    paymentId: string;
+    refundRef: string;
+    amountCents: number;
+    receivedAt: string;
+    refundId: string | null;
+  }): Promise<RefundRecordResult>;
+  markRefundFailed(input: {
+    refundId: string | null;
+    refundRef: string | null;
+    failureCode: string;
+  }): Promise<MarkRefundFailedResult>;
+  recordPaymentDispute(input: {
+    paymentId: string;
+    providerRef: string;
+    amountCents: number;
+    status: string;
+  }): Promise<RecordDisputeResult>;
 }
 
 export interface WebhookDeps {
@@ -433,6 +465,163 @@ export async function handleWebhook(req: Request, deps: WebhookDeps): Promise<Re
         }
       }
       // processing / requires_action → nichts
+    }
+  } else if (domain?.type === "payment.refunds_changed") {
+    let lookup: PaymentLookup;
+    try {
+      lookup = await store.findPaymentByProviderRef(provider.id, domain.ref);
+    } catch {
+      return await failTransient("DB_ERROR");
+    }
+
+    if (!lookup.found) {
+      log.info("payments-webhook", {
+        type: event.type,
+        event_id: event.id,
+        result: "refund.unknown",
+        ref: domain.ref,
+      });
+      try {
+        await store.markProcessed(recordId, null);
+      } catch {
+        return await failTransient("DB_ERROR");
+      }
+      logResult("PROCESSED", event);
+      return received();
+    }
+
+    if (!lookup.studioAccountRef || lookup.studioAccountRef !== domain.accountRef) {
+      log.warn("payments-webhook", {
+        type: event.type,
+        event_id: event.id,
+        result: "refund.account_mismatch",
+        ref: domain.ref,
+      });
+      try {
+        await store.markProcessed(recordId, "ACCOUNT_MISMATCH");
+      } catch {
+        return await failTransient("DB_ERROR");
+      }
+      logResult("ACCOUNT_MISMATCH", event);
+      return received();
+    }
+
+    let listed;
+    try {
+      listed = await provider.listRefunds(domain.accountRef, domain.ref);
+    } catch (err) {
+      if (err instanceof ProviderError && (err.code === "PROVIDER_UNAVAILABLE" || err.code === "RATE_LIMITED")) {
+        return await failTransient(err.code);
+      }
+      processingError = err instanceof ProviderError ? err.code : "PROVIDER_UNAVAILABLE";
+      try {
+        await store.markProcessed(recordId, processingError);
+      } catch {
+        return await failTransient("DB_ERROR");
+      }
+      logResult(processingError, event);
+      return received();
+    }
+
+    for (const item of listed) {
+      if (item.status === "succeeded" || item.status === "pending") {
+        let recorded: RefundRecordResult;
+        try {
+          recorded = await store.recordOnlineRefund({
+            paymentId: lookup.paymentId,
+            refundRef: item.refundRef,
+            amountCents: item.amountCents,
+            receivedAt: item.receivedAt ?? new Date().toISOString(),
+            refundId: item.refundId,
+          });
+        } catch {
+          return await failTransient("DB_ERROR");
+        }
+        if (!recorded.ok) {
+          processingError = ERROR_CODE_RE.test(recorded.code) ? recorded.code : "REFUND_RECORD_FAILED";
+        }
+      } else if (item.status === "failed" || item.status === "canceled") {
+        try {
+          await store.markRefundFailed({
+            refundId: item.refundId,
+            refundRef: item.refundRef,
+            failureCode: item.status === "canceled" ? "CANCELED" : "REFUND_FAILED",
+          });
+        } catch {
+          return await failTransient("DB_ERROR");
+        }
+      }
+    }
+  } else if (domain?.type === "payment.dispute_changed") {
+    let dispute;
+    try {
+      dispute = await provider.retrieveDispute(domain.accountRef, domain.disputeRef);
+    } catch (err) {
+      if (err instanceof ProviderError && (err.code === "PROVIDER_UNAVAILABLE" || err.code === "RATE_LIMITED")) {
+        return await failTransient(err.code);
+      }
+      processingError = err instanceof ProviderError ? err.code : "PROVIDER_UNAVAILABLE";
+      try {
+        await store.markProcessed(recordId, processingError);
+      } catch {
+        return await failTransient("DB_ERROR");
+      }
+      logResult(processingError, event);
+      return received();
+    }
+
+    let lookup: PaymentLookup;
+    try {
+      lookup = await store.findPaymentByProviderRef(provider.id, dispute.paymentRef);
+    } catch {
+      return await failTransient("DB_ERROR");
+    }
+
+    if (!lookup.found) {
+      log.info("payments-webhook", {
+        type: event.type,
+        event_id: event.id,
+        result: "dispute.unknown",
+        ref: dispute.paymentRef,
+      });
+      try {
+        await store.markProcessed(recordId, null);
+      } catch {
+        return await failTransient("DB_ERROR");
+      }
+      logResult("PROCESSED", event);
+      return received();
+    }
+
+    if (!lookup.studioAccountRef || lookup.studioAccountRef !== domain.accountRef) {
+      log.warn("payments-webhook", {
+        type: event.type,
+        event_id: event.id,
+        result: "dispute.account_mismatch",
+        ref: dispute.paymentRef,
+      });
+      try {
+        await store.markProcessed(recordId, "ACCOUNT_MISMATCH");
+      } catch {
+        return await failTransient("DB_ERROR");
+      }
+      logResult("ACCOUNT_MISMATCH", event);
+      return received();
+    }
+
+    let recorded: RecordDisputeResult;
+    try {
+      recorded = await store.recordPaymentDispute({
+        paymentId: lookup.paymentId,
+        providerRef: dispute.disputeRef,
+        amountCents: dispute.amountCents,
+        status: dispute.status,
+      });
+    } catch {
+      return await failTransient("DB_ERROR");
+    }
+    if (!recorded.ok) {
+      processingError = ERROR_CODE_RE.test(recorded.code) ? recorded.code : "DISPUTE_RECORD_FAILED";
     }
   }
 
