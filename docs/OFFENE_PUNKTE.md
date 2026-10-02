@@ -45,9 +45,10 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 - [x] **3.2a Online-Erstattung Schema** — DEV 02.10.2026 (`20261002110000`…`14100`,
       `s3_2a_refunds` grün).
-- [ ] **3.2b Edge/Webhook** — DEV deployed 02.10.2026 (`payments-jobs`/`webhook`/`dispatch-emails`).
-      Rauch F1–F4/F6 OK; **F5 Dispute** angehalten (`docs/berichte/3_2ab_erstattung.md`).
-      Deno-Dispute- und Webhook-vor-Job-Pfade grün. Pause → Migrationen → Functions → Resume.
+- [x] **3.2b Edge/Webhook** — DEV 02.10.2026; Rauch F1–F6 grün. Hotfix `du_` Dispute-Refs
+      + Race `PAYMENT_NOT_READY`; Replay-Skript DEV. Bericht `3_2ab_erstattung.md`.
+- [ ] **PROD: Webhook-Ereignisse mit finalem Verarbeitungsfehler erneut fahren** —
+      DEV: `scripts/dev/replay_provider_event.mjs` (Disputes). PROD-Analog / Runbook offen.
 - [ ] **3.2c UI** — Teilnehmer-Texte R9; Storno-Dialog vorher (R3); Owner manuelle
       Erstattung (R4).
 - [ ] **3.1 Zahlungsübersicht** — direkt nach R1–R9 / Online-PROD (R10).
