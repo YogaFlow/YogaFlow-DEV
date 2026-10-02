@@ -272,6 +272,16 @@ async function main() {
     const afterDispute = await asOwner.rpc('get_studio_payments', { p_status: 'dispute_open' });
     ok('A Rückbuchung offen', afterDispute.data?.total === 1 && afterDispute.data.items[0]?.payment_id === payA);
 
+    console.log('\n5) Glocke führt zur Zahlung');
+    const { data: notes } = await admin
+      .from('user_notifications')
+      .select('type, action_path')
+      .eq('user_id', owner.id)
+      .in('type', ['payment_dispute_opened', 'payment_refund_failed']);
+    const path = (type) => (notes ?? []).find((n) => n.type === type)?.action_path;
+    ok('Rückbuchung → /payments?payment=A', path('payment_dispute_opened') === `/payments?payment=${payA}`, path('payment_dispute_opened'));
+    ok('fehlgeschlagen → /payments?payment=E', path('payment_refund_failed') === `/payments?payment=${payE}`, path('payment_refund_failed'));
+
     console.log('\n3.1 Zahlungsübersicht OK');
   } finally {
     try {
