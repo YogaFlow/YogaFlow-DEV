@@ -6,7 +6,8 @@ Commits:
 - `5971a7e` chore(dev): Autonomer DEV-Ablauf – Guard, Wrapper-Skripte, Regeln, Entscheidungen
 - `bbbe426` feat(geldkette): 3.2a Online-Erstattung Schema, Trigger, Test
 - `ddba7eb` feat(geldkette): 3.2b Erstattung Port, Jobs, Webhook, E-Mail
-- (dieser Commit) test/docs: 3.2b Rauchtest + Bericht, Doku Stand DEV
+- `a594747` test(geldkette): 3.2b Erstattung-Rauchtest F1-F6
+- `986ad01` docs(geldkette): 3.2a/b DEV-Stand und Bericht (F5 angehalten)
 
 DEV-Stand:
 - Migrationen bis `20261002114100` (3.2a vollständig)
