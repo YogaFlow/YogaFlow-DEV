@@ -1,8 +1,8 @@
 /**
  * Stripe Appearance aus Design-Tokens (2.2b-2).
  * theme flat: ruhige Flächen wie surface/border; accordion: auf 360 px weniger Tabs.
+ * Kein @stripe/*-Import (Z9) — StripePaymentForm castet/übergibt als Appearance.
  */
-import type { Appearance, StripeElementsOptionsMode } from '@stripe/stripe-js';
 import { tokens } from '../../design/tokens';
 
 function cssVar(name: string, fallback: string): string {
@@ -11,7 +11,25 @@ function cssVar(name: string, fallback: string): string {
   return value || fallback;
 }
 
-export function stripePaymentAppearance(): Appearance {
+/** Schlichtes Appearance-Objekt ohne Stripe-Typen (Z9). */
+export type PaymentAppearanceConfig = {
+  theme: 'flat';
+  variables: {
+    colorPrimary: string;
+    colorBackground: string;
+    colorText: string;
+    colorDanger: string;
+    colorTextSecondary: string;
+    borderRadius: string;
+    fontFamily: string;
+  };
+  rules: {
+    '.Input': { border: string; boxShadow: string };
+    '.Input:focus': { border: string; boxShadow: string };
+  };
+};
+
+export function stripePaymentAppearance(): PaymentAppearanceConfig {
   return {
     theme: 'flat',
     variables: {
@@ -34,20 +52,6 @@ export function stripePaymentAppearance(): Appearance {
         boxShadow: 'none',
       },
     },
-  };
-}
-
-export function stripeElementsModeOptions(
-  amountCents: number,
-  currency: string,
-): StripeElementsOptionsMode {
-  return {
-    mode: 'payment',
-    amount: amountCents,
-    currency: currency.toLowerCase(),
-    paymentMethodTypes: ['card'],
-    locale: 'de',
-    appearance: stripePaymentAppearance(),
   };
 }
 
