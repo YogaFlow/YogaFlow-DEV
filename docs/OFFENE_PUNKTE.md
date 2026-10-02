@@ -34,12 +34,21 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
       Fließtext der Landingpage zu sehen? Das entscheidet über das Prerendering.
 - [ ] **`scripts/test/` prüfen** — liegt unversioniert im Arbeitsbaum. Stehen
       Zugangsdaten darin, in `.gitignore` aufnehmen oder löschen.
-- [ ] **Auswahl „Kursleiter“ für Lehrende fest auf sich selbst** (kleiner UI-Fix vor dem
-      Release). `CreateCourse.tsx` und `EditCourse.tsx` zeigen Lehrenden die volle Liste;
-      seit Hotfix `20260928213000` endet eine fremde Wahl in `INVALID_TEACHER` mit
-      allgemeiner Fehlermeldung.
-- [ ] **`scripts/db.mjs` DEP0190:** `spawnSync` mit `shell: true` — die DB-URL läuft
-      durch cmd. Ohne Shell aufrufen.
+- [x] **Auswahl „Kursleiter“ für Lehrende fest auf sich selbst** — `8c5b0f7` (02.10.2026):
+      Lehrende sehen nur sich, Feld gesperrt, Hinweis `TEACHER_SELF_HINT` (`userRoles.ts`).
+- [x] **`scripts/db.mjs` DEP0190** — `5de4849` (02.10.2026): ruft
+      `node_modules/supabase/bin/supabase(.exe)` ohne Shell auf; die DB-URL läuft nicht mehr
+      durch cmd. Belegt mit `db.mjs status dev` und `dev:apply` (grün).
+- [ ] **DEP0190 in den `scripts/dev/*`-Wrappern** (`dev_check.mjs:16`, `dev_jobs.mjs:24`,
+      `dev_secrets.mjs:16`, `dev_deploy.mjs:30`, `dev_apply.mjs:38`): starten `npm`/`node`
+      mit `shell: true`, ohne Zugangsdaten in den Argumenten — nur noch die Warnung.
+      Unter Windows braucht `npm` (`npm.cmd`) eine Shell; bei Gelegenheit `node` direkt
+      über `process.execPath` starten.
+- [x] **CI auf Node 24** — `5e87b8e` (02.10.2026): `ci.yml` `checkout@v5`,
+      `setup-node@v5`, `node-version: 24`; `backup-prod.yml` `checkout@v5`.
+- [ ] **`backup-prod.yml`: `supabase/setup-cli@v1` läuft noch auf Node 20.** `v2` ist ein
+      neuer Major (composite) und betrifft den PROD-Backup-Workflow — Julius entscheidet
+      (Frage in `berichte/LAUF_2026-10-02.md`).
 
 ## Geldkette 2.1b / 2.2 / 3.2
 
@@ -60,10 +69,10 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
       Bestätigung Entscheidung 11 offen. Bericht `3_1_zahlungsuebersicht.md`.
 - [ ] **Erstattung nach `payment.refund_required` (2.2a-4).** Schema legt `late_payment`
       an (3.2a); Jobs brauchen 3.2b-Deploy für Stripe-Aufruf mit `refund_id`.
-- [ ] **Claim-Tests: fremde Zeilen „zurückgeben ohne zu zählen“.** Parallel-Claims in
-      `s2_1b_b_promotion` / `s2_2a_4a_provider_jobs` geben fremde Claims per `finish`/`retry`
-      bzw. `mark_email_delivery`/`TEST_YIELD` zurück und erhöhen dabei `tries`/`attempts`
-      fremder Studios. Später eine RPC-Variante oder Test-Helfer ohne Zählung.
+- [x] **Claim-Tests: fremde Zeilen „zurückgeben ohne zu zählen“** — `6996fd3`
+      (Migration `20261002230000`, DEV): `finish_provider_job(…, 'release')` nimmt den beim
+      Claim gezählten Versuch zurück, `mark_email_delivery(…, 'released')` lässt `attempts`
+      unverändert. Beide Tests nutzen das und prüfen es an eigenen Zeilen.
 - [ ] **`payment.orphan` (manuelle Erstattung).** Unbekannte `pi_…` mit `succeeded` im Webhook
       (4b): Log-Fehler `payment.orphan`, HTTP 200; manuelle Erstattung + Monitoring offen.
 - [ ] **Studio löschen mit offenen PaymentIntents.** `delete_tenant_complete` löscht
@@ -253,11 +262,11 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
       beschreiben Gmail als Mailversand — richtig ist Resend für ausgehende Mails,
       IONOS nur für das Postfach. `docs/README.md` nennt `wrangler.toml` —
       wirksam ist `wrangler.jsonc`.
-- [ ] **Native Datumsfelder zeigen je nach Browser US-Format** (`MM/DD/YYYY`),
-      obwohl der Wert civil `YYYY-MM-DD` ist. Betrifft Steuerstatus
-      (`TaxStatusDialog`) und „Alte Kurse abhaken“ (`PreOmlifyWaiveSection`).
-      Anzeige-Format vereinheitlichen (z. B. `de-DE` bzw. Textfeld mit
-      Kalender), ohne den gesendeten ISO-Wert zu ändern.
+- [x] **Native Datumsfelder zeigen je nach Browser US-Format** — `1df1fe2`, `7462a05`
+      (02.10.2026): Steuerstatus, Export Von–Bis und „Alte Kurse abhaken“ nutzen
+      `CivilDatePicker` (TT.MM.JJJJ, Kalender, nur Auswahl). Gesendet wird weiter
+      `YYYY-MM-DD` — belegt in `e2e/datefields.spec.ts` (RPC-Body abgefangen, 2/2 grün).
+      Der Monatsfilter `type="month"` im Export bleibt nativ.
 
 ## Später
 
