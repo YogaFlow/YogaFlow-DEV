@@ -1,6 +1,6 @@
 # Offene Punkte
 
-**Stand:** 01.10.2026
+**Stand:** 02.10.2026
 Ausführliche Begründungen stehen im Claude-Projekt „Omlify" in
 `Landingpage_Neubau_September_2026.md` und
 `Rechtstexte_Datenschutz_und_Betrieb_September_2026.md`.
@@ -14,6 +14,13 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 - [ ] **Befreite Kurse je Kurs (§ 4 UStG)** — A7 H1: Steuerstatus nur Studio-weit
       (`regular` 19 %/7 % oder Kleinunternehmer). Abweichung je Kurs später.
 - [ ] **SKR-/DATEV-Mapping** — laut Epic in 1b, nicht A7.
+- [ ] **Disputes im Hauptbuch** — 3.2a speichert `payment_disputes` + Glocke (R6);
+      Buchung ins Hauptbuch → **1b**.
+- [ ] **Lehrende „übergeben oder absagen“** beim Entfernen mit kommenden Kursen —
+      eigene Story (nicht 3.2a); heute `HAS_UPCOMING_COURSES`.
+- [ ] **`payments.status` `refunded` / `refunded_partial`** — Enum-Werte ungenutzt;
+      Erstattungsstand nur aus `payment_refunds` (`payment_refund_state`). Aufräumen
+      oder nutzen später bewusst entscheiden.
 
 - [ ] **AVV an die Testkundin schicken** — rückwirkend, per Mail von
       `support@omlify.de`, mit Bitte um Bestätigung in Textform. Sie verarbeitet
@@ -34,19 +41,22 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 - [ ] **`scripts/db.mjs` DEP0190:** `spawnSync` mit `shell: true` — die DB-URL läuft
       durch cmd. Ohne Shell aufrufen.
 
-## Geldkette 2.1b / 2.2
+## Geldkette 2.1b / 2.2 / 3.2
 
-- [ ] **Erstattung nach `payment.refund_required` (2.2a-4).** Schema 2.2a-1 verbucht die
-      Spätzahlung und markiert `REFUND_REQUIRED`; 4a legt den Outbox-Auftrag `refund_payment` an,
-      4b/`payments-jobs` führt die Stripe-Erstattung aus und ruft `record_online_refund`
-      (Code 01.10.2026, Deploy/Rauchtests → 4c).
-      **Teilerstattung → 3.2** (Entscheidung 09 Q7: in 1a nur volle Erstattung).
+- [x] **3.2a Online-Erstattung Schema** — DEV 02.10.2026 (`20261002110000`…`14100`,
+      `s3_2a_refunds` grün).
+- [ ] **3.2b Edge/Webhook** — DEV deployed 02.10.2026 (`payments-jobs`/`webhook`/`dispatch-emails`).
+      Rauch F1–F4/F6 OK; **F5 Dispute** angehalten (`docs/berichte/3_2ab_erstattung.md`).
+      Deno-Dispute- und Webhook-vor-Job-Pfade grün. Pause → Migrationen → Functions → Resume.
+- [ ] **3.2c UI** — Teilnehmer-Texte R9; Storno-Dialog vorher (R3); Owner manuelle
+      Erstattung (R4).
+- [ ] **3.1 Zahlungsübersicht** — direkt nach R1–R9 / Online-PROD (R10).
+- [ ] **Erstattung nach `payment.refund_required` (2.2a-4).** Schema legt `late_payment`
+      an (3.2a); Jobs brauchen 3.2b-Deploy für Stripe-Aufruf mit `refund_id`.
 - [ ] **Claim-Tests: fremde Zeilen „zurückgeben ohne zu zählen“.** Parallel-Claims in
       `s2_1b_b_promotion` / `s2_2a_4a_provider_jobs` geben fremde Claims per `finish`/`retry`
       bzw. `mark_email_delivery`/`TEST_YIELD` zurück und erhöhen dabei `tries`/`attempts`
       fremder Studios. Später eine RPC-Variante oder Test-Helfer ohne Zählung.
-- [ ] **`refund.failed` → 3.2.** Spätere Fehlschläge einer bereits angenommenen Erstattung
-      (Stripe `refund.failed`) sind in 1a nicht gebucht; Monitoring/Nacharbeit in 3.2.
 - [ ] **`payment.orphan` (manuelle Erstattung).** Unbekannte `pi_…` mit `succeeded` im Webhook
       (4b): Log-Fehler `payment.orphan`, HTTP 200; manuelle Erstattung + Monitoring offen.
 - [ ] **Studio löschen mit offenen PaymentIntents.** `delete_tenant_complete` löscht

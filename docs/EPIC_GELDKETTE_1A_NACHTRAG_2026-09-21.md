@@ -1037,4 +1037,40 @@ Story 2.2a-1: Schema und RPCs für Direct-Charge-Abschluss (ohne Stripe-API / Ed
 | Z13 | RPC | `public.booking_payment_options()` → nur `{ online_required }`; Migration `20261001120000`. |
 
 **Texte:** `src/lib/paymentTexts.ts` (Titel „Online bezahlen“, Betragsknopf, Stripe-Hinweis, Codes inkl. REFUND_REQUIRED / HOLD_EXPIRED / …).
-|
+
+---
+
+## 11. Entscheidung 10 – Online-Erstattung (02.10.2026)
+
+Gilt vor Online-Zahlung auf PROD (R10). Story-Schnitt: **3.2a** Schema/RPCs (diese Migrationen), **3.2b** Edge/Webhook/E-Mail, **3.2c** UI-Texte.
+
+| # | Entscheidung |
+|---|---|
+| R1 | Teilnehmerin bekommt immer den vollen Betrag zurück; das Studio trägt die Stripe-Gebühr (24 € → 0,61 €). |
+| R2 | Automatisch voll (Restbetrag) erstatten bei: Kursabsage durch das Studio · Selbstabmeldung vor `cancellation_deadline` · Abmeldung durch das Studio (fristunabhängig) · Person entfernen (künftige online bezahlte Buchungen). |
+| R3 | Selbstabmeldung nach der Frist: nichts zurück; der Dialog sagt es vorher (3.2c). |
+| R4 | Manuelle Erstattung in Omlify: Owner/Admin (nicht Lehrende), voll oder Teilbetrag, Pflichtgrund. Summe aller Erstattungen ≤ Zahlungsbetrag. |
+| R5 | Erstattungen aus dem Stripe-Dashboard werden per Webhook nachgebucht, auch Teilbeträge (3.2b). |
+| R6 | Disputes: speichern, Glocke an Owner/Admin, „Rückbuchung offen“; Hauptbuch dafür mit 1b. |
+| R7 | Fehlgeschlagene Erstattung: Status failed, Glocke an Owner/Admin, erneut möglich. |
+| R8 | Erstattung = eigener Datensatz mit Betrag und eigenem Idempotency-Key; mehrere je Zahlung; gilt auch für die Auto-Erstattung aus W3 (`REFUND_REQUIRED`). |
+| R9 | Teilnehmende sehen „Erstattung läuft“ / „Erstattet (24,00 €)“ / „Teilweise erstattet (10,00 € von 24,00 €)“ (3.2c). |
+| R10 | R1–R9 vor Online-Zahlung auf PROD; 3.1 direkt danach. |
+
+**H5' (ersetzt H5, Freigabe 02.10.2026):** Gegenbuchung anteilig je Seite (Soll/Haben): Zeile × Erstattung ÷ Seitensumme, kaufmännisch gerundet (H8); Rundungsrest auf die betragsgrößte Zeile der Seite, Summe = Erstattung. Erreicht die Summe aller Gegenzeilen den Originalbetrag, bucht diese Gegenbuchung exakt „Originalzeilen minus bereits gebuchte Gegenzeilen“ (Abschluss). Abschluss nur, wenn alle früheren Gegenbuchungen derselben Zahlung schon gebucht sind, sonst waiting. Vollerstattung in einem Schritt = Abschluss = bisheriges Spiegeln.
+
+**Umsetzung 3.2a (DEV 02.10.2026):** Migrationen `20261002110000`…`20261002114100` auf DEV. Tabelle `payment_refunds` / `payment_disputes`; `request_refund` + Trigger auf Soft-Cancel; `record_online_refund` mit `refund_id`; Hauptbuch H5'; Test `scripts/test/s3_2a_refunds.mjs` grün.
+
+**Umsetzung 3.2b (DEV 02.10.2026):** Edge Functions + Port deployed (`payments-jobs`, `payments-webhook`, `dispatch-emails`). Rauchtest F1–F4/F6 grün; F5 Dispute-Webhook angehalten (siehe `docs/berichte/3_2ab_erstattung.md`).
+
+| # | Entscheidung (E1–E7) |
+|---|---|
+| E1 | `refundPayment({ accountRef, ref: pi, amountCents, refundId, idempotencyKey: refundId, tenantId, paymentId })` → Stripe `refunds.create({ payment_intent, amount, metadata: { refund_id, tenant_id, payment_id } })`. Kein reason-Freitext an Stripe. |
+| E2 | `payments-jobs`: Betrag und `refund_id` aus `claim_provider_jobs`. pending/succeeded → `record_online_refund(..., refund_id)` → done. failed oder Stripe `INVALID_REQUEST`/`NOT_FOUND` → `mark_refund_failed` → failed. Vorübergehend → retry (J5). |
+| E3 | Webhook Erstattungen: `charge.refunded`, `refund.created`, `refund.updated`, `refund.failed` → `listRefunds` → je Erstattung `record_online_refund` / `mark_refund_failed`. Mandanten-Schutz wie J6. Idempotent über `re_…` und `refund_id`. |
+| E4 | Webhook Disputes: `charge.dispute.created/updated/closed` → `retrieveDispute` → `record_payment_dispute`. Kein Hauptbuch. |
+| E5 | E-Mail `payment_refunded`: Betrag + Grund-Satz je reason; Teilerstattung „10,00 € von 24,00 €“; Bank-Hinweis unverändert. |
+| E6 | Owner-Glocken: Erstattung fehlgeschlagen / neuer Dispute nur Glocke (keine E-Mail). Texte: „Eine Erstattung über X,XX € ist fehlgeschlagen. Du kannst sie erneut anstoßen.“ · „Rückbuchung offen: Eine Kartenzahlung wurde bei Stripe bestritten.“ |
+| E7 | Pause-Schalter: `node scripts/dev/provider_jobs_secret.mjs --pause` leert Vault `provider_jobs_url` (Cron loggt nur); `--resume` setzt URL wieder. Nur DEV. |
+
+Pfade: `supabase/functions/_shared/payments/{port,stripe/adapter,fake/adapter}.ts`, `payments-jobs/{handler,store}.ts`, `payments-webhook/{handler,store}.ts`, `dispatch-emails/{handler,index}.ts`, `scripts/dev/provider_jobs_secret.mjs`.

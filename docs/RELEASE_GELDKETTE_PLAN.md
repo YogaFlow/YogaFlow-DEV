@@ -53,6 +53,18 @@ PROD hat zuletzt `20260926160500` (`security_handle_new_user_role_from_trusted_s
 | `20260930100000` | `s2_2a_1_online_payment.sql` | 2.2a-1: `card`→`psp_clearing`, Guard `succeeded`, `register_for_course`→`pending_payment` bei Online-Pflicht, RPCs `prepare_online_payment` / `attach_payment_ref` / `check_before_confirm` / `complete_online_payment` / `record_online_refund` / `mark_online_payment_failed` (nur `service_role`); Outbox-Arten `payment_succeeded` / `payment_refunded` |
 | `20261001100000` | `stripe_2_2a_4a_provider_jobs.sql` | 2.2a-4a: `provider_jobs`, Cancel-Trigger, Auto-Erstattung-Auftrag, `claim`/`finish`, Cron `yogaflow_process_provider_jobs` |
 | `20261001110000` | `k7_remove_member_attempt_refs.sql` | K7: `remove_member` behält Buchungen mit `pi_…`-Versuch |
+| `20261002110000`…`14100` | `s3_2a_refunds_*.sql` | 3.2a: `payment_refunds` / `payment_disputes`, Trigger, Ledger H5', Jobs mit `refund_id` |
+
+**Release-Hinweis 3.2a/3.2b (Online-Erstattung):** Reihenfolge strikt — **Pause → Migrationen → Functions → Resume**:
+
+1. Stripe-Dashboard „Verbundene Konten“: Ereignisse ergänzen (`charge.refunded`, `refund.created`, `refund.updated`, `refund.failed`, `charge.dispute.created`, `charge.dispute.updated`, `charge.dispute.closed`)
+2. `node scripts/dev/provider_jobs_secret.mjs --pause` (Vault `provider_jobs_url` leer; Cron loggt nur)
+3. `npm run check:migration -- 20261002110000_s3_2a_refunds_schema.sql` (und die fünf Folgedateien)
+4. `npm run db:push:dev`
+5. Einzeln deployen: `payments-jobs` → `payments-webhook` → `dispatch-emails`
+6. `node scripts/test/s3_2a_refunds.mjs` → `npm run test:geldkette`
+7. `node scripts/dev/provider_jobs_secret.mjs --resume`
+8. Rauchtest: `node scripts/test/s3_2b_refund_smoke.mjs --direkt` (F1–F6; Cron nach Resume alternativ ohne `--direkt`)
 
 **Release-Hinweis 2.2a-4b (Functions):** Code für `payments-jobs`, Webhook-Zweig `payment.updated`, Checkout-Codes, `dispatch-emails` (`payment_succeeded` / `payment_refunded`). Deploy und Rauchtests: **2.2a-4c**.
 

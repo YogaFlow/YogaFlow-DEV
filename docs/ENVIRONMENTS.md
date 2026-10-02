@@ -101,8 +101,11 @@ Nur als Supabase-Secret im jeweiligen Projekt, eingespielt aus `supabase/.env.de
 - Zweites Ziel (optional) mit Nutzlast-Stil **Thin/Schlank** für v2-Kontoereignisse; Secret
   `STRIPE_WEBHOOK_SECRET_THIN`. Welcher Geltungsbereich wirklich zustellt, klärt der E2E-Test (V4).
 - URL (beide): `https://<DEV_REF>.supabase.co/functions/v1/payments-webhook`
-- Snapshot-Ereignisse (DEV Stand nach 4c): `account.updated`, `account.application.deauthorized`,
-  sowie **`payment_intent.succeeded`**, **`payment_intent.payment_failed`**, **`payment_intent.canceled`**.
+- Snapshot-Ereignisse (DEV Stand nach 3.2b): `account.updated`, `account.application.deauthorized`,
+  sowie **`payment_intent.succeeded`**, **`payment_intent.payment_failed`**, **`payment_intent.canceled`**,
+  und für Erstattungen/Disputes (Verbundene Konten): **`charge.refunded`**, **`refund.created`**,
+  **`refund.updated`**, **`refund.failed`**, **`charge.dispute.created`**, **`charge.dispute.updated`**,
+  **`charge.dispute.closed`**.
   Fehlen die drei PaymentIntent-Ereignisse, kann der Webhook-Rauchtest Fall 1 nicht grün werden.
 - Thin: Typen `v2.core.account…` (Nachlesen wie W3).
 - Signing Secrets in `supabase/.env.dev`, danach `npm run secrets:dev`.
