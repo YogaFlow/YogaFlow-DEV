@@ -1,6 +1,6 @@
 # STAND — Omlify DEV
 
-Stand: 2026-10-02 · Branch `Julius` · HEAD siehe letzter Commit dieses Docs
+Stand: 2026-10-02 · Branch `Julius` · HEAD `ec7ef83`
 
 ## DEV
 
