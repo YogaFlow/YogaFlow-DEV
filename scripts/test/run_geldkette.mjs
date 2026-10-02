@@ -42,6 +42,7 @@ const SKRIPTE = [
   's2_2a_4a_provider_jobs.mjs',
   's2_2b_1_payment_options.mjs',
   's3_2a_refunds.mjs',
+  's3_2c_refund_previews.mjs',
 ];
 
 function sleepMs(ms) {
