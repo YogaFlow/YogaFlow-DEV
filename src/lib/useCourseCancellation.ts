@@ -3,6 +3,8 @@ import type { FeedbackDialogState } from '../components/ui/FeedbackDialog';
 import type { Course } from '../types';
 import { isCourseCancelled } from './courseDateTime';
 import { cancelTargets, type CancelTarget } from './courseCancelTargets';
+import { courseCancelRefundDone } from './refundTexts';
+import { previewCourseCancelRefunds, type CourseRefundPreview } from './refunds';
 import { supabase } from './supabase';
 
 export type CourseCancelScope = 'single' | 'series_from_here';
@@ -16,6 +18,7 @@ type CancelBody = {
   paid_registrations?: number;
   pass_refunded?: number;
   pass_refunded_inactive?: number;
+  refund_cents?: number;
   uncanceled_course_ids?: string[];
   restored_registrations?: number;
   overflow_to_waitlist?: string[];
@@ -33,9 +36,31 @@ export type CourseCancelDialogModel = {
   paid: number | null;
   /** Aktive Buchungen mit coverage_status = pass */
   withPass: number | null;
+  anchorId: string;
+  /** preview_course_cancel_refunds je Termin (nur Owner/Admin) */
+  onlineByCourse: Record<string, CourseRefundPreview> | null;
   busy: boolean;
   error: string;
 };
+
+/** Online-Erstattung für den gewählten Umfang. */
+export function onlineRefundForScope(dialog: CourseCancelDialogModel): {
+  paidCount: number;
+  refundCents: number;
+} | null {
+  if (!dialog.onlineByCourse) return null;
+  const rows =
+    dialog.scope === 'single' || dialog.seriesCount <= 1
+      ? [dialog.onlineByCourse[dialog.anchorId]].filter(Boolean)
+      : Object.values(dialog.onlineByCourse);
+  return rows.reduce(
+    (sum, row) => ({
+      paidCount: sum.paidCount + row.paid_count,
+      refundCents: sum.refundCents + row.refund_cents,
+    }),
+    { paidCount: 0, refundCents: 0 },
+  );
+}
 
 const EMPTY_DIALOG: CourseCancelDialogModel = {
   open: false,
@@ -48,6 +73,8 @@ const EMPTY_DIALOG: CourseCancelDialogModel = {
   waitlist: 0,
   paid: null,
   withPass: null,
+  anchorId: '',
+  onlineByCourse: null,
   busy: false,
   error: '',
 };
@@ -105,7 +132,9 @@ function cancelFeedback(body: CancelBody, showPaid: boolean): string {
     passInactive > 0
       ? ` ${passInactive} Einheiten wurden auf abgelaufene Karten zurückgebucht. Prüfe, ob du sie auf eine gültige Karte übertragen willst.`
       : '';
-  return `${courseLine} ${regLine}${paidLine}${passLine}${e17Line}`;
+  const refundDone = showPaid ? courseCancelRefundDone(body.refund_cents) : '';
+  const refundLine = refundDone ? ` ${refundDone}` : '';
+  return `${courseLine} ${regLine}${paidLine}${refundLine}${passLine}${e17Line}`;
 }
 
 function uncancelFeedback(body: CancelBody): string {
@@ -205,6 +234,7 @@ export function useCourseCancellation(
 
       let paid: number | null = null;
       let withPass: number | null = null;
+      let onlineByCourse: Record<string, CourseRefundPreview> | null = null;
       if (mode === 'cancel' && options.isManager) {
         const [paidRes, passRes] = await Promise.all([
           supabase
@@ -230,6 +260,15 @@ export function useCourseCancellation(
         }
         paid = paidRes.count ?? 0;
         withPass = passRes.count ?? 0;
+        onlineByCourse = await previewCourseCancelRefunds(ids);
+        if (onlineByCourse == null) {
+          setFeedbackDialog({
+            title: 'Hinweis',
+            message: 'Die Online-Zahlungen konnten nicht geprüft werden. Bitte die Seite neu laden.',
+            type: 'error',
+          });
+          return;
+        }
       }
 
       setDialog({
@@ -243,6 +282,8 @@ export function useCourseCancellation(
         waitlist,
         paid,
         withPass,
+        anchorId: course.id,
+        onlineByCourse,
         busy: false,
         error: '',
       });

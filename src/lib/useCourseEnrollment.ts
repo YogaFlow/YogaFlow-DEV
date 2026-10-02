@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ConfirmDialogState } from '../components/ui/ConfirmDialog';
 import { useAuth } from '../context/AuthContext';
 import { Course, RegisterForCourseResult, Registration } from '../types';
@@ -6,6 +6,13 @@ import {
   passRefundInfo,
   unregisterPassDialogMessage,
 } from './passRefundInfo';
+import {
+  onlineRefundInfo,
+  unregisterOnlineDialogMessage,
+  unregisterRefundSuccessMessage,
+  type RegistrationRefundState,
+} from './refundTexts';
+import { fetchRegistrationRefundStates } from './refunds';
 import { RELEASE_SEAT_LABEL } from './pendingPaymentLabel';
 import { passRedeemErrorMessage } from './passes';
 import { supabase } from './supabase';
@@ -45,6 +52,24 @@ export function useCourseEnrollment(
   const [pendingUnregisterCourseId, setPendingUnregisterCourseId] = useState<string | null>(null);
   const [unregistering, setUnregistering] = useState(false);
   const [registering, setRegistering] = useState(false);
+  const [refundStates, setRefundStates] = useState<Record<string, RegistrationRefundState>>({});
+
+  useEffect(() => {
+    const paidIds = registrations
+      .filter((row) => row.coverage_status === 'paid' && row.status === 'registered')
+      .map((row) => row.id);
+    if (paidIds.length === 0) {
+      setRefundStates({});
+      return;
+    }
+    let active = true;
+    void fetchRegistrationRefundStates(paidIds).then((states) => {
+      if (active) setRefundStates(states);
+    });
+    return () => {
+      active = false;
+    };
+  }, [registrations]);
 
   const showFeedbackDialog = (
     message: string,
@@ -171,11 +196,14 @@ export function useCourseEnrollment(
     const reg = registrations.find((row) => row.course_id === course.id);
     const paymentPending = reg?.status === 'pending_payment';
     const refund = reg && !paymentPending ? passRefundInfo(reg) : null;
+    const online = reg && !paymentPending ? onlineRefundInfo(reg, refundStates[reg.id]) : null;
     const message = paymentPending
       ? `Möchtest du den Platz für „${course.title}“ freigeben? Die Zahlungsfrist entfällt dann.`
       : refund
         ? unregisterPassDialogMessage(refund)
-        : `Möchtest du dich vom Kurs „${course.title}“ abmelden? Der Platz wird wieder frei.`;
+        : online
+          ? unregisterOnlineDialogMessage(online)
+          : `Möchtest du dich vom Kurs „${course.title}“ abmelden? Der Platz wird wieder frei.`;
     setPendingUnregisterCourseId(course.id);
     setConfirmDialog({
       title: paymentPending ? 'Platz freigeben?' : 'Vom Kurs abmelden?',
@@ -196,6 +224,8 @@ export function useCourseEnrollment(
     if (!userProfile || !pendingUnregisterCourseId) return;
 
     const courseId = pendingUnregisterCourseId;
+    const reg = registrations.find((row) => row.course_id === courseId);
+    const wasPaidOnline = Boolean(reg && (refundStates[reg.id]?.payment_cents ?? 0) > 0);
     setUnregistering(true);
 
     try {
@@ -218,7 +248,14 @@ export function useCourseEnrollment(
       onAfterSuccess();
       fetchUserRegistrations();
 
-      showFeedbackDialog(data.message || 'Erfolgreich abgemeldet.', 'success', 'Abmeldung erfolgreich');
+      const refundCents = (data as { refund_cents?: number }).refund_cents ?? 0;
+      showFeedbackDialog(
+        refundCents > 0 || wasPaidOnline
+          ? unregisterRefundSuccessMessage(refundCents)
+          : data.message || 'Erfolgreich abgemeldet.',
+        'success',
+        'Abmeldung erfolgreich',
+      );
     } catch (error) {
       console.error('Error unregistering from course:', error);
       try {
@@ -256,6 +293,11 @@ export function useCourseEnrollment(
     return registrations.find((reg) => reg.course_id === courseId) ?? null;
   };
 
+  const getOnlineRefundInfo = (courseId: string) => {
+    const reg = registrations.find((row) => row.course_id === courseId);
+    return reg ? onlineRefundInfo(reg, refundStates[reg.id]) : null;
+  };
+
   return {
     setRegistrations,
     fetchUserRegistrations,
@@ -273,5 +315,6 @@ export function useCourseEnrollment(
     getUserRegistrationStatus,
     getUserWaitlistPosition,
     getOwnRegistration,
+    getOnlineRefundInfo,
   };
 }

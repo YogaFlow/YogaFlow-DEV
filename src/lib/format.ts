@@ -178,7 +178,7 @@ export function shiftIsoDate(value: string, days: number): string {
   return `${next.y}-${month}-${day}`;
 }
 
-export { asCivilIsoDate, berlinIsoFromInstant, clampCivilIsoDate } from './courseDateTime';
+export { asCivilIsoDate, berlinIsoFromInstant, clampCivilIsoDate } from './courseDateTime.ts';
 
 /** 18 € / 18,50 € (narrow no-break space before €) */
 export function formatPrice(value: number | null | undefined): string {

@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 /**
- * DEV-Qualitätstor: boundary, tsc, lint, build, deno, dist-Scan.
- * (Kein separates Client-Unit-Test-Framework im Repo — Hinweis im Log.)
+ * DEV-Qualitätstor: boundary, tsc, lint, build, deno, Unit-Tests (node --test), dist-Scan.
  */
 import { spawnSync } from 'node:child_process';
 import { readdirSync, readFileSync, existsSync, statSync } from 'node:fs';
@@ -27,8 +26,12 @@ run('lint', 'npm', ['run', 'lint']);
 run('build', 'npm', ['run', 'build']);
 run('test:deno', 'npm', ['run', 'test:deno']);
 
-console.log('\n== Unit-Tests Client ==\n');
-console.log('  (kein vitest/jest im Repo — übersprungen)\n');
+run('Unit-Tests Client (node --test scripts/test/*.ts)', 'node', [
+  '--experimental-strip-types',
+  '--no-warnings',
+  '--test',
+  'scripts/test/*.ts',
+]);
 
 console.log('== dist-Scan ==\n');
 const dist = join(root, 'dist');
