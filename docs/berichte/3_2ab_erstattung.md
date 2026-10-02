@@ -8,7 +8,10 @@ Commits:
 - `ddba7eb` feat(geldkette): 3.2b Erstattung Port, Jobs, Webhook, E-Mail
 - `a594747` test(geldkette): 3.2b Erstattung-Rauchtest F1-F6
 - `986ad01` / `8c257e5` docs Bericht (zwischenzeitlich angehalten F5)
-- (dieser Lauf) Hotfix `du_` Dispute-Refs, Race PAYMENT_NOT_READY, Replay-Skript, Regel, Bericht fertig
+- `1cb3df9` fix(geldkette): Dispute-Refs du_ in Schema und record_payment_dispute
+- `d6877f7` fix(geldkette): Dispute du_ Prefix und PAYMENT_NOT_READY-Retry
+- `1442fb0` chore(dev): Replay provider_events + Smoke akzeptiert du_
+- `25d5cc9` docs(geldkette): 3.2ab fertig, Fixture-Regel, PROD-Replay offen
 
 DEV-Stand:
 - Migrationen bis `20261002202506` (Dispute-Prefix `du_`/`dp_`)
