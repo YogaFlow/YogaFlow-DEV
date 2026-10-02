@@ -141,8 +141,7 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({
         const ownCancelled = isOwnCancellation(registration);
         const refundState = refundStates[registration.id];
         const pay = paymentLine(registration, courseCancelled, refundState);
-        const progress =
-          courseCancelled || ownCancelled ? refundProgress(refundState) : null;
+        const progress = refundProgress(refundState);
         const usable =
           !courseCancelled &&
           !ownCancelled &&

@@ -586,6 +586,7 @@ const CourseDetail: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => requestUnregister(course)}
+                  data-testid="course-unregister"
                   className={`${buttonShape} border border-borderStrong bg-surface text-danger active:bg-dangerSoft`}
                 >
                   Abmelden
