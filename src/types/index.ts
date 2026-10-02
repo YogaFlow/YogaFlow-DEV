@@ -301,7 +301,9 @@ export type UserNotificationType =
   | 'course_uncanceled'
   | 'password_changed'
   | 'payment_succeeded'
-  | 'payment_refunded';
+  | 'payment_refunded'
+  | 'hold_expired_checkout'
+  | 'hold_expired_promotion';
 
 export interface UserNotification {
   id: string;

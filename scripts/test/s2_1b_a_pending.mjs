@@ -75,6 +75,42 @@ function ok(name, cond, detail = '') {
   console.log(`  OK  ${name}${detail ? ' — ' + detail : ''}`);
 }
 
+function datumDe(isoDate) {
+  const [y, m, d] = isoDate.split('-');
+  return `${d}.${m}.${y}`;
+}
+
+function textHoldCheckout(titel, datum) {
+  return `Deine Reservierung für „${titel}“ am ${datum} ist abgelaufen. Der Platz ist wieder frei.`;
+}
+
+function textHoldPromotion(titel, datum) {
+  return `Du hast den Platz in „${titel}“ am ${datum} nicht rechtzeitig bezahlt. Er ist an die nächste Person gegangen.`;
+}
+
+async function glockeBeiAblauf(admin, { userId, courseId, registrationId, type, body, label }) {
+  const { data, error } = await admin
+    .from('user_notifications')
+    .select('type, body, action_path')
+    .eq('user_id', userId)
+    .eq('course_id', courseId)
+    .eq('type', type);
+  if (error) abbruch(`${label} Glocke: ${error.message}`);
+  ok(`${label} Glocke genau einmal`, data?.length === 1, `n=${data?.length ?? 0}`);
+  ok(`${label} Glocke Text`, data?.[0]?.body === body, data?.[0]?.body ?? '');
+  ok(
+    `${label} action_path Kursdetail`,
+    data?.[0]?.action_path === `/course/${courseId}`,
+    data?.[0]?.action_path ?? '',
+  );
+  const { count, error: outboxError } = await admin
+    .from('email_deliveries')
+    .select('id', { count: 'exact', head: true })
+    .eq('registration_id', registrationId);
+  if (outboxError) abbruch(`${label} Outbox: ${outboxError.message}`);
+  ok(`${label} keine Outbox`, count === 0, `n=${count}`);
+}
+
 function clientMitTenant(url, key, slug = SLUG) {
   return createClient(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },
@@ -596,11 +632,28 @@ async function main() {
       .eq('subject_id', dRegId);
     ok('Event hold_expired', count === 1);
   }
+  const dDatum = datumDe(kursDatum);
+  await glockeBeiAblauf(admin, {
+    userId: d.id,
+    courseId,
+    registrationId: dRegId,
+    type: 'hold_expired_checkout',
+    body: textHoldCheckout(TITLE, dDatum),
+    label: 'D',
+  });
   {
     const { data: n2, error } = await admin.rpc('expire_payment_holds');
     if (error) abbruch('expire2: ' + error.message);
     ok('zweiter Expire-Lauf 0', Number(n2) === 0);
   }
+  await glockeBeiAblauf(admin, {
+    userId: d.id,
+    courseId,
+    registrationId: dRegId,
+    type: 'hold_expired_checkout',
+    body: textHoldCheckout(TITLE, dDatum),
+    label: 'D nach zweitem Lauf',
+  });
 
   // Ablauf promotion + Attempt canceled
   // Platz: C registered. Kapazität 2. Nach D-expire und A-unregister: nur C → 1 Platz frei.
@@ -638,6 +691,14 @@ async function main() {
     const { data: eRow } = await admin.from('registrations').select('cancel_reason').eq('id', eRegId).single();
     ok('E promotion_expired', eRow?.cancel_reason === 'promotion_expired');
   }
+  await glockeBeiAblauf(admin, {
+    userId: eUser.id,
+    courseId,
+    registrationId: eRegId,
+    type: 'hold_expired_promotion',
+    body: textHoldPromotion(TITLE, datumDe(kursDatum)),
+    label: 'E',
+  });
 
   // E2: Hold läuft ab mit aktivem Versuch.
   // PC-/DB-Uhr können abweichen → warteBis statt fester Sleep-Zeit.
@@ -707,6 +768,14 @@ async function main() {
     if (error) abbruch('E2 expire2: ' + error.message);
     ok('E2 zweiter Expire-Lauf 0', Number(n2) === 0);
   }
+  await glockeBeiAblauf(admin, {
+    userId: e2User.id,
+    courseId,
+    registrationId: e2RegId,
+    type: 'hold_expired_checkout',
+    body: textHoldCheckout(TITLE, datumDe(kursDatum)),
+    label: 'E2',
+  });
 
   // Absage: registered+open und pending_payment → cancelled_from_status; uncancel nur registered
   {
