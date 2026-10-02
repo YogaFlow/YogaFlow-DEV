@@ -1,0 +1,74 @@
+---
+description: Autonomer DEV-Ablauf für Omlify — erlaubt/verboten, Haltestellen, DoD, Tests, Commits
+alwaysApply: true
+---
+
+# Omlify autonom (DEV)
+
+## Erlaubt ohne Rückfrage
+
+- `npm run dev:*`, `npm run check:*`, `npm run test:*`
+- `node scripts/test/*`, `node scripts/dev/*` (nur DEV)
+- `git status` / `diff` / `log` / `add` / `commit`
+- `git push origin Julius`
+
+## Verboten
+
+- Alles mit PROD-Referenz (`db:push:prod`, `secrets:prod`, `functions:prod`, PROD-Project-Ref)
+- `wrangler deploy`, `npm run deploy:*` außer DEV-Hilfsskripten
+- `git push` auf andere Branches, Merge nach `main`
+- Löschen von DEV-Daten außerhalb von Testskripten
+- Direkte SQL-Schreibzugriffe außer gekennzeichnete Negativtests
+- Secrets-Werte ändern außer über `npm run dev:secrets`
+
+## Nie committen
+
+- `.cursor/settings.json`
+- `docs/screenshots/`
+- `.env`, `supabase/.env.dev`
+
+## Haltestellen (Teil B — nur hier anhalten)
+
+1. Fachliche Entscheidung fehlt oder Code/Vorgabe widersprechen sich.
+2. Test/Rauchtest bleibt nach 3 eigenen Reparaturversuchen rot (Ursache + Versuche berichten).
+3. Etwas würde PROD, echte Zahlungen oder das Stripe-Dashboard betreffen.
+4. Migration müsste bereits angewendete Nicht-Test-Daten auf DEV verändern/löschen.
+5. Oberfläche fertig → Klicktest durch Julius fällig.
+
+An einer Haltestelle: Bericht nach `docs/berichte/<story>.md`, Status „angehalten“, warten.
+
+## Definition of Done (je Story)
+
+- `npm run dev:check` grün
+- `npm run dev:apply` grün (wenn Migrationen)
+- Ersetzte SQL-Funktionen per Diff gegen `pg_get_functiondef` auf DEV geprüft (nur geplante Änderungen)
+- `npm run dev:test` grün
+- Rauchtest der Story grün
+- Bericht in `docs/berichte/<story>.md`
+
+## Testregeln
+
+- Helfer aus `scripts/test/_helpers.mjs`
+- Nur Zeilen des eigenen Test-Studios prüfen, nie globale Zählwerte
+- Plattform-Schalter und Studio-Einstellungen sichern und im `finally` wiederherstellen
+- Läufe in `demoalpha` mit Lauf-ID in E-Mails/Titeln; Aufräumen nur über RPCs; Fehler beim Aufräumen nur warnen
+- Steuerstatus nur setzen, wenn er fehlt
+- Fremde Claims (`claim_*`) sofort zurückgeben
+- Zeiten mit `warteBis`, nie feste Wartezeiten
+
+## Sicherheit
+
+- Keine Secrets, `acct_…`, `client_secret`, E-Mails in Logs/Berichten
+- Stripe nur über den Port (`check:provider-boundary`)
+- Signaturänderung von SQL-Funktionen nur mit `DROP FUNCTION` der alten Version
+
+## Entscheidungen
+
+- Quelle: `docs/entscheidungen/` und Nachtrag `docs/EPIC_GELDKETTE_1A_NACHTRAG_2026-09-21.md`
+- Widerspricht der Code einer Entscheidung → Haltestelle, nicht still umgehen
+
+## Commits
+
+- Je Schicht: Migration+Test · Functions · Oberfläche-Logik · Oberfläche-Gestaltung · Doku
+- Betreff wie bisher (`feat(geldkette): …`, `chore(dev): …`)
+- Nach jedem grünen Abschnitt committen und nach `Julius` pushen

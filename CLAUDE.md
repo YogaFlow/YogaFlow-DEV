@@ -30,6 +30,8 @@ Vermutungen über Code, der nicht gelesen wurde.
 
 **STOPP-Gates.** Größere Aufgaben laufen in nummerierten Schritten mit ausdrücklichen
 Haltepunkten. An einem STOPP wird auf Freigabe gewartet, nicht weitergearbeitet.
+Autonom auf DEV gilt [.cursor/rules/omlify-autonom.mdc](.cursor/rules/omlify-autonom.mdc)
+mit den Haltestellen Teil B; Entscheidungen liegen in [docs/entscheidungen/](docs/entscheidungen/).
 
 **Nachweise statt Zusicherungen.** Build-Ausgaben, `grep`-Zählwerte und Screenshots im
 Wortlaut. „Funktioniert wie erwartet" ohne Beleg zählt nicht.

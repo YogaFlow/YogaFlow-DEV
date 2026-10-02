@@ -8,7 +8,10 @@
  *
  * DB-Zugang wie scripts/db.mjs: .env.deploy DEV_REF / DEV_DB_HOST / DEV_DB_PASSWORD.
  *
- * Verwendung (4c, Vault zuletzt): node scripts/dev/provider_jobs_secret.mjs
+ * Verwendung:
+ *   node scripts/dev/provider_jobs_secret.mjs           # URL + Secret setzen (4c)
+ *   node scripts/dev/provider_jobs_secret.mjs --pause   # URL leeren (Cron loggt nur)
+ *   node scripts/dev/provider_jobs_secret.mjs --resume  # URL wieder setzen
  */
 import { readFileSync, writeFileSync, existsSync, mkdtempSync, unlinkSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
@@ -19,6 +22,12 @@ import { tmpdir } from 'node:os';
 
 const ERLAUBTE_REF = 'mufxhtctutfpzklwqnze';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+
+const mode = (() => {
+  if (process.argv.includes('--pause')) return 'pause';
+  if (process.argv.includes('--resume')) return 'resume';
+  return 'set';
+})();
 
 function ladeEnv(path) {
   if (!existsSync(path)) return {};
@@ -60,7 +69,6 @@ if (ref !== ERLAUBTE_REF) {
 }
 
 const functionUrl = `https://${ref}.supabase.co/functions/v1/payments-jobs`;
-// D2 / 4c: vorhandenen Wert aus .env.dev wiederverwenden (Edge-Secret und Vault gleich).
 const envDevPath = join(root, 'supabase', '.env.dev');
 const existing = (ladeEnv(envDevPath).PROVIDER_JOBS_SECRET || '').trim();
 const reused = existing.length > 0;
@@ -70,7 +78,31 @@ const dbUrl =
   `postgresql://postgres.${ref}:${encodeURIComponent(password)}` +
   `@${host}.pooler.supabase.com:5432/postgres`;
 
-const sql = `
+const pauseSql = `
+DO $vault$
+DECLARE
+  v_url_id uuid;
+BEGIN
+  SELECT id INTO v_url_id FROM vault.secrets WHERE name = 'provider_jobs_url';
+  IF v_url_id IS NULL THEN
+    PERFORM vault.create_secret('', 'provider_jobs_url', '2.2a-4a payments-jobs URL (paused)');
+  ELSE
+    PERFORM vault.update_secret(v_url_id, '');
+  END IF;
+END;
+$vault$;
+
+SELECT
+  CASE
+    WHEN EXISTS (
+      SELECT 1 FROM vault.decrypted_secrets
+      WHERE name = 'provider_jobs_url' AND btrim(COALESCE(decrypted_secret, '')) = ''
+    ) THEN 1 ELSE 0
+  END AS url_paused,
+  (SELECT count(*)::int FROM vault.secrets WHERE name = 'provider_jobs_secret') AS secret_ok;
+`;
+
+const setSql = `
 DO $vault$
 DECLARE
   v_url_id uuid;
@@ -99,9 +131,11 @@ SELECT
   (SELECT count(*)::int FROM vault.secrets WHERE name = 'provider_jobs_secret') AS secret_ok;
 `;
 
+const runSql = mode === 'pause' ? pauseSql : setSql;
+
 const tmpDir = mkdtempSync(join(tmpdir(), 'omlify-vault-'));
 const tmpSql = join(tmpDir, 'vault.sql');
-writeFileSync(tmpSql, sql, 'utf8');
+writeFileSync(tmpSql, runSql, 'utf8');
 
 const result = spawnSync(
   'psql',
@@ -121,17 +155,33 @@ if (result.status !== 0) {
 }
 
 const out = (result.stdout || '').trim();
+
+if (mode === 'pause') {
+  if (!/^1\|/m.test(out) && !/1\|/.test(out)) {
+    fail('Pause nicht bestätigt (url_paused)');
+  }
+  console.log('  Pause: provider_jobs_url geleert (DEV). Cron ruft payments-jobs nicht auf, loggt nur.');
+  console.log('  Secret unverändert. Resume: node scripts/dev/provider_jobs_secret.mjs --resume');
+  process.exit(0);
+}
+
 if (!/^1\|1\b/m.test(out) && !/1\|1/.test(out)) {
   fail('Vault-Einträge nicht bestätigt (url_ok/secret_ok)');
 }
 
 upsertEnvLine(envDevPath, 'PROVIDER_JOBS_SECRET', secret);
 
-console.log('  Vault-Einträge provider_jobs_url / provider_jobs_secret gesetzt (DEV).');
+if (mode === 'resume') {
+  console.log('  Resume: provider_jobs_url wieder gesetzt (DEV).');
+} else {
+  console.log('  Vault-Einträge provider_jobs_url / provider_jobs_secret gesetzt (DEV).');
+  console.log('  Reihenfolge 4c: Secret in .env.dev → npm run secrets:dev → Functions deployen → dieses Skript (Vault zuletzt).');
+  console.log('  Pause/Resume: --pause / --resume (nur DEV; für 3.2a/3.2b und PROD-Releases analog).');
+}
+
 if (reused) {
   console.log('  Bestehendes PROVIDER_JOBS_SECRET aus supabase/.env.dev für Vault verwendet.');
 } else {
   console.log('  PROVIDER_JOBS_SECRET neu erzeugt und in supabase/.env.dev geschrieben.');
 }
-console.log('  Reihenfolge 4c: Secret in .env.dev → npm run secrets:dev → Functions deployen → dieses Skript (Vault zuletzt).');
 console.log('  Secret wird nicht ausgegeben.');
