@@ -190,6 +190,16 @@ function dbUrl() {
 }
 
 /**
+ * Lokales CLI-Binary aus dem npm-Paket `supabase` (dasselbe, das `npx supabase` startet).
+ * Direkt ohne Shell: Die DB-URL mit Passwort darf nicht durch cmd/sh laufen (DEP0190).
+ */
+function supabaseBin() {
+  const bin = join(root, 'node_modules', 'supabase', 'bin', process.platform === 'win32' ? 'supabase.exe' : 'supabase');
+  if (!existsSync(bin)) fail(`Supabase-CLI fehlt (${bin}). Bitte npm ci ausfuehren.`);
+  return bin;
+}
+
+/**
  * Fuehrt supabase aus und haelt Geheimnisse aus der Konsolenausgabe heraus.
  * Nach einer PROD-Bestaetigung: `stdin: 'ignore'` (Windows: readline haelt sonst die Eingabe).
  */
@@ -199,12 +209,13 @@ function run(args, { secret, stdin, input, exit = true, capture = false } = {}) 
   const stdio = capture
     ? ['ignore', 'pipe', 'pipe']
     : [stdin ?? 'inherit', 'inherit', 'inherit'];
-  const opts = { stdio, shell: true, encoding: capture ? 'utf8' : undefined };
+  const opts = { stdio, cwd: root, encoding: capture ? 'utf8' : undefined };
   if (input !== undefined) {
     stdio[0] = 'pipe';
     opts.input = input;
   }
-  const r = spawnSync('npx', ['supabase', ...args], opts);
+  const r = spawnSync(supabaseBin(), args, opts);
+  if (r.error) fail(`Supabase-CLI startet nicht: ${r.error.message}`);
   if (capture) {
     return {
       status: r.status ?? 1,
