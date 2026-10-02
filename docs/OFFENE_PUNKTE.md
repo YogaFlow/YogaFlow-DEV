@@ -51,13 +51,13 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
       DEV: `scripts/dev/replay_provider_event.mjs` (Disputes). PROD-Analog / Runbook offen.
 - [x] **3.2c UI** — DEV 02.10.2026 (`5e9e6f7`…`86154f4`); E2E 3/3 grün; Klicktest Julius
       offen. Bericht `3_2c_erstattung_oberflaeche.md`.
-- [ ] **Glocke „Rückbuchung offen“** führt nach `/open-payments`, nicht zur Zahlung —
-      mit 3.1 (Zahlungsdetail) umhängen.
+- [x] **Glocke „Rückbuchung offen“** führt seit `20261002223000` zur Zahlung (3.1).
 - [ ] **Kursabsage-Dialog zählt bei Serien** „angemeldet/bezahlt“ über alle Termine, egal
       welcher Umfang gewählt ist (`useCourseCancellation.ts`, bestehendes Verhalten).
 - [ ] **`latestUnreversedPayment` (Kasse)** wertet teilweise erstattete Stripe-Zahlungen als
       zurückgebucht; in 3.2c umgangen (`onlinePaymentByRegistration`), Ursache offen.
-- [ ] **3.1 Zahlungsübersicht** — direkt nach R1–R9 / Online-PROD (R10).
+- [x] **3.1 Zahlungsübersicht** — DEV 02.10.2026 (`dc70787`…`32fae53`); Klicktest und
+      Bestätigung Entscheidung 11 offen. Bericht `3_1_zahlungsuebersicht.md`.
 - [ ] **Erstattung nach `payment.refund_required` (2.2a-4).** Schema legt `late_payment`
       an (3.2a); Jobs brauchen 3.2b-Deploy für Stripe-Aufruf mit `refund_id`.
 - [ ] **Claim-Tests: fremde Zeilen „zurückgeben ohne zu zählen“.** Parallel-Claims in
