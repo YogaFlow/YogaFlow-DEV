@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, Check, Clock, MapPin, User, Users } from 'lucide-react';
+import { ArrowLeft, Calendar, Check, Clock, Lock, MapPin, User, Users } from 'lucide-react';
 import CourseCancelDialog from '../components/courses/CourseCancelDialog';
 import CourseDeleteDialog from '../components/courses/CourseDeleteDialog';
 import CourseEnrollmentDialogs from '../components/courses/CourseEnrollmentDialogs';
@@ -326,6 +326,7 @@ const CourseDetail: React.FC = () => {
         mode={passChoice ?? 'seat'}
         pass={usablePass ?? { pass_id: '', name: '', remaining: 0, units_total: 0, valid_until: '' }}
         onlineRequired={onlineRequired}
+        onlineAmountLabel={course ? formatPrice(course.price) : null}
         busy={registering}
         onConfirm={(usePass) => void confirmPassChoice(usePass)}
         onCancel={() => {
@@ -337,6 +338,14 @@ const CourseDetail: React.FC = () => {
         registrationId={paySheet?.registrationId ?? null}
         studioName={tenant?.name ?? ''}
         holdExpiresAt={paySheet?.holdExpiresAt}
+        courseTitle={course?.title}
+        courseWhen={
+          course
+            ? `${formatDate(course.date)} · ${formatTimeRange(course.time, course.end_time)}`
+            : null
+        }
+        courseId={course?.id}
+        courseBookable={Boolean(course && !cancelled && isCourseUpcoming(course))}
         onClose={() => setPaySheet(null)}
         onFinished={() => {
           void fetchUserRegistrations();
@@ -529,8 +538,9 @@ const CourseDetail: React.FC = () => {
               <div className="mt-0.5">
                 <p className="text-[13px] text-textMuted">pro Termin</p>
                 {onlineRequired && canAct && !isRegistered ? (
-                  <p className="mt-0.5 text-[13px] font-medium text-accentText">
-                    {ONLINE_REQUIRED_HINT}
+                  <p className="mt-0.5 inline-flex items-center gap-1 text-[13px] text-textMuted">
+                    <Lock className="h-3.5 w-3.5 shrink-0 text-textSubtle" aria-hidden />
+                    <span>{ONLINE_REQUIRED_HINT}</span>
                   </p>
                 ) : null}
               </div>
@@ -539,14 +549,7 @@ const CourseDetail: React.FC = () => {
           {canAct ? (
             isRegistered ? (
               showPendingPayment ? (
-                <div className="flex flex-wrap items-center justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => requestUnregister(course)}
-                    className={`${buttonShape} border border-borderStrong bg-surface text-danger active:bg-dangerSoft`}
-                  >
-                    {RELEASE_SEAT_LABEL}
-                  </button>
+                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
                   {paymentsClientConfig().enabled && ownRegistration?.id ? (
                     <button
                       type="button"
@@ -561,6 +564,13 @@ const CourseDetail: React.FC = () => {
                       {PAY_NOW_LABEL}
                     </button>
                   ) : null}
+                  <button
+                    type="button"
+                    onClick={() => requestUnregister(course)}
+                    className={`${buttonShape} border border-borderStrong bg-surface text-textMuted active:bg-surfaceSunken`}
+                  >
+                    {RELEASE_SEAT_LABEL}
+                  </button>
                 </div>
               ) : (
                 <button

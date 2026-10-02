@@ -23,7 +23,8 @@ export function methodWord(method: PaymentMethod | ManualCheckoutMethod | null |
   if (method === 'cash') return 'bar';
   if (method === 'paypal_manual') return 'PayPal';
   if (method === 'bank_transfer') return 'Überweisung';
-  if (method === 'card') return 'Karte';
+  // Z12: Stripe-Zahlung — Anzeige „online“; CSV behält „Karte“ in paidLabel.
+  if (method === 'card') return 'online';
   return 'bezahlt';
 }
 
@@ -43,8 +44,16 @@ function paidLabel(
   audience: CoverageLabelAudience,
   method: PaymentMethod | ManualCheckoutMethod | null | undefined,
 ): string {
-  if (audience === 'manager' || audience === 'csv') {
+  if (audience === 'csv') {
+    // CSV unverändert: card → „Karte“
+    if (method === 'card') return 'Karte';
     return method ? methodWord(method) : 'bezahlt';
+  }
+  if (audience === 'manager') {
+    return method ? methodWord(method) : 'bezahlt';
+  }
+  if (audience === 'participant' && method === 'card') {
+    return 'online bezahlt';
   }
   return 'bezahlt';
 }

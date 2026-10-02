@@ -10,6 +10,8 @@ type PassBookChoiceDialogProps = {
   pass: MemberPassSummary;
   /** Z10: Online-Pflicht — „Vor Ort“ entfällt, „Online bezahlen“ statt dessen. */
   onlineRequired?: boolean;
+  /** Betrag für „Online bezahlen“, z. B. „24,00 €“. */
+  onlineAmountLabel?: string | null;
   busy?: boolean;
   onConfirm: (usePass: boolean) => void;
   onCancel: () => void;
@@ -25,6 +27,7 @@ const PassBookChoiceDialog: React.FC<PassBookChoiceDialogProps> = ({
   mode,
   pass,
   onlineRequired = false,
+  onlineAmountLabel = null,
   busy = false,
   onConfirm,
   onCancel,
@@ -109,8 +112,15 @@ const PassBookChoiceDialog: React.FC<PassBookChoiceDialogProps> = ({
                 onChange={() => setUsePass(false)}
                 className="mt-1 h-4 w-4 accent-[color:var(--color-brand)]"
               />
-              <span className="text-[15px] font-medium text-text">
-                {seatOnline ? 'Online bezahlen' : 'Vor Ort bezahlen'}
+              <span className="min-w-0">
+                <span className="block text-[15px] font-medium text-text">
+                  {seatOnline ? 'Online bezahlen' : 'Vor Ort bezahlen'}
+                </span>
+                {seatOnline && onlineAmountLabel ? (
+                  <span className="mt-0.5 block text-[13px] text-textMuted tabular-nums">
+                    {onlineAmountLabel}
+                  </span>
+                ) : null}
               </span>
             </label>
           </fieldset>

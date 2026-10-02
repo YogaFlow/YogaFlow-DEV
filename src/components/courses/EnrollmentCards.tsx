@@ -177,24 +177,24 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({
                   <span />
                 )}
                 {paymentPending && !courseCancelled ? (
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
+                    {canPayOnline && onPayNow ? (
+                      <button
+                        type="button"
+                        onClick={() => onPayNow(registration)}
+                        className="inline-flex h-11 items-center justify-center rounded-full bg-brand px-4 text-[13px] font-medium text-onBrand active:bg-brandPressed"
+                      >
+                        {PAY_NOW_LABEL}
+                      </button>
+                    ) : null}
                     {onReleaseSeat ? (
                       <button
                         type="button"
                         disabled={releasingCourseId === course.id}
                         onClick={() => onReleaseSeat(registration)}
-                        className="inline-flex h-11 items-center rounded-full border border-border bg-surface px-4 text-[13px] font-medium text-textMuted active:bg-surfaceSunken disabled:opacity-50"
+                        className="inline-flex h-11 items-center justify-center rounded-full border border-borderStrong bg-surface px-4 text-[13px] font-medium text-textMuted active:bg-surfaceSunken disabled:opacity-50"
                       >
                         {releasingCourseId === course.id ? '…' : RELEASE_SEAT_LABEL}
-                      </button>
-                    ) : null}
-                    {canPayOnline && onPayNow ? (
-                      <button
-                        type="button"
-                        onClick={() => onPayNow(registration)}
-                        className="inline-flex h-11 items-center rounded-full bg-brand px-4 text-[13px] font-medium text-onBrand active:bg-brandPressed"
-                      >
-                        {PAY_NOW_LABEL}
                       </button>
                     ) : null}
                   </div>

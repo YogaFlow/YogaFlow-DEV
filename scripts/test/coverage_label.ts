@@ -35,7 +35,7 @@ test('pending_payment', () => {
   );
 });
 
-test('paid bar / PayPal / Überweisung', () => {
+test('paid bar / PayPal / Überweisung / online', () => {
   assert.equal(
     coverageLabel({ coverage_status: 'paid', method: 'cash' }, { audience: 'manager' }),
     'bar',
@@ -55,6 +55,18 @@ test('paid bar / PayPal / Überweisung', () => {
   assert.equal(
     coverageLabel({ coverage_status: 'paid', method: 'cash' }, { audience: 'participant' }),
     'bezahlt',
+  );
+  assert.equal(
+    coverageLabel({ coverage_status: 'paid', method: 'card' }, { audience: 'manager' }),
+    'online',
+  );
+  assert.equal(
+    coverageLabel({ coverage_status: 'paid', method: 'card' }, { audience: 'participant' }),
+    'online bezahlt',
+  );
+  assert.equal(
+    coverageLabel({ coverage_status: 'paid', method: 'card' }, { audience: 'csv' }),
+    'Karte',
   );
 });
 

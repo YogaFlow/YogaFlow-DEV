@@ -26,11 +26,27 @@ export function paymentHoldHint(timeHm: string, minutesLeft: number): string {
 
 export const PAYMENT_PROCESSING = 'Zahlung wird geprüft …';
 
+export const PAYMENT_SUBMITTING = 'Zahlung läuft …';
+
 export const PAYMENT_PROCESSING_TIMEOUT =
   'Wir melden uns per E-Mail, sobald die Zahlung bestätigt ist';
 
+export const PAYMENT_SUCCESS_HEADLINE = 'Bezahlt – dein Platz ist sicher.';
+
+export const PAYMENT_EMAIL_HINT = 'Eine Bestätigung kommt per E-Mail.';
+
 export const PAYMENT_SUCCESS =
   'Bezahlt – dein Platz ist sicher. Eine Bestätigung kommt per E-Mail.';
+
+export const PAYMENT_DONE_LABEL = 'Fertig';
+
+export const PAYMENT_ACK_LABEL = 'Verstanden';
+
+export const PAYMENT_TO_COURSE_LABEL = 'Zum Kurs';
+
+export const PAYMENT_RETRY_LABEL = 'Erneut bezahlen';
+
+export const PAYMENT_CLOSE_LABEL = 'Schließen';
 
 export const PAYMENT_REFUND_REQUIRED =
   'Zahlung eingegangen, aber der Platz war inzwischen vergeben. Du bekommst den Betrag automatisch zurück.';

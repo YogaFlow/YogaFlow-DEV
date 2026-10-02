@@ -25,7 +25,7 @@ const PaymentPendingStatus: React.FC<Props> = ({
   const deadline = paymentPendingDeadlinePhrase(holdExpiresAt);
   return (
     <span
-      className={`inline-flex flex-col items-end gap-0.5${className ? ` ${className}` : ''}`}
+      className={`inline-flex flex-col items-start gap-0.5${className ? ` ${className}` : ''}`}
     >
       <AccentPill>{PAYMENT_PENDING_SHORT}</AccentPill>
       {!compact && deadline ? (

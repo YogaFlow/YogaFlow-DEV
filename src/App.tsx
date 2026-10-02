@@ -27,6 +27,10 @@ import CourseDetail from './pages/CourseDetail';
 import CourseCheckout from './pages/CourseCheckout';
 import OpenPayments from './pages/OpenPayments';
 
+/** Nur DEV — sonst kein Chunk mit paymentSheet / DevPaymentSheet im dist. */
+const LazyDevPaymentSheetStates = import.meta.env.DEV
+  ? React.lazy(() => import('./pages/DevPaymentSheetStates'))
+  : null;
 const Spinner = () => (
   <div className="min-h-screen bg-sand flex items-center justify-center">
     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand" />
@@ -296,7 +300,17 @@ function App() {
             <Route path="/legal/*" element={<LegalPage />} />
 
             {import.meta.env.DEV ? (
-              <Route path="/dev/payment-setup" element={<DevPaymentSetupStates />} />
+              <>
+                <Route path="/dev/payment-setup" element={<DevPaymentSetupStates />} />
+                <Route
+                  path="/dev/payment-sheet"
+                  element={
+                    <React.Suspense fallback={null}>
+                      {LazyDevPaymentSheetStates ? <LazyDevPaymentSheetStates /> : null}
+                    </React.Suspense>
+                  }
+                />
+              </>
             ) : null}
 
             {/* Mandanten-App (pathloses Layout — zuverlässiges Matching unter RR 6/7) */}

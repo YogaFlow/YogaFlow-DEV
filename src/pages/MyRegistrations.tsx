@@ -5,7 +5,7 @@ import CourseEnrollmentDialogs from '../components/courses/CourseEnrollmentDialo
 import EnrollmentCards from '../components/courses/EnrollmentCards';
 import MyPassesSection from '../components/passes/MyPassesSection';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
-import PaymentSheet from '../features/payments/PaymentSheet';
+import PaymentSheet, { type PaymentSheetOutcome } from '../features/payments/PaymentSheet';
 import {
   clearPaymentAttempt,
   readAnyPaymentAttempt,
@@ -13,7 +13,8 @@ import {
 } from '../features/payments/usePaymentCheckout';
 import { useAuth } from '../context/AuthContext';
 import { useTenant } from '../context/TenantContext';
-import { isCourseUpcoming, isRegistrationVisible } from '../lib/courseDateTime';
+import { isCourseCancelled, isCourseUpcoming, isRegistrationVisible } from '../lib/courseDateTime';
+import { formatDate, formatTimeRange } from '../lib/format';
 import { fetchMemberPasses, type MemberPassSummary } from '../lib/passes';
 import { paymentMessageForCode } from '../lib/paymentTexts';
 import { supabase } from '../lib/supabase';
@@ -35,6 +36,16 @@ const MyRegistrations: React.FC = () => {
   const [paySheet, setPaySheet] = useState<{
     registrationId: string;
     holdExpiresAt?: string | null;
+    courseTitle?: string | null;
+    courseWhen?: string | null;
+    courseId?: string | null;
+    courseBookable?: boolean;
+  } | null>(null);
+  const [returnOutcome, setReturnOutcome] = useState<{
+    outcome: PaymentSheetOutcome;
+    courseTitle?: string | null;
+    courseWhen?: string | null;
+    courseId?: string | null;
   } | null>(null);
   const returnCheckout = usePaymentCheckout();
 
@@ -135,7 +146,7 @@ const MyRegistrations: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [registrations]);
 
-  // Z5: Rückkehr nach 3-D-Secure
+  // Z5: Rückkehr nach 3-D-Secure — Ergebnis als Sheet (nicht FeedbackDialog)
   useEffect(() => {
     if (searchParams.get('payment') !== 'return') return;
     const next = new URLSearchParams(searchParams);
@@ -152,21 +163,51 @@ const MyRegistrations: React.FC = () => {
       const status = await returnCheckout.runStatus(stored.attemptId);
       clearPaymentAttempt(stored.registrationId);
       void loadRegistrations();
+
+      const finishOutcome = (
+        kind: 'done' | 'error',
+        code: string | null,
+        message: string | null | undefined,
+      ) => {
+        setReturnOutcome({
+          outcome: {
+            phase: kind,
+            code,
+            message: message || paymentMessageForCode(code),
+          },
+          courseId: null,
+        });
+      };
+
       if (status.kind === 'continue') {
+        setReturnOutcome({
+          outcome: {
+            phase: 'processing',
+            code: null,
+            message: null,
+          },
+        });
         const polled = await returnCheckout.pollUntilDone(stored.attemptId);
         void loadRegistrations();
-        setFeedback({
-          title: 'Zahlung',
-          message: polled.message || paymentMessageForCode(polled.code),
-          type: polled.code === 'CARD_DECLINED' ? 'error' : 'success',
+        const done =
+          polled.code === 'COMPLETED' ||
+          polled.code === 'ALREADY_COMPLETED' ||
+          polled.code === 'RESTORED' ||
+          polled.code === 'REFUND_REQUIRED';
+        setReturnOutcome({
+          outcome: {
+            phase: done ? 'done' : 'error',
+            code: polled.code,
+            message: polled.message || paymentMessageForCode(polled.code),
+          },
         });
         return;
       }
-      setFeedback({
-        title: status.kind === 'done' ? 'Zahlung' : 'Hinweis',
-        message: status.message || paymentMessageForCode(status.code),
-        type: status.kind === 'done' ? 'success' : 'error',
-      });
+      finishOutcome(
+        status.kind === 'done' ? 'done' : 'error',
+        status.code,
+        status.message,
+      );
     })();
     // nur einmal bei payment=return
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -200,8 +241,26 @@ const MyRegistrations: React.FC = () => {
         registrationId={paySheet?.registrationId ?? null}
         studioName={tenant?.name ?? ''}
         holdExpiresAt={paySheet?.holdExpiresAt}
+        courseTitle={paySheet?.courseTitle}
+        courseWhen={paySheet?.courseWhen}
+        courseId={paySheet?.courseId}
+        courseBookable={paySheet?.courseBookable}
         onClose={() => setPaySheet(null)}
         onFinished={() => {
+          void loadRegistrations();
+        }}
+      />
+      <PaymentSheet
+        open={returnOutcome != null}
+        registrationId={null}
+        studioName={tenant?.name ?? ''}
+        outcome={returnOutcome?.outcome ?? null}
+        courseTitle={returnOutcome?.courseTitle}
+        courseWhen={returnOutcome?.courseWhen}
+        courseId={returnOutcome?.courseId}
+        onClose={() => setReturnOutcome(null)}
+        onFinished={() => {
+          setReturnOutcome(null);
           void loadRegistrations();
         }}
       />
@@ -244,9 +303,20 @@ const MyRegistrations: React.FC = () => {
             enrollment.requestUnregister(registration.course);
           }}
           onPayNow={(registration) => {
+            const course = registration.course;
             setPaySheet({
               registrationId: registration.id,
               holdExpiresAt: registration.hold_expires_at,
+              courseTitle: course?.title,
+              courseWhen: course
+                ? `${formatDate(course.date)} · ${formatTimeRange(course.time, course.end_time)}`
+                : null,
+              courseId: course?.id,
+              courseBookable: Boolean(
+                course &&
+                  !isCourseCancelled(course.status) &&
+                  isCourseUpcoming(course),
+              ),
             });
           }}
           releasingCourseId={enrollment.pendingUnregisterCourseId}
