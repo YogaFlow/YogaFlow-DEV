@@ -26,6 +26,7 @@ import JoinStudio from './pages/JoinStudio';
 import CourseDetail from './pages/CourseDetail';
 import CourseCheckout from './pages/CourseCheckout';
 import OpenPayments from './pages/OpenPayments';
+import Payments from './pages/Payments';
 
 /** Nur DEV — sonst kein Chunk mit paymentSheet / DevPaymentSheet im dist. */
 const LazyDevPaymentSheetStates = import.meta.env.DEV
@@ -327,6 +328,7 @@ function App() {
               <Route path="profile" element={<Profile />} />
               <Route path="participants" element={<Participants />} />
               <Route path="open-payments" element={<OpenPayments />} />
+              <Route path="payments" element={<Payments />} />
               <Route path="users" element={<Users />} />
               <Route path="settings" element={<Settings />} />
               <Route path="messages" element={<Messages />} />
