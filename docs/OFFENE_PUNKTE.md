@@ -49,8 +49,14 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
       + Race `PAYMENT_NOT_READY`; Replay-Skript DEV. Bericht `3_2ab_erstattung.md`.
 - [ ] **PROD: Webhook-Ereignisse mit finalem Verarbeitungsfehler erneut fahren** —
       DEV: `scripts/dev/replay_provider_event.mjs` (Disputes). PROD-Analog / Runbook offen.
-- [ ] **3.2c UI** — Teilnehmer-Texte R9; Storno-Dialog vorher (R3); Owner manuelle
-      Erstattung (R4).
+- [x] **3.2c UI** — DEV 02.10.2026 (`5e9e6f7`…`86154f4`); E2E 3/3 grün; Klicktest Julius
+      offen. Bericht `3_2c_erstattung_oberflaeche.md`.
+- [ ] **Glocke „Rückbuchung offen“** führt nach `/open-payments`, nicht zur Zahlung —
+      mit 3.1 (Zahlungsdetail) umhängen.
+- [ ] **Kursabsage-Dialog zählt bei Serien** „angemeldet/bezahlt“ über alle Termine, egal
+      welcher Umfang gewählt ist (`useCourseCancellation.ts`, bestehendes Verhalten).
+- [ ] **`latestUnreversedPayment` (Kasse)** wertet teilweise erstattete Stripe-Zahlungen als
+      zurückgebucht; in 3.2c umgangen (`onlinePaymentByRegistration`), Ursache offen.
 - [ ] **3.1 Zahlungsübersicht** — direkt nach R1–R9 / Online-PROD (R10).
 - [ ] **Erstattung nach `payment.refund_required` (2.2a-4).** Schema legt `late_payment`
       an (3.2a); Jobs brauchen 3.2b-Deploy für Stripe-Aufruf mit `refund_id`.
