@@ -15,6 +15,7 @@ import {
 } from '../../lib/taxStatus';
 import LedgerWaitingNotice from '../tax/LedgerWaitingNotice';
 import TaxStatusDialog from './TaxStatusDialog';
+import CivilDatePicker from '../DateTimePicker/CivilDatePicker';
 
 type PeriodMode = 'month' | 'range';
 
@@ -197,24 +198,30 @@ export default function TaxSettingsSection({ isOwner }: { isOwner: boolean }) {
           </label>
         ) : (
           <div className="mt-3 grid max-w-md grid-cols-1 gap-3 sm:grid-cols-2">
-            <label className="text-[13px] text-textMuted">
-              Von
-              <input
-                type="date"
-                value={fromDate}
-              onChange={(event) => setFromDate(asCivilIsoDate(event.target.value))}
-              className="mt-1 w-full min-h-11 rounded-sm border border-border px-3 text-[15px] text-text focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand"
-              />
-            </label>
-            <label className="text-[13px] text-textMuted">
-              Bis
-              <input
-                type="date"
-                value={toDate}
-                onChange={(event) => setToDate(asCivilIsoDate(event.target.value))}
-                className="mt-1 w-full min-h-11 rounded-sm border border-border px-3 text-[15px] text-text focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand"
-              />
-            </label>
+            <div>
+              <label htmlFor="tax-export-from" className="text-[13px] text-textMuted">
+                Von
+              </label>
+              <div className="mt-1">
+                <CivilDatePicker
+                  id="tax-export-from"
+                  value={fromDate}
+                  onChange={(value) => setFromDate(asCivilIsoDate(value))}
+                />
+              </div>
+            </div>
+            <div>
+              <label htmlFor="tax-export-to" className="text-[13px] text-textMuted">
+                Bis
+              </label>
+              <div className="mt-1">
+                <CivilDatePicker
+                  id="tax-export-to"
+                  value={toDate}
+                  onChange={(value) => setToDate(asCivilIsoDate(value))}
+                />
+              </div>
+            </div>
           </div>
         )}
 

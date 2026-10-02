@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { asCivilIsoDate, clampCivilIsoDate } from '../../lib/courseDateTime';
 import { formatNumericDate } from '../../lib/format';
+import CivilDatePicker from '../DateTimePicker/CivilDatePicker';
 import {
   TAX_CHOICES,
   TAX_DIALOG_NOTE,
@@ -139,24 +140,20 @@ export default function TaxStatusDialog({
             <label className="mt-4 block text-[13px] text-textMuted" htmlFor="tax-valid-from">
               Gültig ab
             </label>
-            <input
-              id="tax-valid-from"
-              type="date"
-              value={resolvedDate}
-              min={suggestion?.minDate ?? undefined}
-              max={suggestion?.maxDate ?? undefined}
-              disabled={loading || busy}
-              onChange={(event) =>
-                setDate(
-                  clampCivilIsoDate(
-                    asCivilIsoDate(event.target.value),
-                    suggestion?.minDate,
-                    suggestion?.maxDate,
-                  ),
-                )
-              }
-              className="mt-1 w-full min-h-11 rounded-sm border border-border px-3 text-[15px] text-text focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand"
-            />
+            <div className="mt-1">
+              <CivilDatePicker
+                id="tax-valid-from"
+                value={resolvedDate}
+                min={suggestion?.minDate}
+                max={suggestion?.maxDate}
+                disabled={loading || busy}
+                onChange={(value) =>
+                  setDate(
+                    clampCivilIsoDate(asCivilIsoDate(value), suggestion?.minDate, suggestion?.maxDate),
+                  )
+                }
+              />
+            </div>
             {errorText ? (
               <p role="alert" className="mt-2 text-[15px] text-text">
                 {errorText}

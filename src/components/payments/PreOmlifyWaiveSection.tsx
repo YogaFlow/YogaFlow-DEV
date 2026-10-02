@@ -6,6 +6,7 @@ import {
   clampCivilIsoDate,
 } from '../../lib/courseDateTime';
 import { formatNumericDate } from '../../lib/format';
+import CivilDatePicker from '../DateTimePicker/CivilDatePicker';
 import { preOmlifyErrorMessage } from '../../lib/courseCheckout';
 
 type PreviewOk = {
@@ -133,19 +134,18 @@ const PreOmlifyWaiveSection: React.FC<PreOmlifyWaiveSectionProps> = ({
       <label className="mt-5 block text-[13px] font-medium text-textMuted" htmlFor="pre-omlify-before">
         Alles vor dem
       </label>
-      <input
-        id="pre-omlify-before"
-        type="date"
-        value={beforeDate}
-        max={today}
-        onChange={(event) =>
-          setBeforeDate(
-            clampCivilIsoDate(asCivilIsoDate(event.target.value), null, berlinIsoDate(0)) ||
-              berlinIsoDate(0),
-          )
-        }
-        className="mt-1.5 w-full min-h-11 max-w-xs rounded-sm border border-borderStrong bg-surface px-3 text-[15px] text-text tabular-nums focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand"
-      />
+      <div className="mt-1.5 max-w-xs">
+        <CivilDatePicker
+          id="pre-omlify-before"
+          value={beforeDate}
+          max={today}
+          onChange={(value) =>
+            setBeforeDate(
+              clampCivilIsoDate(asCivilIsoDate(value), null, berlinIsoDate(0)) || berlinIsoDate(0),
+            )
+          }
+        />
+      </div>
 
       <div className="mt-5 space-y-3 text-[15px] leading-6 text-text">
         {previewLoading ? (
