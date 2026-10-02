@@ -20,6 +20,8 @@ import {
   labelRegistrationStatusShort,
 } from '../lib/registrationStatus';
 import { coverageLabel, latestUnreversedPayment } from '../lib/courseCheckout';
+import { staffUnregisterRefundLine } from '../lib/refundTexts';
+import { fetchRegistrationRefundStates } from '../lib/refunds';
 import {
   isDevPendingPaymentMock,
   resolveHoldExpiresAt,
@@ -186,17 +188,23 @@ const Participants: React.FC = () => {
     return false;
   };
 
-  const requestUnregister = (participant: ParticipantWithDetails) => {
+  const requestUnregister = async (participant: ParticipantWithDetails) => {
     const name = `${participant.user.first_name} ${participant.user.last_name}`.trim();
     const courseTitle = participant.course.title;
     const passNote =
       participant.coverage_status === 'pass'
         ? ' Die Karteneinheit wird zurückgebucht.'
         : '';
+    let onlineNote = '';
+    if (isStudioAdmin(userProfile) && participant.coverage_status === 'paid') {
+      const states = await fetchRegistrationRefundStates([participant.id]);
+      const line = staffUnregisterRefundLine(states[participant.id]?.refundable_cents ?? 0);
+      if (line) onlineNote = ` ${line}`;
+    }
     setPendingUnregister(participant);
     setConfirmDialog({
       title: 'Teilnehmer abmelden',
-      message: `Möchtest du ${name || 'diesen Teilnehmer'} wirklich vom Kurs „${courseTitle}" abmelden?${passNote}`,
+      message: `Möchtest du ${name || 'diesen Teilnehmer'} wirklich vom Kurs „${courseTitle}" abmelden?${passNote}${onlineNote}`,
       confirmLabel: 'Abmelden',
       cancelLabel: 'Abbrechen',
       variant: 'danger',
@@ -563,7 +571,7 @@ const Participants: React.FC = () => {
                         {canUnregisterParticipant(participant) && (
                           <button
                             type="button"
-                            onClick={() => requestUnregister(participant)}
+                            onClick={() => void requestUnregister(participant)}
                             disabled={unregisteringId === participant.id}
                             className="inline-flex min-h-11 items-center gap-1 text-[13px] font-medium text-danger hover:text-danger disabled:opacity-50"
                           >
@@ -674,7 +682,7 @@ const Participants: React.FC = () => {
                             {canUnregisterParticipant(participant) ? (
                               <button
                                 type="button"
-                                onClick={() => requestUnregister(participant)}
+                                onClick={() => void requestUnregister(participant)}
                                 disabled={unregisteringId === participant.id}
                                 className="inline-flex items-center gap-1.5 text-danger hover:text-danger disabled:opacity-50"
                               >

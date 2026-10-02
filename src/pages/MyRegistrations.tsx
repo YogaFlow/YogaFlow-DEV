@@ -13,7 +13,14 @@ import {
 } from '../features/payments/usePaymentCheckout';
 import { useAuth } from '../context/AuthContext';
 import { useTenant } from '../context/TenantContext';
-import { isCourseCancelled, isCourseUpcoming, isRegistrationVisible } from '../lib/courseDateTime';
+import {
+  hasCourseEnded,
+  isCourseCancelled,
+  isCourseUpcoming,
+  isRegistrationVisible,
+} from '../lib/courseDateTime';
+import { refundProgress, type RegistrationRefundState } from '../lib/refundTexts';
+import { fetchRegistrationRefundStates } from '../lib/refunds';
 import { formatDate, formatTimeRange } from '../lib/format';
 import { fetchMemberPasses, type MemberPassSummary } from '../lib/passes';
 import { paymentMessageForCode } from '../lib/paymentTexts';
@@ -30,6 +37,7 @@ const MyRegistrations: React.FC = () => {
   const { tenant } = useTenant();
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [ownPasses, setOwnPasses] = useState<MemberPassSummary[]>([]);
+  const [refundStates, setRefundStates] = useState<Record<string, RegistrationRefundState>>({});
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [feedback, setFeedback] = useState<FeedbackDialogState | null>(null);
@@ -72,7 +80,7 @@ const MyRegistrations: React.FC = () => {
           )
           .eq('user_id', userProfile.id)
           .or(
-            'cancel_reason.eq.course_cancelled,and(status.in.(registered,waitlist,pending_payment),cancellation_timestamp.is.null)',
+            'cancel_reason.in.(course_cancelled,participant,studio),and(status.in.(registered,waitlist,pending_payment),cancellation_timestamp.is.null)',
           ),
         fetchMemberPasses(userProfile.id),
       ]);
@@ -81,10 +89,25 @@ const MyRegistrations: React.FC = () => {
 
       setOwnPasses(passes);
 
-      const visible = (data || []).filter((registration: Registration) => {
+      const rows = (data || []) as Registration[];
+      const states = await fetchRegistrationRefundStates(
+        rows.filter((row) => row.coverage_status === 'paid').map((row) => row.id),
+      );
+      setRefundStates(states);
+
+      const visible = rows.filter((registration: Registration) => {
         if (registration.cancel_reason === 'course_cancelled') {
           const course = registration.course;
           return course != null && isCourseUpcoming(course);
+        }
+        if (registration.status === 'cancelled') {
+          // Abgemeldet: nur zeigen, solange es zur Online-Zahlung etwas zu sagen gibt.
+          const course = registration.course;
+          return (
+            course != null &&
+            !hasCourseEnded(course) &&
+            refundProgress(states[registration.id]) != null
+          );
         }
         return isRegistrationVisible(registration);
       });
@@ -131,7 +154,9 @@ const MyRegistrations: React.FC = () => {
 
   useEffect(() => {
     enrollment.setRegistrations(
-      registrations.map((row) => ({
+      registrations
+        .filter((row) => row.status !== 'cancelled')
+        .map((row) => ({
         id: row.id,
         course_id: row.course_id,
         status: row.status,
@@ -288,6 +313,7 @@ const MyRegistrations: React.FC = () => {
       ) : (
         <EnrollmentCards
           registrations={registrations}
+          refundStates={refundStates}
           ownPasses={ownPasses}
           onCoverageChanged={() => void loadRegistrations()}
           onFeedback={(message, type) =>

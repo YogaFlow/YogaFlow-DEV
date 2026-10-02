@@ -1,6 +1,11 @@
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
-import type { CourseCancelDialogModel, CourseCancelScope } from '../../lib/useCourseCancellation';
+import { courseCancelRefundLine } from '../../lib/refundTexts';
+import {
+  onlineRefundForScope,
+  type CourseCancelDialogModel,
+  type CourseCancelScope,
+} from '../../lib/useCourseCancellation';
 
 interface CourseCancelDialogProps {
   dialog: CourseCancelDialogModel;
@@ -44,13 +49,21 @@ const CourseCancelDialog: React.FC<CourseCancelDialogProps> = ({
     '1 auf der Warteliste',
     '%n auf der Warteliste',
   );
+  const online = onlineRefundForScope(dialog);
+  const onlineLine = online ? courseCancelRefundLine(online.paidCount, online.refundCents) : null;
+  // paid zählt wie bisher über alle Termine; Online-Zahlende davon abziehen.
+  const onlineAllCount = Object.values(dialog.onlineByCourse ?? {}).reduce(
+    (sum, row) => sum + row.paid_count,
+    0,
+  );
+  const manualPaid = dialog.paid == null ? null : Math.max(dialog.paid - onlineAllCount, 0);
   const paidLine =
-    dialog.paid == null || dialog.paid < 1
+    manualPaid == null || manualPaid < 1
       ? null
       : `${peopleLine(
-          dialog.paid,
-          '1 Person hat bereits bezahlt',
-          '%n haben bereits bezahlt',
+          manualPaid,
+          '1 Person hat bereits direkt bei dir bezahlt',
+          '%n haben bereits direkt bei dir bezahlt',
         )}. Die Rückgaben vermerkst du danach unter Rückgaben.`;
   const passLine =
     dialog.withPass == null || dialog.withPass < 1
@@ -151,6 +164,11 @@ const CourseCancelDialog: React.FC<CourseCancelDialogProps> = ({
               <p className="text-sm text-text">
                 {enrolled}, {waiting}. Alle bekommen eine Benachrichtigung.
               </p>
+              {onlineLine ? (
+                <p className="mt-2 text-sm text-text tabular-nums" data-testid="cancel-online-refund">
+                  {onlineLine}
+                </p>
+              ) : null}
               {paidLine ? <p className="mt-2 text-sm text-text">{paidLine}</p> : null}
               {passLine ? <p className="mt-2 text-sm text-text">{passLine}</p> : null}
             </div>

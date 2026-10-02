@@ -11,6 +11,7 @@ import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDi
 import RemovePersonDialog, { RemovePersonTarget } from '../components/users/RemovePersonDialog';
 import MemberPassesSection from '../components/passes/MemberPassesSection';
 import { loadRemovalPreview, readInvokeErrorBody, removePerson } from '../lib/removePerson';
+import { previewMemberRemovalRefunds } from '../lib/refunds';
 import { fetchCourseParticipantCounts } from '../lib/courseParticipantCounts';
 import {
   fetchMemberPasses,
@@ -667,7 +668,10 @@ export default function Users() {
     if (!isAdmin || user.id === userProfile?.id || user.role === 'owner' || preparingRemoveId) return;
     setPreparingRemoveId(user.id);
     try {
-      const preview = await loadRemovalPreview(user.id);
+      const [preview, refunds] = await Promise.all([
+        loadRemovalPreview(user.id),
+        previewMemberRemovalRefunds(user.id),
+      ]);
       setRemoveError(null);
       setRemoveErrorCode(null);
       setRemoveTarget({
@@ -677,6 +681,8 @@ export default function Users() {
         upcoming: preview.upcoming,
         openBookings: preview.openBookings,
         openCourseId: preview.openCourseId,
+        onlinePaidCount: refunds?.paidCount ?? 0,
+        onlineRefundCents: refunds?.refundCents ?? 0,
       });
     } catch (err) {
       console.error('remove preview failed', err);

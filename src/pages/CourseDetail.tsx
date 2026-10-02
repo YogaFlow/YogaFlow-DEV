@@ -29,6 +29,7 @@ import {
   passRefundInfo,
   passRefundStatusLine,
 } from '../lib/passRefundInfo';
+import { onlinePaidStatusLine } from '../lib/refundTexts';
 import {
   isDevPendingPaymentMock,
   resolveHoldExpiresAt,
@@ -120,6 +121,7 @@ const CourseDetail: React.FC = () => {
     getUserRegistrationStatus,
     getUserWaitlistPosition,
     getOwnRegistration,
+    getOnlineRefundInfo,
   } = useCourseEnrollment(loadCourse, {
     onPendingPayment: (info) => setPaySheet(info),
   });
@@ -226,6 +228,10 @@ const CourseDetail: React.FC = () => {
   const refundInfo =
     ownRegistration && registrationStatus === 'registered' && !ownRegistration.is_waitlist && !showPendingPayment
       ? passRefundInfo(ownRegistration)
+      : null;
+  const onlineInfo =
+    !refundInfo && registrationStatus === 'registered' && !showPendingPayment
+      ? getOnlineRefundInfo(course.id)
       : null;
   const isFull = registeredCount >= course.max_participants;
   const remaining = course.max_participants - registeredCount;
@@ -518,6 +524,10 @@ const CourseDetail: React.FC = () => {
                 {refundInfo ? (
                   <p className="mt-0.5 text-[13px] leading-snug text-textMuted tabular-nums">
                     {passRefundStatusLine(refundInfo)}
+                  </p>
+                ) : onlineInfo ? (
+                  <p className="mt-0.5 text-[13px] leading-snug text-textMuted tabular-nums">
+                    {onlinePaidStatusLine(onlineInfo)}
                   </p>
                 ) : null}
               </div>

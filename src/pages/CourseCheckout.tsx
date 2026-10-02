@@ -5,7 +5,8 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { isStudioAdmin, isTeacherOnly } from '../lib/userRoles';
 import { isCourseCancelled } from '../lib/courseDateTime';
-import { formatDate, formatPrice, formatTime } from '../lib/format';
+import { formatCents, formatDate, formatPrice, formatTime } from '../lib/format';
+import PaymentRefundSheet from '../components/payments/PaymentRefundSheet';
 import type { CoverageStatus, PaymentMethod, WaivedReason } from '../types';
 import UndoBar from '../components/ui/UndoBar';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
@@ -57,6 +58,8 @@ type Person = {
   passRemaining: number | null;
   paymentPending: boolean;
   holdExpiresAt: string | null;
+  /** Stripe-Kartenzahlung (Original), auch wenn teilweise erstattet */
+  onlinePaymentId: string | null;
 };
 
 type CourseHead = {
@@ -123,6 +126,29 @@ const AMOUNT_METHODS: { method: ManualCheckoutMethod; label: string }[] = [
   { method: 'bank_transfer', label: 'Überweisung' },
 ];
 
+type PaymentRow = {
+  id: string;
+  registration_id: string | null;
+  method: PaymentMethod;
+  amount_cents: number;
+  reverses_payment_id: string | null;
+  received_at: string;
+};
+
+/** Neueste Stripe-Kartenzahlung je Buchung — Gegenzeilen (Teilerstattungen) ändern daran nichts. */
+function onlinePaymentByRegistration(payments: PaymentRow[]): Map<string, PaymentRow> {
+  const best = new Map<string, PaymentRow>();
+  for (const payment of payments) {
+    if (payment.method !== 'card' || payment.amount_cents <= 0 || payment.reverses_payment_id) continue;
+    if (!payment.registration_id) continue;
+    const current = best.get(payment.registration_id);
+    if (!current || payment.received_at > current.received_at) {
+      best.set(payment.registration_id, payment);
+    }
+  }
+  return best;
+}
+
 function personName(person: Pick<Person, 'firstName' | 'lastName'>): string {
   const name = `${person.firstName} ${person.lastName}`.trim();
   return name || 'Teilnehmerin';
@@ -162,6 +188,12 @@ const CourseCheckout: React.FC = () => {
   const [refunds, setRefunds] = useState<RefundPerson[]>([]);
   const [paidCancelledCount, setPaidCancelledCount] = useState(0);
   const [refundTarget, setRefundTarget] = useState<RefundPerson | null>(null);
+  const [onlineRefunds, setOnlineRefunds] = useState<RefundPerson[]>([]);
+  const [refundSheet, setRefundSheet] = useState<{
+    paymentId: string;
+    firstName: string;
+    name: string;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [forbidden, setForbidden] = useState(false);
   const [missing, setMissing] = useState(false);
@@ -238,6 +270,7 @@ const CourseCheckout: React.FC = () => {
 
       if (!isStudioAdmin(userProfile)) {
         setRefunds([]);
+        setOnlineRefunds([]);
         setLoading(false);
         return;
       }
@@ -245,6 +278,7 @@ const CourseCheckout: React.FC = () => {
       const paidRows = cancelled.filter((row) => row.coverage_status === 'paid');
       if (paidRows.length === 0) {
         setRefunds([]);
+        setOnlineRefunds([]);
         setLoading(false);
         return;
       }
@@ -261,11 +295,26 @@ const CourseCheckout: React.FC = () => {
         return;
       }
       const openPayment = latestUnreversedPayment(payments ?? []);
+      const onlinePayment = onlinePaymentByRegistration((payments ?? []) as PaymentRow[]);
       const nextRefunds: RefundPerson[] = [];
+      const nextOnline: RefundPerson[] = [];
       for (const row of paidRows) {
+        const user = Array.isArray(row.user) ? row.user[0] : row.user;
+        const online = onlinePayment.get(row.id);
+        if (online) {
+          // Online-Zahlungen erstattet cancel_course automatisch (R2) — keine manuelle Rückgabe.
+          nextOnline.push({
+            registrationId: row.id,
+            paymentId: online.id,
+            firstName: user?.first_name ?? '',
+            lastName: user?.last_name ?? '',
+            method: online.method,
+            amountCents: online.amount_cents,
+          });
+          continue;
+        }
         const payment = openPayment.get(row.id);
         if (!payment) continue;
-        const user = Array.isArray(row.user) ? row.user[0] : row.user;
         nextRefunds.push({
           registrationId: row.id,
           paymentId: payment.id,
@@ -275,15 +324,18 @@ const CourseCheckout: React.FC = () => {
           amountCents: payment.amount_cents,
         });
       }
-      nextRefunds.sort((a, b) =>
-        `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`, 'de'),
-      );
+      const byName = (a: RefundPerson, b: RefundPerson) =>
+        `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`, 'de');
+      nextRefunds.sort(byName);
+      nextOnline.sort(byName);
       setRefunds(nextRefunds);
+      setOnlineRefunds(nextOnline);
       setLoading(false);
       return;
     }
 
     setRefunds([]);
+    setOnlineRefunds([]);
     setPaidCancelledCount(0);
 
     const { data: registrations, error: regError } = await supabase
@@ -313,6 +365,7 @@ const CourseCheckout: React.FC = () => {
 
     const rows = registrations ?? [];
     const methodByRegistration = new Map<string, PaymentMethod>();
+    const onlineByRegistration = new Map<string, string>();
 
     if (isStudioAdmin(userProfile) && rows.length > 0) {
       const { data: payments, error: payError } = await supabase
@@ -331,6 +384,14 @@ const CourseCheckout: React.FC = () => {
 
       for (const [registrationId, payment] of latestUnreversedPayment(payments ?? [])) {
         methodByRegistration.set(registrationId, payment.method);
+      }
+      for (const [registrationId, payment] of onlinePaymentByRegistration(
+        (payments ?? []) as PaymentRow[],
+      )) {
+        onlineByRegistration.set(registrationId, payment.id);
+        if (!methodByRegistration.has(registrationId)) {
+          methodByRegistration.set(registrationId, payment.method);
+        }
       }
     }
 
@@ -357,6 +418,7 @@ const CourseCheckout: React.FC = () => {
         holdExpiresAt: resolveHoldExpiresAt(
           (row.hold_expires_at as string | null) ?? null,
         ),
+        onlinePaymentId: onlineByRegistration.get(row.id) ?? null,
       };
     });
 
@@ -740,6 +802,15 @@ const CourseCheckout: React.FC = () => {
     );
   }
 
+  const refundSheetElement = (
+    <PaymentRefundSheet
+      paymentId={refundSheet?.paymentId ?? null}
+      firstName={refundSheet?.firstName ?? ''}
+      subtitle={refundSheet ? `${refundSheet.name} · ${course.title}` : undefined}
+      onClose={() => setRefundSheet(null)}
+    />
+  );
+
   if (isCourseCancelled(course.status)) {
     const paidSentence =
       paidCancelledCount === 1
@@ -757,6 +828,40 @@ const CourseCheckout: React.FC = () => {
           <p role="alert" className="text-[15px] text-text">
             {errorText}
           </p>
+        ) : null}
+        {seesMethod && onlineRefunds.length > 0 ? (
+          <section className="overflow-hidden rounded-md border border-border bg-surface">
+            <h3 className="border-b border-border px-3.5 py-3 text-[17px] font-medium text-text">
+              Online bezahlt
+            </h3>
+            <p className="px-3.5 pt-3 text-[13px] text-textMuted">
+              Diese Zahlungen werden automatisch erstattet.
+            </p>
+            <ul className="divide-y divide-border">
+              {onlineRefunds.map((person) => {
+                const name = personName(person);
+                return (
+                  <li key={person.paymentId} className="flex items-center gap-3 px-3.5 py-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[17px] font-medium text-text">{name}</p>
+                      <p className="text-[13px] text-textMuted tabular-nums">
+                        online · {formatCents(person.amountCents)}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setRefundSheet({ paymentId: person.paymentId, firstName: person.firstName, name })
+                      }
+                      className="inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-full border border-border px-4 text-[15px] font-medium text-text"
+                    >
+                      Erstattungen
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
         ) : null}
         {seesMethod ? (
           refunds.length === 0 ? (
@@ -798,6 +903,8 @@ const CourseCheckout: React.FC = () => {
           </p>
         )}
         <p className="text-[13px] leading-5 text-textMuted">{CASH_HINT}</p>
+
+        {refundSheetElement}
 
         <ConfirmDialog
           dialog={
@@ -860,7 +967,8 @@ const CourseCheckout: React.FC = () => {
                     pass_eligible: course.pass_eligible,
                   })
                 : null;
-            const showMenu = open || canRevertWaive || canSellPass || canUndoPass;
+            const canRefund = seesMethod && person.onlinePaymentId != null && !person.paymentPending;
+            const showMenu = open || canRevertWaive || canSellPass || canUndoPass || canRefund;
             const menuOpen = menuFor === person.registrationId;
             const passLabel = passBadgeLabel(passesByUser[person.userId] ?? []);
             return (
@@ -925,6 +1033,22 @@ const CourseCheckout: React.FC = () => {
                 </div>
                 {menuOpen ? (
                   <div className="border-t border-border bg-surfaceSunken px-3.5 py-1">
+                    {canRefund ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMenuFor(null);
+                          setRefundSheet({
+                            paymentId: person.onlinePaymentId as string,
+                            firstName: person.firstName,
+                            name,
+                          });
+                        }}
+                        className="flex min-h-11 w-full items-center text-left text-[15px] text-text"
+                      >
+                        Online-Zahlung · Erstatten…
+                      </button>
+                    ) : null}
                     {canSellPass ? (
                       <button
                         type="button"
@@ -1026,6 +1150,8 @@ const CourseCheckout: React.FC = () => {
       )}
 
         <p className="text-[13px] leading-5 text-textMuted">{CASH_HINT}</p>
+
+      {refundSheetElement}
 
       {undo ? (
         <UndoBar

@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { memberRemovalRefundLine } from '../../lib/refundTexts';
 
 export type RemovePersonTarget = {
   firstName: string;
@@ -7,6 +8,8 @@ export type RemovePersonTarget = {
   upcoming: number;
   openBookings: number;
   openCourseId: string | null;
+  onlinePaidCount: number;
+  onlineRefundCents: number;
 };
 
 interface RemovePersonDialogProps {
@@ -50,6 +53,7 @@ const RemovePersonDialog: React.FC<RemovePersonDialogProps> = ({
   if (!target) return null;
 
   const name = `${target.firstName} ${target.lastName}`.trim();
+  const refundLine = memberRemovalRefundLine(target.onlinePaidCount, target.onlineRefundCents);
   const openHref = target.openBookings === 1 && target.openCourseId
     ? `/course/${target.openCourseId}/kassieren`
     : '/participants';
@@ -77,6 +81,7 @@ const RemovePersonDialog: React.FC<RemovePersonDialogProps> = ({
             {target.firstName} kann sich danach nicht mehr anmelden. Ihre Kontaktdaten und Nachrichten werden gelöscht.
           </p>
           {target.upcoming > 0 ? <p>{upcomingLine(target.upcoming)}</p> : null}
+          {refundLine ? <p className="tabular-nums">{refundLine}</p> : null}
           {target.openBookings > 0 ? (
             <div className="rounded-lg border border-danger bg-dangerSoft p-3 text-text">
               <p>{openLine(target.firstName, target.openBookings)}</p>

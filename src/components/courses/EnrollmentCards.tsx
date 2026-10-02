@@ -20,9 +20,16 @@ import {
   findUsablePass,
   type MemberPassSummary,
 } from '../../lib/passes';
+import {
+  onlinePaidStatusLine,
+  onlineRefundInfo,
+  refundProgress,
+  type RegistrationRefundState,
+} from '../../lib/refundTexts';
 import { formatStaffName } from '../../lib/staffNames';
 import AccentPill from '../ui/AccentPill';
 import PaymentPendingStatus from '../ui/PaymentPendingStatus';
+import RefundProgressLine from '../ui/RefundProgressLine';
 import CourseRow from './CourseRow';
 
 interface EnrollmentCardsProps {
@@ -35,13 +42,20 @@ interface EnrollmentCardsProps {
   /** Online bezahlen bei pending_payment. */
   onPayNow?: (registration: Registration) => void;
   releasingCourseId?: string | null;
+  /** get_registration_refund_states je Buchung */
+  refundStates?: Record<string, RegistrationRefundState>;
+}
+
+function isOwnCancellation(registration: Registration): boolean {
+  return registration.status === 'cancelled' && registration.cancel_reason !== 'course_cancelled';
 }
 
 function paymentLine(
   registration: Registration,
   courseCancelled: boolean,
+  refundState: RegistrationRefundState | undefined,
 ): string | null {
-  if (courseCancelled || registration.is_waitlist) {
+  if (courseCancelled || registration.is_waitlist || isOwnCancellation(registration)) {
     if (registration.is_waitlist && registration.coverage_intent === 'pass') {
       return 'Mit Karte beim Nachrücken';
     }
@@ -53,6 +67,10 @@ function paymentLine(
   const refund = passRefundInfo(registration);
   if (refund) {
     return passRefundStatusLine(refund);
+  }
+  const online = onlineRefundInfo(registration, refundState);
+  if (online) {
+    return onlinePaidStatusLine(online);
   }
   return coverageLabel(
     {
@@ -73,6 +91,7 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({
   onReleaseSeat,
   onPayNow,
   releasingCourseId = null,
+  refundStates = {},
 }) => {
   const [busyId, setBusyId] = useState<string | null>(null);
   const forcePending = isDevPendingPaymentMock();
@@ -119,9 +138,14 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({
 
         const courseCancelled =
           registration.cancel_reason === 'course_cancelled' || isCourseCancelled(course.status);
-        const pay = paymentLine(registration, courseCancelled);
+        const ownCancelled = isOwnCancellation(registration);
+        const refundState = refundStates[registration.id];
+        const pay = paymentLine(registration, courseCancelled, refundState);
+        const progress =
+          courseCancelled || ownCancelled ? refundProgress(refundState) : null;
         const usable =
           !courseCancelled &&
+          !ownCancelled &&
           !isWaitlist &&
           !paymentPending &&
           registration.coverage_status === 'open' &&
@@ -135,6 +159,8 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({
 
         const status = courseCancelled ? (
           <span className="text-[13px] font-medium text-text">Kurs fällt aus</span>
+        ) : ownCancelled ? (
+          <span className="text-[13px] font-medium text-textMuted">Abgemeldet</span>
         ) : paymentPending ? (
           <PaymentPendingStatus
             holdExpiresAt={resolveHoldExpiresAt(registration.hold_expires_at)}
@@ -153,7 +179,7 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({
         );
 
         const showFooter = Boolean(
-          pay || usable || (paymentPending && !courseCancelled),
+          progress || pay || usable || (paymentPending && !courseCancelled),
         );
 
         return (
@@ -167,7 +193,9 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({
             />
             {showFooter ? (
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-3.5 py-2.5 sm:px-4">
-                {paymentPending && !courseCancelled ? (
+                {progress ? (
+                  <RefundProgressLine progress={progress} />
+                ) : paymentPending && !courseCancelled ? (
                   <p className="text-[13px] text-textMuted">
                     Platz reserviert — bitte online bezahlen.
                   </p>
