@@ -572,7 +572,7 @@ async function main() {
         .select('id, provider_ref')
         .eq('payment_id', paymentId)
         .maybeSingle();
-      ok('F5 dispute Zeile', !!disp?.provider_ref?.startsWith('dp_'));
+      ok('F5 dispute Zeile', !!disp?.provider_ref && /^(dp_|du_)/.test(disp.provider_ref));
 
       const { data: glocken } = await admin
         .from('user_notifications')
