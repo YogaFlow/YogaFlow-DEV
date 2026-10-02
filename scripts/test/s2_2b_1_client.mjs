@@ -12,6 +12,7 @@ import {
   sheetRemainsOpenAfterRegistrationChange,
   shouldRefreshRegistrationsOnSheetClose,
 } from '../../src/lib/checkoutPhaseMachine.ts';
+import { STRIPE_PAYMENT_ELEMENT_WALLETS } from '../../src/features/payments/stripePaymentWallets.ts';
 import { resolvePaymentsClientConfig } from '../../src/lib/paymentsClientConfig.ts';
 import {
   PAYMENT_AUTH_FAILED,
@@ -185,6 +186,12 @@ test('Z7: vor Ablauf bleibt das offene Sheet bezahlbar', () => {
   assert.equal(result.phase, 'ready');
   assert.equal(result.code, null);
   assert.equal(result.payLocked, false);
+});
+
+test('Q2: Link aus, Apple Pay und Google Pay bleiben auto', () => {
+  assert.equal(STRIPE_PAYMENT_ELEMENT_WALLETS.link, 'never');
+  assert.equal(STRIPE_PAYMENT_ELEMENT_WALLETS.applePay, 'auto');
+  assert.equal(STRIPE_PAYMENT_ELEMENT_WALLETS.googlePay, 'auto');
 });
 
 test('L1: Endzustand bleibt bei Statuswechsel sichtbar', () => {

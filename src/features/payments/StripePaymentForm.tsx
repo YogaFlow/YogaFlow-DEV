@@ -25,6 +25,7 @@ import {
   STRIPE_PAYMENT_ELEMENT_LAYOUT,
   stripePaymentAppearance,
 } from './stripePaymentAppearance';
+import { STRIPE_PAYMENT_ELEMENT_WALLETS } from './stripePaymentWallets';
 
 type FormProps = {
   amountCents: number;
@@ -101,6 +102,7 @@ function PaymentFormInner({
         <PaymentElement
           options={{
             layout: STRIPE_PAYMENT_ELEMENT_LAYOUT,
+            wallets: STRIPE_PAYMENT_ELEMENT_WALLETS,
           }}
         />
       </div>
