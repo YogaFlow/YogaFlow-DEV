@@ -998,14 +998,13 @@ async function main() {
       for (const r of [...s1.foreign, ...s2.foreign]) {
         const put = await admin.rpc('mark_email_delivery', {
           p_id: r.id,
-          p_status: 'failed',
-          p_error_code: 'TEST_YIELD',
+          p_status: 'released',
         });
         if (put.error) abbruch('Fremd-Claim zurück: ' + put.error.message);
         foreignReturned += 1;
       }
       if (foreignReturned > 0) {
-        console.log(`  Fremde Claims zurückgegeben (mark failed/retry): ${foreignReturned}`);
+        console.log(`  Fremde Claims zurückgegeben (released, ohne Zählung): ${foreignReturned}`);
       }
 
       const ids1 = s1.own.map((r) => r.id);
@@ -1021,6 +1020,33 @@ async function main() {
 
       const probeId = ids1[0] || ids2[0];
       ok('F9 Probe-ID', !!probeId);
+      const { data: beforeRelease } = await admin
+        .from('email_deliveries')
+        .select('attempts')
+        .eq('id', probeId)
+        .single();
+      const { error: relErr } = await admin.rpc('mark_email_delivery', {
+        p_id: probeId,
+        p_status: 'released',
+      });
+      if (relErr) abbruch('released: ' + relErr.message);
+      const { data: released } = await admin
+        .from('email_deliveries')
+        .select('status, attempts, locked_until')
+        .eq('id', probeId)
+        .single();
+      ok(
+        'F9 released: pending, attempts unverändert',
+        released?.status === 'pending' &&
+          released?.attempts === beforeRelease?.attempts &&
+          released?.locked_until == null,
+        JSON.stringify(released)
+      );
+      const { error: relTwice } = await admin.rpc('mark_email_delivery', {
+        p_id: probeId,
+        p_status: 'released',
+      });
+      ok('F9 released nur aus sending', relTwice?.message === 'NOT_SENDING', relTwice?.message);
       const beforeMark = Date.now();
       const { error: mErr } = await admin.rpc('mark_email_delivery', {
         p_id: probeId,
@@ -1063,9 +1089,9 @@ async function main() {
           );
         }
         const { data: claimed } = await admin.rpc('claim_email_deliveries', { p_limit: 50 });
-        const hit = (claimed || []).find((r) => r.id === probeId);
-        if (!hit) {
-          // ggf. schon pending ohne claim wenn wir mark direkt aufrufen
+        for (const r of (claimed || []).filter((row) => row.id !== probeId)) {
+          const put = await admin.rpc('mark_email_delivery', { p_id: r.id, p_status: 'released' });
+          if (put.error) abbruch('Claim zurück: ' + put.error.message);
         }
         const { error } = await admin.rpc('mark_email_delivery', {
           p_id: probeId,

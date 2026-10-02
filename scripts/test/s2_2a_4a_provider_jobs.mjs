@@ -587,7 +587,7 @@ async function main() {
     for (const j of claimedForeign) {
       const putBack = await admin.rpc('finish_provider_job', {
         p_job_id: j.job_id,
-        p_outcome: 'retry',
+        p_outcome: 'release',
         p_error_code: null,
       });
       if (putBack.error || !putBack.data?.success) {
@@ -596,7 +596,7 @@ async function main() {
       foreignReturned += 1;
     }
     if (foreignReturned > 0) {
-      console.log(`  Fremde Aufträge zurückgegeben (retry): ${foreignReturned}`);
+      console.log(`  Fremde Aufträge zurückgegeben (release, ohne Zählung): ${foreignReturned}`);
     }
     ok('claim holt eigene Aufträge', claimedOwn.length >= 1, String(claimedOwn.length));
     const claimed2 = await admin.rpc('claim_provider_jobs', { p_limit: 100 });
@@ -606,7 +606,7 @@ async function main() {
     for (const j of claimed2Foreign) {
       await admin.rpc('finish_provider_job', {
         p_job_id: j.job_id,
-        p_outcome: 'retry',
+        p_outcome: 'release',
         p_error_code: null,
       });
       foreignReturned += 1;
@@ -616,6 +616,22 @@ async function main() {
     }
     ok('zweiter claim keine eigenen', claimed2Own.length === 0, JSON.stringify(claimed2Own));
     const one = claimedOwn[0];
+    const { data: beforeRel } = await admin.from('provider_jobs').select('tries').eq('id', one.job_id).single();
+    const rel = await admin.rpc('finish_provider_job', { p_job_id: one.job_id, p_outcome: 'release' });
+    const { data: afterRel } = await admin
+      .from('provider_jobs')
+      .select('status, tries')
+      .eq('id', one.job_id)
+      .single();
+    ok(
+      'release: pending, tries − 1 (Claim nicht gezählt)',
+      rel.data?.released === true
+        && afterRel?.status === 'pending'
+        && afterRel?.tries === Math.max((beforeRel?.tries ?? 1) - 1, 0),
+      JSON.stringify({ rel: rel.data, beforeRel, afterRel }),
+    );
+    const relTwice = await admin.rpc('finish_provider_job', { p_job_id: one.job_id, p_outcome: 'release' });
+    ok('release nur aus running', relTwice.data?.error === 'NOT_RUNNING', JSON.stringify(relTwice.data));
     const finRetry = await admin.rpc('finish_provider_job', {
       p_job_id: one.job_id,
       p_outcome: 'retry',
