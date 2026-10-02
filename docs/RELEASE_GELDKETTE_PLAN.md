@@ -16,9 +16,216 @@ Bestandsaufnahme und Release-Regeln für den PROD-Release der Geldkette (Sprint 
 
 ---
 
+## 0. Ablauf Release-Abend (Stand 02.10.2026, HEAD `Julius` nach Lauf 02.10.)
+
+Nur Doku — hier wird nichts ausgeführt. Alle PROD-Befehle führt Julius selbst im Terminal aus
+(`scripts/db.mjs` mit getippter Bestätigung, nie umgehen). Bei jedem Prüfpunkt gilt: rot →
+Rückweg dieses Schritts, nicht weiter.
+
+### 0.1 Migrationen seit PROD-Stand, in Reihenfolge
+
+PROD-Stand laut `origin/main`: zuletzt `20260928213000_security_courses_teacher_guard_hotfix`
+(davor `20260926160500`). **Vor dem Abend mit `npm run db:status:prod` bestätigen.**
+46 Dateien, alle mit Versionsnummer **vor oder nach** `20260928213000` — die ersten 20 liegen
+davor und brauchen `--include-all` (zweite Bestätigung `INCLUDE-ALL`).
+
+| # | Version | Datei (ohne Präfix) | Block |
+|---|---|---|---|
+| 1 | `20260926141500` | `a1_registration_status_cancelled` | A — Sprint A (Soft-Cancel, Deckung, Kasse, Absage, Entfernen) |
+| 2 | `20260926141501` | `a1_registrations_soft_cancel_schema` | A |
+| 3 | `20260926144500` | `a1_registrations_soft_cancel_rpcs` | A |
+| 4 | `20260926180000` | `a2_registrations_select_own_courses` | A |
+| 5 | `20260926190000` | `a2_registrations_coverage_and_price` | A |
+| 6 | `20260927093608` | `a2_coverage_waived` | A |
+| 7 | `20260927121500` | `a3_payments` | A |
+| 8 | `20260927143000` | `a9_course_cancel` | A |
+| 9 | `20260927145006` | `4_3_member_removal` | A |
+| 10 | `20260927183209` | `a4_pass_products` | B — Karten, Hauptbuch, Sammel-Erlass, Guard |
+| 11 | `20260927213000` | `a5_passes` | B |
+| 12 | `20260927221500` | `a6_1_pass_booking_foundation` | B |
+| 13 | `20260927233000` | `a6_2_redeem` | B |
+| 14 | `20260927235000` | `a6_2b_tenant_delete_cycle` | B |
+| 15 | `20260927235500` | `a6_2c_pass_fk_no_action` | B |
+| 16 | `20260928010000` | `a6_3_reverse_and_expire` (pg_cron, Job `yogaflow_expire_passes`) | B |
+| 17 | `20260928020000` | `a7_1_ledger` (Job `yogaflow_process_ledger`) | B |
+| 18 | `20260928143000` | `a7_2_ledger_export` | B |
+| 19 | `20260928160000` | `a8_1_bulk_waive_open_list` | B |
+| 20 | `20260928170000` | `a5_courses_teacher_guard` | B |
+| 21 | `20260928203500` | `s1_2a_provider_schema` (`online_payments = false`) | C — Stripe-Grundlage |
+| 22 | `20260928224500` | `s1_4_webhook_rpcs` | C |
+| 23 | `20260928231500` | `s1_3a_onboarding` | C |
+| 24 | `20260929140000` | `s2_1b_a_pending_payment_enum` (eigene TX) | D — Halten, Nachrücken, Versand |
+| 25 | `20260929140001` | `s2_1b_a_pending_payment_schema` (Job `yogaflow_expire_payment_holds`) | D |
+| 26 | `20260929150000` | `s2_1b_b_promotion_e2` | D |
+| 27 | `20260929151000` | `s2_1b_b_k3_promote_to_pending` | D |
+| 28 | `20260929160000` | `s2_1b_b2_dispatch_emails` (pg_net, Job `yogaflow_dispatch_emails`) | D |
+| 29 | `20260930100000` | `s2_2a_1_online_payment` | E — Online-Zahlung, Jobs, Erstattung |
+| 30 | `20260930110000` | `s2_2a_1_k5_ledger_account` | E |
+| 31 | `20260930120000` | `s2_2a_1_k6_attempt_payment_check` | E |
+| 32 | `20261001100000` | `stripe_2_2a_4a_provider_jobs` (Job `yogaflow_process_provider_jobs`) | E |
+| 33 | `20261001110000` | `k7_remove_member_attempt_refs` | E |
+| 34 | `20261001120000` | `booking_payment_options` | E |
+| 35 | `20261002100000` | `hold_expired_notification` | E |
+| 36 | `20261002110000` | `s3_2a_refunds_schema` | E |
+| 37 | `20261002111000` | `s3_2a_refunds_core` | E |
+| 38 | `20261002112000` | `s3_2a_ledger_h5_partial` | E |
+| 39 | `20261002113000` | `s3_2a_refund_triggers` | E |
+| 40 | `20261002114000` | `s3_2a_late_payment_and_backfill` | E |
+| 41 | `20261002114100` | `s3_2a_remove_member_refund_cents` | E |
+| 42 | `20261002202506` | `s3_2b_dispute_ref_du` | E |
+| 43 | `20261002210000` | `s3_2c_refund_previews` | F — Oberflächen-RPCs |
+| 44 | `20261002220000` | `s3_1_payment_overview` | F |
+| 45 | `20261002223000` | `s3_1_notification_payment_path` | F |
+| 46 | `20261002230000` | `claim_release_without_count` | F |
+
+`db push` wendet alle in einem Lauf an. Die Blöcke A–F sind Prüfpunkte der **Generalprobe**
+(Zählwerte nach jedem Block, siehe 0.7); am Abend selbst genügt ein Lauf, wenn die Generalprobe
+grün war. Jede Datei hat einen Kopf „Rückweg“ und einen `DO $$`-Selbsttest, der bei Abweichung
+abbricht — ein Abbruch rollt nur diese Datei zurück, die vorherigen bleiben.
+
+### 0.2 Edge Functions
+
+Stand gegen `origin/main` (Ordner `supabase/functions/`):
+
+| Function | Status | `verify_jwt` | Deploy am Abend |
+|---|---|---|---|
+| `dispatch-emails` | neu | `false` | ja, Schritt 1 |
+| `payments-checkout` | neu | `false` | ja, Schritt 2 (antwortet ohne Stripe-Secrets mit `CONFIG_ERROR`) |
+| `payments-webhook` | neu | `false` | ja, Schritt 3 (ohne Webhook-Secret 500 `CONFIG_ERROR`, niemand ruft sie) |
+| `payments-jobs` | neu | `false` | ja, Schritt 4 |
+| `payments-onboarding` | neu | `false` | ja, Schritt 5 (Onboarding bleibt aus, Schalter `false`) |
+| `delete-user` | geändert (4.3) | wie bisher | ja, **nach** Migration 9 (`remove_member`) |
+| `request-password-reset`, `request-verification-email`, `send-email` | geändert | wie bisher | ja |
+| `service-ping` | Ordner gleich, importiert geändertes `_shared/service.ts` (Maskierer) | wie bisher | ja (Testwerkzeug) |
+| `onboarding-public`, `reset-password`, `send-verification-email`, `set-participant-password`, `update-user`, `verify-email` | gleich, kein geändertes `_shared` | — | nein |
+
+`supabase/config.toml` trägt `verify_jwt = false` für die fünf neuen Functions — vor dem Deploy
+prüfen, dass `functions:prod` die Datei mitnimmt (sonst blockt das Gateway Stripe und Cron).
+
+### 0.3 Secrets (nur Namen, Werte je Umgebung eigen, nie DEV→PROD kopieren)
+
+| Secret | Am Release-Abend | Beim Einschalten (Plattform-Schalter) |
+|---|---|---|
+| `PROVIDER_JOBS_SECRET` | setzen (Zufallswert) | — |
+| `EMAIL_DISPATCH_SECRET` | setzen (Zufallswert) | — |
+| `APP_BASE_DOMAIN` | setzen (`omlify.de`) | — |
+| `INTERNAL_EMAIL_SECRET`, `SMTP_*`, `SENDER_EMAIL`, `EMAIL_REDIRECT_TO`, `APP_URL` | bestehen, prüfen | — |
+| `PAYMENTS_MODE` | **nicht setzen** | `live` |
+| `STRIPE_SECRET_KEY` | **nicht setzen** | Live-Key (`sk_live_`/`rk_live_`) |
+| `STRIPE_WEBHOOK_SECRET` | **nicht setzen** | Snapshot-Ziel |
+| `STRIPE_WEBHOOK_SECRET_THIN` | **nicht setzen** | Thin-Ziel |
+| `STRIPE_WEBHOOK_SECRET_2` | nicht setzen | nur zur Rotation |
+| `PAYMENTS_PROVIDER` | **nie** auf PROD | — |
+| Cloudflare `VITE_STRIPE_PUBLISHABLE_KEY`, `VITE_PAYMENTS_MODE` | **leer lassen** | `pk_live_…` / `live` |
+
+### 0.4 Vault-Einträge (PROD-eigene Werte)
+
+| Name | Inhalt | Wann |
+|---|---|---|
+| `email_dispatch_url` | `https://<PROD_REF>.supabase.co/functions/v1/dispatch-emails` | nach Deploy `dispatch-emails` |
+| `email_dispatch_secret` | = `EMAIL_DISPATCH_SECRET` | zusammen mit URL |
+| `provider_jobs_url` | `…/functions/v1/payments-jobs` | **zuletzt**, nach allen Functions |
+| `provider_jobs_secret` | = `PROVIDER_JOBS_SECRET` | zusammen mit URL |
+
+Fehlt ein Eintrag, ruft der Cron nichts auf (nur Log). Die DEV-Skripte
+`scripts/dev/email_dispatch_secret.mjs` und `provider_jobs_secret.mjs` sind DEV-gebunden — für
+PROD fehlt das Gegenstück (Liste 0.10).
+
+### 0.5 Cron-Jobs, Pause und Fortsetzen
+
+Die Migrationen legen fünf Jobs an; sie laufen ab dem Push:
+
+| Job | Takt | Wirkung ohne Vault/Secrets |
+|---|---|---|
+| `yogaflow_expire_passes` | `5 * * * *` | läuft (Karten ablaufen lassen) |
+| `yogaflow_process_ledger` | `*/5 * * * *` | läuft, wartet ohne Steuerstatus je Studio (H1) |
+| `yogaflow_expire_payment_holds` | `* * * * *` | läuft, ohne Online-Zahlung keine Holds |
+| `yogaflow_dispatch_emails` | `* * * * *` | ruft nichts auf, bis `email_dispatch_url` gesetzt ist |
+| `yogaflow_process_provider_jobs` | `* * * * *` | ruft nichts auf, bis `provider_jobs_url` gesetzt ist |
+
+**Pause** (für spätere Releases mit laufenden Jobs, Muster 3.2a/3.2b): Vault-URL leeren
+(`provider_jobs_url`, ggf. `email_dispatch_url`) → Cron loggt nur. **Fortsetzen:** URL wieder
+setzen. Jobs nicht `unschedule`n und kein `GRANT`/`REVOKE` auf `cron` (Befund A7-1, `2BP01`).
+Prüfung: `SELECT jobname, schedule, active FROM cron.job WHERE jobname LIKE 'yogaflow_%'` → fünf
+Zeilen, alle `active`.
+
+### 0.6 Stripe-Ereignisse je Ziel (erst beim Einschalten, nicht am Release-Abend)
+
+URL beider Ziele: `https://<PROD_REF>.supabase.co/functions/v1/payments-webhook`, Live-Modus.
+
+- **Ziel 1 — „Verbundene Konten“, Nutzlast Snapshot** (`STRIPE_WEBHOOK_SECRET`):
+  `account.updated`, `account.application.deauthorized`, `payment_intent.succeeded`,
+  `payment_intent.payment_failed`, `payment_intent.canceled`, `charge.refunded`,
+  `refund.created`, `refund.updated`, `refund.failed`, `charge.dispute.created`,
+  `charge.dispute.updated`, `charge.dispute.closed`
+  (Quelle: `_shared/payments/stripe/adapter.ts` Zeilen 91–108 und `account.*`-Zweige).
+- **Ziel 2 — „Ihr Konto“, Nutzlast Thin** (`STRIPE_WEBHOOK_SECRET_THIN`):
+  `v2.core.account.created`, `v2.core.account.updated`, `v2.core.account.closed` und die
+  `v2.core.account[…].updated`-Typen wie am DEV-Ziel (V4, 29.09.2026). Die genaue Liste vor dem
+  Einschalten vom DEV-Ziel abschreiben (Stripe-Dashboard — Julius).
+
+### 0.7 Generalprobe auf einer PROD-Kopie
+
+1. Frischen PROD-Dump aus `backup-prod.yml` (R2, `roles.sql`, `schema.sql`, `data.sql`).
+2. In ein **eigenes Probe-Projekt** einspielen (nicht DEV, nicht PROD).
+3. `db push --include-all` gegen die Probe; nach jedem Block A–F aus 0.1 Zählwerte:
+   317 Buchungen / 507800 Cent (Abschnitt 3), 8 Legacy-Absagen konsistent, Kurse je `status`,
+   `platform_flags` = `online_payments | false`, `tenant_payment_settings` leer, fünf Cron-Jobs,
+   beide Lehrer-Guard-Trigger `tgenabled = 'O'`.
+4. `npm run test:geldkette` gegen die Probe (alle 27 Skripte grün).
+
+**Hindernis:** Die Testskripte erlauben nur die DEV-Ref (`scripts/dev/dev_guard.mjs`
+`ERLAUBTE_DEV_REF`, `_helpers.mjs` `assertDevEnv`). Gegen eine Probe laufen sie heute nicht.
+Außerdem fehlt in der Kopie `demoalpha`; `security_signup_role.mjs` nutzt es. Entscheidung
+nötig (Frage in `berichte/LAUF_2026-10-02.md`).
+
+### 0.8 Ablauf und Rückweg je Schritt
+
+| # | Schritt | Prüfpunkt | Rückweg |
+|---|---|---|---|
+| 0 | Vorab: `db:status:prod`, frischer Backup-Lauf, Pre-PROD-Checkliste (`DEV_PROD_SAFETY_WORKFLOW.md`) | Backup grün, Status = `20260928213000` | — |
+| 1 | Hint-Frontend auf `main` (FK-Hints, Abschnitt 2) | App läuft auf altem Schema | Cloudflare: vorheriges Deployment |
+| 2 | `npm run db:push:prod -- --include-all` (Julius, `PROD` + `INCLUDE-ALL`) | Zählwerte wie Generalprobe | Bei Abbruch in Datei n: Dateien < n bleiben; Rückweg aus den Dateiköpfen rückwärts, oder Restore des Backups aus Schritt 0 (Datenverlust ab Push) |
+| 3 | Secrets aus 0.3 „am Release-Abend“ (`secrets:prod`) | `supabase secrets list` zeigt die Namen | Secret entfernen |
+| 4 | Functions einzeln: `dispatch-emails` → `payments-checkout` → `payments-webhook` → `payments-jobs` → `payments-onboarding` → `delete-user` → Mail-Functions → `service-ping` | je Function ein Aufruf ohne Auth → erwarteter Fehlercode, kein 5xx außer `CONFIG_ERROR` bei Zahlungen | vorherige Version aus `main` neu deployen; neue Functions löschen |
+| 5 | Vault `email_dispatch_*` | Outbox `email_deliveries` geht auf `sent` | Vault-URL leeren |
+| 6 | Vault `provider_jobs_*` (zuletzt) | Cron-Log ohne Fehler, `provider_jobs` leer bzw. `done` | Vault-URL leeren |
+| 7 | Neues Frontend (Merge `Julius` → `main`, Cloudflare) | Klickliste Rauchtest 0.9 | Cloudflare: vorheriges Deployment; Schema bleibt (Expand) |
+| 8 | Steuerstatus je PROD-Studio (Owner), A8-Sammelaktion mit der Testkundin | Hauptbuch arbeitet ab | `revert` über die UI (Rückgängig) |
+
+### 0.9 Rauchtests auf PROD (ohne Stripe, ohne Testdaten-Schreiben)
+
+Die DEV-Rauchtests (`s1_4_…`, `s2_2a_3_…`, `s2_2a_4c_…`, `s3_2b_…`) brauchen Test-Keys und
+`demoalpha` — auf PROD nicht. Stattdessen:
+
+1. SQL nur lesend: `platform_flags`, `cron.job` (fünf Jobs), Vault-Namen vorhanden
+   (`SELECT name FROM vault.secrets`), `tenant_payment_settings` leer.
+2. `payments-webhook` ohne Signatur → 500 `CONFIG_ERROR` (kein Secret) — erwartet.
+3. `payments-jobs` ohne Bearer → 401 `UNAUTHORIZED`; `dispatch-emails` ohne Header → 401.
+4. App als Owner im Hauptstudio: Kurse, Teilnehmer, Kasse (offen/bezahlt), Zahlungen-Seite
+   (nur manuelle Zahlungen), Offene Zahlungen, Einstellungen → Steuern, Kurs absagen
+   **nicht** ausprobieren.
+5. Als Teilnehmerin: Meine Anmeldungen, Kursdetail ohne „Online bezahlen“.
+
+### 0.10 Vor dem Plattform-Schalter auf PROD (`online_payments = true`)
+
+- [ ] **Rechts-Epic:** AGB/Datenschutz/Zahlungsbedingungen, Impressum je Studio (Stripe-Pflicht),
+      Onboarding-/Gebühren-Texte vom Anwalt (`paymentSetupCopy.ts`).
+- [ ] **Steuerberatung:** Hauptbuch-Konten, H5' Teilerstattung, Kleinunternehmer/Regel, Export.
+- [ ] **Belege (4.2):** Quittungen/Rechnungen je Zahlung und Erstattung.
+- [ ] **Replay-Skript für PROD:** Webhook-Ereignisse mit finalem Fehler nachfahren
+      (DEV: `scripts/dev/replay_provider_event.mjs`, DEV-gebunden).
+- [ ] PROD-Gegenstück zu `provider_jobs_secret.mjs` / `email_dispatch_secret.mjs` (Pause/Resume).
+- [ ] Stripe-Ziele 0.6 anlegen, Live-Secrets 0.3, Cloudflare-Variablen, Payment-Method-Domain je
+      Studio (`register_payment_domain` PROD-Analog).
+- [ ] Erstes Studio einzeln einschalten, kleine echte Zahlung, Erstattung, Hauptbuch prüfen.
+
+---
+
 ## 1. Migrationsliste (auf Julius, fehlt auf main / PROD)
 
-PROD hat zuletzt `20260926160500` (`security_handle_new_user_role_from_trusted_source`). Auf `main` liegt von den Sprint-A-Migrationen nur diese Hotfix-Datei; A1–A4, A9 und 4.3 fehlen dort ebenfalls.
+Detail je Story. Vollständige Reihenfolge: Abschnitt 0.1. PROD hat zuletzt `20260928213000`
+(Hotfix Kursleitung-Guard, davor `20260926160500`).
 
 | Version | Datei | Zweck |
 |---|---|---|
@@ -51,9 +258,18 @@ PROD hat zuletzt `20260926160500` (`security_handle_new_user_role_from_trusted_s
 | `20260929151000` | `s2_1b_b_k3_promote_to_pending.sql` | K3: Helfer `promote_to_pending_payment`, Glockentext mit Frist |
 | `20260929160000` | `s2_1b_b2_dispatch_emails.sql` | 2.1b-b B2: `pg_net`, Cron `yogaflow_dispatch_emails` → Edge Function `dispatch-emails` |
 | `20260930100000` | `s2_2a_1_online_payment.sql` | 2.2a-1: `card`→`psp_clearing`, Guard `succeeded`, `register_for_course`→`pending_payment` bei Online-Pflicht, RPCs `prepare_online_payment` / `attach_payment_ref` / `check_before_confirm` / `complete_online_payment` / `record_online_refund` / `mark_online_payment_failed` (nur `service_role`); Outbox-Arten `payment_succeeded` / `payment_refunded` |
+| `20260930110000` | `s2_2a_1_k5_ledger_account.sql` | 2.2a-1 K5: Hauptbuch-Konto `psp_clearing` |
+| `20260930120000` | `s2_2a_1_k6_attempt_payment_check.sql` | 2.2a-1 K6: `check_before_confirm` an Zahlversuch |
 | `20261001100000` | `stripe_2_2a_4a_provider_jobs.sql` | 2.2a-4a: `provider_jobs`, Cancel-Trigger, Auto-Erstattung-Auftrag, `claim`/`finish`, Cron `yogaflow_process_provider_jobs` |
 | `20261001110000` | `k7_remove_member_attempt_refs.sql` | K7: `remove_member` behält Buchungen mit `pi_…`-Versuch |
+| `20261001120000` | `booking_payment_options.sql` | 2.2b: Buchungsoptionen (Online-Pflicht / vor Ort) |
+| `20261002100000` | `hold_expired_notification.sql` | Glocke wenn das Zahlungsfenster abläuft |
 | `20261002110000`…`14100` | `s3_2a_refunds_*.sql` | 3.2a: `payment_refunds` / `payment_disputes`, Trigger, Ledger H5', Jobs mit `refund_id` |
+| `20261002202506` | `s3_2b_dispute_ref_du.sql` | 3.2b: Dispute-Refs `du_…` (API 2026-08-26.dahlia) |
+| `20261002210000` | `s3_2c_refund_previews.sql` | 3.2c: Lese-RPCs Erstattungsstand und Vorschauen |
+| `20261002220000` | `s3_1_payment_overview.sql` | 3.1: `get_studio_payments`, Status-Ableitung |
+| `20261002223000` | `s3_1_notification_payment_path.sql` | 3.1: Glocke führt zur Zahlung |
+| `20261002230000` | `claim_release_without_count.sql` | Claims zurückgeben ohne `tries`/`attempts` zu erhöhen |
 
 **Release-Hinweis 3.2a/3.2b (Online-Erstattung):** Reihenfolge strikt — **Pause → Migrationen → Functions → Resume**:
 
