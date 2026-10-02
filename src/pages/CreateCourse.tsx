@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase';
 import { countActivePassProducts } from '../lib/passProducts';
 import { DatePicker, TimePicker } from '../components/DateTimePicker';
 import PassEligibleToggle from '../components/courses/PassEligibleToggle';
+import { isTeacherOnly, TEACHER_SELF_HINT } from '../lib/userRoles';
 
 interface CourseLeader {
   id: string;
@@ -432,6 +433,10 @@ const CreateCourse: React.FC = () => {
   };
 
   const hasPermission = isCourseLeader;
+  const teacherSelfOnly = isTeacherOnly(userProfile);
+  const leaderOptions = teacherSelfOnly
+    ? courseLeaders.filter((leader) => leader.id === userProfile?.id)
+    : courseLeaders;
 
   if (!hasPermission) {
     return (
@@ -504,17 +509,21 @@ const CreateCourse: React.FC = () => {
                 id="teacher_id"
                 value={selectedTeacherId}
                 onChange={(e) => setSelectedTeacherId(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent appearance-none bg-surface"
+                disabled={teacherSelfOnly}
+                className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent appearance-none bg-surface disabled:cursor-not-allowed disabled:bg-surfaceSunken disabled:opacity-60"
                 required
               >
                 <option value="">Bitte wähle einen Kursleiter</option>
-                {courseLeaders.map((leader) => (
+                {leaderOptions.map((leader) => (
                   <option key={leader.id} value={leader.id}>
                     {leader.first_name} {leader.last_name} ({leader.email})
                   </option>
                 ))}
               </select>
             </div>
+            {teacherSelfOnly ? (
+              <p className="mt-1 text-xs text-textMuted">{TEACHER_SELF_HINT}</p>
+            ) : null}
             {courseLeaders.length === 0 && (
               <p className="mt-2 text-sm text-text">
                 Keine Kursleiter gefunden. Bitte in der Nutzerverwaltung mindestens einen Nutzer als Kursleiter anlegen.

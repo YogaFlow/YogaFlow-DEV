@@ -8,6 +8,7 @@ import { countActivePassProducts } from '../lib/passProducts';
 import { Course } from '../types';
 import { DatePicker, TimePicker } from '../components/DateTimePicker';
 import PassEligibleToggle from '../components/courses/PassEligibleToggle';
+import { isTeacherOnly, TEACHER_SELF_HINT } from '../lib/userRoles';
 
 interface CourseLeader {
   id: string;
@@ -434,6 +435,10 @@ const EditCourse: React.FC = () => {
   const applyPastLocks = pastLocks.begun && !(updateScope === 'series' && futureCount > 0);
   const scheduleMoneyLocked = applyPastLocks && pastLocks.scheduleAndMoneyLocked;
   const teacherFieldLocked = applyPastLocks && pastLocks.teacherLocked;
+  const teacherSelfOnly = isTeacherOnly(userProfile);
+  const leaderOptions = teacherSelfOnly
+    ? courseLeaders.filter((leader) => leader.id === userProfile?.id)
+    : courseLeaders;
   const pastHint = 'Der Kurs hat schon stattgefunden.';
   const teacherPastHint = 'Nur ändern, wenn jemand anderes den Kurs gegeben hat.';
   const dateDisabled =
@@ -530,12 +535,12 @@ const EditCourse: React.FC = () => {
                 id="teacher_id"
                 value={selectedTeacherId}
                 onChange={(e) => setSelectedTeacherId(e.target.value)}
-                disabled={teacherFieldLocked}
+                disabled={teacherFieldLocked || teacherSelfOnly}
                 className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent appearance-none bg-surface disabled:cursor-not-allowed disabled:bg-surfaceSunken disabled:opacity-60"
                 required
               >
                 <option value="">Bitte wähle einen Kursleiter</option>
-                {courseLeaders.map((leader) => (
+                {leaderOptions.map((leader) => (
                   <option key={leader.id} value={leader.id}>
                     {leader.first_name} {leader.last_name} ({leader.email})
                   </option>
@@ -547,6 +552,8 @@ const EditCourse: React.FC = () => {
             ) : null}
             {teacherFieldLocked ? (
               <p className="mt-1 text-xs text-textMuted">{pastHint}</p>
+            ) : teacherSelfOnly ? (
+              <p className="mt-1 text-xs text-textMuted">{TEACHER_SELF_HINT}</p>
             ) : null}
             {courseLeaders.length === 0 && (
               <p className="mt-2 text-sm text-text">
