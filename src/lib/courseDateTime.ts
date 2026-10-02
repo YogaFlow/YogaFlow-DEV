@@ -118,6 +118,22 @@ export function berlinIsoFromInstant(value: string | Date | null | undefined): s
   }).format(date);
 }
 
+/** YYYY-MM-DD → lokale Mitternacht desselben Kalendertags (für Datumswähler). */
+export function civilIsoToLocalDate(value: string | null | undefined): Date | null {
+  const civil = asCivilIsoDate(value ?? '');
+  if (!civil) return null;
+  const [y, m, d] = civil.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/** Lokaler Kalendertag eines Datumswählers → YYYY-MM-DD (ohne UTC-Umrechnung). */
+export function localDateToCivilIso(date: Date | null | undefined): string {
+  if (!date || Number.isNaN(date.getTime())) return '';
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
 /** Hält ein Kalenderdatum in [min, max], jeweils YYYY-MM-DD oder null. */
 export function clampCivilIsoDate(
   value: string,
