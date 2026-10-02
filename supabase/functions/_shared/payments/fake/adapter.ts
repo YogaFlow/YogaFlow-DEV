@@ -505,7 +505,8 @@ export class FakePaymentProvider implements PaymentProvider {
     if (DISPUTE_EVENT_TYPES.has(e.type)) {
       if (!e.accountRef) throw new ProviderError("INVALID_EVENT", "missing_account");
       const id = (e.payload as { id?: unknown } | null)?.id;
-      if (typeof id !== "string" || !id.startsWith("dp_")) {
+      // Stripe API 2026-08-26.dahlia: Dispute-IDs sind du_… (früher dp_…).
+      if (typeof id !== "string" || !(id.startsWith("du_") || id.startsWith("dp_"))) {
         throw new ProviderError("INVALID_EVENT", "missing_dispute_ref");
       }
       return {

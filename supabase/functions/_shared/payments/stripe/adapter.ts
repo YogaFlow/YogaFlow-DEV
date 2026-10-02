@@ -257,7 +257,8 @@ function paymentIntentRefFromPayload(
 function disputeRefFromPayload(payload: unknown): string | null {
   if (typeof payload !== "object" || payload === null) return null;
   const id = (payload as { id?: unknown }).id;
-  return typeof id === "string" && id.startsWith("dp_") ? id : null;
+  // Stripe API 2026-08-26.dahlia: Dispute-IDs sind du_… (früher dp_…).
+  return typeof id === "string" && (id.startsWith("du_") || id.startsWith("dp_")) ? id : null;
 }
 
 function isDomainAlreadyRegistered(err: unknown): boolean {

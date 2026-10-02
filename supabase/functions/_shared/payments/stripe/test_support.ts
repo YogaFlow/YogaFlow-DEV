@@ -380,7 +380,7 @@ export function createStripeStub(options: StripeStubOptions = {}) {
       return json(200, { object: "list", data, has_more: false });
     }
 
-    const disputeMatch = url.pathname.match(/^\/v1\/disputes\/(dp_[A-Za-z0-9_]+)$/);
+    const disputeMatch = url.pathname.match(/^\/v1\/disputes\/((?:dp_|du_)[A-Za-z0-9_]+)$/);
     if (method === "GET" && disputeMatch) {
       const row = disputes.get(disputeMatch[1]);
       if (!row) {

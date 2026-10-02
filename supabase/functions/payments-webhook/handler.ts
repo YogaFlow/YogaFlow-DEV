@@ -578,19 +578,14 @@ export async function handleWebhook(req: Request, deps: WebhookDeps): Promise<Re
     }
 
     if (!lookup.found) {
+      // createDispute-Karten feuern oft vor complete_online_payment → Stripe soll retryen.
       log.info("payments-webhook", {
         type: event.type,
         event_id: event.id,
         result: "dispute.unknown",
         ref: dispute.paymentRef,
       });
-      try {
-        await store.markProcessed(recordId, null);
-      } catch {
-        return await failTransient("DB_ERROR");
-      }
-      logResult("PROCESSED", event);
-      return received();
+      return await failTransient("PAYMENT_NOT_READY");
     }
 
     if (!lookup.studioAccountRef || lookup.studioAccountRef !== domain.accountRef) {
