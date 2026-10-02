@@ -1,9 +1,11 @@
 ---
-description: Autonomer DEV-Ablauf für Omlify — erlaubt/verboten, Haltestellen, DoD, Tests, Commits
+description: Omlify – autonomer DEV-Ablauf, Haltestellen, DoD, Testregeln
 alwaysApply: true
 ---
 
 # Omlify autonom (DEV)
+
+Zu Beginn jedes neuen Chats zuerst `docs/STAND.md` und den letzten Bericht lesen.
 
 ## Erlaubt ohne Rückfrage
 
@@ -45,6 +47,7 @@ An einer Haltestelle: Bericht nach `docs/berichte/<story>.md`, Status „angehal
 - `npm run dev:test` grün
 - Rauchtest der Story grün
 - Bericht in `docs/berichte/<story>.md`
+- `docs/STAND.md` aktualisieren (HEAD, Migrationen, Functions, letzte/nächste Story, Haltestellen)
 
 ## Testregeln
 
