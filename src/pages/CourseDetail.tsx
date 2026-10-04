@@ -1,6 +1,16 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, Check, Clock, Lock, MapPin, User, Users } from 'lucide-react';
+import {
+  ArrowLeft,
+  Calendar,
+  Check,
+  Clock,
+  Lock,
+  MapPin,
+  MoreHorizontal,
+  User,
+  Users,
+} from 'lucide-react';
 import CourseCancelDialog from '../components/courses/CourseCancelDialog';
 import CourseDeleteDialog from '../components/courses/CourseDeleteDialog';
 import CourseEnrollmentDialogs from '../components/courses/CourseEnrollmentDialogs';
@@ -75,6 +85,8 @@ const CourseDetail: React.FC = () => {
     holdExpiresAt?: string | null;
   } | null>(null);
   const descriptionRef = useRef<HTMLParagraphElement>(null);
+  const staffMenuRef = useRef<HTMLDivElement>(null);
+  const [staffMenuOpen, setStaffMenuOpen] = useState(false);
 
   const loadCourse = useCallback(async () => {
     if (!courseId) {
@@ -198,6 +210,17 @@ const CourseDetail: React.FC = () => {
     setDescriptionOverflows(el.scrollHeight > el.clientHeight + 1);
   }, [description, descriptionExpanded]);
 
+  useEffect(() => {
+    if (!staffMenuOpen) return;
+    const onDoc = (event: MouseEvent) => {
+      if (staffMenuRef.current && !staffMenuRef.current.contains(event.target as Node)) {
+        setStaffMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [staffMenuOpen]);
+
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -284,6 +307,37 @@ const CourseDetail: React.FC = () => {
     ? `${formatTimeRange(course.time, course.end_time)} · ${formatDuration(durationMinutes)}`
     : formatTimeRange(course.time, course.end_time);
   const prerequisites = course.prerequisites?.trim() ?? '';
+  const teacherInitials = (() => {
+    const person = course.teacher;
+    if (!person) return null;
+    const first = person.first_name?.trim()?.[0] ?? '';
+    const last = person.last_name?.trim()?.[0] ?? '';
+    const letters = `${first}${last}`.toUpperCase();
+    return letters || null;
+  })();
+  const mapsQuery = course.location?.trim() || locationLine;
+  const mapsHref = mapsQuery
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`
+    : null;
+  const showDesktopMenu = showStaffLinks || canCancelCourse || (isAdmin && upcoming);
+  const occupancyDetail =
+    cancelled || isFull
+      ? isFull && !cancelled
+        ? 'Ausgebucht'
+        : null
+      : remaining === 1
+        ? '1 frei'
+        : `${remaining} frei`;
+  const occupancyLine =
+    !cancelled && occupancyDetail
+      ? `${registeredCount} von ${course.max_participants} · ${occupancyDetail}`
+      : !cancelled
+        ? `${registeredCount} von ${course.max_participants}`
+        : null;
+  const occupancyPercent =
+    course.max_participants > 0
+      ? Math.min(100, Math.round((registeredCount / course.max_participants) * 100))
+      : 0;
 
   let courseStatus: React.ReactNode = null;
   if (cancelled) {
@@ -327,14 +381,6 @@ const CourseDetail: React.FC = () => {
       : windowHours === 0
         ? 'Keine kostenlose Abmeldung'
         : `Kostenlos abmelden bis ${windowHours} h vor Kursbeginn`;
-  const seatsLine = cancelled
-    ? null
-    : isFull
-      ? 'Ausgebucht'
-      : remaining === 1
-        ? '1 Platz frei'
-        : `${remaining} Plätze frei`;
-
   const renderBookingStatus = () =>
     isRegistered && registrationStatus === 'registered' && !showPendingPayment ? (
       <div className="mt-0.5">
@@ -442,20 +488,37 @@ const CourseDetail: React.FC = () => {
         )
       ) : null}
       {showStaffLinks ? (
-        <div className={desktop ? 'flex w-full flex-col gap-2' : 'flex items-center gap-2'}>
-          <Link
-            to={`/course/${course.id}/participants`}
-            className={`${staffButtonShape} border border-borderStrong bg-surface text-brand${desktop ? ' w-full' : ''}`}
-          >
-            Teilnehmer
-          </Link>
-          <Link
-            to={`/course/${course.id}/edit`}
-            className={`${staffButtonShape} border border-borderStrong bg-surface text-brand${desktop ? ' w-full' : ''}`}
-          >
-            Bearbeiten
-          </Link>
-        </div>
+        desktop ? (
+          <div className="flex w-full flex-col gap-2">
+            <Link
+              to={`/course/${course.id}/kassieren`}
+              className={`${buttonShape} w-full bg-brand text-onBrand active:bg-brandPressed`}
+            >
+              Check-in öffnen
+            </Link>
+            <Link
+              to={`/course/${course.id}/participants`}
+              className={`${staffButtonShape} w-full border border-borderStrong bg-surface text-brand`}
+            >
+              Teilnehmerliste
+            </Link>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Link
+              to={`/course/${course.id}/participants`}
+              className={`${staffButtonShape} border border-borderStrong bg-surface text-brand`}
+            >
+              Teilnehmer
+            </Link>
+            <Link
+              to={`/course/${course.id}/edit`}
+              className={`${staffButtonShape} border border-borderStrong bg-surface text-brand`}
+            >
+              Bearbeiten
+            </Link>
+          </div>
+        )
       ) : null}
     </>
   );
@@ -543,150 +606,326 @@ const CourseDetail: React.FC = () => {
       <FeedbackDialog dialog={deleteFeedback} onClose={closeFeedback} />
       <FeedbackDialog dialog={cancellation.feedbackDialog} onClose={cancellation.closeFeedback} />
 
-      <button
-        type="button"
-        onClick={goBack}
-        className="inline-flex min-h-11 items-center gap-2 text-[15px] font-medium text-textMuted"
-      >
-        <ArrowLeft className="h-5 w-5" aria-hidden />
-        Zurück
-      </button>
+      <div className="lg:hidden">
+        <button
+          type="button"
+          onClick={goBack}
+          className="inline-flex min-h-11 items-center gap-2 text-[15px] font-medium text-textMuted"
+        >
+          <ArrowLeft className="h-5 w-5" aria-hidden />
+          Zurück
+        </button>
 
-      <div className="lg:mt-4 lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(260px,1fr)] lg:items-start lg:gap-10">
-        <div className="min-w-0">
-          <h2 className="mt-4 text-[22px] font-medium text-text lg:mt-0">{course.title}</h2>
+        <h2 className="mt-4 text-[22px] font-medium text-text">{course.title}</h2>
 
-          {courseStatus ? <div className="mt-2">{courseStatus}</div> : null}
+        {courseStatus ? <div className="mt-2">{courseStatus}</div> : null}
 
-          {cancelled ? (
-            <div className="mt-4 rounded-md border border-border bg-surfaceSunken px-3.5 py-3">
-              <p className="text-[15px] font-medium text-text">
-                {cancelledOn ? `Abgesagt am ${cancelledOn}` : 'Abgesagt'}
-                {cancelNote ? ` · Grund: ${cancelNote}` : ''}
-              </p>
-              {canUncancelCourse ? (
-                <button
-                  type="button"
-                  onClick={cancellation.requestUncancel}
-                  className="mt-2 inline-flex min-h-11 items-center text-[15px] font-medium text-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
-                >
-                  Absage zurücknehmen
-                </button>
-              ) : null}
-            </div>
-          ) : null}
-
-          <div className="mt-5 divide-y divide-border overflow-hidden rounded-md border border-border bg-surface">
-            {dateLine ? (
-              <div className="flex items-start gap-3 px-3.5 py-3">
-                <Calendar className="mt-0.5 h-5 w-5 shrink-0 text-sage-500" aria-hidden />
-                <p className="text-[15px] text-text">{dateLine}</p>
-              </div>
-            ) : null}
-            {timeLine ? (
-              <div className="flex items-start gap-3 px-3.5 py-3">
-                <Clock className="mt-0.5 h-5 w-5 shrink-0 text-sage-500" aria-hidden />
-                <p className="text-[15px] text-text tabular-nums">{timeLine}</p>
-              </div>
-            ) : null}
-            {teacherName ? (
-              <div className="flex items-start gap-3 px-3.5 py-3">
-                <User className="mt-0.5 h-5 w-5 shrink-0 text-sage-500" aria-hidden />
-                <p className="text-[15px] text-text">{teacherName}</p>
-              </div>
-            ) : null}
-            {locationLine ? (
-              <div className="flex items-start gap-3 px-3.5 py-3">
-                <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-sage-500" aria-hidden />
-                <p className="text-[15px] text-text">{locationLine}</p>
-              </div>
-            ) : null}
-            {isAdmin || isCourseLeader ? (
-              <div className="flex items-start gap-3 px-3.5 py-3">
-                <Users className="mt-0.5 h-5 w-5 shrink-0 text-sage-500" aria-hidden />
-                <p className="text-[15px] text-text tabular-nums">
-                  {registeredCount} von {course.max_participants} Plätzen belegt
-                </p>
-              </div>
-            ) : null}
-            {isAdmin && course.pass_eligible === false ? (
-              <div className="flex items-start gap-3 px-3.5 py-3">
-                <p className="text-[13px] text-textMuted">Nicht mit Karte buchbar</p>
-              </div>
+        {cancelled ? (
+          <div className="mt-4 rounded-md border border-border bg-surfaceSunken px-3.5 py-3">
+            <p className="text-[15px] font-medium text-text">
+              {cancelledOn ? `Abgesagt am ${cancelledOn}` : 'Abgesagt'}
+              {cancelNote ? ` · Grund: ${cancelNote}` : ''}
+            </p>
+            {canUncancelCourse ? (
+              <button
+                type="button"
+                onClick={cancellation.requestUncancel}
+                className="mt-2 inline-flex min-h-11 items-center text-[15px] font-medium text-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+              >
+                Absage zurücknehmen
+              </button>
             ) : null}
           </div>
+        ) : null}
 
-          {description ? (
-            <section className="mt-6">
-              <h3 className="text-[17px] font-medium text-text">Über den Kurs</h3>
-              <p
-                ref={descriptionRef}
-                className={`mt-2 whitespace-pre-line text-[15px] text-text${
-                  descriptionExpanded ? '' : ' line-clamp-5'
-                }`}
-              >
-                {description}
+        <div className="mt-5 divide-y divide-border overflow-hidden rounded-md border border-border bg-surface">
+          {dateLine ? (
+            <div className="flex items-start gap-3 px-3.5 py-3">
+              <Calendar className="mt-0.5 h-5 w-5 shrink-0 text-sage-500" aria-hidden />
+              <p className="text-[15px] text-text">{dateLine}</p>
+            </div>
+          ) : null}
+          {timeLine ? (
+            <div className="flex items-start gap-3 px-3.5 py-3">
+              <Clock className="mt-0.5 h-5 w-5 shrink-0 text-sage-500" aria-hidden />
+              <p className="text-[15px] text-text tabular-nums">{timeLine}</p>
+            </div>
+          ) : null}
+          {teacherName ? (
+            <div className="flex items-start gap-3 px-3.5 py-3">
+              <User className="mt-0.5 h-5 w-5 shrink-0 text-sage-500" aria-hidden />
+              <p className="text-[15px] text-text">{teacherName}</p>
+            </div>
+          ) : null}
+          {locationLine ? (
+            <div className="flex items-start gap-3 px-3.5 py-3">
+              <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-sage-500" aria-hidden />
+              <p className="text-[15px] text-text">{locationLine}</p>
+            </div>
+          ) : null}
+          {isAdmin || isCourseLeader ? (
+            <div className="flex items-start gap-3 px-3.5 py-3">
+              <Users className="mt-0.5 h-5 w-5 shrink-0 text-sage-500" aria-hidden />
+              <p className="text-[15px] text-text tabular-nums">
+                {registeredCount} von {course.max_participants} Plätzen belegt
               </p>
-              {descriptionOverflows ? (
-                <button
-                  type="button"
-                  onClick={() => setDescriptionExpanded((open) => !open)}
-                  className="mt-1 inline-flex min-h-11 items-center text-[15px] font-medium text-brand"
-                >
-                  {descriptionExpanded ? 'Weniger' : 'Weiterlesen'}
-                </button>
-              ) : null}
-            </section>
+            </div>
           ) : null}
-
-          {prerequisites ? (
-            <section className="mt-6">
-              <h3 className="text-[17px] font-medium text-text">Voraussetzungen</h3>
-              <p className="mt-2 whitespace-pre-line text-[15px] text-text">{prerequisites}</p>
-            </section>
-          ) : null}
-
-          {canCancelCourse ? (
-            <button
-              type="button"
-              onClick={cancellation.requestCancel}
-              className="mt-8 inline-flex min-h-11 items-center text-[15px] font-medium text-danger focus:outline-none focus-visible:ring-2 focus-visible:ring-danger focus-visible:ring-offset-2"
-            >
-              Kurs absagen
-            </button>
-          ) : null}
-
-          {isAdmin && upcoming ? (
-            <button
-              type="button"
-              onClick={() => void requestDelete()}
-              className="mt-8 inline-flex min-h-11 items-center text-[15px] font-medium text-danger focus:outline-none focus-visible:ring-2 focus-visible:ring-danger focus-visible:ring-offset-2"
-            >
-              Kurs löschen
-            </button>
+          {isAdmin && course.pass_eligible === false ? (
+            <div className="flex items-start gap-3 px-3.5 py-3">
+              <p className="text-[13px] text-textMuted">Nicht mit Karte buchbar</p>
+            </div>
           ) : null}
         </div>
 
-        <aside
-          className="hidden lg:sticky lg:top-6 lg:block"
-          data-testid="course-booking-card"
-        >
-          <div className="rounded-md border border-border bg-surface p-5">
-            <p className="text-[22px] font-medium leading-tight text-text tabular-nums">
-              {formatPrice(course.price)}
+        {description ? (
+          <section className="mt-6">
+            <h3 className="text-[17px] font-medium text-text">Über den Kurs</h3>
+            <p
+              ref={descriptionRef}
+              className={`mt-2 whitespace-pre-line text-[15px] text-text${
+                descriptionExpanded ? '' : ' line-clamp-5'
+              }`}
+            >
+              {description}
             </p>
-            {renderBookingStatus()}
-            {seatsLine && !isRegistered ? (
-              <p className="mt-3 text-[15px] text-text">{seatsLine}</p>
+            {descriptionOverflows ? (
+              <button
+                type="button"
+                onClick={() => setDescriptionExpanded((open) => !open)}
+                className="mt-1 inline-flex min-h-11 items-center text-[15px] font-medium text-brand"
+              >
+                {descriptionExpanded ? 'Weniger' : 'Weiterlesen'}
+              </button>
             ) : null}
-            {cancelDeadlinePreview && canAct && !isRegistered ? (
-              <p className="mt-2 text-[13px] leading-snug text-textMuted">
-                {cancelDeadlinePreview}
-              </p>
+          </section>
+        ) : null}
+
+        {prerequisites ? (
+          <section className="mt-6">
+            <h3 className="text-[17px] font-medium text-text">Voraussetzungen</h3>
+            <p className="mt-2 whitespace-pre-line text-[15px] text-text">{prerequisites}</p>
+          </section>
+        ) : null}
+
+        {canCancelCourse ? (
+          <button
+            type="button"
+            onClick={cancellation.requestCancel}
+            className="mt-8 inline-flex min-h-11 items-center text-[15px] font-medium text-danger focus:outline-none focus-visible:ring-2 focus-visible:ring-danger focus-visible:ring-offset-2"
+          >
+            Kurs absagen
+          </button>
+        ) : null}
+
+        {isAdmin && upcoming ? (
+          <button
+            type="button"
+            onClick={() => void requestDelete()}
+            className="mt-8 inline-flex min-h-11 items-center text-[15px] font-medium text-danger focus:outline-none focus-visible:ring-2 focus-visible:ring-danger focus-visible:ring-offset-2"
+          >
+            Kurs löschen
+          </button>
+        ) : null}
+      </div>
+
+      <div className="hidden lg:block">
+        <Link
+          to="/courses"
+          className="inline-flex min-h-11 items-center text-[13px] font-medium text-textMuted"
+        >
+          Kurse ›
+        </Link>
+
+        <div className="mt-2 flex items-start justify-between gap-6">
+          <h2 className="min-w-0 flex-1 text-[32px] font-medium leading-tight text-text">
+            {course.title}
+          </h2>
+          {showDesktopMenu ? (
+            <div className="relative shrink-0" ref={staffMenuRef}>
+              <button
+                type="button"
+                aria-label="Kurs verwalten"
+                aria-expanded={staffMenuOpen}
+                aria-haspopup="menu"
+                data-testid="course-detail-menu"
+                onClick={() => setStaffMenuOpen((open) => !open)}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full text-textMuted active:bg-surfaceSunken"
+              >
+                <MoreHorizontal className="h-5 w-5" aria-hidden />
+              </button>
+              {staffMenuOpen ? (
+                <div
+                  role="menu"
+                  className="absolute right-0 z-10 mt-1 min-w-[11rem] rounded-md border border-border bg-surface py-1 shadow-lg"
+                >
+                  {showStaffLinks ? (
+                    <Link
+                      role="menuitem"
+                      to={`/course/${course.id}/edit`}
+                      onClick={() => setStaffMenuOpen(false)}
+                      className="flex w-full px-4 py-3 text-left text-[15px] font-medium text-text"
+                    >
+                      Bearbeiten
+                    </Link>
+                  ) : null}
+                  {canCancelCourse ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setStaffMenuOpen(false);
+                        cancellation.requestCancel();
+                      }}
+                      className="flex w-full px-4 py-3 text-left text-[15px] font-medium text-danger"
+                    >
+                      Kurs absagen
+                    </button>
+                  ) : null}
+                  {isAdmin && upcoming ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setStaffMenuOpen(false);
+                        void requestDelete();
+                      }}
+                      className="flex w-full px-4 py-3 text-left text-[15px] font-medium text-danger"
+                    >
+                      Kurs löschen
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+
+        {courseStatus ? <div className="mt-3">{courseStatus}</div> : null}
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {dateLine ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-[13px] text-text">
+              <Calendar className="h-4 w-4 shrink-0 text-sage-500" aria-hidden />
+              {dateLine}
+            </span>
+          ) : null}
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-[13px] tabular-nums text-text">
+            <Clock className="h-4 w-4 shrink-0 text-sage-500" aria-hidden />
+            {formatTimeRange(course.time, course.end_time)}
+          </span>
+          {locationLine ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-[13px] text-text">
+              <MapPin className="h-4 w-4 shrink-0 text-sage-500" aria-hidden />
+              {course.location?.trim() || locationLine}
+            </span>
+          ) : null}
+        </div>
+
+        <div className="mt-8 grid grid-cols-[minmax(0,2fr)_minmax(260px,1fr)] items-start gap-10">
+          <div className="min-w-0">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="rounded-md border border-border bg-surface p-4 shadow-sm">
+                <Clock className="h-5 w-5 text-sage-500" aria-hidden />
+                <p className="mt-3 text-[17px] font-medium tabular-nums text-text">
+                  {durationMinutes != null ? formatDuration(durationMinutes) : '—'}
+                </p>
+                <p className="mt-1 text-[13px] text-textMuted">Dauer</p>
+              </div>
+              <div className="rounded-md border border-border bg-surface p-4 shadow-sm">
+                <div
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-brandSoft text-[13px] font-medium text-brandOnSoft"
+                  aria-hidden
+                >
+                  {teacherInitials ?? <User className="h-5 w-5" aria-hidden />}
+                </div>
+                <p className="mt-3 text-[17px] font-medium text-text">{teacherName}</p>
+                <p className="mt-1 text-[13px] text-textMuted">Lehrende</p>
+              </div>
+              <div className="rounded-md border border-border bg-surface p-4 shadow-sm">
+                <MapPin className="h-5 w-5 text-sage-500" aria-hidden />
+                {locationLine && mapsHref ? (
+                  <a
+                    href={mapsHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 block text-[17px] font-medium text-brand"
+                  >
+                    {locationLine}
+                  </a>
+                ) : (
+                  <p className="mt-3 text-[17px] font-medium text-text">{locationLine || '—'}</p>
+                )}
+                <p className="mt-1 text-[13px] text-textMuted">Ort</p>
+              </div>
+            </div>
+
+            {cancelled ? (
+              <div className="mt-6 rounded-md border border-border bg-surfaceSunken px-3.5 py-3">
+                <p className="text-[15px] font-medium text-text">
+                  {cancelledOn ? `Abgesagt am ${cancelledOn}` : 'Abgesagt'}
+                  {cancelNote ? ` · Grund: ${cancelNote}` : ''}
+                </p>
+                {canUncancelCourse ? (
+                  <button
+                    type="button"
+                    onClick={cancellation.requestUncancel}
+                    className="mt-2 inline-flex min-h-11 items-center text-[15px] font-medium text-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+                  >
+                    Absage zurücknehmen
+                  </button>
+                ) : null}
+              </div>
             ) : null}
-            <div className="mt-5 flex flex-col gap-2">{renderBookingActions(true)}</div>
+
+            {description ? (
+              <section className="mt-8 max-w-prose">
+                <h3 className="text-[17px] font-medium text-text">Über den Kurs</h3>
+                <p className="mt-2 max-w-[70ch] whitespace-pre-line text-[15px] leading-relaxed text-text">
+                  {description}
+                </p>
+              </section>
+            ) : null}
+
+            {prerequisites ? (
+              <section className="mt-8 max-w-prose">
+                <h3 className="text-[17px] font-medium text-text">Voraussetzungen</h3>
+                <p className="mt-2 max-w-[70ch] whitespace-pre-line text-[15px] leading-relaxed text-text">
+                  {prerequisites}
+                </p>
+              </section>
+            ) : null}
           </div>
-        </aside>
+
+          <aside className="sticky top-6" data-testid="course-booking-card">
+            <div className="rounded-md border border-border bg-surface p-5 shadow-lg">
+              <p className="text-[22px] font-medium leading-tight text-text tabular-nums">
+                {formatPrice(course.price)}
+              </p>
+              {renderBookingStatus()}
+              {occupancyLine ? (
+                <div className="mt-4">
+                  <div
+                    className="h-2 overflow-hidden rounded-full bg-surfaceSunken"
+                    role="presentation"
+                  >
+                    <div
+                      className="h-full rounded-full bg-brand transition-[width]"
+                      style={{ width: `${occupancyPercent}%` }}
+                    />
+                  </div>
+                  <p className="mt-2 text-[13px] tabular-nums text-textMuted">{occupancyLine}</p>
+                </div>
+              ) : null}
+              {cancelDeadlinePreview && !cancelled ? (
+                <p className="mt-3 text-[13px] leading-snug text-textMuted">
+                  {cancelDeadlinePreview}
+                </p>
+              ) : null}
+              <div className="mt-5 flex flex-col gap-2">{renderBookingActions(true)}</div>
+            </div>
+          </aside>
+        </div>
       </div>
 
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-surface pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:hidden">

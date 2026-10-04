@@ -253,16 +253,28 @@ Für die spätere Expo-App bleibt die untere Leiste die Vorgabe — dort ist sie
   (`src/components/ui/AccentPill.tsx`), nie als bloßer Text.
 - Übersicht für Teilnehmende: die Hero-Karte ist die eine betonte Fläche (Regel 3).
 
+**Rückmeldungen (Toast):**
+
+- Erfolg: Toast unten (mobil über der Navigation), 4 s sichtbar, kein OK-Knopf,
+  nicht blockierend, `role="status"`. Wo sinnvoll mit „Rückgängig".
+- Fehler: Toast in Fehlerfarbe, bleibt bis zum Schließen, `role="alert"`.
+- Folgeschwere Aktionen (Kurs absagen, löschen, erstatten, entfernen): weiterhin
+  `ConfirmDialog` mit Abdunklung und Unschärfe (`ModalBackdrop`), kein Browser-`confirm()`.
+
 **Kursdetailseite:**
 
+- Mobil (unter `lg`): Brotkrumen „Zurück", Titel 22 px, Infokarte mit Trennlinien,
+  destruktive Verwaltung als rote Textlinks unter dem Inhalt (Kurs absagen, Kurs löschen),
+  feste Aktionsleiste unten.
+- Desktop (`lg`+): Brotkrumen „Kurse ›", Titel 32 px, Termin-Chips, Infokacheln links,
+  sticky Buchungskarte rechts (Belegung nur dort). Verwaltung über „⋯"-Menü (Bearbeiten,
+  Kurs absagen, Kurs löschen in `danger`); keine losen roten Links unten.
 - Oben der Kurszustand (Abgesagt, Hat bereits begonnen, Ausgebucht, noch N Plätze,
-  Dein Kurs). Unten in der Aktionsleiste der eigene Zustand (pro Termin, Angemeldet,
-  Warteliste) und genau eine Aktion.
-- Knöpfe dort einheitlich `rounded-full`, mind. 44 px. „Abmelden" mit Rahmen, nie
-  gefüllt (Regel 7). Mobil fest am unteren Rand, ab `lg` sticky.
-- Destruktive Verwaltungsaktionen (Kurs löschen) stehen als Textknopf in `danger`
-  unter dem Inhalt, nie in der Aktionsleiste. Gefüllt in `danger` ist nur der
-  endgültige Bestätigungsknopf im Dialog.
+  Dein Kurs). In der Aktionsleiste bzw. Buchungskarte der eigene Zustand (pro Termin,
+  Angemeldet, Warteliste) und die passenden Aktionen.
+- Knöpfe einheitlich `rounded-full`, mind. 44 px. „Abmelden" mit Rahmen, nie
+  gefüllt (Regel 7). Mobil fest am unteren Rand; Desktop Aktionen in der Buchungskarte.
+- Gefüllt in `danger` ist nur der endgültige Bestätigungsknopf im Dialog.
 
 **Logo und Studiokopf:**
 
