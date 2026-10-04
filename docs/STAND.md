@@ -6,8 +6,8 @@ Stand: 2026-10-04 · Branch `Julius` · HEAD siehe `git log -1`
 
 - Migrationen bis `20261002230000` (Claims zurückgeben ohne Zählung)
 - Functions (deployt): `payments-jobs`, `payments-webhook` (du_ + `PAYMENT_NOT_READY`), `dispatch-emails`
-- E2E: `npm run dev:e2e` (Playwright, nur DEV-Guard, Studio `demoalpha`) — 6 Fälle
-  (3.2c ×3, 3.1 ×1, Datumsfelder ×2)
+- E2E: `npm run dev:e2e` (Playwright, nur DEV-Guard, Studio `demoalpha`) — 11 Fälle
+  (3.2c ×3, 3.1 ×1, Datumsfelder ×2, UX-1 ×5)
 - Probe-Guard: `OMLIFY_PROBE_REF` + `--probe` / `OMLIFY_ALLOW_PROBE=1` (nicht gegen Probe/PROD ausgeführt)
 
 ## Zuletzt abgeschlossen
@@ -19,22 +19,23 @@ Stand: 2026-10-04 · Branch `Julius` · HEAD siehe `git log -1`
 - Release-Plan (nur Doku) — [docs/RELEASE_GELDKETTE_PLAN.md](RELEASE_GELDKETTE_PLAN.md) Abschnitt 0 (+ §0.11 PROD-Replay)
 - **3.1** Zahlungsübersicht — Klicktest offen; Entscheidung 11 gilt (bestätigt 04.10.2026)
 - **3.2c** Erstattung Oberfläche — Klicktest offen
-- **UX-1** in Arbeit — Erstatten in einem Schritt, Zahlungen mit Reitern, Einstellungen mit Kategorien
+- **UX-1** Erstatten / Zahlungen-Reiter / Einstellungen — Klicktest offen
+  - Bericht: [docs/berichte/ux1_zahlungen_erstatten_einstellungen.md](berichte/ux1_zahlungen_erstatten_einstellungen.md)
 
 ## Nächste Schritte
 
-- UX-1 umsetzen (nur Oberfläche)
+- Klicktest UX-1
 - Klicktest Nachtrag (stornierte Buchungen bis Kursende / pending / failed)
 - Klicktest 3.2c + 3.1
 
 ## Haltestellen / wartet auf Julius
 
-- Nachtrag + 3.2c + 3.1: Klicktest
+- UX-1 + Nachtrag + 3.2c + 3.1: Klicktest
 - Optional: Probe-Lauf freigeben (nicht autonom gegen Probe)
 
 ## hier weitermachen
 
-UX-1: [docs/stories/ux1_zahlungen_erstatten_einstellungen.md](stories/ux1_zahlungen_erstatten_einstellungen.md). Entscheidung 11 gilt.
+UX-1 fertig gebaut. Haltestelle Klicktest. Bericht [ux1_zahlungen_erstatten_einstellungen.md](berichte/ux1_zahlungen_erstatten_einstellungen.md).
 
 ## Verweise
 
