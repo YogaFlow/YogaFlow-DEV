@@ -90,26 +90,25 @@ Konkrete Texte: „Du bist dabei · …“; „Hans Peter abgemeldet“. Tabelle
 - Bei erfolgreicher Buchung gesetzt (`remember_booking_pay_method`).
 - Default in `booking_payment_options`: gültige Karte immer zuerst; sonst gespeicherte Wahl wenn verfügbar; sonst Online; sonst Vor Ort.
 
+### Z8 — Neu-Hinweis unabhängig vom Standard (04.10.2026)
+
+- Ursache Klicktest: Vera hatte `last_booking_pay_method = onsite` → Z7 setzt Vor Ort als Standard → alter Hinweis hing an `default = online` → nie sichtbar.
+- Migration `20261004260000`: `show_online_pay_hint` wenn Vor-Ort-Historie, nie online, Online verfügbar, `online_pay_hint_seen_at` leer — **ohne** Default-Gate.
+- UI: Online-Standard → „Du kannst jetzt direkt online bezahlen.“; Vor-Ort-Standard → „Neu: Du kannst jetzt auch online bezahlen ›“ (Tipp wechselt Auswahl, nichts gebucht).
+- Seed: Vera nach jedem Lauf `hint_seen` null + `last = onsite`.
+- Nina: stornierte Hatha-Anmeldung mit Geldspur bleibt; kann andere Kurse buchen. **Für Rückgängig Vor Ort wählen.**
+
 ## DoD Nachtrag
 
-- Migrationen `20261004210000`, `20261004220000` auf DEV
-- Unit: `zw1_booking_texts`, `zw1_toast_texts`
-- RPC `zw1_zahlungswege` inkl. Z7 grün
-- E2E 1/1 · Deno 195/195 · `npm run check:ci` grün
-- Entscheidung 14 + Z7 · Bericht + STAND
+- Migrationen `20261004210000`, `20261004220000`, `20261004260000` (Z8) auf DEV
+- Unit: `zw1_booking_texts`, `zw1_z8_online_pay_hint` (4 Fälle), `zw1_toast_texts`
+- RPC `zw1_zahlungswege` inkl. Z7/Z8 grün
+- E2E 1/1 (inkl. Vor Ort Standard + Hinweis) · `npm run check:ci` grün
+- Entscheidung 14 + Z7/Z8 · Bericht + STAND
 
-## Klickliste Nachtrag (max. 6)
+## STOPP — Klickliste Z8 (genau 2)
 
-Studio/Konto: **demoalpha**. Build-SHA in Einstellungen › Studio prüfen.
+Studio **demoalpha**. Zugangsdaten `supabase/.env.dev`.
 
-1. **Teilnehmerin ohne Karte**, beide Wege — Kursdetail: Zahlart-Zeile „Online bezahlen · Karte, Apple Pay · Ändern ›“, Knopf „Weiter zur Zahlung“
-2. „Ändern ›“ → Vor Ort → Zeile „Vor Ort bezahlen · im Studio“, Knopf „Weiter zur Buchung“; nichts gebucht bis Tipp
-3. Vor Ort buchen → Bestätigung „Zahlungspflichtig buchen“ → Toast „Du bist dabei · …“
-4. **Mit 10er-Karte** — Ein-Tipp, Toast 6 s mit Zeitbalken + Rückgängig
-5. Gewohnheits-Vor-Ort (nie online): bei Online-Default Abzeichen „Neu“ + Hinweiszeile; nach einer Buchung weg
-6. Owner Einstellungen › Zahlungen: letzten Schalter aus → „Mindestens ein Zahlungsweg…“
-
-## Fragen an Julius
-
-1. Desktop-Buchungskarte unter `lg` ausblenden? (wie ZW-1-Erstbericht)
-2. Alte E2E schrittweise auf `e2eapp`? Empfehlung: bei nächstem AVV/Beleg-E2E.
+1. **Vera** — Kursdetail: Vor Ort vorausgewählt, Abzeichen „Neu“, Zeile „Neu: Du kannst jetzt auch online bezahlen ›“; Tipp darauf → Auswahl Online, nichts gebucht.
+2. **Nina** — beliebigen kommenden Kurs buchen mit **Vor Ort** → abmelden → Toast mit Rückgängig (6 s). Geldspur der alten Hatha-Storno bleibt.

@@ -217,8 +217,39 @@ test('ZW1 N3 — Zahlungswege, Zahlart-Zeile, Neu-Hinweis, letzter Schalter', as
     if (histBook.error || !histBook.data?.success) {
       throw new Error(JSON.stringify(histBook));
     }
-    // Wie Bestandskundin vor N1/Z7: Hinweis noch nicht gesehen, keine gespeicherte Wahl
-    // (Z7 würde sonst nach der Hist-Buchung Vor Ort als Default setzen)
+    // Z8: Vor Ort Standard + Hinweis (last=onsite, hint_seen leer)
+    const { error: clearHintOnsite } = await admin
+      .from('users')
+      .update({ online_pay_hint_seen_at: null, last_booking_pay_method: 'onsite' })
+      .eq('id', habitUser.id);
+    if (clearHintOnsite) throw new Error(clearHintOnsite.message);
+
+    const kursHintOnsite = await kursAnlegen(admin, tenant.id, teacher.id, {
+      title: `ZW1 Hint Onsite ${laufId}`,
+      price: 18,
+      date: berlinDate(9),
+    });
+    const asHabit = await login(url, anon, habitUser.email, password, SLUG);
+    const { data: habitSess } = await asHabit.auth.getSession();
+    const habitCtx = await browser.newContext();
+    const habitPage = await habitCtx.newPage();
+    await alsAngemeldet(habitPage, habitSess.session);
+    await habitPage.setViewportSize({ width: 360, height: 780 });
+    await habitPage.goto(`/course/${kursHintOnsite.id}?tenant=${SLUG}`);
+    await expect(methodLine(habitPage)).toContainText('Vor Ort bezahlen', { timeout: 20_000 });
+    await expect(methodLine(habitPage).getByTestId('book-online-pay-badge')).toHaveText('Neu');
+    await expect(methodLine(habitPage).getByTestId('book-online-pay-hint')).toContainText(
+      'auch online bezahlen',
+    );
+    // Tipp auf Hinweis → Auswahl Online, nichts gebucht
+    await methodLine(habitPage).getByTestId('book-online-pay-hint').click();
+    await expect(methodLine(habitPage)).toContainText('Online bezahlen', { timeout: 10_000 });
+    await expect(methodLine(habitPage).getByTestId('book-online-pay-hint')).toContainText(
+      'Du kannst jetzt direkt online bezahlen',
+    );
+    await expect(habitPage.getByTestId('toast-success')).toHaveCount(0);
+
+    // Online Standard + Hinweis (last geleert)
     const { error: clearHint } = await admin
       .from('users')
       .update({ online_pay_hint_seen_at: null, last_booking_pay_method: null })
@@ -230,12 +261,6 @@ test('ZW1 N3 — Zahlungswege, Zahlart-Zeile, Neu-Hinweis, letzter Schalter', as
       price: 18,
       date: berlinDate(10),
     });
-    const asHabit = await login(url, anon, habitUser.email, password, SLUG);
-    const { data: habitSess } = await asHabit.auth.getSession();
-    const habitCtx = await browser.newContext();
-    const habitPage = await habitCtx.newPage();
-    await alsAngemeldet(habitPage, habitSess.session);
-    await habitPage.setViewportSize({ width: 360, height: 780 });
     await habitPage.goto(`/course/${kursHint.id}?tenant=${SLUG}`);
     await expect(methodLine(habitPage)).toContainText('Online bezahlen', { timeout: 20_000 });
     await expect(methodLine(habitPage).getByTestId('book-online-pay-badge')).toHaveText('Neu');
@@ -256,7 +281,7 @@ test('ZW1 N3 — Zahlungswege, Zahlart-Zeile, Neu-Hinweis, letzter Schalter', as
       date: berlinDate(12),
     });
     await habitPage.goto(`/course/${kursHint2.id}?tenant=${SLUG}`);
-    // Z7: zuletzt Vor Ort → Standard Vor Ort; Neu-Hinweis weg
+    // Z7: zuletzt Vor Ort → Standard Vor Ort; Neu-Hinweis weg (gesehen)
     await expect(methodLine(habitPage)).toContainText('Vor Ort bezahlen', { timeout: 20_000 });
     await expect(methodLine(habitPage).getByTestId('book-online-pay-badge')).toHaveCount(0);
     await expect(methodLine(habitPage).getByTestId('book-online-pay-hint')).toHaveCount(0);

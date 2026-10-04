@@ -63,6 +63,24 @@ test('Buchungsleiste Snapshot: Vor Ort (mehrere Wege)', () => {
   );
 });
 
+test('Buchungsleiste Snapshot: Vor Ort + Neu (Z8)', () => {
+  assert.deepEqual(
+    bookingPayMethodFieldAppearance({
+      method: 'onsite',
+      canChange: true,
+      showOnlineHint: true,
+    }),
+    {
+      kind: 'onsite',
+      bordered: true,
+      showChevron: true,
+      showNeuBadge: true,
+      showNeuHint: true,
+      heightPx: 48,
+    },
+  );
+});
+
 test('Buchungsleiste Snapshot: Karte (mehrere Wege)', () => {
   assert.deepEqual(
     bookingPayMethodFieldAppearance({ method: 'pass', canChange: true }),

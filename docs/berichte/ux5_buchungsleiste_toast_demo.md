@@ -117,7 +117,7 @@ Hinweis: Ein Reset **nach** dem Seed würde die neuen Demokurse ohne Geldspur wi
 | Vera Vorort | 3 vergangene Buchungen vor Ort |
 | Karla Karte | aktive 10er, Einheiten-Summe **6** |
 | Olaf Online | 2 vergangene Online-Zahlungen |
-| Nina Neu | 0 Buchungen |
+| Nina Neu | Seed: 0 Buchungen; Klicktest: stornierte Hatha mit Geldspur bleibt — **Für Rückgängig Vor Ort wählen.** |
 | Zugangsdaten | nur `supabase/.env.dev` (`DEMO_*_EMAIL`, `DEMO_PASSWORT`) — nicht im Repo |
 
 ### Nachher (nach Reset + Seed, DEV 04.10.)
@@ -191,10 +191,10 @@ Kartenprodukte (`pass_products.archived_at`) unverändert — eigene Story A4.
 | E2E `e2e/ux5-archive.spec.ts` | **1/1** — Listen ohne Archiv; Zahlungen-Archiv zeigt Kurs- + Personenname; CSV mit Archiv enthält Kursnamen; Owner-SELECT archiviert |
 | E2E `e2e/zw1.spec.ts` | **1/1** |
 
-## STOPP — Haltestelle 5 (kurze Klickliste)
+## Z8 — Neu-Hinweis (Nachtrag nach UX-5-Klicktest)
 
-Owner Olivia · Passwort in `supabase/.env.dev`. Keine Smoke-Titel (`S22A…`) in normalen Listen erwarten.
+Entscheidung 14 Z8: Hinweis unabhängig vom Standard-Weg. Migration `20261004260000`. Vera auf DEV: `online_pay_hint_seen_at` null, `last_booking_pay_method = onsite`. Details und Klickliste: [zw1_zahlungswege.md](zw1_zahlungswege.md) (STOPP Z8, genau 2 Punkte).
 
-1. **Übersicht** — „Rückgaben offen“ ohne Smoke; Kachel „Anmeldungen“.
-2. **Zahlungen** — Standard ohne Archiv; Umschalter „Archiv anzeigen“ → archivierte Zahlung zeigt **Kursname + Personenname**.
-3. **Export** — CSV „Zahlungsliste“ mit Archiv enthält Kursnamen der archivierten Kurse.
+## STOPP — Haltestelle 5 erledigt (Archiv/RLS)
+
+Owner Olivia · Passwort in `supabase/.env.dev`. Archiv/RLS-Klicktest abgenommen; offener Rest war „Neu“-Hinweis → Z8.

@@ -9,6 +9,7 @@ import {
   BOOK_PRIMARY_ONSITE,
   CHANGE_PAY_METHOD_LABEL,
   ONLINE_PAY_HINT_LINE,
+  ONLINE_PAY_HINT_SWITCH_LINE,
   bookingMethodDetail,
   bookingMethodLine,
   bookingMethodTitle,
@@ -50,6 +51,10 @@ describe('ZW-1 N1 bookingMethodTexts', () => {
   it('Ändern-Label, Hinweis und Zahlungspflichtig', () => {
     assert.equal(CHANGE_PAY_METHOD_LABEL, 'Ändern');
     assert.equal(ONLINE_PAY_HINT_LINE, 'Du kannst jetzt direkt online bezahlen.');
+    assert.equal(
+      ONLINE_PAY_HINT_SWITCH_LINE,
+      'Neu: Du kannst jetzt auch online bezahlen ›',
+    );
     assert.equal(BINDING_BOOK_LABEL, 'Zahlungspflichtig buchen');
   });
 });
