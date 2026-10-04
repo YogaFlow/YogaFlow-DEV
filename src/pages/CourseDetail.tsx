@@ -406,9 +406,9 @@ const CourseDetail: React.FC = () => {
         ? cancellationDeadlineLine(previewDeadlineIso)
         : null;
   const paymentStatusSuffix = refundInfo
-    ? passRefundStatusLine(refundInfo)
+    ? passRefundStatusLine()
     : onlineInfo
-      ? onlinePaidStatusLine(onlineInfo)
+      ? onlinePaidStatusLine()
       : null;
   const renderBookingStatus = () =>
     isRegistered && registrationStatus === 'registered' && !showPendingPayment ? (

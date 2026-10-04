@@ -23,6 +23,11 @@ export default tseslint.config(
       // eine CI, die dauerhaft rot ist, schaut sich nach zwei Wochen niemand mehr an.
       // Sie bleiben sichtbar und werden nach und nach ersetzt.
       "@typescript-eslint/no-explicit-any": "warn",
+      // Ungenutzte Parameter/Variablen mit `_`-Prefix sind bewusst (gängige Konvention).
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      ],
       'react-refresh/only-export-components': [
         'warn',
         { allowConstantExport: true },

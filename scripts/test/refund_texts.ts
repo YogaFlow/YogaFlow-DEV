@@ -59,7 +59,7 @@ test('Frist vor: Dialog und Statuszeile', () => {
     n(unregisterOnlineDialogMessage(info!)),
     'Du bekommst 24,00 € zurück. Kostenlos abmelden bis Sa, 3. Okt, 18:00.',
   );
-  assert.equal(n(onlinePaidStatusLine(info!)), 'online bezahlt');
+  assert.equal(n(onlinePaidStatusLine()), 'online bezahlt');
 });
 
 test('Frist nach: Dialog und Statuszeile', () => {
@@ -69,7 +69,7 @@ test('Frist nach: Dialog und Statuszeile', () => {
     n(unregisterOnlineDialogMessage(info!)),
     'Die Abmeldefrist ist seit Sa, 3. Okt, 18:00 vorbei. Die 24,00 € werden nicht erstattet.',
   );
-  assert.equal(onlinePaidStatusLine(info!), 'online bezahlt');
+  assert.equal(onlinePaidStatusLine(), 'online bezahlt');
 });
 
 test('ohne Frist erstattet (wie Trigger)', () => {

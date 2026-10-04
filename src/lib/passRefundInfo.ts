@@ -42,6 +42,6 @@ export function unregisterPassDialogMessage(info: PassRefundInfo): string {
 }
 
 /** Zahlstatus ohne Abmeldefrist (Frist ist eigene Zeile, UX-4 B1). */
-export function passRefundStatusLine(_info?: PassRefundInfo | null): string {
+export function passRefundStatusLine(): string {
   return 'mit Karte bezahlt';
 }

@@ -57,7 +57,7 @@ export function unregisterRefundSuccessMessage(refundCents: number | null | unde
 }
 
 /** Zahlstatus ohne Abmeldefrist (Frist ist eigene Zeile, UX-4 B1). */
-export function onlinePaidStatusLine(_info?: OnlineRefundInfo | null): string {
+export function onlinePaidStatusLine(): string {
   return 'online bezahlt';
 }
 

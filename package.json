@@ -22,6 +22,7 @@
     "test:geldkette": "node scripts/test/run_geldkette.mjs",
     "test:deno": "deno test --node-modules-dir=none --no-lock supabase/functions",
     "check:provider-boundary": "node scripts/check_provider_boundary.mjs",
+    "check:ci": "node scripts/check_ci.mjs",
     "check:migration": "node scripts/dev/check_migration_statements.mjs",
     "dev:apply": "node scripts/dev/dev_apply.mjs",
     "dev:deploy": "node scripts/dev/dev_deploy.mjs",

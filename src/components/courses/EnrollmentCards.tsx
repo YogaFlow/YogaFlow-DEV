@@ -70,11 +70,11 @@ function paymentLine(
   }
   const refund = passRefundInfo(registration);
   if (refund) {
-    return passRefundStatusLine(refund);
+    return passRefundStatusLine();
   }
   const online = onlineRefundInfo(registration, refundState);
   if (online) {
-    return onlinePaidStatusLine(online);
+    return onlinePaidStatusLine();
   }
   return coverageLabel(
     {

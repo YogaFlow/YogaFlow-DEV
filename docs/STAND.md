@@ -12,9 +12,11 @@ Stand: 2026-10-04 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [ux4_fei
 - E2E: UX-4 4/4; UX-2 2/2; UX-3 3/3; UX-2 B3 4/4
 - Legal: AVV-Hash = SHA-256 normalisierter Markdown (`b90051ca…`); Stand 04.10.2026
 - Deno: `npm run test:deno` 195/195 grün
+- CI: lokal `npm run check:ci` grün; GitHub-Run siehe nach Push (Nummer nachziehen)
 
 ## Zuletzt abgeschlossen
 
+- **CI-Hotfix** Lint `_info` entfernt; `npm run check:ci`; DoD vor Push; Lint-Warnungen in OFFENE_PUNKTE
 - **UX-4 Feinschliff 2** Toast-Design/Undo, ⋯ mobil, Abmeldefrist, Erfolgsfenster, Kalender-Seite, Nav, Kopfleiste, AVV-Hash, FormField
   - Bericht: [docs/berichte/ux4_feinschliff_2.md](berichte/ux4_feinschliff_2.md) — Haltestelle 5
 - **UX-3 Feinschliff** Toast, calendar-ics, Check-in-Wording, Export-Zeitraum, Kursdetail Desktop

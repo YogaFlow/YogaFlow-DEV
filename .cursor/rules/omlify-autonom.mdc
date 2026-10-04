@@ -41,6 +41,7 @@ An einer Haltestelle: Bericht nach `docs/berichte/<story>.md`, Status „angehal
 
 ## Definition of Done (je Story)
 
+- `npm run check:ci` grün (vor jedem Push; Schritte wie `.github/workflows/ci.yml`)
 - `npm run dev:check` grün
 - `npm run dev:apply` grün (wenn Migrationen)
 - Ersetzte SQL-Funktionen per Diff gegen `pg_get_functiondef` auf DEV geprüft (nur geplante Änderungen)

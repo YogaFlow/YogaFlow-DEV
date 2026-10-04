@@ -11,6 +11,9 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Jetzt
 
+- [ ] **Lint-Warnungen aufräumen (eigener Commit)** — CI meldet ~34 Warnungen
+      (`any`, `react-refresh`, `exhaustive-deps` u. a.); blockieren nicht, aber
+      sichtbar. Nicht neben Feature-Arbeit mitnehmen.
 - [ ] **Befreite Kurse je Kurs (§ 4 UStG)** — A7 H1: Steuerstatus nur Studio-weit
       (`regular` 19 %/7 % oder Kleinunternehmer). Abweichung je Kurs später.
 - [ ] **SKR-/DATEV-Mapping** — laut Epic in 1b, nicht A7.
