@@ -1,6 +1,7 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
   buildCalendarIcsUrl,
+  buildCalendarPageUrl,
   signCalendarToken,
   verifyCalendarToken,
 } from "./calendar_token.ts";
@@ -33,9 +34,13 @@ Deno.test("calendar token: abgelaufen → null", async () => {
   assertEquals(bad, null);
 });
 
-Deno.test("calendar ics url + google template", () => {
+Deno.test("calendar ics url + page url + google template", () => {
   const url = buildCalendarIcsUrl("https://abc.supabase.co/", "tok.en");
   assertEquals(url, "https://abc.supabase.co/functions/v1/calendar-ics?t=tok.en");
+  assertEquals(
+    buildCalendarPageUrl("demoalpha", "omlify-dev.de", "tok.en"),
+    "https://demoalpha.omlify-dev.de/calendar?t=tok.en",
+  );
   const g = buildGoogleCalendarUrl({
     title: "Yin",
     date: "2026-10-05",

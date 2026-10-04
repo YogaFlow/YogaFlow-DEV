@@ -25,9 +25,10 @@ import {
 } from "../_shared/email_template.ts";
 import { buildIcs } from "../_shared/ics.ts";
 import {
-  buildCalendarIcsUrl,
+  buildCalendarPageUrl,
   signCalendarToken,
 } from "../_shared/calendar_token.ts";
+import { cancellationDeadlineLine } from "../_shared/cancellation_deadline.ts";
 import { buildGoogleCalendarUrl } from "../_shared/google_calendar.ts";
 
 export const DISPATCH_LIMIT = 20;
@@ -202,30 +203,12 @@ function taxLineSmall(regime: string | null, vatRateBp: number | null): string {
   return RECEIPT_TAX_SMALL_BUSINESS_FULL;
 }
 
-/** UX-3: freundliche Abmeldezeile vor/nach Frist. */
+/** UX-3/UX-4: freundliche Abmeldezeile vor/nach Frist (gemeinsam mit Client). */
 export function cancelLine(
   deadlineIso: string | null | undefined,
   now: Date = new Date(),
 ): string {
-  if (!deadlineIso) return "Die kostenlose Abmeldefrist ist abgelaufen.";
-  const ms = new Date(deadlineIso).getTime();
-  if (!Number.isFinite(ms) || ms <= now.getTime()) {
-    return "Die kostenlose Abmeldefrist ist abgelaufen.";
-  }
-  const weekday = new Intl.DateTimeFormat("de-DE", {
-    timeZone: "Europe/Berlin",
-    weekday: "short",
-  }).format(new Date(deadlineIso)).replace(/\.$/, "");
-  const day = new Intl.DateTimeFormat("de-DE", {
-    timeZone: "Europe/Berlin",
-    day: "numeric",
-  }).format(new Date(deadlineIso));
-  const month = new Intl.DateTimeFormat("de-DE", {
-    timeZone: "Europe/Berlin",
-    month: "short",
-  }).format(new Date(deadlineIso)).replace(/\.$/, "");
-  const time = berlinParts(deadlineIso).time;
-  return `Kostenlos abmelden bis ${weekday}, ${day}. ${month}, ${time}`;
+  return cancellationDeadlineLine(deadlineIso, now);
 }
 
 function placeOf(ctx: {
@@ -771,11 +754,15 @@ export async function runDispatch(deps: DispatchDeps): Promise<DispatchResult> {
       const place = placeOf(ctx!) || null;
       const paidAtLabel = ctx!.paidAt ? berlinParts(ctx!.paidAt).date : null;
       const calendarSecret = deps.env("CALENDAR_ICS_SECRET")?.trim() ?? "";
-      const supabaseUrl = deps.env("SUPABASE_URL")?.trim() ?? "";
       let calendarIcsUrl: string | null = null;
-      if (calendarSecret && supabaseUrl) {
+      if (calendarSecret) {
         const token = await signCalendarToken(calendarSecret, row.registration_id);
-        calendarIcsUrl = buildCalendarIcsUrl(supabaseUrl, token);
+        // UX-4 C1: Mail verlinkt auf Kalender-Seite; ICS bleibt als Anhang.
+        calendarIcsUrl = buildCalendarPageUrl(
+          ctx!.studioSlug,
+          deps.env("APP_BASE_DOMAIN"),
+          token,
+        );
       }
       const googleCalendarUrl = buildGoogleCalendarUrl({
         title: ctx!.courseTitle ?? "Kurs",

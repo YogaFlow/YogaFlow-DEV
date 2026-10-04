@@ -1,12 +1,14 @@
 /**
- * calendar-ics — öffentliche ICS-Datei für eine Buchung (UX-3 B).
- * GET ?t=<HMAC-Token> → text/calendar; ungültig/fremd → 404.
- * Kein Login; im ICS nur Kurs, Zeit, Ort, Studio — keine Personendaten.
+ * calendar-ics — öffentliche ICS / Meta für eine Buchung (UX-3 B / UX-4 C1).
+ * GET ?t=<HMAC-Token> → text/calendar (default attachment; ?inline=1 → inline)
+ * GET ?t=&format=json → Kurs-Meta + Google-URL
+ * Ungültig/fremd → 404.
  */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { verifyCalendarToken } from "../_shared/calendar_token.ts";
 import { buildIcs } from "../_shared/ics.ts";
+import { buildGoogleCalendarUrl } from "../_shared/google_calendar.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,6 +21,33 @@ function notFound(): Response {
     status: 404,
     headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" },
   });
+}
+
+function berlinWhen(date: string, time: string): { dateLabel: string; timeLabel: string } {
+  const isoGuess = `${date}T${time.length >= 8 ? time.slice(0, 8) : `${time.slice(0, 5)}:00`}`;
+  // Anzeige über Europe/Berlin-Format aus dem Kurs-Zivildatum (kein Date-Shift der Wandzeit).
+  const [y, m, d] = date.split("-");
+  const weekday = new Intl.DateTimeFormat("de-DE", {
+    timeZone: "Europe/Berlin",
+    weekday: "short",
+  })
+    .format(new Date(`${date}T12:00:00+02:00`))
+    .replace(/\.$/, "");
+  const month = new Intl.DateTimeFormat("de-DE", {
+    timeZone: "Europe/Berlin",
+    month: "short",
+  })
+    .format(new Date(`${date}T12:00:00+02:00`))
+    .replace(/\.$/, "");
+  const dayNum = String(Number(d));
+  const hm = time.slice(0, 5);
+  return {
+    dateLabel: `${weekday}, ${dayNum}. ${month}`,
+    timeLabel: hm,
+  };
+  void y;
+  void m;
+  void isoGuess;
 }
 
 Deno.serve(async (req: Request) => {
@@ -70,17 +99,56 @@ Deno.serve(async (req: Request) => {
 
   const { data: tenant } = await supabase
     .from("tenants")
-    .select("name")
+    .select("name, slug, brand_color")
     .eq("id", reg.tenant_id)
     .maybeSingle();
 
   const place = [course.location, course.room].filter(Boolean).join(" · ");
   const studioName = (tenant?.name as string | undefined)?.trim() || "Studio";
+  const title = (course.title as string | undefined)?.trim() || "Kurs";
+  const when = berlinWhen(course.date, course.time);
+  const googleUrl = buildGoogleCalendarUrl({
+    title,
+    date: course.date,
+    startTime: course.time,
+    endTime: course.end_time,
+    location: place || undefined,
+    details: `Termin bei ${studioName}`,
+  });
+
+  const wantJson = url.searchParams.get("format") === "json";
+  if (wantJson) {
+    const icsUrl = `${supabaseUrl.replace(/\/+$/, "")}/functions/v1/calendar-ics?t=${
+      encodeURIComponent(token)
+    }`;
+    const body = {
+      title,
+      date: course.date,
+      time: course.time.slice(0, 5),
+      dateLabel: when.dateLabel,
+      timeLabel: when.timeLabel,
+      place: place || null,
+      studioName,
+      brandColor: (tenant?.brand_color as string | undefined) ?? null,
+      tenantSlug: (tenant?.slug as string | undefined) ?? null,
+      googleUrl,
+      icsUrl,
+      icsInlineUrl: `${icsUrl}&inline=1`,
+    };
+    return new Response(JSON.stringify(body), {
+      status: 200,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "private, max-age=300",
+      },
+    });
+  }
 
   try {
     const ics = buildIcs({
       uid: reg.id,
-      summary: course.title ?? "Kurs",
+      summary: title,
       date: course.date,
       startTime: course.time,
       endTime: course.end_time,
@@ -89,12 +157,15 @@ Deno.serve(async (req: Request) => {
       method: "REQUEST",
     });
 
+    const inline = url.searchParams.get("inline") === "1";
     return new Response(ics, {
       status: 200,
       headers: {
         ...corsHeaders,
         "Content-Type": "text/calendar; charset=utf-8",
-        "Content-Disposition": 'attachment; filename="buchung.ics"',
+        "Content-Disposition": inline
+          ? 'inline; filename="buchung.ics"'
+          : 'attachment; filename="buchung.ics"',
         "Cache-Control": "private, max-age=300",
       },
     });

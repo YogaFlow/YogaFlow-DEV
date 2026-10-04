@@ -102,3 +102,17 @@ export function buildCalendarIcsUrl(supabaseUrl: string, token: string): string 
   const base = supabaseUrl.replace(/\/+$/, "");
   return `${base}/functions/v1/calendar-ics?t=${encodeURIComponent(token)}`;
 }
+
+/** SPA-Kalenderseite auf der Studio-Domain (UX-4 C1). */
+export function buildCalendarPageUrl(
+  slug: string | null,
+  baseDomain: string | undefined,
+  token: string,
+): string {
+  const domain = (baseDomain ?? "").trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
+  const s = (slug ?? "").trim().toLowerCase();
+  const q = `t=${encodeURIComponent(token)}`;
+  if (s && domain) return `https://${s}.${domain}/calendar?${q}`;
+  if (domain) return `https://${domain}/calendar?${q}`;
+  return `/calendar?${q}`;
+}

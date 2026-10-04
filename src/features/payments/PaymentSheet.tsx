@@ -92,6 +92,7 @@ const PaymentSheet: React.FC<Props> = ({
   const [visible, setVisible] = useState(false);
   const [tick, setTick] = useState(0);
   const [summary, setSummary] = useState<BookingSummaryData | null>(null);
+  const [receiptHref, setReceiptHref] = useState<string | null>(null);
 
   const outcomeMode = outcome != null;
 
@@ -285,6 +286,40 @@ const PaymentSheet: React.FC<Props> = ({
     courseMeta?.teacherName,
   ]);
 
+  useEffect(() => {
+    if (!open || !registrationId) {
+      setReceiptHref(null);
+      return;
+    }
+    const success =
+      phase === 'done' &&
+      (code === 'COMPLETED' || code === 'ALREADY_COMPLETED' || code === 'RESTORED');
+    if (!success) return;
+    let active = true;
+    (async () => {
+      const { data: pay } = await supabase
+        .from('payments')
+        .select('id')
+        .eq('registration_id', registrationId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!active || !pay?.id) return;
+      const { data: receipt } = await supabase
+        .from('receipts')
+        .select('id')
+        .eq('payment_id', pay.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!active || !receipt?.id) return;
+      setReceiptHref(`/receipts/${receipt.id}`);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [open, registrationId, phase, code]);
+
   const amountCents = checkout.prepare?.amountCents ?? null;
   const showLiveForm =
     !outcomeMode &&
@@ -341,6 +376,15 @@ const PaymentSheet: React.FC<Props> = ({
             }
           : undefined
       }
+      onCalendar={
+        registrationId
+          ? () => {
+              requestClose();
+              navigate(`/calendar?rid=${encodeURIComponent(registrationId)}`);
+            }
+          : undefined
+      }
+      receiptHref={receiptHref}
       formSlot={
         showLiveForm && checkout.prepare && config.publishableKey ? (
           <StripePaymentForm

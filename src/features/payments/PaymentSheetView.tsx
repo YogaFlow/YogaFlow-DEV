@@ -1,10 +1,10 @@
 /**
- * Präsentation Bezahl-Sheet (2.2b-2 / UX-2 A4) — ohne Checkout-Logik.
+ * Präsentation Bezahl-Sheet (2.2b-2 / UX-2 A4 / UX-4 B3) — ohne Checkout-Logik.
  */
 import React from 'react';
 import {
   AlertCircle,
-  CheckCircle2,
+  Check,
   Clock,
   Info,
   Loader2,
@@ -13,18 +13,21 @@ import {
 } from 'lucide-react';
 import {
   PAYMENT_ACK_LABEL,
+  PAYMENT_CALENDAR_LABEL,
   PAYMENT_CLOSE_LABEL,
   PAYMENT_DONE_LABEL,
   PAYMENT_EMAIL_HINT,
   PAYMENT_HOLD_EXPIRED,
   PAYMENT_PROCESSING,
   PAYMENT_PROCESSING_TIMEOUT,
+  PAYMENT_RECEIPT_LINK_LABEL,
   PAYMENT_SHEET_TITLE,
   PAYMENT_SUCCESS_HEADLINE,
   PAYMENT_TO_COURSE_LABEL,
   paymentHoldPill,
   paymentMessageForCode,
   paymentSecureHint,
+  paymentSuccessSummaryLine,
 } from '../../lib/paymentTexts';
 import { formatCents } from '../../lib/format';
 import {
@@ -65,6 +68,9 @@ export type PaymentSheetViewProps = {
   courseBookable?: boolean;
   onClose: () => void;
   onToCourse?: () => void;
+  /** UX-4 B3 */
+  onCalendar?: () => void;
+  receiptHref?: string | null;
   formSlot?: React.ReactNode;
 };
 
@@ -123,6 +129,8 @@ const PaymentSheetView: React.FC<PaymentSheetViewProps> = ({
   courseBookable = false,
   onClose,
   onToCourse,
+  onCalendar,
+  receiptHref = null,
   formSlot,
 }) => {
   const titleId = 'payment-sheet-title';
@@ -180,6 +188,7 @@ const PaymentSheetView: React.FC<PaymentSheetViewProps> = ({
         ? holdHint
         : null;
   const holdWarn = minutesUrgent(holdMinutesLeft);
+  const successLine = paymentSuccessSummaryLine(courseTitle, courseWhen);
 
   return (
     <ModalBackdrop
@@ -191,41 +200,58 @@ const PaymentSheetView: React.FC<PaymentSheetViewProps> = ({
       panelClassName="max-w-md sm:max-w-[480px]"
       labelledBy={titleId}
     >
-      <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border px-5 pb-3 pt-5">
-        <div className="min-w-0">
-          <h3 id={titleId} tabIndex={-1} className="text-[17px] font-medium text-text outline-none">
-            {PAYMENT_SHEET_TITLE}
-          </h3>
-          {holdPillText && (showPreparing || showForm) ? (
-            <p
-              className={`mt-2 inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-medium tabular-nums ${
-                holdWarn
-                  ? 'bg-dangerSoft text-danger'
-                  : 'bg-surfaceSunken text-textMuted'
-              }`}
-              data-testid="hold-pill"
-            >
-              <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              <span className="truncate">{holdPillText}</span>
-            </p>
-          ) : null}
+      {!showSuccess ? (
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border px-5 pb-3 pt-5">
+          <div className="min-w-0">
+            <h3 id={titleId} tabIndex={-1} className="text-[17px] font-medium text-text outline-none">
+              {PAYMENT_SHEET_TITLE}
+            </h3>
+            {holdPillText && (showPreparing || showForm) ? (
+              <p
+                className={`mt-2 inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-medium tabular-nums ${
+                  holdWarn
+                    ? 'bg-dangerSoft text-danger'
+                    : 'bg-surfaceSunken text-textMuted'
+                }`}
+                data-testid="hold-pill"
+              >
+                <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                <span className="truncate">{holdPillText}</span>
+              </p>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            disabled={!canClose}
+            onClick={onClose}
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-textMuted disabled:opacity-50"
+            aria-label={PAYMENT_CLOSE_LABEL}
+          >
+            <X className="h-5 w-5" aria-hidden />
+          </button>
         </div>
-        <button
-          type="button"
-          disabled={!canClose}
-          onClick={onClose}
-          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-textMuted disabled:opacity-50"
-          aria-label={PAYMENT_CLOSE_LABEL}
-        >
-          <X className="h-5 w-5" aria-hidden />
-        </button>
-      </div>
+      ) : (
+        <div className="flex shrink-0 justify-end px-5 pt-5">
+          <h3 id={titleId} className="sr-only">
+            {PAYMENT_SUCCESS_HEADLINE}
+          </h3>
+          <button
+            type="button"
+            disabled={!canClose}
+            onClick={onClose}
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-textMuted disabled:opacity-50"
+            aria-label={PAYMENT_CLOSE_LABEL}
+          >
+            <X className="h-5 w-5" aria-hidden />
+          </button>
+        </div>
+      )}
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4">
         {bookingSummary && (showPreparing || showForm) ? (
           <BookingSummaryCompact data={bookingSummary} />
         ) : (courseTitle || amountLabel) &&
-          (showPreparing || showForm || showSuccess || showProcessing) ? (
+          (showPreparing || showForm || showProcessing) ? (
           <div className="mb-4 space-y-1">
             {courseTitle ? (
               <p className="text-[15px] font-medium text-text">{courseTitle}</p>
@@ -233,7 +259,7 @@ const PaymentSheetView: React.FC<PaymentSheetViewProps> = ({
             {courseWhen ? (
               <p className="text-[13px] text-textMuted tabular-nums">{courseWhen}</p>
             ) : null}
-            {amountLabel && !showSuccess ? (
+            {amountLabel ? (
               <p className="pt-1 text-[22px] font-medium leading-tight text-text tabular-nums">
                 {amountLabel}
               </p>
@@ -262,16 +288,34 @@ const PaymentSheetView: React.FC<PaymentSheetViewProps> = ({
         ) : null}
 
         {showSuccess ? (
-          <div className="flex flex-col items-center gap-3 py-6 text-center" role="status">
-            <CheckCircle2 className="h-10 w-10 text-success" aria-hidden />
-            <p className="text-[17px] font-medium text-text">{PAYMENT_SUCCESS_HEADLINE}</p>
-            {courseTitle ? (
-              <p className="text-[13px] text-textMuted">
-                {courseTitle}
-                {courseWhen ? ` · ${courseWhen}` : ''}
+          <div
+            className="flex flex-col items-center gap-3 py-4 text-center"
+            role="status"
+            data-testid="payment-success"
+          >
+            <span
+              className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-brandSoft text-brand motion-safe:animate-in motion-safe:fade-in motion-safe:duration-300"
+              style={{ animation: 'ux4-success-in 300ms ease both' }}
+              aria-hidden
+            >
+              <Check className="h-8 w-8" strokeWidth={2.5} />
+            </span>
+            <p className="text-[22px] font-medium text-text">{PAYMENT_SUCCESS_HEADLINE}</p>
+            {successLine ? (
+              <p className="text-[15px] text-textMuted tabular-nums" data-testid="payment-success-line">
+                {successLine}
               </p>
             ) : null}
             <p className="text-[13px] text-textMuted">{PAYMENT_EMAIL_HINT}</p>
+            {receiptHref ? (
+              <a
+                href={receiptHref}
+                className="mt-1 inline-flex min-h-11 items-center text-[15px] font-medium text-brand"
+                data-testid="payment-receipt-link"
+              >
+                {PAYMENT_RECEIPT_LINK_LABEL}
+              </a>
+            ) : null}
           </div>
         ) : null}
 
@@ -302,6 +346,16 @@ const PaymentSheetView: React.FC<PaymentSheetViewProps> = ({
       {showFooterActions ? (
         <div className="shrink-0 border-t border-border bg-surface px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <div className="flex flex-col gap-2">
+            {showSuccess && onCalendar ? (
+              <button
+                type="button"
+                onClick={onCalendar}
+                className="inline-flex h-11 w-full items-center justify-center rounded-full bg-brand px-5 text-[15px] font-medium text-onBrand active:bg-brandPressed"
+                data-testid="payment-calendar"
+              >
+                {PAYMENT_CALENDAR_LABEL}
+              </button>
+            ) : null}
             {showHoldExpired && courseBookable && onToCourse ? (
               <button
                 type="button"
@@ -317,8 +371,8 @@ const PaymentSheetView: React.FC<PaymentSheetViewProps> = ({
                 onClick={onClose}
                 className={`inline-flex h-11 w-full items-center justify-center rounded-full px-5 text-[15px] font-medium ${
                   showSuccess
-                    ? 'bg-brand text-onBrand active:bg-brandPressed'
-                    : 'border border-borderStrong bg-surface text-text active:bg-surfaceSunken'
+                    ? 'border border-border bg-surface text-text active:bg-surfaceSunken'
+                    : 'bg-brand text-onBrand active:bg-brandPressed'
                 }`}
               >
                 {primaryCloseLabel}

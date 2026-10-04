@@ -28,6 +28,7 @@ import CourseDetail from './pages/CourseDetail';
 import CourseCheckout from './pages/CourseCheckout';
 import PaymentsHub, { OpenPaymentsRedirect } from './pages/PaymentsHub';
 import Receipt from './pages/Receipt';
+import CalendarInvite from './pages/CalendarInvite';
 
 /** Nur DEV — sonst kein Chunk mit paymentSheet / DevPaymentSheet im dist. */
 const LazyDevPaymentSheetStates = import.meta.env.DEV
@@ -292,6 +293,8 @@ function App() {
             <Route path="/reset-password"  element={<ResetPassword />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/verify-email"    element={<VerifyEmail />} />
+            {/* UX-4 C1: Kalender-Seite (Token aus Mail; kein Login nötig) */}
+            <Route path="/calendar" element={<CalendarInvite />} />
 
             {/* Apex: Token-Redirect oder Worker-Marketing / Subdomain: Dashboard oder Login */}
             <Route path="/" element={<HomeRouteWithTokenRedirect />} />
