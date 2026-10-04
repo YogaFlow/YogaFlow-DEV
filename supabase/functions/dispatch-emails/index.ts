@@ -33,7 +33,7 @@ Deno.serve(async (req: Request) => {
       const { data: reg, error: re } = await supabase
         .from("registrations")
         .select(
-          "id, status, hold_expires_at, user_id, course_id, tenant_id",
+          "id, status, hold_expires_at, user_id, course_id, tenant_id, cancellation_deadline",
         )
         .eq("id", registrationId)
         .maybeSingle();
@@ -42,7 +42,7 @@ Deno.serve(async (req: Request) => {
       const [{ data: course }, { data: tenant }, { data: user }] = await Promise.all([
         supabase
           .from("courses")
-          .select("title, date, time")
+          .select("title, date, time, end_time, location, room, teacher_id")
           .eq("id", reg.course_id)
           .maybeSingle(),
         supabase.from("tenants").select("name, slug").eq("id", reg.tenant_id).maybeSingle(),
@@ -97,6 +97,61 @@ Deno.serve(async (req: Request) => {
         if (pr && typeof pr.reason === "string") refundReason = pr.reason;
       }
 
+      const { data: legal } = await supabase
+        .from("tenant_legal_profiles")
+        .select("legal_name, street, house_number, postal_code, city, contact_email, phone")
+        .eq("tenant_id", reg.tenant_id)
+        .maybeSingle();
+
+      const { data: tax } = await supabase
+        .from("tenant_tax_settings")
+        .select("regime, vat_rate_bp")
+        .eq("tenant_id", reg.tenant_id)
+        .order("valid_from", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      let teacherName: string | null = null;
+      if (course?.teacher_id) {
+        const { data: teacher } = await supabase
+          .from("users")
+          .select("first_name, last_name")
+          .eq("id", course.teacher_id)
+          .maybeSingle();
+        teacherName = [teacher?.first_name, teacher?.last_name].filter(Boolean).join(" ") || null;
+      }
+
+      let receiptId: string | null = null;
+      let receiptNumber: string | null = null;
+      let refundReceiptId: string | null = null;
+      let refundReceiptNumber: string | null = null;
+      if (original?.id) {
+        const { data: recs } = await supabase
+          .from("receipts")
+          .select("id, number, kind")
+          .eq("payment_id", original.id);
+        for (const rec of recs ?? []) {
+          if (rec.kind === "receipt") {
+            receiptId = rec.id;
+            receiptNumber = rec.number;
+          }
+          if (rec.kind === "refund_receipt") {
+            refundReceiptId = rec.id;
+            refundReceiptNumber = rec.number;
+          }
+        }
+      }
+
+      let durationMinutes: number | null = null;
+      if (course?.time && course?.end_time) {
+        const [sh, sm] = String(course.time).split(":").map(Number);
+        const [eh, em] = String(course.end_time).split(":").map(Number);
+        if (Number.isFinite(sh) && Number.isFinite(sm) && Number.isFinite(eh) && Number.isFinite(em)) {
+          const mins = eh * 60 + em - (sh * 60 + sm);
+          if (mins > 0) durationMinutes = mins;
+        }
+      }
+
       const ctx: DeliveryContext = {
         registrationStatus: reg.status ?? null,
         holdExpiresAt: reg.hold_expires_at ?? null,
@@ -114,6 +169,26 @@ Deno.serve(async (req: Request) => {
         refundReason,
         hasRefund,
         refundRequired,
+        courseEndTime: course?.end_time ?? null,
+        courseLocation: course?.location ?? null,
+        courseRoom: course?.room ?? null,
+        teacherName,
+        durationMinutes,
+        cancelDeadline: reg.cancellation_deadline ?? null,
+        legalName: legal?.legal_name ?? null,
+        legalStreet: legal?.street ?? null,
+        legalHouse: legal?.house_number ?? null,
+        legalPostal: legal?.postal_code ?? null,
+        legalCity: legal?.city ?? null,
+        contactEmail: legal?.contact_email ?? null,
+        legalPhone: legal?.phone ?? null,
+        taxRegime: tax?.regime ?? null,
+        vatRateBp: typeof tax?.vat_rate_bp === "number" ? tax.vat_rate_bp : null,
+        receiptId,
+        receiptNumber,
+        refundReceiptId,
+        refundReceiptNumber,
+        termsText: null,
       };
       return ctx;
     },
@@ -128,7 +203,7 @@ Deno.serve(async (req: Request) => {
         throw error;
       }
     },
-    sendEmail: async ({ to, subject, html }) => {
+    sendEmail: async ({ to, subject, html, fromName, replyTo }) => {
       const internal = Deno.env.get("INTERNAL_EMAIL_SECRET") ?? "";
       const res = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
         method: "POST",
@@ -136,7 +211,7 @@ Deno.serve(async (req: Request) => {
           "Content-Type": "application/json",
           "X-Internal-Secret": internal,
         },
-        body: JSON.stringify({ to, subject, html }),
+        body: JSON.stringify({ to, subject, html, fromName, replyTo }),
       });
       if (!res.ok) {
         return { ok: false, errorCode: "SMTP_ERROR" };

@@ -15,6 +15,23 @@ interface EmailRequest {
   subject: string;
   html: string;
   text?: string;
+  fromName?: string;
+  replyTo?: string;
+}
+
+function sanitizeFromName(raw: string | undefined): string | null {
+  if (!raw) return null;
+  const cleaned = raw.trim().replace(/[\r\n<>"]/g, "");
+  if (!cleaned || cleaned.length > 80) return null;
+  return cleaned;
+}
+
+function validReplyTo(raw: string | undefined): string | null {
+  if (!raw) return null;
+  const value = raw.trim();
+  if (value.length > 120) return null;
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value)) return null;
+  return value;
 }
 
 Deno.serve(async (req: Request) => {
@@ -95,7 +112,9 @@ Deno.serve(async (req: Request) => {
   }
 
   const fromAddress = Deno.env.get("SENDER_EMAIL")?.trim() || smtpUser;
-  const from = `"Omlify" <${fromAddress}>`;
+  const displayName = sanitizeFromName(body.fromName) ?? "Omlify";
+  const from = `"${displayName}" <${fromAddress}>`;
+  const replyTo = validReplyTo(body.replyTo);
 
   try {
     const info = await transport.sendMail({
@@ -103,6 +122,7 @@ Deno.serve(async (req: Request) => {
       to: recipient,
       subject: finalSubject,
       html: htmlContent,
+      ...(replyTo ? { replyTo } : {}),
     });
 
     console.log("Email sent:", info.messageId);

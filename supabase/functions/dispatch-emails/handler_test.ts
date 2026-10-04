@@ -275,11 +275,17 @@ Deno.test("18. payment_succeeded: gueltig gesendet; erstattet skipped", async ()
     courseDate: "05.10.2026",
     courseTime: "18:00",
     studioName: "Om Studio",
-    amountLabel: amount,
+    amountCents: 2400,
     link: "https://omstudio.omlify-dev.de/my-registrations",
+    receiptLink: "https://omstudio.omlify-dev.de/receipts/r1",
+    receiptNumber: "2026-00001",
+    taxRegime: "small_business",
+    vatRateBp: 0,
   });
-  assert(subject.includes("Zahlung eingegangen"), "Betreff");
+  assert(subject.includes("Buchungsbestätigung"), "Betreff");
   assert(html.includes(amount) && html.includes("Yin") && html.includes("05.10.2026"), "Text");
+  assert(html.includes("2026-00001"), "Belegnummer");
+  assert(html.includes("§ 19 UStG"), "Steuer");
 
   const { deps, mails, marks } = makeDeps({
     rows: [{
@@ -291,7 +297,7 @@ Deno.test("18. payment_succeeded: gueltig gesendet; erstattet skipped", async ()
       status: "sending",
       attempts: 0,
     }],
-    ctxByReg: { r1: paidCtx },
+    ctxByReg: { r1: { ...paidCtx, receiptId: "rec-1", receiptNumber: "2026-00001" } },
   });
   const out = await runDispatch(deps);
   assertEquals(out.results[0]?.code, "SENT");
@@ -316,6 +322,23 @@ Deno.test("18. payment_succeeded: gueltig gesendet; erstattet skipped", async ()
   assertEquals(out2.results[0]?.code, "ALREADY_REFUNDED");
   assertEquals(refunded.mails.length, 0);
   assertEquals(classifyPaymentSucceeded({ ...paidCtx, hasRefund: true }), "ALREADY_REFUNDED");
+
+  const pending = makeDeps({
+    rows: [{
+      id: "ps3",
+      tenant_id: "t1",
+      event_id: "e3",
+      kind: "payment_succeeded",
+      registration_id: "r3",
+      status: "sending",
+      attempts: 0,
+    }],
+    ctxByReg: { r3: paidCtx },
+  });
+  const out3 = await runDispatch(pending.deps);
+  assertEquals(out3.results[0]?.code, "RECEIPT_PENDING");
+  assertEquals(pending.mails.length, 0);
+  assertEquals(pending.marks[0]?.status, "released");
 });
 
 Deno.test("19. payment_refunded: Texte je reason, Voll- und Teilerstattung", async () => {
@@ -393,6 +416,8 @@ Deno.test("19. payment_refunded: Texte je reason, Voll- und Teilerstattung", asy
         refundAmountCents: 2400,
         originalAmountCents: 2400,
         amountCents: 2400,
+        refundReceiptId: "rr-1",
+        refundReceiptNumber: "2026-00002",
       },
     },
   });

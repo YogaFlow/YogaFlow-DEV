@@ -47,6 +47,26 @@ export type DeliveryContext = {
   hasRefund: boolean;
   /** Event payment.refund_required zum Original — Platz war vergeben (Fallback). */
   refundRequired: boolean;
+  courseEndTime?: string | null;
+  courseLocation?: string | null;
+  courseRoom?: string | null;
+  teacherName?: string | null;
+  durationMinutes?: number | null;
+  cancelDeadline?: string | null;
+  legalName?: string | null;
+  legalStreet?: string | null;
+  legalHouse?: string | null;
+  legalPostal?: string | null;
+  legalCity?: string | null;
+  contactEmail?: string | null;
+  legalPhone?: string | null;
+  taxRegime?: string | null;
+  vatRateBp?: number | null;
+  receiptId?: string | null;
+  receiptNumber?: string | null;
+  refundReceiptId?: string | null;
+  refundReceiptNumber?: string | null;
+  termsText?: string | null;
 };
 
 export type DispatchDeps = {
@@ -56,13 +76,15 @@ export type DispatchDeps = {
   loadContext: (registrationId: string) => Promise<DeliveryContext | null>;
   markDelivery: (
     id: string,
-    status: "sent" | "skipped" | "failed",
+    status: "sent" | "skipped" | "failed" | "released",
     errorCode?: string | null,
   ) => Promise<void>;
   sendEmail: (input: {
     to: string;
     subject: string;
     html: string;
+    fromName?: string;
+    replyTo?: string;
   }) => Promise<{ ok: true } | { ok: false; errorCode: string }>;
   now?: () => Date;
 };
@@ -106,6 +128,23 @@ function courseTimeText(timeStr: string | null): string {
 export function formatEurCents(cents: number): string {
   const n = (Math.abs(cents) / 100).toFixed(2).replace(".", ",");
   return `${n} €`;
+}
+
+export function buildReceiptLink(
+  slug: string | null,
+  baseDomain: string | undefined,
+  receiptId: string,
+): string {
+  const domain = (baseDomain ?? "").trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
+  const s = (slug ?? "").trim().toLowerCase();
+  if (s && domain) return `https://${s}.${domain}/receipts/${receiptId}`;
+  if (domain) return `https://${domain}/receipts/${receiptId}`;
+  return `/receipts/${receiptId}`;
+}
+
+export function studioFromName(studioName: string): string {
+  const name = studioName.trim() || "Studio";
+  return `${name} über Omlify`;
 }
 
 export function buildMyRegistrationsLink(
@@ -166,15 +205,71 @@ export function buildPromotionEmail(input: {
   return { subject, html };
 }
 
+function priceLine(amountCents: number, regime: string | null, vatRateBp: number | null): string {
+  const amount = formatEurCents(Math.abs(amountCents));
+  if (regime === "regular") {
+    const pct = Math.round((vatRateBp ?? 1900) / 100);
+    return `${amount} inkl. ${pct} % USt`;
+  }
+  return `${amount} · gemäß § 19 UStG ohne USt`;
+}
+
+function cancelLine(deadlineIso: string | null | undefined): string {
+  if (!deadlineIso) return "Eine kostenlose Abmeldung ist nicht mehr möglich.";
+  const ms = new Date(deadlineIso).getTime();
+  if (!Number.isFinite(ms) || ms <= Date.now()) {
+    return "Eine kostenlose Abmeldung ist nicht mehr möglich.";
+  }
+  const parts = berlinParts(deadlineIso);
+  const weekday = new Intl.DateTimeFormat("de-DE", {
+    timeZone: "Europe/Berlin",
+    weekday: "short",
+  }).format(new Date(deadlineIso)).replace(/\.$/, "");
+  return `Kostenlos abmelden bis ${weekday}, ${parts.date.slice(0, 6)}, ${parts.time} – du bekommst den vollen Betrag zurück. Danach keine Erstattung.`;
+}
+
 export function buildPaymentSucceededEmail(input: {
   courseTitle: string;
   courseDate: string;
   courseTime: string;
   studioName: string;
-  amountLabel: string;
+  amountCents: number;
   link: string;
+  receiptLink: string;
+  receiptNumber: string;
+  legalName?: string | null;
+  legalStreet?: string | null;
+  legalHouse?: string | null;
+  legalPostal?: string | null;
+  legalCity?: string | null;
+  contactEmail?: string | null;
+  durationMinutes?: number | null;
+  place?: string | null;
+  teacherName?: string | null;
+  taxRegime?: string | null;
+  vatRateBp?: number | null;
+  cancelDeadline?: string | null;
+  termsText?: string | null;
+  paidAtLabel?: string | null;
 }): { subject: string; html: string } {
-  const subject = "Zahlung eingegangen – dein Platz ist sicher";
+  const subject = `Buchungsbestätigung: ${input.courseTitle} am ${input.courseDate}`;
+  const seller = [
+    input.legalName || input.studioName,
+    `${input.legalStreet ?? ""} ${input.legalHouse ?? ""}`.trim(),
+    `${input.legalPostal ?? ""} ${input.legalCity ?? ""}`.trim(),
+    input.contactEmail ?? "",
+  ].filter(Boolean).map(escapeHtml).join("<br />");
+  const serviceBits = [
+    input.courseTitle,
+    `${input.courseDate} ${input.courseTime}`.trim(),
+    input.durationMinutes != null ? `${input.durationMinutes} Min` : "",
+    input.place ?? "",
+    input.teacherName ?? "",
+  ].filter(Boolean).map(escapeHtml).join(" · ");
+  const terms = input.termsText?.trim()
+    ? `<h2 style="margin:24px 0 8px 0;font-size:16px;">Allgemeine Geschäftsbedingungen</h2>
+      <pre style="white-space:pre-wrap;font-family:inherit;font-size:13px;color:#374151;">${escapeHtml(input.termsText)}</pre>`
+    : "";
   const html = `<!DOCTYPE html>
 <html lang="de">
   <head><meta charset="utf-8" /></head>
@@ -182,12 +277,25 @@ export function buildPaymentSucceededEmail(input: {
     <div style="max-width:560px;margin:24px auto;padding:24px;background:#ffffff;border-radius:8px;">
       <p style="margin:0 0 12px 0;color:#2F5A4E;font-size:14px;">${escapeHtml(input.studioName)}</p>
       <h1 style="margin:0 0 16px 0;color:#111827;font-size:20px;line-height:1.3;">
-        Zahlung eingegangen
+        Buchungsbestätigung
       </h1>
+      <p style="margin:0 0 12px 0;color:#374151;font-size:16px;line-height:1.5;">${seller}</p>
+      <p style="margin:0 0 12px 0;color:#374151;font-size:16px;line-height:1.5;">${serviceBits}</p>
+      <p style="margin:0 0 12px 0;color:#374151;font-size:16px;line-height:1.5;">
+        ${escapeHtml(priceLine(input.amountCents, input.taxRegime ?? null, input.vatRateBp ?? null))}
+      </p>
+      <p style="margin:0 0 12px 0;color:#374151;font-size:16px;line-height:1.5;">
+        Zahlungsart Karte (online)${input.paidAtLabel ? `, ${escapeHtml(input.paidAtLabel)}` : ""}
+      </p>
+      <p style="margin:0 0 12px 0;color:#374151;font-size:16px;line-height:1.5;">
+        ${escapeHtml(cancelLine(input.cancelDeadline))}
+      </p>
+      <p style="margin:0 0 12px 0;color:#374151;font-size:16px;line-height:1.5;">
+        Für Kurse mit festem Termin besteht kein Widerrufsrecht (§ 312g Abs. 2 Nr. 9 BGB).
+      </p>
       <p style="margin:0 0 16px 0;color:#374151;font-size:16px;line-height:1.5;">
-        Deine Zahlung über <strong>${escapeHtml(input.amountLabel)}</strong> für
-        „${escapeHtml(input.courseTitle)}“ am ${escapeHtml(input.courseDate)} um
-        ${escapeHtml(input.courseTime)} ist eingegangen. Dein Platz ist gebucht.
+        Beleg ${escapeHtml(input.receiptNumber)} —
+        <a href="${escapeHtml(input.receiptLink)}">Beleg ansehen</a>
       </p>
       <p style="margin:0 0 24px 0;">
         <a href="${escapeHtml(input.link)}"
@@ -195,6 +303,7 @@ export function buildPaymentSucceededEmail(input: {
           Meine Anmeldungen
         </a>
       </p>
+      ${terms}
     </div>
   </body>
 </html>`;
@@ -208,6 +317,8 @@ export function buildPaymentRefundedEmail(input: {
   refundAmountCents: number;
   originalAmountCents: number | null;
   reason: string | null;
+  receiptLink?: string | null;
+  receiptNumber?: string | null;
 }): { subject: string; html: string } {
   const subject = "Zahlung erstattet";
   const refundLabel = formatEurCents(input.refundAmountCents);
@@ -235,9 +346,12 @@ export function buildPaymentRefundedEmail(input: {
       <p style="margin:0 0 16px 0;color:#374151;font-size:16px;line-height:1.5;">
         ${amountSentence}
       </p>
-      <p style="margin:0;color:#374151;font-size:16px;line-height:1.5;">
+      <p style="margin:0 0 16px 0;color:#374151;font-size:16px;line-height:1.5;">
         Je nach Bank dauert die Gutschrift einige Werktage.
       </p>
+      ${input.receiptLink && input.receiptNumber
+        ? `<p style="margin:0;color:#374151;font-size:16px;line-height:1.5;">Erstattungsbeleg ${escapeHtml(input.receiptNumber)} — <a href="${escapeHtml(input.receiptLink)}">Beleg ansehen</a></p>`
+        : ""}
     </div>
   </body>
 </html>`;
@@ -335,7 +449,13 @@ export async function runDispatch(deps: DispatchDeps): Promise<DispatchResult> {
         holdExpiresAt: holdIso,
         link,
       });
-      const sent = await deps.sendEmail({ to: ctx!.recipientEmail!.trim(), subject, html });
+      const sent = await deps.sendEmail({
+        to: ctx!.recipientEmail!.trim(),
+        subject,
+        html,
+        fromName: studioFromName(ctx!.studioName ?? "Studio"),
+        replyTo: ctx!.contactEmail ?? undefined,
+      });
       if (!sent.ok) {
         await deps.markDelivery(row.id, "failed", sent.errorCode);
         deps.log.info("dispatch", { delivery_id: row.id, kind: row.kind, code: sent.errorCode });
@@ -356,16 +476,49 @@ export async function runDispatch(deps: DispatchDeps): Promise<DispatchResult> {
         results.push({ deliveryId: row.id, kind: row.kind, code: gate });
         continue;
       }
+      if (!ctx!.receiptId || !ctx!.receiptNumber) {
+        await deps.markDelivery(row.id, "released", "RECEIPT_PENDING");
+        deps.log.info("dispatch", { delivery_id: row.id, kind: row.kind, code: "RECEIPT_PENDING" });
+        results.push({ deliveryId: row.id, kind: row.kind, code: "RECEIPT_PENDING" });
+        continue;
+      }
       const link = buildMyRegistrationsLink(ctx!.studioSlug, deps.env("APP_BASE_DOMAIN"));
+      const receiptLink = buildReceiptLink(
+        ctx!.studioSlug,
+        deps.env("APP_BASE_DOMAIN"),
+        ctx!.receiptId,
+      );
+      const place = [ctx!.courseLocation, ctx!.courseRoom].filter(Boolean).join(" · ") || null;
       const { subject, html } = buildPaymentSucceededEmail({
         courseTitle: ctx!.courseTitle ?? "Kurs",
         courseDate: courseDateText(ctx!.courseDate),
         courseTime: courseTimeText(ctx!.courseTime),
         studioName: ctx!.studioName ?? "Studio",
-        amountLabel: formatEurCents(ctx!.amountCents!),
+        amountCents: ctx!.amountCents!,
         link,
+        receiptLink,
+        receiptNumber: ctx!.receiptNumber,
+        legalName: ctx!.legalName,
+        legalStreet: ctx!.legalStreet,
+        legalHouse: ctx!.legalHouse,
+        legalPostal: ctx!.legalPostal,
+        legalCity: ctx!.legalCity,
+        contactEmail: ctx!.contactEmail,
+        durationMinutes: ctx!.durationMinutes,
+        place,
+        teacherName: ctx!.teacherName,
+        taxRegime: ctx!.taxRegime,
+        vatRateBp: ctx!.vatRateBp,
+        cancelDeadline: ctx!.cancelDeadline,
+        termsText: ctx!.termsText,
       });
-      const sent = await deps.sendEmail({ to: ctx!.recipientEmail!.trim(), subject, html });
+      const sent = await deps.sendEmail({
+        to: ctx!.recipientEmail!.trim(),
+        subject,
+        html,
+        fromName: studioFromName(ctx!.studioName ?? "Studio"),
+        replyTo: ctx!.contactEmail ?? undefined,
+      });
       if (!sent.ok) {
         await deps.markDelivery(row.id, "failed", sent.errorCode);
         deps.log.info("dispatch", { delivery_id: row.id, kind: row.kind, code: sent.errorCode });
@@ -386,6 +539,12 @@ export async function runDispatch(deps: DispatchDeps): Promise<DispatchResult> {
         results.push({ deliveryId: row.id, kind: row.kind, code: gate });
         continue;
       }
+      if (!ctx!.refundReceiptId || !ctx!.refundReceiptNumber) {
+        await deps.markDelivery(row.id, "released", "RECEIPT_PENDING");
+        deps.log.info("dispatch", { delivery_id: row.id, kind: row.kind, code: "RECEIPT_PENDING" });
+        results.push({ deliveryId: row.id, kind: row.kind, code: "RECEIPT_PENDING" });
+        continue;
+      }
       const refundCents = ctx!.refundAmountCents ?? ctx!.amountCents!;
       const reason = ctx!.refundReason ??
         (ctx!.refundRequired ? "late_payment" : null);
@@ -396,8 +555,20 @@ export async function runDispatch(deps: DispatchDeps): Promise<DispatchResult> {
         refundAmountCents: refundCents,
         originalAmountCents: ctx!.originalAmountCents,
         reason,
+        receiptLink: buildReceiptLink(
+          ctx!.studioSlug,
+          deps.env("APP_BASE_DOMAIN"),
+          ctx!.refundReceiptId,
+        ),
+        receiptNumber: ctx!.refundReceiptNumber,
       });
-      const sent = await deps.sendEmail({ to: ctx!.recipientEmail!.trim(), subject, html });
+      const sent = await deps.sendEmail({
+        to: ctx!.recipientEmail!.trim(),
+        subject,
+        html,
+        fromName: studioFromName(ctx!.studioName ?? "Studio"),
+        replyTo: ctx!.contactEmail ?? undefined,
+      });
       if (!sent.ok) {
         await deps.markDelivery(row.id, "failed", sent.errorCode);
         deps.log.info("dispatch", { delivery_id: row.id, kind: row.kind, code: sent.errorCode });
