@@ -10,7 +10,8 @@ Grundlage: [DESIGNSYSTEM.md](../DESIGNSYSTEM.md), [Entscheidung 10](../entscheid
 
 - `d781c94` docs(geldkette): Entscheidung 11 gilt, bestaetigt von Julius
 - `6fba410` feat(geldkette): UX-1 Erstatten in einem Schritt, Zahlungen-Reiter, Einstellungen
-- folgt: E2E-Nachzug + Bericht + STAND
+- `98f8fc8` fix(geldkette): UX-1 E2E Buchungen nach Speichern ohne Dialog-Blockade
+- `cb01b2c` docs(geldkette): UX-1 Bericht und STAND, Haltestelle Klicktest
 
 ## DoD
 
