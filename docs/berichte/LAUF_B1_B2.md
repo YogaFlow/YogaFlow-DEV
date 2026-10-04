@@ -4,53 +4,53 @@ Branch `Julius`. Kein PROD, kein Stripe-Dashboard, kein Merge nach `main`.
 
 ## UX-1 Vorab
 
-Status **fertig**. Klicktest Julius 04.10., 360 + 1280. Commit `fa3adad`.
+Status **fertig**. Klicktest Julius 04.10., 360 + 1280.
 
 ## B1 — Studio-Angaben, Bestellknopf, Bestätigung, Belege
 
-Status **fertig** (Klicktest offen). Bericht: [b1_bestellknopf_belege.md](b1_bestellknopf_belege.md).
+Status **fertig** inkl. Nachtrag N1–N6. Bericht: [b1_bestellknopf_belege.md](b1_bestellknopf_belege.md).
 
 | | |
 |---|---|
-| Commits | `6550508` Angaben/Sperre · `9aa624f` Belege · `cbbd323` Mail · `5391d5e` Oberfläche |
-| Migrationen | `20261004090000`, `20261004100000`, `20261004110000` |
-| Functions | `dispatch-emails`, `send-email` (DEV deployt) |
-| DoD | apply + SQL-Tests + Unit-Texte + Deno + tsc grün |
-| E2E | `e2e/b1.spec.ts` (3 Fälle) angelegt; Lauf nach SPA-Deploy |
+| Migrationen | bis `20261004122000` |
+| E2E | `e2e/b1.spec.ts` 3/3 grün |
+| demoalpha Belege | `2026-00001`/`00002` receipt, `2026-00004` refund_receipt (`00003` Fehlbeleg Umkehr vor Fix) |
 
 ## B2 — Überwachung, AVV v2, AVV-Zustimmung
 
-Status **in Arbeit**.
+Status **fertig** (Klicktest offen). Bericht: [b2_ueberwachung_avv.md](b2_ueberwachung_avv.md).
 
 | Teil | Stand |
 |---|---|
-| AVV-Text v2 | Ergänzungen aus `AVV_Aenderungen_v2_Zahlungen.md` in `docs/legal/AVV_Auftragsverarbeitung.md`, Stand 04.10.2026, gerendert, kein PROD-Deploy |
-| Überwachung `ops-monitor` | **hier weitermachen** |
-| AVV-Zustimmung `legal_acceptances` | wartet auf Überwachung nicht; K2-Sperre liegt aus B1 bereit |
+| AVV-Text v2 | Stand 04.10.2026, gerendert |
+| `ops-monitor` | 15 min Cron, `retry_missing_receipts`, U2 inkl. (i), Entprellen, Mail an `OPS_ALERT_EMAIL` (Redirect) |
+| AVV-Zustimmung | `legal_acceptances`, Banner, Aufmerksamkeit, Onboarding-Checkbox, `AVV_MISSING` |
+| Testkundin PROD | bestätigt AVV nach Release über Banner — nichts extra |
+
+Rauchtest ops-monitor: collect + HTTP OK, Mail ausgelöst (`mailed=true`).
 
 ## Fragen an Julius
 
-1. Heartbeat-Konto (healthchecks.io o. Ä.) anlegen und `OPS_HEARTBEAT_URL` setzen? **Empfehlung:** ja, sonst merkt niemand, wenn Cron komplett steht. Bis dahin bleibt der Aufruf still.
-2. `OPS_ALERT_EMAIL` auf DEV ist `support@omlify.de` (darf gesetzt werden). **Empfehlung:** so lassen; echte Mail nach erstem Test-Job prüfen.
-3. Klicktest B1 vor B2-Oberfläche? **Empfehlung:** parallel; Halt 5 blockiert nicht.
+1. Heartbeat-Konto / `OPS_HEARTBEAT_URL`? Empfohlen, sonst merkt niemand totalen Cron-Ausfall.
+2. Klicktest B1+B2 — siehe Liste unten.
 
 ## Gemeinsame Klickliste
 
 **B1**
-1. Einstellungen → Rechtliches: Anbieterangaben speichern (360 + 1280).
-2. Ohne Angaben: Aufmerksamkeit; Kursknopf „Anmelden“.
+1. Einstellungen → Rechtliches: Anbieterangaben (360 + 1280).
+2. Ohne Angaben: Aufmerksamkeit; Knopf „Anmelden“.
 3. Mit Angaben: „Weiter zur Buchung“.
 4. Sheet: Pflichtangaben, Knopf genau „Zahlungspflichtig buchen“.
-5. Mit 4242… buchen → Meine Anmeldungen → Beleg.
-6. Echte Bestätigungsmail mit Beleg ansehen.
+5. Mit 4242… buchen → Beleg mit vollem §-19-Satz.
+6. Echte Bestätigungsmail mit Beleg.
 7. Owner erstattet 10 € → Erstattungsbeleg.
 8. Kurs > 250 €: Hinweis vor Ort.
 
 **B2**
-9. Überwachungsmail ansehen (nach Test-Job).
-10. AVV-Volltext v2 unter /legal/auftragsverarbeitung (Stand 04.10.).
-11. Banner „Bitte bestätige den Vertrag…“ → AVV abschließen.
-12. Danach Datum/Name/Version sichtbar, Banner weg.
-13. Online-Schalter ohne AVV: `AVV_MISSING`; nach Abschluss frei.
+9. Überwachungsmail ansehen (nach Rauchtest / nächstem Cron).
+10. AVV-Volltext v2 unter /legal/auftragsverarbeitung.
+11. Banner „Bitte bestätige…“ → AVV abschließen.
+12. Datum/Name/Version sichtbar, Banner weg.
+13. Online-Schalter ohne AVV: Hinweis `AVV_MISSING`; danach frei.
 14. Onboarding: ohne AVV-Häkchen kein Abschluss.
-15. Einstellungen Rechtliches AVV-Abschnitt 360 + 1280.
+15. Einstellungen Rechtliches AVV 360 + 1280.
