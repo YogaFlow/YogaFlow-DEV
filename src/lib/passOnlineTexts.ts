@@ -116,10 +116,42 @@ export function passWertersatzCents(
   return Math.round((priceCents * used) / units);
 }
 
+/** Kurzdatum für Widerruf-Hinweis: „Mi 8. Okt“ (ohne Komma nach Wochentag). */
+export function passWithdrawalDateLabel(isoDate: string): string {
+  if (!isoDate) return '';
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(isoDate);
+  if (!m) return isoDate;
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const d = Number(m[3]);
+  const date = new Date(y, mo - 1, d);
+  const weekday = new Intl.DateTimeFormat('de-DE', { weekday: 'short' })
+    .format(date)
+    .replace(/\.$/, '');
+  const month = new Intl.DateTimeFormat('de-DE', { month: 'short' })
+    .format(date)
+    .replace(/\.$/, '');
+  return `${weekday} ${d}. ${month}`;
+}
+
+/** W3: Hinweis, wenn kommende Buchungen mit der Karte als genutzt zählen. */
+export function passWithdrawalUpcomingNotice(upcomingDates: string[]): string | null {
+  if (!upcomingDates.length) return null;
+  const n = upcomingDates.length;
+  const list = upcomingDates.map(passWithdrawalDateLabel).filter(Boolean).join(', ');
+  const term = n === 1 ? '1 kommenden Termin' : `${n} kommende Termine`;
+  return (
+    `Du hast ${term} mit dieser Karte gebucht (${list}). ` +
+    'Sie bleiben gebucht und werden als genutzt berechnet. ' +
+    'Wenn du sie nicht wahrnehmen willst, melde dich vorher ab — dann bekommst du mehr zurück.'
+  );
+}
+
 export function passWithdrawalCalcLine(input: {
   priceCents: number;
   unitsTotal: number;
   unitsUsed: number;
+  unitsUsedUpcoming?: number;
 }): string {
   const wertersatz = passWertersatzCents(
     input.priceCents,
@@ -129,11 +161,16 @@ export function passWithdrawalCalcLine(input: {
   const refund = Math.max(input.priceCents - wertersatz, 0);
   const perUnit =
     input.unitsTotal > 0 ? Math.round(input.priceCents / input.unitsTotal) : 0;
+  const upcoming = Math.max(0, input.unitsUsedUpcoming ?? 0);
   if (input.unitsUsed === 0) {
     return `Erstattung: ${formatCents(input.priceCents)} − 0 genutzte Termine = ${formatCents(refund)}`;
   }
+  const usedLabel =
+    upcoming > 0
+      ? `${input.unitsUsed} genutzt (davon ${upcoming} kommend)`
+      : `${input.unitsUsed} genutzte Termine`;
   return (
-    `Erstattung: ${formatCents(input.priceCents)} − ${input.unitsUsed} genutzte Termine × ` +
+    `Erstattung: ${formatCents(input.priceCents)} − ${usedLabel} × ` +
     `${formatCents(perUnit)} = ${formatCents(refund)}`
   );
 }

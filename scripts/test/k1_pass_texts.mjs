@@ -4,9 +4,6 @@
  */
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { createRequire } from 'node:module';
-import { pathToFileURL } from 'node:url';
-import path from 'node:path';
 
 // Vitest/tsc-Quellen als TS nicht importierbar — Spiegel der Logik aus passOnlineTexts.
 function formatCents(cents) {
@@ -62,12 +59,42 @@ function passWithdrawalCalcLine(input) {
   const refund = Math.max(input.priceCents - wertersatz, 0);
   const perUnit =
     input.unitsTotal > 0 ? Math.round(input.priceCents / input.unitsTotal) : 0;
+  const upcoming = Math.max(0, input.unitsUsedUpcoming ?? 0);
   if (input.unitsUsed === 0) {
     return `Erstattung: ${formatCents(input.priceCents)} − 0 genutzte Termine = ${formatCents(refund)}`;
   }
+  const usedLabel =
+    upcoming > 0
+      ? `${input.unitsUsed} genutzt (davon ${upcoming} kommend)`
+      : `${input.unitsUsed} genutzte Termine`;
   return (
-    `Erstattung: ${formatCents(input.priceCents)} − ${input.unitsUsed} genutzte Termine × ` +
+    `Erstattung: ${formatCents(input.priceCents)} − ${usedLabel} × ` +
     `${formatCents(perUnit)} = ${formatCents(refund)}`
+  );
+}
+
+function passWithdrawalUpcomingNotice(dates) {
+  if (!dates.length) return null;
+  const n = dates.length;
+  const list = dates
+    .map((iso) => {
+      const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+      if (!m) return iso;
+      const date = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+      const weekday = new Intl.DateTimeFormat('de-DE', { weekday: 'short' })
+        .format(date)
+        .replace(/\.$/, '');
+      const month = new Intl.DateTimeFormat('de-DE', { month: 'short' })
+        .format(date)
+        .replace(/\.$/, '');
+      return `${weekday} ${Number(m[3])}. ${month}`;
+    })
+    .join(', ');
+  const term = n === 1 ? '1 kommenden Termin' : `${n} kommende Termine`;
+  return (
+    `Du hast ${term} mit dieser Karte gebucht (${list}). ` +
+    'Sie bleiben gebucht und werden als genutzt berechnet. ' +
+    'Wenn du sie nicht wahrnehmen willst, melde dich vorher ab — dann bekommst du mehr zurück.'
   );
 }
 
@@ -115,7 +142,26 @@ console.log('K1 pass texts');
     line,
     'Erstattung: 120,00 € − 2 genutzte Termine × 12,00 € = 96,00 €',
   );
+  const withUpcoming = passWithdrawalCalcLine({
+    priceCents: 12000,
+    unitsTotal: 10,
+    unitsUsed: 2,
+    unitsUsedUpcoming: 2,
+  });
+  assert.equal(
+    withUpcoming,
+    'Erstattung: 120,00 € − 2 genutzt (davon 2 kommend) × 12,00 € = 96,00 €',
+  );
   console.log('  ok Rechenweg-Anzeige');
+}
+
+{
+  const text = passWithdrawalUpcomingNotice(['2026-10-08', '2026-10-10']);
+  assert.match(text, /2 kommende Termine/);
+  assert.match(text, /bleiben gebucht und werden als genutzt berechnet/);
+  assert.match(text, /melde dich vorher ab/);
+  assert.equal(passWithdrawalUpcomingNotice([]), null);
+  console.log('  ok W3 kommende-Termine-Text');
 }
 
 {

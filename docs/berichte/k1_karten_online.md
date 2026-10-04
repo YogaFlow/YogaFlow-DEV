@@ -1,8 +1,8 @@
 # Bericht K1 — Karten online kaufen, „Meine Karten“, Widerruf
 
-Status: **angehalten** (Haltestelle 5 — Klicktest).  
-Stand 04.10.2026 · Branch `Julius` · HEAD siehe `git log -1`  
-Vorgabe: [docs/stories/k1_karten_online.md](../stories/k1_karten_online.md) · [Entscheidung 15](../entscheidungen/15_Karten_online.md) · Freigabe Teil 0: [k1_freigabe_teil0.md](../stories/k1_freigabe_teil0.md)
+Status: **angehalten** (Haltestelle 5 — Klicktest Nachtrag Widerruf).  
+Stand 05.10.2026 · Branch `Julius` · HEAD siehe `git log -1`  
+Vorgabe: [docs/stories/k1_karten_online.md](../stories/k1_karten_online.md) · [Nachtrag Widerruf](../stories/nachtrag_k1_widerruf.md) · [Entscheidung 15](../entscheidungen/15_Karten_online.md) · Freigabe Teil 0: [k1_freigabe_teil0.md](../stories/k1_freigabe_teil0.md)
 
 ---
 
@@ -310,4 +310,35 @@ Schichten auf `Julius` (Commits): SQL `debe870` · Functions `f3b49c5` · Logik 
 - Studio-Fuß ohne dedizierten Widerruf-Link außer `/legal` → Widerruf (Klickpunkt 10).
 - Demoalpha-Produkte auf DEV gesetzt (5er 65 € / 10er 120 €, online, 12 Monate); Karlas bestehende Karte unverändert. Vollständiger `demo_seed_v2` optional.
 
-STOPP — wartet auf Julius’ Klicktest.
+---
+
+## Nachtrag Widerruf (W1–W3, 05.10.2026)
+
+Migrationen `20261005010000` / `20261005020000` / `20261005030000` auf DEV.  
+SQL-Test `k1_pass_online.mjs` + Unit `k1_pass_texts.mjs` grün. Entscheidung 15 um **K12** ergänzt.
+
+| # | Fix | Nachweis |
+|---|---|---|
+| W1 | `void_pass_remaining` vor `request_refund` — Karte sofort `revoked` | Test: Buchung → `NO_VALID_PASS` bei noch `pending` Erstattung |
+| W2 | Früh `ALREADY_WITHDRAWN` (Event/Refund/void); Refund-Fehler → `RAISE` | Test: 2× confirm → 1 Event, 1 Mail, 1 Erstattung |
+| W3 | Preview `units_used_upcoming` + `upcoming_dates`; Dialog/öffentliche Seite mit Hinweis + Rechenweg „davon X kommend“ | Unit-Texte + Preview-Test |
+
+### Klickliste Nachtrag (kurz)
+
+1. **Vera** — 10er online kaufen (4242); danach 2 Kurse mit Karte buchen; Widerruf: Hinweis auf kommende Termine + Rechenweg „2 genutzt (davon 2 kommend)“ → bestätigen → sofort nicht mehr mit Karte buchbar.
+2. **Vera** — Widerruf ein zweites Mal (App oder `/widerruf`): Meldung „bereits widerrufen“, keine zweite Mail.
+3. **Owner demoalpha** — Zahlungen: eine Erstattung „Widerruf“; Karte der Vera `revoked`.
+
+### Klickpunkt 3 (Stripe-Ende) — nach Julius’ Kauf festhalten
+
+Nach echtem 4242-Kauf bitte notieren (nur IDs/Zähler, keine Secrets):
+
+| Prüfung | Wert |
+|---|---|
+| PaymentIntent-Ende (Status) | |
+| `payment_attempts.status` | |
+| `passes.id` + status | |
+| Beleg vorhanden (`receipts`) | |
+| Hauptbuch-Zeilen zu `payment.recorded` (Anzahl) | |
+
+STOPP — wartet auf Julius’ Klicktest Nachtrag.

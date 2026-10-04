@@ -1,13 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import type { ManagedPass } from '../../lib/passes';
 import { formatCents } from '../../lib/format';
-import { passWithdrawalCalcLine } from '../../lib/passOnlineTexts';
+import {
+  passWithdrawalCalcLine,
+  passWithdrawalUpcomingNotice,
+} from '../../lib/passOnlineTexts';
 import { supabase } from '../../lib/supabase';
 
 type Preview = {
   refund_cents: number;
   wertersatz_cents: number;
   units_used: number;
+  units_used_upcoming?: number;
+  upcoming_dates?: string[];
   units_total: number;
   price_cents: number;
   within_window: boolean;
@@ -58,12 +63,17 @@ const PassWithdrawalDialog: React.FC<Props> = ({ open, pass, onClose, onDone }) 
 
   if (!open || !pass) return null;
 
+  const upcomingDates = Array.isArray(preview?.upcoming_dates)
+    ? preview.upcoming_dates.map(String)
+    : [];
+  const upcomingNotice = passWithdrawalUpcomingNotice(upcomingDates);
   const calc =
     preview != null
       ? passWithdrawalCalcLine({
           priceCents: preview.price_cents,
           unitsTotal: preview.units_total,
           unitsUsed: preview.units_used,
+          unitsUsedUpcoming: preview.units_used_upcoming ?? 0,
         })
       : '';
 
@@ -88,7 +98,9 @@ const PassWithdrawalDialog: React.FC<Props> = ({ open, pass, onClose, onDone }) 
         setError(
           body.error === 'WINDOW_EXPIRED'
             ? 'Die Widerrufsfrist für diesen Kauf ist abgelaufen.'
-            : 'Widerruf fehlgeschlagen.',
+            : body.error === 'ALREADY_WITHDRAWN'
+              ? 'Dieser Vertrag wurde bereits widerrufen.'
+              : 'Widerruf fehlgeschlagen.',
         );
         return;
       }
@@ -146,6 +158,11 @@ const PassWithdrawalDialog: React.FC<Props> = ({ open, pass, onClose, onDone }) 
           </div>
         ) : (
           <div className="mt-4 space-y-3">
+            {upcomingNotice ? (
+              <p className="text-sm text-text" data-testid="pass-withdrawal-upcoming">
+                {upcomingNotice}
+              </p>
+            ) : null}
             <p className="text-[15px] tabular-nums text-text" data-testid="pass-withdrawal-calc">
               {calc}
             </p>

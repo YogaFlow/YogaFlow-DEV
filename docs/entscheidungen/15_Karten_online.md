@@ -17,3 +17,4 @@ Rechtliche Einordnung von Claude, nicht anwaltlich geprüft — Texte genau so �
 | K9 | Nach der Frist: kein Rückgaberecht; Owner/Admin kann auf Kulanz anteilig erstatten (bestehender Erstatten-Knopf), restliche Termine werden dabei entwertet. |
 | K10 | Ort: Menüpunkt „Meine Karten“ für Teilnehmende (nur sichtbar, wenn das Studio online kaufbare Karten hat oder die Person eine Karte besitzt). Zusätzlich dezenter Hinweis im Kursdetail. |
 | K11 | Preisgrenze 250,00 € wie bei Kursen (Kleinbetragsrechnung). Teurere Kartenprodukte nur im Studio verkaufbar (Hinweis in den Einstellungen). |
+| K12 | „Genutzt“ beim Widerruf = Netto der Einlösungen (auch künftig gebuchte Termine). Diese Buchungen bleiben nach dem Widerruf bestehen und werden als genutzt berechnet. Im Widerrufs-Dialog transparent machen (kommende Termine nennen + Abmelde-Hinweis). |

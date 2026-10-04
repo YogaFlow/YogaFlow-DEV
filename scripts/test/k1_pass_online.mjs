@@ -394,6 +394,18 @@ async function main() {
 
     console.log('\n4) Widerruf nach 2 → void + refund 9600');
     const wBought = await assertWertersatz(uW, asUW, 2, 2400, 9600);
+    const prevW3 = await asUW.rpc('get_pass_withdrawal_preview', {
+      p_pass_id: wBought.done.pass_id,
+    });
+    ok(
+      'W3 preview units_used_upcoming=2',
+      prevW3.data?.success === true
+        && prevW3.data.units_used === 2
+        && prevW3.data.units_used_upcoming === 2
+        && Array.isArray(prevW3.data.upcoming_dates)
+        && prevW3.data.upcoming_dates.length === 2,
+      JSON.stringify(prevW3.data),
+    );
     const conf = await asUW.rpc('confirm_pass_withdrawal', { p_pass_id: wBought.done.pass_id });
     ok(
       'Widerruf WITHDRAWN',
@@ -417,6 +429,84 @@ async function main() {
       refunds?.some((r) => r.reason === 'withdrawal' && r.amount_cents === 9600),
       JSON.stringify(refunds),
     );
+
+    // W1: sofort nicht mehr buchbar, auch wenn Erstattung noch pending
+    const kAfter = await kursAnlegen(admin, tenantId, teacher.id, {
+      title: 'K1 nach Widerruf',
+      date: berlinDate(20),
+      time: '16:00:00',
+      end_time: '17:00:00',
+      pass_eligible: true,
+    });
+    const bookAfter = await asUW.rpc('register_for_course', {
+      p_course_id: kAfter.id,
+      p_use_pass: true,
+    });
+    ok(
+      'W1 Buchung nach Widerruf abgelehnt',
+      bookAfter.error != null || bookAfter.data?.success === false,
+      JSON.stringify(bookAfter.data || bookAfter.error),
+    );
+    const { data: refundPending } = await admin
+      .from('payment_refunds')
+      .select('status')
+      .eq('payment_id', wBought.done.payment_id)
+      .eq('reason', 'withdrawal')
+      .maybeSingle();
+    ok(
+      'W1 Erstattung noch pending oder succeeded',
+      refundPending?.status === 'pending' || refundPending?.status === 'succeeded',
+      JSON.stringify(refundPending),
+    );
+
+    console.log('\n4b) W2 Doppelter Widerruf');
+    const conf2 = await asUW.rpc('confirm_pass_withdrawal', {
+      p_pass_id: wBought.done.pass_id,
+    });
+    ok(
+      'W2 zweiter Widerruf ALREADY_WITHDRAWN',
+      conf2.data?.success === false && conf2.data?.error === 'ALREADY_WITHDRAWN',
+      JSON.stringify(conf2.data),
+    );
+    const { count: evCount } = await admin
+      .from('events')
+      .select('id', { count: 'exact', head: true })
+      .eq('type', 'pass.withdrawal_received')
+      .eq('subject_id', wBought.done.pass_id);
+    ok('W2 genau 1 Event', evCount === 1, String(evCount));
+    const { count: mailCount } = await admin
+      .from('email_deliveries')
+      .select('id', { count: 'exact', head: true })
+      .eq('kind', 'pass_withdrawal_received')
+      .eq('pass_id', wBought.done.pass_id);
+    ok('W2 genau 1 Mail', mailCount === 1, String(mailCount));
+    const { count: refCount } = await admin
+      .from('payment_refunds')
+      .select('id', { count: 'exact', head: true })
+      .eq('payment_id', wBought.done.payment_id)
+      .eq('reason', 'withdrawal')
+      .neq('status', 'failed');
+    ok('W2 genau 1 Erstattung', refCount === 1, String(refCount));
+
+    // W2 öffentlich: zweiter Confirm
+    const { data: wReceipt } = await admin
+      .from('receipts')
+      .select('number')
+      .eq('payment_id', wBought.done.payment_id)
+      .eq('kind', 'receipt')
+      .maybeSingle();
+    if (wReceipt?.number) {
+      const pub2 = await asAnon.rpc('confirm_pass_withdrawal_public', {
+        p_receipt_number: wReceipt.number,
+        p_email: uW.email,
+        p_client_ip: '203.0.113.99',
+      });
+      ok(
+        'W2 public zweiter Widerruf ALREADY_WITHDRAWN',
+        pub2.data?.success === false && pub2.data?.error === 'ALREADY_WITHDRAWN',
+        JSON.stringify(pub2.data),
+      );
+    }
 
     console.log('\n5) extend nur Owner; Cross-Tenant');
     const extBuyer = await asBuyer.rpc('extend_pass', {

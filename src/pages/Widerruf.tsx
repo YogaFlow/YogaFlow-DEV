@@ -3,14 +3,20 @@
  */
 import React, { useState } from 'react';
 import { formatCents } from '../lib/format';
-import { passWithdrawalCalcLine } from '../lib/passOnlineTexts';
+import {
+  passWithdrawalCalcLine,
+  passWithdrawalUpcomingNotice,
+} from '../lib/passOnlineTexts';
 import { supabase } from '../lib/supabase';
 
 type LookupHit = {
-  matched: boolean;
+  found?: boolean;
+  matched?: boolean;
   pass_id?: string;
   name?: string;
   units_used?: number;
+  units_used_upcoming?: number;
+  upcoming_dates?: string[];
   units_total?: number;
   price_cents?: number;
   wertersatz_cents?: number;
@@ -19,6 +25,10 @@ type LookupHit = {
   withdrawal_deadline_at?: string;
   message?: string;
 };
+
+function lookupMatched(body: LookupHit): boolean {
+  return body.found === true || body.matched === true;
+}
 
 const Widerruf: React.FC = () => {
   const [receipt, setReceipt] = useState('');
@@ -48,23 +58,19 @@ const Widerruf: React.FC = () => {
       setNote(
         'Wenn die Angaben zu einem Kauf passen, siehst du jetzt die Zusammenfassung.',
       );
-      if (body.matched && body.within_window === false) {
-        setError(
-          body.withdrawal_deadline_at
-            ? `Die Widerrufsfrist für diesen Kauf ist abgelaufen.`
-            : 'Die Widerrufsfrist für diesen Kauf ist abgelaufen.',
-        );
+      if (lookupMatched(body) && body.within_window === false) {
+        setError('Die Widerrufsfrist für diesen Kauf ist abgelaufen.');
         setHit(null);
         return;
       }
-      if (body.matched) setHit(body);
+      if (lookupMatched(body)) setHit(body);
     } finally {
       setBusy(false);
     }
   };
 
   const confirm = async () => {
-    if (!hit?.matched) return;
+    if (!hit || !lookupMatched(hit)) return;
     setBusy(true);
     setError('');
     try {
@@ -86,7 +92,9 @@ const Widerruf: React.FC = () => {
         setError(
           body.error === 'WINDOW_EXPIRED'
             ? 'Die Widerrufsfrist für diesen Kauf ist abgelaufen.'
-            : 'Widerruf fehlgeschlagen.',
+            : body.error === 'ALREADY_WITHDRAWN'
+              ? 'Dieser Vertrag wurde bereits widerrufen.'
+              : 'Widerruf fehlgeschlagen.',
         );
         return;
       }
@@ -99,8 +107,13 @@ const Widerruf: React.FC = () => {
     }
   };
 
+  const hitOk = hit != null && lookupMatched(hit);
+  const upcomingDates = Array.isArray(hit?.upcoming_dates)
+    ? hit.upcoming_dates.map(String)
+    : [];
+  const upcomingNotice = passWithdrawalUpcomingNotice(upcomingDates);
   const calc =
-    hit?.matched &&
+    hitOk &&
     hit.price_cents != null &&
     hit.units_total != null &&
     hit.units_used != null
@@ -108,6 +121,7 @@ const Widerruf: React.FC = () => {
           priceCents: hit.price_cents,
           unitsTotal: hit.units_total,
           unitsUsed: hit.units_used,
+          unitsUsedUpcoming: hit.units_used_upcoming ?? 0,
         })
       : '';
 
@@ -167,9 +181,14 @@ const Widerruf: React.FC = () => {
             </p>
           ) : null}
 
-          {hit?.matched ? (
+          {hitOk ? (
             <div className="space-y-3 rounded-md border border-border bg-surface p-4">
               <p className="text-[15px] font-medium text-text">{hit.name}</p>
+              {upcomingNotice ? (
+                <p className="text-sm text-text" data-testid="public-withdrawal-upcoming">
+                  {upcomingNotice}
+                </p>
+              ) : null}
               <p className="text-[15px] tabular-nums text-text">{calc}</p>
               <button
                 type="button"
