@@ -17,24 +17,24 @@ Stand: 2026-10-04 · Branch `Julius` · HEAD siehe `git log -1`
 - **Lauf 02.10.** — Übersicht: [docs/berichte/LAUF_2026-10-02.md](berichte/LAUF_2026-10-02.md)
 - Kleine Punkte a–e — [docs/berichte/kleine_punkte_2026-10-02.md](berichte/kleine_punkte_2026-10-02.md)
 - Release-Plan (nur Doku) — [docs/RELEASE_GELDKETTE_PLAN.md](RELEASE_GELDKETTE_PLAN.md) Abschnitt 0 (+ §0.11 PROD-Replay)
-- **3.1** Zahlungsübersicht — Klicktest offen, Entscheidung 11 weiter vorläufig
+- **3.1** Zahlungsübersicht — Klicktest offen; Entscheidung 11 gilt (bestätigt 04.10.2026)
 - **3.2c** Erstattung Oberfläche — Klicktest offen
+- **UX-1** in Arbeit — Erstatten in einem Schritt, Zahlungen mit Reitern, Einstellungen mit Kategorien
 
 ## Nächste Schritte
 
+- UX-1 umsetzen (nur Oberfläche)
 - Klicktest Nachtrag (stornierte Buchungen bis Kursende / pending / failed)
-- Entscheidung 11 bestätigen (Platzhalter in der Antwort war leer)
-- Kein offener Implementierungsschritt außer nach Julius’ Freigabe
+- Klicktest 3.2c + 3.1
 
 ## Haltestellen / wartet auf Julius
 
 - Nachtrag + 3.2c + 3.1: Klicktest
-- Entscheidung 11 bestätigen
 - Optional: Probe-Lauf freigeben (nicht autonom gegen Probe)
 
 ## hier weitermachen
 
-Nachtrag Antworten fertig. Haltestelle Klicktest. Weiter nach Julius’ Klickfeedback bzw. Entscheidung 11.
+UX-1: [docs/stories/ux1_zahlungen_erstatten_einstellungen.md](stories/ux1_zahlungen_erstatten_einstellungen.md). Entscheidung 11 gilt.
 
 ## Verweise
 

@@ -62,8 +62,8 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
       welcher Umfang gewählt ist (`useCourseCancellation.ts`, bestehendes Verhalten).
 - [ ] **`latestUnreversedPayment` (Kasse)** wertet teilweise erstattete Stripe-Zahlungen als
       zurückgebucht; in 3.2c umgangen (`onlinePaymentByRegistration`), Ursache offen.
-- [x] **3.1 Zahlungsübersicht** — DEV 02.10.2026 (`dc70787`…`32fae53`); Klicktest und
-      Bestätigung Entscheidung 11 offen. Bericht `3_1_zahlungsuebersicht.md`.
+- [x] **3.1 Zahlungsübersicht** — DEV 02.10.2026 (`dc70787`…`32fae53`); Entscheidung 11
+      gilt (04.10.2026). Klicktest offen. Bericht `3_1_zahlungsuebersicht.md`.
 - [ ] **Erstattung nach `payment.refund_required` (2.2a-4).** Schema legt `late_payment`
       an (3.2a); Jobs brauchen 3.2b-Deploy für Stripe-Aufruf mit `refund_id`.
 - [x] **Claim-Tests: fremde Zeilen „zurückgeben ohne zu zählen“** — `6996fd3`

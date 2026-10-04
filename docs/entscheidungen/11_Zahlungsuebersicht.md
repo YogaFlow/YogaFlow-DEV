@@ -1,6 +1,6 @@
-Entscheidung 11 – Zahlungsübersicht für das Studio (Story 3.1) – VORLÄUFIG
+Entscheidung 11 – Zahlungsübersicht für das Studio (Story 3.1)
 
-Stand: 02.10.2026 · Vorgegeben von: Julius im Lauf-Auftrag vom 02.10.2026 · Status: **vorläufig**, bis Julius sie im Claude-Projekt bestätigt
+Stand: 04.10.2026 · Vorgegeben von: Julius im Lauf-Auftrag vom 02.10.2026 · Status: **gilt, bestätigt von Julius am 04.10.2026**
 Grundlage: Entscheidung 10 (R10: Übersicht direkt nach R1–R9), Story 3.2c (Erstatten-Sheet)
 
 Entscheidungen
@@ -21,7 +21,4 @@ Umsetzung (Ableitung, im Bericht 3.1 begründet)
 - „Storniert“: Bar/PayPal/Überweisung mit Gegenbuchung (z. B. Kassieren rückgängig, Rückgabe nach Absage) oder stornierte Karte. Online-Zahlungen werden nie „storniert“, sondern erstattet.
 - Monat nach Zahlungseingang (`received_at`, sonst `created_at`) in `Europe/Berlin`.
 - Art-Filter: Bar, PayPal, Überweisung, Online.
-
-Offen für Julius
-
-- Bestätigen oder ändern; danach „vorläufig“ entfernen.
+- Z6 für Bar/PayPal/Überweisung: Sprung zur Kasse (bestätigt 04.10.2026).

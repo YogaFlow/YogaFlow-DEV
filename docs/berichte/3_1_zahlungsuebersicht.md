@@ -1,10 +1,10 @@
 # Bericht 3.1 — Zahlungsübersicht — 2026-10-02
 
-Status: **angehalten** (Haltestelle 5 — Klicktest Julius; außerdem Entscheidung 11 nur vorläufig).
+Status: **angehalten** (Haltestelle 5 — Klicktest Julius). Entscheidung 11 gilt seit 04.10.2026.
 Logik, Gestaltung, Tests und E2E sind grün und gepusht.
 
 Vorgabe: Lauf-Auftrag vom 02.10.2026, festgehalten als
-[docs/entscheidungen/11_Zahlungsuebersicht_vorlaeufig.md](../entscheidungen/11_Zahlungsuebersicht_vorlaeufig.md) (Z1–Z7).
+[docs/entscheidungen/11_Zahlungsuebersicht.md](../entscheidungen/11_Zahlungsuebersicht.md) (Z1–Z7).
 
 ## Commits
 
@@ -94,4 +94,4 @@ Screenshots (nicht committet): `docs/screenshots/3_1/zahlungen-liste-{360,1280}.
 
 1. **Z6 für Bar/PayPal/Überweisung:** eigenes Detail (nur Anzeige) oder Sprung zur Kasse wie jetzt?
    Empfehlung: Sprung zur Kasse — dort passiert Zurückgeben ohnehin.
-2. **Entscheidung 11 bestätigen** (Z1–Z7), dann „vorläufig“ entfernen.
+2. **Entscheidung 11** — gilt seit 04.10.2026 (Story UX-1).
