@@ -9,7 +9,8 @@ export function paymentHoldPill(timeHm: string): string {
 
 export const PAY_NOW_LABEL = 'Jetzt bezahlen';
 
-export const ONLINE_REQUIRED_HINT = 'Online-Zahlung erforderlich';
+/** UX-4 B2: freundlicher Hinweis ohne Schloss. */
+export const ONLINE_REQUIRED_HINT = 'Du bezahlst direkt bei der Buchung';
 
 export const REGISTER_AND_PAY_LABEL = 'Anmelden und bezahlen';
 
@@ -39,14 +40,30 @@ export const PAYMENT_SUBMITTING = 'Zahlung läuft …';
 export const PAYMENT_PROCESSING_TIMEOUT =
   'Wir melden uns per E-Mail, sobald die Zahlung bestätigt ist';
 
-export const PAYMENT_SUCCESS_HEADLINE = 'Bezahlt – dein Platz ist sicher.';
+/** UX-4 B3 */
+export const PAYMENT_SUCCESS_HEADLINE = 'Du bist dabei!';
 
-export const PAYMENT_EMAIL_HINT = 'Eine Bestätigung kommt per E-Mail.';
+export const PAYMENT_EMAIL_HINT = 'Bestätigung und Beleg kommen per E-Mail.';
 
 export const PAYMENT_SUCCESS =
-  'Bezahlt – dein Platz ist sicher. Eine Bestätigung kommt per E-Mail.';
+  'Du bist dabei! Bestätigung und Beleg kommen per E-Mail.';
 
 export const PAYMENT_DONE_LABEL = 'Fertig';
+
+export const PAYMENT_CALENDAR_LABEL = 'In Kalender eintragen';
+
+export const PAYMENT_RECEIPT_LINK_LABEL = 'Beleg ansehen';
+
+/** Eine Zeile unter der Erfolgsüberschrift: „Titel · Sa, 31. Okt · 10:30“. */
+export function paymentSuccessSummaryLine(
+  title: string | null | undefined,
+  when: string | null | undefined,
+): string {
+  const t = title?.trim() ?? '';
+  const w = when?.trim() ?? '';
+  if (t && w) return `${t} · ${w}`;
+  return t || w;
+}
 
 export const PAYMENT_ACK_LABEL = 'Verstanden';
 

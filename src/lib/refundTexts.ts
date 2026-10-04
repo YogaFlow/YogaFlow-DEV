@@ -56,13 +56,9 @@ export function unregisterRefundSuccessMessage(refundCents: number | null | unde
   return `Abgemeldet. ${formatCents(refundCents)} werden erstattet – je nach Bank dauert das einige Werktage.`;
 }
 
-/** Statuszeile auf Kursdetail / Meine Anmeldungen. */
-export function onlinePaidStatusLine(info: OnlineRefundInfo): string {
-  if (info.refundable && info.deadline) {
-    return `Online bezahlt · kostenlos abmelden bis ${formatCancellationDeadline(info.deadline)}`;
-  }
-  if (info.refundable) return 'Online bezahlt';
-  return 'Online bezahlt · Abmeldefrist vorbei';
+/** Zahlstatus ohne Abmeldefrist (Frist ist eigene Zeile, UX-4 B1). */
+export function onlinePaidStatusLine(_info?: OnlineRefundInfo | null): string {
+  return 'online bezahlt';
 }
 
 export type RefundProgressTone = 'pending' | 'done' | 'partial' | 'delayed';

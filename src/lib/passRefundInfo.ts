@@ -1,4 +1,5 @@
 import type { CoverageStatus } from '../types';
+import { formatFriendlyCancellationDeadline } from './cancellationDeadline.ts';
 
 export type PassRefundInfo = {
   /** true = noch innerhalb der eingefrorenen Frist */
@@ -28,32 +29,8 @@ export function passRefundInfo(registration: RefundSource): PassRefundInfo | nul
   };
 }
 
-/** Fr, 03.10., 18:00 — Europe/Berlin */
-export function formatCancellationDeadline(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return iso;
-
-  const weekday = new Intl.DateTimeFormat('de-DE', {
-    timeZone: 'Europe/Berlin',
-    weekday: 'short',
-  })
-    .format(date)
-    .replace(/\.$/, '');
-
-  const parts = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Europe/Berlin',
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).formatToParts(date);
-
-  const get = (type: Intl.DateTimeFormatPartTypes) =>
-    parts.find((p) => p.type === type)?.value ?? '';
-
-  return `${weekday}, ${get('day')}.${get('month')}., ${get('hour')}:${get('minute')}`;
-}
+/** Do, 8. Okt, 15:45 — Europe/Berlin (UX-4 B1, gemeinsam mit Mail). */
+export const formatCancellationDeadline = formatFriendlyCancellationDeadline;
 
 /** Text im Abmelde-Dialog (Teilnehmende), Buchung mit Karte. */
 export function unregisterPassDialogMessage(info: PassRefundInfo): string {
@@ -64,10 +41,7 @@ export function unregisterPassDialogMessage(info: PassRefundInfo): string {
   return `Die Abmeldefrist ist seit ${when} vorbei. Die Einheit bleibt verbraucht.`;
 }
 
-/** Kleine Statuszeile auf Kursdetail / Meine Anmeldungen. */
-export function passRefundStatusLine(info: PassRefundInfo): string {
-  if (info.refundable) {
-    return `Mit Karte bezahlt · kostenlos abmelden bis ${formatCancellationDeadline(info.deadline)}`;
-  }
-  return 'Abmeldefrist vorbei';
+/** Zahlstatus ohne Abmeldefrist (Frist ist eigene Zeile, UX-4 B1). */
+export function passRefundStatusLine(_info?: PassRefundInfo | null): string {
+  return 'mit Karte bezahlt';
 }

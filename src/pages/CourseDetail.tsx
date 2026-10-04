@@ -5,7 +5,7 @@ import {
   Calendar,
   Check,
   Clock,
-  Lock,
+  CreditCard,
   MapPin,
   MoreHorizontal,
   User,
@@ -49,6 +49,10 @@ import {
   ONLINE_REQUIRED_HINT,
   PAY_NOW_LABEL,
 } from '../lib/paymentTexts';
+import {
+  cancellationDeadlineLine,
+  previewCancellationDeadlineIso,
+} from '../lib/cancellationDeadline';
 import { CONTINUE_TO_BOOKING_LABEL } from '../lib/legalCheckoutTexts';
 import { RELEASE_SEAT_LABEL } from '../lib/pendingPaymentLabel';
 import { paymentsClientConfig } from '../lib/paymentsClientConfig';
@@ -87,6 +91,16 @@ const CourseDetail: React.FC = () => {
   const descriptionRef = useRef<HTMLParagraphElement>(null);
   const staffMenuRef = useRef<HTMLDivElement>(null);
   const [staffMenuOpen, setStaffMenuOpen] = useState(false);
+  const [isLgViewport, setIsLgViewport] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(min-width: 1024px)').matches : false,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const onChange = () => setIsLgViewport(mq.matches);
+    onChange();
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
 
   const loadCourse = useCallback(async () => {
     if (!courseId) {
@@ -213,9 +227,9 @@ const CourseDetail: React.FC = () => {
   useEffect(() => {
     if (!staffMenuOpen) return;
     const onDoc = (event: MouseEvent) => {
-      if (staffMenuRef.current && !staffMenuRef.current.contains(event.target as Node)) {
-        setStaffMenuOpen(false);
-      }
+      const target = event.target as Element | null;
+      if (target?.closest?.('[data-staff-menu-root]')) return;
+      setStaffMenuOpen(false);
     };
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
@@ -319,7 +333,7 @@ const CourseDetail: React.FC = () => {
   const mapsHref = mapsQuery
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`
     : null;
-  const showDesktopMenu = showStaffLinks || canCancelCourse || (isAdmin && upcoming);
+  const showStaffMenu = showStaffLinks || canCancelCourse || (isAdmin && upcoming);
   const occupancyDetail =
     cancelled || isFull
       ? isFull && !cancelled
@@ -375,28 +389,34 @@ const CourseDetail: React.FC = () => {
     typeof tenant?.cancellation_window_hours === 'number'
       ? tenant.cancellation_window_hours
       : null;
-  const cancelDeadlinePreview =
-    windowHours == null
+  const bookedDeadlineIso =
+    ownRegistration?.cancellation_deadline ??
+    refundInfo?.deadline ??
+    onlineInfo?.deadline ??
+    null;
+  const previewDeadlineIso =
+    windowHours == null || !course.date
       ? null
-      : windowHours === 0
-        ? 'Keine kostenlose Abmeldung'
-        : `Kostenlos abmelden bis ${windowHours} h vor Kursbeginn`;
+      : previewCancellationDeadlineIso(course.date, course.time, windowHours);
+  const cancelDeadlineLineText = cancelled
+    ? null
+    : isRegistered && registrationStatus === 'registered' && !showPendingPayment
+      ? cancellationDeadlineLine(bookedDeadlineIso)
+      : previewDeadlineIso
+        ? cancellationDeadlineLine(previewDeadlineIso)
+        : null;
+  const paymentStatusSuffix = refundInfo
+    ? passRefundStatusLine(refundInfo)
+    : onlineInfo
+      ? onlinePaidStatusLine(onlineInfo)
+      : null;
   const renderBookingStatus = () =>
     isRegistered && registrationStatus === 'registered' && !showPendingPayment ? (
       <div className="mt-0.5">
         <span className="inline-flex items-center gap-1 text-[13px] font-medium text-success">
           <Check className="h-3.5 w-3.5" aria-hidden />
-          Angemeldet
+          {paymentStatusSuffix ? `Angemeldet · ${paymentStatusSuffix}` : 'Angemeldet'}
         </span>
-        {refundInfo ? (
-          <p className="mt-0.5 text-[13px] leading-snug text-textMuted tabular-nums">
-            {passRefundStatusLine(refundInfo)}
-          </p>
-        ) : onlineInfo ? (
-          <p className="mt-0.5 text-[13px] leading-snug text-textMuted tabular-nums">
-            {onlinePaidStatusLine(onlineInfo)}
-          </p>
-        ) : null}
       </div>
     ) : showPendingPayment ? (
       <div className="mt-0.5">
@@ -416,12 +436,72 @@ const CourseDetail: React.FC = () => {
         <p className="text-[13px] text-textMuted">pro Termin</p>
         {onlineRequired && canAct && !isRegistered ? (
           <p className="mt-0.5 inline-flex items-center gap-1 text-[13px] text-textMuted">
-            <Lock className="h-3.5 w-3.5 shrink-0 text-textSubtle" aria-hidden />
+            <CreditCard className="h-3.5 w-3.5 shrink-0 text-textSubtle" aria-hidden />
             <span>{ONLINE_REQUIRED_HINT}</span>
           </p>
         ) : null}
       </div>
     );
+
+  const renderStaffMenu = () =>
+    showStaffMenu ? (
+      <div className="relative shrink-0" data-staff-menu-root ref={staffMenuRef}>
+        <button
+          type="button"
+          aria-label="Kurs verwalten"
+          aria-expanded={staffMenuOpen}
+          aria-haspopup="menu"
+          data-testid="course-detail-menu"
+          onClick={() => setStaffMenuOpen((open) => !open)}
+          className="inline-flex h-11 w-11 items-center justify-center rounded-full text-textMuted active:bg-surfaceSunken"
+        >
+          <MoreHorizontal className="h-5 w-5" aria-hidden />
+        </button>
+        {staffMenuOpen ? (
+          <div
+            role="menu"
+            className="absolute right-0 z-10 mt-1 min-w-[11rem] rounded-md border border-border bg-surface py-1 shadow-lg"
+          >
+            {showStaffLinks ? (
+              <Link
+                role="menuitem"
+                to={`/course/${course.id}/edit`}
+                onClick={() => setStaffMenuOpen(false)}
+                className="flex w-full px-4 py-3 text-left text-[15px] font-medium text-text"
+              >
+                Bearbeiten
+              </Link>
+            ) : null}
+            {canCancelCourse ? (
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setStaffMenuOpen(false);
+                  cancellation.requestCancel();
+                }}
+                className="flex w-full px-4 py-3 text-left text-[15px] font-medium text-danger"
+              >
+                Kurs absagen
+              </button>
+            ) : null}
+            {isAdmin && upcoming ? (
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setStaffMenuOpen(false);
+                  void requestDelete();
+                }}
+                className="flex w-full px-4 py-3 text-left text-[15px] font-medium text-danger"
+              >
+                Kurs löschen
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    ) : null;
 
   const renderBookingActions = (desktop: boolean) => (
     <>
@@ -607,14 +687,17 @@ const CourseDetail: React.FC = () => {
       <FeedbackDialog dialog={cancellation.feedbackDialog} onClose={cancellation.closeFeedback} />
 
       <div className="lg:hidden">
-        <button
-          type="button"
-          onClick={goBack}
-          className="inline-flex min-h-11 items-center gap-2 text-[15px] font-medium text-textMuted"
-        >
-          <ArrowLeft className="h-5 w-5" aria-hidden />
-          Zurück
-        </button>
+        <div className="flex items-start justify-between gap-3">
+          <button
+            type="button"
+            onClick={goBack}
+            className="inline-flex min-h-11 items-center gap-2 text-[15px] font-medium text-textMuted"
+          >
+            <ArrowLeft className="h-5 w-5" aria-hidden />
+            Zurück
+          </button>
+          {!isLgViewport ? renderStaffMenu() : null}
+        </div>
 
         <h2 className="mt-4 text-[22px] font-medium text-text">{course.title}</h2>
 
@@ -707,26 +790,6 @@ const CourseDetail: React.FC = () => {
             <p className="mt-2 whitespace-pre-line text-[15px] text-text">{prerequisites}</p>
           </section>
         ) : null}
-
-        {canCancelCourse ? (
-          <button
-            type="button"
-            onClick={cancellation.requestCancel}
-            className="mt-8 inline-flex min-h-11 items-center text-[15px] font-medium text-danger focus:outline-none focus-visible:ring-2 focus-visible:ring-danger focus-visible:ring-offset-2"
-          >
-            Kurs absagen
-          </button>
-        ) : null}
-
-        {isAdmin && upcoming ? (
-          <button
-            type="button"
-            onClick={() => void requestDelete()}
-            className="mt-8 inline-flex min-h-11 items-center text-[15px] font-medium text-danger focus:outline-none focus-visible:ring-2 focus-visible:ring-danger focus-visible:ring-offset-2"
-          >
-            Kurs löschen
-          </button>
-        ) : null}
       </div>
 
       <div className="hidden lg:block">
@@ -741,64 +804,7 @@ const CourseDetail: React.FC = () => {
           <h2 className="min-w-0 flex-1 text-[32px] font-medium leading-tight text-text">
             {course.title}
           </h2>
-          {showDesktopMenu ? (
-            <div className="relative shrink-0" ref={staffMenuRef}>
-              <button
-                type="button"
-                aria-label="Kurs verwalten"
-                aria-expanded={staffMenuOpen}
-                aria-haspopup="menu"
-                data-testid="course-detail-menu"
-                onClick={() => setStaffMenuOpen((open) => !open)}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full text-textMuted active:bg-surfaceSunken"
-              >
-                <MoreHorizontal className="h-5 w-5" aria-hidden />
-              </button>
-              {staffMenuOpen ? (
-                <div
-                  role="menu"
-                  className="absolute right-0 z-10 mt-1 min-w-[11rem] rounded-md border border-border bg-surface py-1 shadow-lg"
-                >
-                  {showStaffLinks ? (
-                    <Link
-                      role="menuitem"
-                      to={`/course/${course.id}/edit`}
-                      onClick={() => setStaffMenuOpen(false)}
-                      className="flex w-full px-4 py-3 text-left text-[15px] font-medium text-text"
-                    >
-                      Bearbeiten
-                    </Link>
-                  ) : null}
-                  {canCancelCourse ? (
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={() => {
-                        setStaffMenuOpen(false);
-                        cancellation.requestCancel();
-                      }}
-                      className="flex w-full px-4 py-3 text-left text-[15px] font-medium text-danger"
-                    >
-                      Kurs absagen
-                    </button>
-                  ) : null}
-                  {isAdmin && upcoming ? (
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={() => {
-                        setStaffMenuOpen(false);
-                        void requestDelete();
-                      }}
-                      className="flex w-full px-4 py-3 text-left text-[15px] font-medium text-danger"
-                    >
-                      Kurs löschen
-                    </button>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-          ) : null}
+          {isLgViewport ? renderStaffMenu() : null}
         </div>
 
         {courseStatus ? <div className="mt-3">{courseStatus}</div> : null}
@@ -917,9 +923,12 @@ const CourseDetail: React.FC = () => {
                   <p className="mt-2 text-[13px] tabular-nums text-textMuted">{occupancyLine}</p>
                 </div>
               ) : null}
-              {cancelDeadlinePreview && !cancelled ? (
-                <p className="mt-3 text-[13px] leading-snug text-textMuted">
-                  {cancelDeadlinePreview}
+              {cancelDeadlineLineText ? (
+                <p
+                  className="mt-3 text-[13px] leading-snug text-textMuted"
+                  data-testid="cancel-deadline-line"
+                >
+                  {cancelDeadlineLineText}
                 </p>
               ) : null}
               <div className="mt-5 flex flex-col gap-2">{renderBookingActions(true)}</div>
@@ -930,11 +939,19 @@ const CourseDetail: React.FC = () => {
 
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-surface pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:hidden">
         <div className="mx-auto flex min-h-11 max-w-2xl items-center justify-between gap-3 px-3 max-[380px]:px-2 sm:px-6">
-          <div className="min-w-0 shrink-0">
+          <div className="min-w-0 shrink">
             <p className="text-[19px] font-medium leading-tight text-text tabular-nums">
               {formatPrice(course.price)}
             </p>
             {renderBookingStatus()}
+            {cancelDeadlineLineText ? (
+              <p
+                className="mt-0.5 text-[12px] leading-snug text-textMuted"
+                data-testid="cancel-deadline-line"
+              >
+                {cancelDeadlineLineText}
+              </p>
+            ) : null}
           </div>
           {renderBookingActions(false)}
         </div>

@@ -59,15 +59,15 @@ test('Leistungstext K8', () => {
 
 test('Abmelderegel K5 Frist / vorbei', () => {
   assert.equal(
-    cancelRuleLine('Fr, 03.10., 18:00'),
-    'Kostenlos abmelden bis Fr, 03.10., 18:00 – du bekommst den vollen Betrag zurück. Danach keine Erstattung.',
+    cancelRuleLine('Fr, 3. Okt, 18:00'),
+    'Kostenlos abmelden bis Fr, 3. Okt, 18:00 – du bekommst den vollen Betrag zurück. Danach keine Erstattung.',
   );
   assert.equal(cancelRuleLine(null), CANCEL_NO_LONGER);
   assert.equal(cancelRuleLine(''), CANCEL_NO_LONGER);
 });
 
 test('UX-2 A4 Abmelde kompakt + Steuerfuß', () => {
-  assert.equal(cancelRuleLineCompact('Fr, 03.10., 18:00'), 'Kostenlos abmelden bis Fr, 03.10., 18:00');
+  assert.equal(cancelRuleLineCompact('Fr, 3. Okt, 18:00'), 'Kostenlos abmelden bis Fr, 3. Okt, 18:00');
   assert.equal(
     cancelRuleLineCompact(null),
     'Keine Erstattung bei Abmeldung (Frist vorbei)',
