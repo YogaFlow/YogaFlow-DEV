@@ -41,6 +41,7 @@ const SKRIPTE = [
   's4_3_remove_member.mjs',
   's4_3_delete_user_fn.mjs',
   'security_signup_role.mjs',
+  'security_ux5_archived_select.mjs',
   's1_2a_provider_schema.mjs',
   's2_1b_a_pending.mjs',
   's2_1b_b_promotion.mjs',
