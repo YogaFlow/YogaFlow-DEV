@@ -44,7 +44,7 @@ test('A — Checkout fester Fuß + Legal-Pop-up + Hash', async ({ page }) => {
   await expect(dialog.getByTestId('checkout-sticky-footer')).toBeVisible();
   await expect(dialog.getByTestId('checkout-price')).toBeInViewport();
   await expect(dialog.getByRole('button', { name: 'Zahlungspflichtig buchen' })).toBeInViewport();
-  await expect(dialog.getByTestId('modal-backdrop')).toBeVisible();
+  await expect(page.getByTestId('modal-backdrop')).toBeVisible();
 
   await dialog.getByRole('button', { name: 'AGB' }).click();
   await expect(page.getByTestId('legal-document-body')).toBeVisible();

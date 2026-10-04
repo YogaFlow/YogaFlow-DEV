@@ -111,11 +111,12 @@ export async function devKontext(): Promise<DevCtx> {
     });
   }
   await legalProfileSetzen(owner);
-  // B2: Online einschalten braucht aktuelle AVV-Zustimmung.
+  // B2: Online einschalten braucht aktuelle AVV-Zustimmung (Hash = normalisierter MD).
+  const { AVV_CONTENT_HASH, AVV_VERSION } = await import('../src/lib/legalVersions.ts');
   await owner.rpc('accept_legal_document', {
     p_document: 'avv',
-    p_version: '2026-10-04',
-    p_content_hash: '081aa26d9251f364dd5594c4f3ddf5786c57bdb813ba1bcbf0f5c17208d639c5',
+    p_version: AVV_VERSION,
+    p_content_hash: AVV_CONTENT_HASH,
   });
   await owner.rpc('set_online_payments_enabled', { p_enabled: true });
   await owner.rpc('set_allow_onsite_payment', { p_allow: false });
