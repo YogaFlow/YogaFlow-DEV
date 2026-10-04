@@ -1,7 +1,7 @@
 # Bericht UX-5 — Buchungsleiste, Toast-Regel, Demo-Studio
 
-Status: **angehalten** (Haltestelle 5: Klicktest).  
-Stand 04.10.2026 · Branch `Julius` · Migration `20261004230000_ux5_archived_at` auf DEV
+Status: **angehalten** (Haltestelle 5: Klicktest Nachzug Archiv).  
+Stand 04.10.2026 · Branch `Julius` · Migrationen `20261004230000` + `20261004240000_ux5_archived_rls` auf DEV
 
 Vorgabe: [docs/stories/ux5_buchungsleiste_toast_demo.md](../stories/ux5_buchungsleiste_toast_demo.md).  
 Freigabe C1: Julius, 04.10. (Leitplanken 0–5).
@@ -39,7 +39,7 @@ Zählung DEV, Studio `demoalpha`, 04.10.2026 (vor Reset):
 |---|---|
 | Kurse kommend | 117 |
 | Kurse vergangen | 15 |
-| Kurse abgesagt | 0 |
+| Kurse abgesagt (`status = canceled`) | **korrekt ≥ 1** — Inventur meldete fälschlich 0 (siehe Korrektur unten) |
 | Anmeldungen gesamt | 143 |
 | davon mit Geld-/Karten-Spur | 98 |
 | davon ohne Geldspur | 45 |
@@ -138,31 +138,38 @@ Hinweis: Ein Reset **nach** dem Seed würde die neuen Demokurse ohne Geldspur wi
 
 (Zahlungen/Hauptbuch/Events steigen durch den Seed; Belege/Erstattungen unverändert zum Inventur-Stand.)
 
-## Stellen, die `archived_at` berücksichtigen
+## Inventur-Korrektur: „abgesagt 0“
 
-### Server (Migration `20261004230000`)
+**Fehler:** Inventur zählte mit `status = 'cancelled'` (britisch). In der DB steht `canceled` (US, A9).  
+**Korrekt (nach Reset, DEMO 04.10.):** 44 Kurse `canceled` (alle archiviert); darunter 31 Smoke (`S22A*`), davon 12 `canceled` / 19 `active`.
 
-- Spalten `courses.archived_at`, `users.archived_at` (Client-UPDATE entzogen)
-- Trigger `registrations_archived_guard` → `COURSE_ARCHIVED` / Mitglied archiviert
-- `register_for_course` → `COURSE_ARCHIVED` bei archiviertem Kurs
-- `get_studio_payments(..., p_include_archived boolean DEFAULT false)` — Standard ohne Archiv
+## C-Nachzug: Rückgaben zeigten archivierte Smoke-Kurse
 
-### Client
+**Ursache:** `Dashboard.tsx` „Rückgaben offen“ lud Registrierungen mit Embed `course:courses(...)` **ohne** `archived_at`-Filter. Client-Filter auf Kurslisten reichten nicht für Embeds; SECURITY-DEFINER-RPCs (z. B. `get_open_coverage`) umgingen Client-Filter ebenfalls.
 
-| Datei | Verhalten |
-|---|---|
-| `Courses.tsx` | Kurse nur `archived_at` null |
-| `MyCourses.tsx` | wie oben |
-| `CourseDetail.tsx` | archivierter Kurs nicht ladbar |
-| `CourseCheckout.tsx` | nicht buchbar |
-| `CalendarInvite.tsx` | ausgeblendet |
-| `Dashboard.tsx` | Listen/Check-in ohne Archiv; Personenfilter |
-| `Participants.tsx` | Kurse + Personen ohne Archiv |
-| `Users.tsx` | Mitgliederliste ohne Archiv |
-| `MyRegistrations.tsx` | archivierte Kurse ausgefiltert |
-| `useMessagesData.ts` | Kurse/Personen ohne Archiv |
-| `studioPayments.ts` / `Payments.tsx` | Standard ohne Archiv; Umschalter `payments-include-archived` |
-| `types/index.ts` | Felder an Course/User |
+**Zentrale Lösung:**
+
+1. Migration `20261004240000` — RLS SELECT auf `courses` und Manager/Lehrer-`users` nur `archived_at IS NULL`; `get_open_coverage` filtert Archiv. Ausnahme bleibt `get_studio_payments(p_include_archived)`.
+2. Client-Helfer `src/lib/visibleScope.ts` (`visibleCourses` / `visibleMembers` / `onlyVisible`) für alle Listen.
+3. Kachel „Teilnehmer“ → **„Anmeldungen“** (zählt belegte Plätze in kommenden Kursen, nicht Studio-Mitglieder; 0 bei 4 geseedeten Personen ohne kommende Anmeldung war kein Bug).
+
+### Audit: Stelle → filtert `archived_at`?
+
+| Stelle | Art | filtert? | Anmerkung |
+|---|---|---|---|
+| RLS `courses_select_own_tenant` | Policy | **ja** (ab 240000) | zentral |
+| RLS `users_select_managers` / teacher_* | Policy | **ja** (ab 240000) | eigenes Profil (`users_select_own`) weiter ohne Archiv-Zwang |
+| `register_for_course` + Trigger Guard | RPC/Trigger | **ja** | seit 230000 |
+| `get_studio_payments` | RPC | **ja** (Default) | Umschalter `p_include_archived` |
+| `get_open_coverage` | RPC | **ja** (ab 240000) | war Lücke |
+| `get_course_participant_counts` | RPC | n/a | nur IDs, die der Client schon gefiltert hat |
+| `staff_names` | RPC | nein | nur IDs aus sichtbaren Kursen |
+| `visibleScope` + Kurse/Detail/Checkout/Kalender/MyCourses/Participants/Users/Messages/Dashboard | Client | **ja** | |
+| `Dashboard` Rückgaben-Embed | Client | **ja** | war Lücke; jetzt RLS + `isArchivedRow` |
+| `MyRegistrations` Embed | Client | **ja** | Filter `isArchivedRow` |
+| `Payments.tsx` | Client/RPC | Ausnahme | Umschalter Archiv |
+| `CreateCourse`/`EditCourse`/`Profile` users | Client | n/a | Schreib-/Eigenprofil |
+| `pass_products.archived_at` | Produkt | eigen | A4, nicht UX-5 |
 
 Kartenprodukte (`pass_products.archived_at`) unverändert — eigene Story A4.
 
@@ -170,26 +177,21 @@ Kartenprodukte (`pass_products.archived_at`) unverändert — eigene Story A4.
 
 | Lauf | Ergebnis |
 |---|---|
-| `npm run check:ci` | grün (nach C inkl. Migration/UI) |
+| `npm run check:ci` | grün |
 | Unit `ux5_buchungsleiste_toast` | grün |
 | E2E `e2e/ux5.spec.ts` (e2eapp) | **1/1** |
-| E2e `e2e/zw1.spec.ts` | **1/1** |
+| E2E `e2e/ux5-archive.spec.ts` | **1/1** — archivierter abgesagter Kurs + Person auf Owner-/Teilnehmer-Seiten unsichtbar |
+| E2E `e2e/zw1.spec.ts` | **1/1** |
 
-## STOPP — Haltestelle 5 (Klickliste)
+## STOPP — Haltestelle 5 (kurze Klickliste Nachzug)
 
-Konto-Angaben: Owner = Olivia Owner; Teilnehmende wie genannt. Passwörter in `supabase/.env.dev`.
+Owner Olivia · Passwort in `supabase/.env.dev`. Keine Smoke-Titel (`S22A…`) erwarten.
 
-1. **Owner · Kurse** — nur die 6 Seed-Kurse (+ ggf. keine Altlasten); keine 70+ Testkurse.
-2. **Owner · Teilnehmer** — Vera, Karla, Olaf, Nina sichtbar; archivierte Alt-Personen weg.
-3. **Owner · Zahlungen** — Standard ohne Archiv (kürzere Liste); Umschalter „Archiv anzeigen“ zeigt Alt-Zahlungen der archivierten Personen/Kurse.
-4. **Owner · Einstellungen** — Studio, Anbieter, Stripe, AVV, Kartenprodukte unverändert.
-5. **Vera** — Kursdetail: „Neu“-Hinweis an der Zahlart (nie online); Buchung → Toast **ohne** Rückgängig, ~4 s, ✕ schließt.
-6. **Karla** — Karte noch 6; Buchung mit Karte möglich.
-7. **Olaf** — Zahlart ohne „Neu“ (schon online); Buchung ok.
-8. **Nina** — leere Anmeldungen; Abmelden-Toast mit Rückgängig nur testen, wenn sie sich anmeldet und bar abmeldet (~6 s + Balken).
+1. **Übersicht** — „Rückgaben offen“ ohne Smoke; Kachel heißt „Anmeldungen“ (kann 0 sein).
+2. **Kurse** — nur die 6 Seed-Kurse.
+3. **Check-in** (Übersicht / heutige Zeilen) — keine archivierten Titel.
+4. **Teilnehmer** — Vera/Karla/Olaf/Nina; keine Alt-Smoke-Personen.
+5. **Kalender** (`/calendar`) — keine Smoke-Titel.
+6. **Nachrichten** — Kursauswahl ohne Archiv/Smoke.
 
-## Commits (A/B bereits)
-
-- `a136524` Toast-Regel
-- `f4e2950` Buchungsleiste
-- C: Migration + Reset/Seed + UI-Filter (siehe `git log`)
+Optional: Zahlungen Standard ohne Archiv; Umschalter zeigt Alt-Zahlungen.
