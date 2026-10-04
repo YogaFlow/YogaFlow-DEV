@@ -1,34 +1,34 @@
 # STAND — Omlify DEV
 
-Stand: 2026-10-04 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [k1_karten_online.md](berichte/k1_karten_online.md) (Teil 0)
+Stand: 2026-10-04 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [k1_karten_online.md](berichte/k1_karten_online.md) (Haltestelle 5)
 
 ## DEV
 
-- Migrationen bis `20261004260000` (Z8 Neu-Hinweis unabhängig vom Standard; davor `20261004250000` RLS≠Anzeige)
-- Functions (deployt): `calendar-ics`, `ops-monitor`, `payments-jobs`, `payments-webhook`, `dispatch-emails`, `send-email` (unverändert)
+- Migrationen bis `20261004274000` (K1 Belege/Ops/Mails; davor `2026100427*` Pass-Online Schema/Checkout/Widerruf)
+- Functions (deployt): `payments-checkout`, `dispatch-emails`, `payments-jobs`, `payments-webhook` (+ bestehende)
 - Secrets (Namen): `CALENDAR_ICS_SECRET`; `OPS_MONITOR_SECRET`, `OPS_ALERT_EMAIL`; `OPS_HEARTBEAT_URL` nicht gesetzt
-- Cron: `yogaflow_ops_monitor` alle 15 min (+ bestehende jobs)
-- ops_alerts offen: nur `demoalpha:disputes` (3); Fehlalarme O1–O3 erledigt
-- E2E: ZW-1 1/1 (inkl. Z8 Vor Ort+Hinweis); UX-5 1/1 + Archive 1/1 (`e2eapp`)
+- Cron: `yogaflow_expire_pass_payment_attempts`, `yogaflow_pass_expiry_reminders` (+ bestehende)
+- E2E: K1 `e2e/k1.spec.ts` (e2eapp); ZW-1 / UX-5 zuvor grün
 - Legal: AVV-Kanon `b90051ca…` in `legal_document_versions`
-- Deno: `npm run test:deno` 195/195 grün
-- CI: lokal `npm run check:ci` (vor Push)
-- Demo: Vera `hint_seen` null + `last=onsite` (Z8); Nina: Hatha-Storno bleibt — Für Rückgängig Vor Ort wählen
+- Deno: `npm run test:deno` 199/199 grün
+- CI: lokal `npm run check:ci` (inkl. `k1_pass_texts`)
+- Demo: demoalpha 5er 65 € / 10er 120 € online kaufbar 12 Monate (Seed); Karla behält Karte
 
 ## Zuletzt abgeschlossen
 
-- **ZW-1 Z8** — Neu-Hinweis unabhängig vom Standard-Weg; UI-Switch-Zeile bei Vor-Ort-Default; Unit 4 Fälle; E2E; Entscheidung 14
-  - Bericht: [docs/berichte/zw1_zahlungswege.md](berichte/zw1_zahlungswege.md) → STOPP Klickliste Z8 (2 Punkte)
+- **K1 A–F** — Online-Kartenkauf, Meine Karten, Widerruf, Mails, E2E e2eapp, Demo-Seed
+  - Bericht: [docs/berichte/k1_karten_online.md](berichte/k1_karten_online.md) → STOPP Klickliste Haltestelle 5
+- **ZW-1 Z8** — Neu-Hinweis unabhängig vom Standard-Weg
 - **UX-5 RLS-Korrektur** — `20261004250000`; Regel `rls-access-not-display`
 
 ## Nächste Schritte
 
-- **K1 Teil 0** — Inventur + Einhänge-Vorschlag prüfen ([Bericht](berichte/k1_karten_online.md)); danach Umsetzung
+- Klicktest K1 Haltestelle 5 (max. 12 Punkte im Bericht)
 - Klicktest Z8 (Vera Neu-Hinweis; Nina Rückgängig Vor Ort) — parallel offen
 
 ## Haltestellen / wartet auf Julius
 
-- **K1 Haltestelle 1** — Inventur/Vorschlag in [k1_karten_online.md](berichte/k1_karten_online.md) (10 offene Punkte)
+- **K1 Haltestelle 5** — Klickliste in [k1_karten_online.md](berichte/k1_karten_online.md)
 - **Z8 Haltestelle** — genau 2 Klickpunkte in [zw1_zahlungswege.md](berichte/zw1_zahlungswege.md)
 - Klicktest UX-4 Nachtrag N1–N3 (Toast-Balken mit neuem Kontrast erneut prüfen)
 - UX-2 B1: Test-Mail + Screenshots (falls noch offen)
@@ -38,7 +38,7 @@ Stand: 2026-10-04 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [k1_kart
 
 ## hier weitermachen
 
-Nach Freigabe K1 Teil 0 / Antworten auf die 10 Punkte: Umsetzung ab Schema.
+Nach Klicktest K1: Freigaben/Nachbesserungen; Demo-Seed auf DEV bei Bedarf neu laufen (`demo_seed_v2`).
 
 ## Verweise
 

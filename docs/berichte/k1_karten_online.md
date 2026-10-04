@@ -1,8 +1,8 @@
 # Bericht K1 — Karten online kaufen, „Meine Karten“, Widerruf
 
-Status: **angehalten** (Haltestelle 1 — Inventur Teil 0, Vorschlag prüfen).  
+Status: **angehalten** (Haltestelle 5 — Klicktest).  
 Stand 04.10.2026 · Branch `Julius` · HEAD siehe `git log -1`  
-Vorgabe: [docs/stories/k1_karten_online.md](../stories/k1_karten_online.md) · [Entscheidung 15](../entscheidungen/15_Karten_online.md)
+Vorgabe: [docs/stories/k1_karten_online.md](../stories/k1_karten_online.md) · [Entscheidung 15](../entscheidungen/15_Karten_online.md) · Freigabe Teil 0: [k1_freigabe_teil0.md](../stories/k1_freigabe_teil0.md)
 
 ---
 
@@ -262,6 +262,46 @@ Kulanz nach Frist: bestehender Owner-Erstatten-Pfad + neuer Hook „bei `pass_pu
 
 ---
 
-## Nächste Schritte (nach Freigabe)
+## Umsetzung (nach Freigabe Teil 0)
 
-Warten auf Prüfung Teil 0 / Vorschlag. Danach Umsetzung in Schichten (Migration+Test → Functions → Oberfläche-Logik → Gestaltung → E2E `e2eapp` → Demodaten demoalpha), `check:ci` vor jedem Push, Haltestelle 5 mit max. 12 Klickpunkten.
+Schichten auf `Julius` (Commits): SQL `debe870` · Functions `f3b49c5` · Logik `bb5e649` · UI `cbc0489` · E2E/Demo `85a4920` (+ Doku-Commit).  
+`check:ci` grün vor jedem Push. Cron `yogaflow_expire_pass_payment_attempts` und `yogaflow_pass_expiry_reminders` in Migration.
+
+### Inventur-Hooks (Stellenliste abgehakt)
+
+| # | Stelle | Status |
+|---|---|---|
+| 1–14 | Schema/SQL (Produkte, Attempts, prepare/complete, Widerruf, extend, Belege, Mails, Cron, Consents) | angepasst |
+| 15–19 | Edge/Port (CreatePaymentIntent subject, Checkout prepare pass, Webhook/Jobs complete, dispatch-emails) | angepasst |
+| 20–25 | Client (Checkout, Einstellungen, Meine Karten, Kursdetail, /widerruf, refundTexts) | angepasst |
+| 26 | E2E e2eapp | angepasst |
+| — | `redeem_pass` / `register_for_course(p_use_pass)` / Rückbuchung | bewusst nicht betroffen |
+| — | Ledger `process_ledger` / H5' (pass_purchase + card → psp_clearing) | bewusst nicht betroffen (Wiederverwendung) |
+| — | `get_studio_payments` Pass-Join | bewusst nicht betroffen |
+| — | Vor-Ort `sell_pass` (manual) | bewusst nicht betroffen |
+
+### Tests
+
+- Unit: `scripts/test/k1_pass_texts.mjs` (in `check:ci`)
+- SQL: `scripts/test/k1_pass_online.mjs` (in `run_geldkette`)
+- Deno: Checkout prepare-pass + Consent (199 Tests)
+- E2E: `e2e/k1.spec.ts` (e2eapp)
+
+---
+
+## Haltestelle 5 — Klickliste (max. 12)
+
+1. **Owner demoalpha** — Einstellungen › Karten: 5er 65 € / 10er 120 €, Schalter „Online kaufbar“, Vorschauzeile, Default 12 Monate.
+2. **Owner demoalpha** — Produkt > 250 €: Schalter gesperrt mit Hinweis „nur bis 250 €“.
+3. **Teilnehmerin ohne Karte (z. B. Vera)** — Menü „Meine Karten“ sichtbar (Online-Produkte); Kauf 10er mit Consent-Häkchen + „Zahlungspflichtig kaufen“; Erfolg „Deine … ist bereit“.
+4. **Vera** — Nach Kauf: Kachel „noch 10 von 10“, gültig bis, Link Widerruf in Frist.
+5. **Vera** — Kursdetail (pass_eligible, ohne aktive Karte vorher): Ersparnis-Hinweis → Meine Karten; nach Kauf mit Karte buchbar.
+6. **Vera** — Widerruf nach 2 genutzten Terminen: Rechenweg 120 − 2×12 = 96 € → bestätigen → Mail-Eingang / Karte entwertet.
+7. **Owner demoalpha** — Zahlungen: Erstattung mit Grund „Widerruf“.
+8. **Owner demoalpha** — Personen › Karla: Karte verlängern (neues Datum + Pflichtnotiz) → Verlauf „Verlängert“.
+9. **Karla** — bestehende Karte bleibt (noch 6); Menü „Meine Karten“; kein erneuter Zwangsverkauf.
+10. **Öffentlich** — `/widerruf?tenant=demoalpha` ohne Login: Beleg+E-Mail → Zusammenfassung oder neutraler Hinweis.
+11. **Owner** — Online-Zahlung nicht bereit: Schalter „Online kaufbar“ gesperrt mit Grund.
+12. **Mail** — Bestätigung „Karte ist bereit“ (UX-3-Shell) mit Widerrufshinweis im Fuß (DEV-Mail-Zeile / Inbox).
+
+STOPP — wartet auf Julius’ Klicktest.
