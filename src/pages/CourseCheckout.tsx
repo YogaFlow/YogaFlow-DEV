@@ -950,15 +950,24 @@ const CourseCheckout: React.FC = () => {
     );
   }
 
+  const attendanceLabel =
+    sorted.length === 1 ? '1 angemeldet' : `${sorted.length} angemeldet`;
+
   return (
-    <div className="mx-auto max-w-lg space-y-4 overflow-x-hidden pb-24">
+    <div className="mx-auto max-w-lg space-y-4 overflow-x-hidden pb-24 lg:max-w-[1120px]">
       <header>
         <h2 className="text-[22px] font-medium text-text">{course.title}</h2>
         <p className="mt-1 text-[15px] tabular-nums text-textMuted">
           {formatDate(course.date)} · {formatTime(course.time)}
         </p>
-        <p className="mt-1 text-[15px] tabular-nums text-text">
+        <p className="mt-1 text-[15px] tabular-nums text-text lg:hidden">
           {counts.open} offen · {counts.done} erledigt
+        </p>
+        <p
+          className="mt-1 hidden text-[15px] tabular-nums text-text lg:block"
+          data-testid="checkout-attendance"
+        >
+          {attendanceLabel}
         </p>
       </header>
 
@@ -973,7 +982,8 @@ const CourseCheckout: React.FC = () => {
           Niemand ist angemeldet.
         </p>
       ) : (
-        <div className="divide-y divide-border overflow-hidden rounded-md border border-border bg-surface">
+        <>
+        <div className="divide-y divide-border overflow-hidden rounded-md border border-border bg-surface lg:hidden">
           {sorted.map((person) => {
             const name = personName(person);
             const status = statusLabel(person, seesMethod);
@@ -1205,6 +1215,270 @@ const CourseCheckout: React.FC = () => {
             );
           })}
         </div>
+
+        <div
+          className="hidden overflow-hidden rounded-md border border-border bg-surface lg:block"
+          data-testid="checkout-desktop-table"
+        >
+          <table className="w-full table-fixed text-left">
+            <thead>
+              <tr className="border-b border-border text-[13px] text-textMuted">
+                <th className="w-[28%] px-3.5 py-3 font-medium">Name</th>
+                <th className="w-[28%] px-3.5 py-3 font-medium">Zahlung</th>
+                <th className="w-[22%] px-3.5 py-3 font-medium">Karte</th>
+                <th className="w-[22%] px-3.5 py-3 text-right font-medium">Aktion</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {sorted.map((person) => {
+                const name = personName(person);
+                const status = statusLabel(person, seesMethod);
+                const open = person.coverage === 'open' && !person.paymentPending;
+                const canRevertWaive =
+                  seesMethod && person.coverage === 'waived' && !person.paymentPending;
+                const canUndoPass =
+                  seesMethod && person.coverage === 'pass' && !person.paymentPending;
+                const canSellPass = hasSellableProducts && !person.paymentPending;
+                const usablePass =
+                  open && course
+                    ? findUsablePass(passesByUser[person.userId] ?? [], {
+                        date: course.date,
+                        price: course.price,
+                        pass_eligible: course.pass_eligible,
+                      })
+                    : null;
+                const canRefund =
+                  seesMethod &&
+                  person.onlinePaymentId != null &&
+                  !person.paymentPending &&
+                  person.onlineRefundableCents > 0;
+                const showMenu = open || canRevertWaive || canSellPass || canUndoPass;
+                const menuOpen = menuFor === person.registrationId;
+                const passLabel = passBadgeLabel(passesByUser[person.userId] ?? []);
+                const passLine =
+                  person.coverage === 'pass'
+                    ? checkoutPassLine(
+                        (passesByUser[person.userId] ?? []).find(
+                          (pass) => pass.pass_id === person.passId,
+                        )?.name ?? 'Karte',
+                        person.passRemaining ?? 0,
+                      )
+                    : passLabel
+                      ? checkoutPassLine(
+                          (passesByUser[person.userId] ?? [])[0]?.name ?? 'Karte',
+                          (passesByUser[person.userId] ?? [])[0]?.remaining ?? 0,
+                        )
+                      : null;
+                const onlineLine =
+                  person.onlinePaymentId &&
+                  person.onlineAmountCents != null &&
+                  person.onlineAmountCents > 0
+                    ? onlinePaidCheckoutLine(person.onlineAmountCents, person.onlineRefundedCents)
+                    : null;
+                return (
+                  <React.Fragment key={`desk-${person.registrationId}`}>
+                    <tr>
+                      <td className="px-3.5 py-3 align-middle">
+                        <p className="truncate text-[15px] font-medium text-text">{name}</p>
+                      </td>
+                      <td className="px-3.5 py-3 align-middle">
+                        {person.paymentPending ? (
+                          <PaymentPendingStatus holdExpiresAt={person.holdExpiresAt} />
+                        ) : onlineLine ? (
+                          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-text">
+                            {person.coverage === 'paid' ? (
+                              <Check className="h-4 w-4 shrink-0" aria-hidden />
+                            ) : null}
+                            <span className="tabular-nums">{onlineLine}</span>
+                            {canRefund ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setRefundSheet({
+                                    paymentId: person.onlinePaymentId as string,
+                                    firstName: person.firstName,
+                                    name,
+                                  })
+                                }
+                                className="inline-flex min-h-11 items-center rounded-full border border-border px-3 text-[13px] font-medium text-textMuted active:bg-surfaceSunken"
+                              >
+                                Erstatten
+                              </button>
+                            ) : null}
+                          </p>
+                        ) : person.coverage !== 'pass' ? (
+                          <p className="flex flex-wrap items-center gap-x-1 text-[13px] text-text">
+                            {person.coverage === 'paid' ? (
+                              <Check className="h-4 w-4 shrink-0" aria-hidden />
+                            ) : null}
+                            <span>{status.text}</span>
+                            {status.detail ? (
+                              <span className="text-textMuted tabular-nums">· {status.detail}</span>
+                            ) : null}
+                          </p>
+                        ) : (
+                          <span className="text-[13px] text-textMuted">—</span>
+                        )}
+                      </td>
+                      <td className="px-3.5 py-3 align-middle text-[13px] text-textMuted tabular-nums">
+                        {passLine ? (
+                          <span className="inline-flex items-center gap-1">
+                            {person.coverage === 'pass' ? (
+                              <Check className="h-4 w-4 shrink-0 text-text" aria-hidden />
+                            ) : null}
+                            {passLine}
+                          </span>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                      <td className="px-3.5 py-3 align-middle">
+                        {showMenu ? (
+                          <div className="flex flex-wrap items-center justify-end gap-1">
+                            <button
+                              type="button"
+                              aria-expanded={menuOpen}
+                              aria-label={`Mehr für ${name}`}
+                              onClick={() =>
+                                setMenuFor((current) =>
+                                  current === person.registrationId
+                                    ? null
+                                    : person.registrationId,
+                                )
+                              }
+                              className="inline-flex h-11 min-w-11 items-center justify-center rounded-full border border-border px-3 text-[15px] font-medium text-text"
+                            >
+                              Mehr
+                            </button>
+                            {open && usablePass ? (
+                              <button
+                                type="button"
+                                onClick={() => void applyPass(person)}
+                                className="inline-flex h-11 min-w-11 items-center justify-center rounded-full border border-borderStrong bg-surface px-4 text-[15px] font-medium text-brand active:bg-surfaceSunken"
+                              >
+                                Karte
+                              </button>
+                            ) : null}
+                            {open ? (
+                              <button
+                                type="button"
+                                onClick={() => void record(person, 'cash', null, null)}
+                                className="inline-flex h-11 min-w-11 items-center justify-center rounded-full bg-brand px-4 text-[15px] font-medium text-onBrand active:bg-brandPressed"
+                              >
+                                Bar
+                              </button>
+                            ) : null}
+                          </div>
+                        ) : null}
+                      </td>
+                    </tr>
+                    {menuOpen ? (
+                      <tr>
+                        <td colSpan={4} className="bg-surfaceSunken px-3.5 py-1">
+                          <div className="flex flex-wrap justify-end gap-x-4">
+                            {canSellPass ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setMenuFor(null);
+                                  setSellTarget(person);
+                                }}
+                                className="inline-flex min-h-11 items-center text-[15px] text-text"
+                              >
+                                Karte verkaufen
+                              </button>
+                            ) : null}
+                            {canUndoPass ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setMenuFor(null);
+                                  setUndoPassConfirm(person);
+                                }}
+                                className="inline-flex min-h-11 items-center text-[15px] text-text"
+                              >
+                                Karte zurücknehmen
+                              </button>
+                            ) : null}
+                            {open
+                              ? MENU_METHODS.map((item) => (
+                                  <button
+                                    key={item.method}
+                                    type="button"
+                                    onClick={() => void record(person, item.method, null, null)}
+                                    className="inline-flex min-h-11 items-center text-[15px] text-text"
+                                  >
+                                    {item.label}
+                                  </button>
+                                ))
+                              : null}
+                            {open && seesMethod ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setMenuFor(null);
+                                    setDialogError('');
+                                    setAmountDialog({
+                                      registrationId: person.registrationId,
+                                      name,
+                                      euros: centsToEuroInput(person.priceCents),
+                                      note: '',
+                                      priceLabel:
+                                        person.priceCents != null
+                                          ? formatPrice(person.priceCents / 100)
+                                          : '',
+                                      priceCents: person.priceCents,
+                                      method: 'cash',
+                                    });
+                                  }}
+                                  className="inline-flex min-h-11 items-center text-[15px] text-text"
+                                >
+                                  Anderer Betrag…
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setMenuFor(null);
+                                    setDialogError('');
+                                    setWaiveDialog({
+                                      registrationId: person.registrationId,
+                                      name,
+                                      reason: '',
+                                      note: '',
+                                    });
+                                  }}
+                                  className="inline-flex min-h-11 items-center text-[15px] text-text"
+                                >
+                                  Erlassen…
+                                </button>
+                              </>
+                            ) : null}
+                            {canRevertWaive ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setMenuFor(null);
+                                  setRevertTarget(person);
+                                }}
+                                className="inline-flex min-h-11 items-center text-[15px] text-text"
+                              >
+                                {person.waivedReason === 'pre_omlify'
+                                  ? 'Abhaken zurücknehmen'
+                                  : 'Erlass zurücknehmen'}
+                              </button>
+                            ) : null}
+                          </div>
+                        </td>
+                      </tr>
+                    ) : null}
+                  </React.Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        </>
       )}
 
         <p className="text-[13px] leading-5 text-textMuted">{CASH_HINT}</p>

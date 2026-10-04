@@ -317,8 +317,154 @@ const CourseDetail: React.FC = () => {
     navigate(-1);
   };
 
+  const windowHours =
+    typeof tenant?.cancellation_window_hours === 'number'
+      ? tenant.cancellation_window_hours
+      : null;
+  const cancelDeadlinePreview =
+    windowHours == null
+      ? null
+      : windowHours === 0
+        ? 'Keine kostenlose Abmeldung'
+        : `Kostenlos abmelden bis ${windowHours} h vor Kursbeginn`;
+  const seatsLine = cancelled
+    ? null
+    : isFull
+      ? 'Ausgebucht'
+      : remaining === 1
+        ? '1 Platz frei'
+        : `${remaining} Plätze frei`;
+
+  const renderBookingStatus = () =>
+    isRegistered && registrationStatus === 'registered' && !showPendingPayment ? (
+      <div className="mt-0.5">
+        <span className="inline-flex items-center gap-1 text-[13px] font-medium text-success">
+          <Check className="h-3.5 w-3.5" aria-hidden />
+          Angemeldet
+        </span>
+        {refundInfo ? (
+          <p className="mt-0.5 text-[13px] leading-snug text-textMuted tabular-nums">
+            {passRefundStatusLine(refundInfo)}
+          </p>
+        ) : onlineInfo ? (
+          <p className="mt-0.5 text-[13px] leading-snug text-textMuted tabular-nums">
+            {onlinePaidStatusLine(onlineInfo)}
+          </p>
+        ) : null}
+      </div>
+    ) : showPendingPayment ? (
+      <div className="mt-0.5">
+        <PaymentPendingStatus
+          holdExpiresAt={resolveHoldExpiresAt(ownRegistration?.hold_expires_at)}
+          className="!items-start"
+        />
+      </div>
+    ) : isRegistered && registrationStatus === 'waitlist' ? (
+      <span className="mt-0.5 inline-block">
+        <AccentPill>
+          {waitlistPosition ? `Warteliste Pos. ${waitlistPosition}` : 'Warteliste'}
+        </AccentPill>
+      </span>
+    ) : (
+      <div className="mt-0.5">
+        <p className="text-[13px] text-textMuted">pro Termin</p>
+        {onlineRequired && canAct && !isRegistered ? (
+          <p className="mt-0.5 inline-flex items-center gap-1 text-[13px] text-textMuted">
+            <Lock className="h-3.5 w-3.5 shrink-0 text-textSubtle" aria-hidden />
+            <span>{ONLINE_REQUIRED_HINT}</span>
+          </p>
+        ) : null}
+      </div>
+    );
+
+  const renderBookingActions = (desktop: boolean) => (
+    <>
+      {canAct ? (
+        isRegistered ? (
+          showPendingPayment ? (
+            <div
+              className={
+                desktop
+                  ? 'flex w-full flex-col gap-2'
+                  : 'flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end'
+              }
+            >
+              {paymentsClientConfig().enabled && ownRegistration?.id ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPaySheet({
+                      registrationId: ownRegistration.id,
+                      holdExpiresAt: ownRegistration.hold_expires_at,
+                    })
+                  }
+                  className={`${buttonShape} bg-brand text-onBrand active:bg-brandPressed${desktop ? ' w-full' : ''}`}
+                >
+                  {PAY_NOW_LABEL}
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => requestUnregister(course)}
+                className={`${buttonShape} border border-borderStrong bg-surface text-textMuted active:bg-surfaceSunken${desktop ? ' w-full' : ''}`}
+              >
+                {RELEASE_SEAT_LABEL}
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => requestUnregister(course)}
+              data-testid="course-unregister"
+              className={`${buttonShape} border border-borderStrong bg-surface text-danger active:bg-dangerSoft${desktop ? ' w-full' : ''}`}
+            >
+              Abmelden
+            </button>
+          )
+        ) : isFull ? (
+          <button
+            type="button"
+            onClick={() => requestEnroll('waitlist')}
+            disabled={registering}
+            className={`${buttonShape} border border-accent bg-accentSoft text-accentText disabled:opacity-50${desktop ? ' w-full' : ''}`}
+          >
+            Auf die Warteliste
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => requestEnroll('seat')}
+            disabled={registering}
+            className={`${buttonShape} bg-brand text-onBrand active:bg-brandPressed disabled:opacity-50${desktop ? ' w-full' : ''}`}
+          >
+            {onlineRequired ? CONTINUE_TO_BOOKING_LABEL : 'Anmelden'}
+          </button>
+        )
+      ) : null}
+      {showStaffLinks ? (
+        <div className={desktop ? 'flex w-full flex-col gap-2' : 'flex items-center gap-2'}>
+          <Link
+            to={`/course/${course.id}/participants`}
+            className={`${staffButtonShape} border border-borderStrong bg-surface text-brand${desktop ? ' w-full' : ''}`}
+          >
+            Teilnehmer
+          </Link>
+          <Link
+            to={`/course/${course.id}/edit`}
+            className={`${staffButtonShape} border border-borderStrong bg-surface text-brand${desktop ? ' w-full' : ''}`}
+          >
+            Bearbeiten
+          </Link>
+        </div>
+      ) : null}
+    </>
+  );
+
   return (
-    <div className="mx-auto max-w-2xl pb-28 lg:pb-0">
+    <div
+      className="mx-auto max-w-2xl pb-28 lg:max-w-[1120px] lg:pb-8"
+      data-testid="course-detail-layout"
+    >
       <CourseEnrollmentDialogs
         confirmDialog={confirmDialog}
         unregistering={unregistering}
@@ -406,237 +552,152 @@ const CourseDetail: React.FC = () => {
         Zurück
       </button>
 
-      <h2 className="mt-4 text-[22px] font-medium text-text">{course.title}</h2>
+      <div className="lg:mt-4 lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(260px,1fr)] lg:items-start lg:gap-10">
+        <div className="min-w-0">
+          <h2 className="mt-4 text-[22px] font-medium text-text lg:mt-0">{course.title}</h2>
 
-      {courseStatus ? <div className="mt-2">{courseStatus}</div> : null}
+          {courseStatus ? <div className="mt-2">{courseStatus}</div> : null}
 
-      {cancelled ? (
-        <div className="mt-4 rounded-md border border-border bg-surfaceSunken px-3.5 py-3">
-          <p className="text-[15px] font-medium text-text">
-            {cancelledOn ? `Abgesagt am ${cancelledOn}` : 'Abgesagt'}
-            {cancelNote ? ` · Grund: ${cancelNote}` : ''}
-          </p>
-          {canUncancelCourse ? (
+          {cancelled ? (
+            <div className="mt-4 rounded-md border border-border bg-surfaceSunken px-3.5 py-3">
+              <p className="text-[15px] font-medium text-text">
+                {cancelledOn ? `Abgesagt am ${cancelledOn}` : 'Abgesagt'}
+                {cancelNote ? ` · Grund: ${cancelNote}` : ''}
+              </p>
+              {canUncancelCourse ? (
+                <button
+                  type="button"
+                  onClick={cancellation.requestUncancel}
+                  className="mt-2 inline-flex min-h-11 items-center text-[15px] font-medium text-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+                >
+                  Absage zurücknehmen
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+
+          <div className="mt-5 divide-y divide-border overflow-hidden rounded-md border border-border bg-surface">
+            {dateLine ? (
+              <div className="flex items-start gap-3 px-3.5 py-3">
+                <Calendar className="mt-0.5 h-5 w-5 shrink-0 text-sage-500" aria-hidden />
+                <p className="text-[15px] text-text">{dateLine}</p>
+              </div>
+            ) : null}
+            {timeLine ? (
+              <div className="flex items-start gap-3 px-3.5 py-3">
+                <Clock className="mt-0.5 h-5 w-5 shrink-0 text-sage-500" aria-hidden />
+                <p className="text-[15px] text-text tabular-nums">{timeLine}</p>
+              </div>
+            ) : null}
+            {teacherName ? (
+              <div className="flex items-start gap-3 px-3.5 py-3">
+                <User className="mt-0.5 h-5 w-5 shrink-0 text-sage-500" aria-hidden />
+                <p className="text-[15px] text-text">{teacherName}</p>
+              </div>
+            ) : null}
+            {locationLine ? (
+              <div className="flex items-start gap-3 px-3.5 py-3">
+                <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-sage-500" aria-hidden />
+                <p className="text-[15px] text-text">{locationLine}</p>
+              </div>
+            ) : null}
+            {isAdmin || isCourseLeader ? (
+              <div className="flex items-start gap-3 px-3.5 py-3">
+                <Users className="mt-0.5 h-5 w-5 shrink-0 text-sage-500" aria-hidden />
+                <p className="text-[15px] text-text tabular-nums">
+                  {registeredCount} von {course.max_participants} Plätzen belegt
+                </p>
+              </div>
+            ) : null}
+            {isAdmin && course.pass_eligible === false ? (
+              <div className="flex items-start gap-3 px-3.5 py-3">
+                <p className="text-[13px] text-textMuted">Nicht mit Karte buchbar</p>
+              </div>
+            ) : null}
+          </div>
+
+          {description ? (
+            <section className="mt-6">
+              <h3 className="text-[17px] font-medium text-text">Über den Kurs</h3>
+              <p
+                ref={descriptionRef}
+                className={`mt-2 whitespace-pre-line text-[15px] text-text${
+                  descriptionExpanded ? '' : ' line-clamp-5'
+                }`}
+              >
+                {description}
+              </p>
+              {descriptionOverflows ? (
+                <button
+                  type="button"
+                  onClick={() => setDescriptionExpanded((open) => !open)}
+                  className="mt-1 inline-flex min-h-11 items-center text-[15px] font-medium text-brand"
+                >
+                  {descriptionExpanded ? 'Weniger' : 'Weiterlesen'}
+                </button>
+              ) : null}
+            </section>
+          ) : null}
+
+          {prerequisites ? (
+            <section className="mt-6">
+              <h3 className="text-[17px] font-medium text-text">Voraussetzungen</h3>
+              <p className="mt-2 whitespace-pre-line text-[15px] text-text">{prerequisites}</p>
+            </section>
+          ) : null}
+
+          {canCancelCourse ? (
             <button
               type="button"
-              onClick={cancellation.requestUncancel}
-              className="mt-2 inline-flex min-h-11 items-center text-[15px] font-medium text-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+              onClick={cancellation.requestCancel}
+              className="mt-8 inline-flex min-h-11 items-center text-[15px] font-medium text-danger focus:outline-none focus-visible:ring-2 focus-visible:ring-danger focus-visible:ring-offset-2"
             >
-              Absage zurücknehmen
+              Kurs absagen
+            </button>
+          ) : null}
+
+          {isAdmin && upcoming ? (
+            <button
+              type="button"
+              onClick={() => void requestDelete()}
+              className="mt-8 inline-flex min-h-11 items-center text-[15px] font-medium text-danger focus:outline-none focus-visible:ring-2 focus-visible:ring-danger focus-visible:ring-offset-2"
+            >
+              Kurs löschen
             </button>
           ) : null}
         </div>
-      ) : null}
 
-      <div className="mt-5 divide-y divide-border overflow-hidden rounded-md border border-border bg-surface">
-        {dateLine ? (
-          <div className="flex items-start gap-3 px-3.5 py-3">
-            <Calendar className="mt-0.5 h-5 w-5 shrink-0 text-sage-500" aria-hidden />
-            <p className="text-[15px] text-text">{dateLine}</p>
-          </div>
-        ) : null}
-        {timeLine ? (
-          <div className="flex items-start gap-3 px-3.5 py-3">
-            <Clock className="mt-0.5 h-5 w-5 shrink-0 text-sage-500" aria-hidden />
-            <p className="text-[15px] text-text tabular-nums">{timeLine}</p>
-          </div>
-        ) : null}
-        {teacherName ? (
-          <div className="flex items-start gap-3 px-3.5 py-3">
-            <User className="mt-0.5 h-5 w-5 shrink-0 text-sage-500" aria-hidden />
-            <p className="text-[15px] text-text">{teacherName}</p>
-          </div>
-        ) : null}
-        {locationLine ? (
-          <div className="flex items-start gap-3 px-3.5 py-3">
-            <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-sage-500" aria-hidden />
-            <p className="text-[15px] text-text">{locationLine}</p>
-          </div>
-        ) : null}
-        {(isAdmin || isCourseLeader) ? (
-          <div className="flex items-start gap-3 px-3.5 py-3">
-            <Users className="mt-0.5 h-5 w-5 shrink-0 text-sage-500" aria-hidden />
-            <p className="text-[15px] text-text tabular-nums">
-              {registeredCount} von {course.max_participants} Plätzen belegt
+        <aside
+          className="hidden lg:sticky lg:top-6 lg:block"
+          data-testid="course-booking-card"
+        >
+          <div className="rounded-md border border-border bg-surface p-5">
+            <p className="text-[22px] font-medium leading-tight text-text tabular-nums">
+              {formatPrice(course.price)}
             </p>
+            {renderBookingStatus()}
+            {seatsLine && !isRegistered ? (
+              <p className="mt-3 text-[15px] text-text">{seatsLine}</p>
+            ) : null}
+            {cancelDeadlinePreview && canAct && !isRegistered ? (
+              <p className="mt-2 text-[13px] leading-snug text-textMuted">
+                {cancelDeadlinePreview}
+              </p>
+            ) : null}
+            <div className="mt-5 flex flex-col gap-2">{renderBookingActions(true)}</div>
           </div>
-        ) : null}
-        {isAdmin && course.pass_eligible === false ? (
-          <div className="flex items-start gap-3 px-3.5 py-3">
-            <p className="text-[13px] text-textMuted">Nicht mit Karte buchbar</p>
-          </div>
-        ) : null}
+        </aside>
       </div>
 
-      {description ? (
-        <section className="mt-6">
-          <h3 className="text-[17px] font-medium text-text">Über den Kurs</h3>
-          <p
-            ref={descriptionRef}
-            className={`mt-2 whitespace-pre-line text-[15px] text-text${
-              descriptionExpanded ? '' : ' line-clamp-5'
-            }`}
-          >
-            {description}
-          </p>
-          {descriptionOverflows ? (
-            <button
-              type="button"
-              onClick={() => setDescriptionExpanded((open) => !open)}
-              className="mt-1 inline-flex min-h-11 items-center text-[15px] font-medium text-brand"
-            >
-              {descriptionExpanded ? 'Weniger' : 'Weiterlesen'}
-            </button>
-          ) : null}
-        </section>
-      ) : null}
-
-      {prerequisites ? (
-        <section className="mt-6">
-          <h3 className="text-[17px] font-medium text-text">Voraussetzungen</h3>
-          <p className="mt-2 whitespace-pre-line text-[15px] text-text">{prerequisites}</p>
-        </section>
-      ) : null}
-
-      {canCancelCourse ? (
-        <button
-          type="button"
-          onClick={cancellation.requestCancel}
-          className="mt-8 inline-flex min-h-11 items-center text-[15px] font-medium text-danger focus:outline-none focus-visible:ring-2 focus-visible:ring-danger focus-visible:ring-offset-2"
-        >
-          Kurs absagen
-        </button>
-      ) : null}
-
-      {isAdmin && upcoming ? (
-        <button
-          type="button"
-          onClick={() => void requestDelete()}
-          className="mt-8 inline-flex min-h-11 items-center text-[15px] font-medium text-danger focus:outline-none focus-visible:ring-2 focus-visible:ring-danger focus-visible:ring-offset-2"
-        >
-          Kurs löschen
-        </button>
-      ) : null}
-
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-surface pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:sticky lg:inset-x-auto lg:bottom-0 lg:-mx-6 lg:mt-8 lg:py-3">
-        <div className="mx-auto flex min-h-11 max-w-2xl items-center justify-between gap-3 px-3 max-[380px]:px-2 sm:px-6 lg:max-w-none lg:px-6">
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-surface pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:hidden">
+        <div className="mx-auto flex min-h-11 max-w-2xl items-center justify-between gap-3 px-3 max-[380px]:px-2 sm:px-6">
           <div className="min-w-0 shrink-0">
             <p className="text-[19px] font-medium leading-tight text-text tabular-nums">
               {formatPrice(course.price)}
             </p>
-            {isRegistered && registrationStatus === 'registered' && !showPendingPayment ? (
-              <div className="mt-0.5">
-                <span className="inline-flex items-center gap-1 text-[13px] font-medium text-success">
-                  <Check className="h-3.5 w-3.5" aria-hidden />
-                  Angemeldet
-                </span>
-                {refundInfo ? (
-                  <p className="mt-0.5 text-[13px] leading-snug text-textMuted tabular-nums">
-                    {passRefundStatusLine(refundInfo)}
-                  </p>
-                ) : onlineInfo ? (
-                  <p className="mt-0.5 text-[13px] leading-snug text-textMuted tabular-nums">
-                    {onlinePaidStatusLine(onlineInfo)}
-                  </p>
-                ) : null}
-              </div>
-            ) : showPendingPayment ? (
-              <div className="mt-0.5">
-                <PaymentPendingStatus
-                  holdExpiresAt={resolveHoldExpiresAt(ownRegistration?.hold_expires_at)}
-                  className="!items-start"
-                />
-              </div>
-            ) : isRegistered && registrationStatus === 'waitlist' ? (
-              <span className="mt-0.5 inline-block">
-                <AccentPill>
-                  {waitlistPosition ? `Warteliste Pos. ${waitlistPosition}` : 'Warteliste'}
-                </AccentPill>
-              </span>
-            ) : (
-              <div className="mt-0.5">
-                <p className="text-[13px] text-textMuted">pro Termin</p>
-                {onlineRequired && canAct && !isRegistered ? (
-                  <p className="mt-0.5 inline-flex items-center gap-1 text-[13px] text-textMuted">
-                    <Lock className="h-3.5 w-3.5 shrink-0 text-textSubtle" aria-hidden />
-                    <span>{ONLINE_REQUIRED_HINT}</span>
-                  </p>
-                ) : null}
-              </div>
-            )}
+            {renderBookingStatus()}
           </div>
-          {canAct ? (
-            isRegistered ? (
-              showPendingPayment ? (
-                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
-                  {paymentsClientConfig().enabled && ownRegistration?.id ? (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setPaySheet({
-                          registrationId: ownRegistration.id,
-                          holdExpiresAt: ownRegistration.hold_expires_at,
-                        })
-                      }
-                      className={`${buttonShape} bg-brand text-onBrand active:bg-brandPressed`}
-                    >
-                      {PAY_NOW_LABEL}
-                    </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={() => requestUnregister(course)}
-                    className={`${buttonShape} border border-borderStrong bg-surface text-textMuted active:bg-surfaceSunken`}
-                  >
-                    {RELEASE_SEAT_LABEL}
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => requestUnregister(course)}
-                  data-testid="course-unregister"
-                  className={`${buttonShape} border border-borderStrong bg-surface text-danger active:bg-dangerSoft`}
-                >
-                  Abmelden
-                </button>
-              )
-            ) : isFull ? (
-              <button
-                type="button"
-                onClick={() => requestEnroll('waitlist')}
-                disabled={registering}
-                className={`${buttonShape} border border-accent bg-accentSoft text-accentText disabled:opacity-50`}
-              >
-                Auf die Warteliste
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => requestEnroll('seat')}
-                disabled={registering}
-                className={`${buttonShape} bg-brand text-onBrand active:bg-brandPressed disabled:opacity-50`}
-              >
-                {onlineRequired ? CONTINUE_TO_BOOKING_LABEL : 'Anmelden'}
-              </button>
-            )
-          ) : null}
-          {showStaffLinks ? (
-            <div className="flex items-center gap-2">
-              <Link
-                to={`/course/${course.id}/participants`}
-                className={`${staffButtonShape} border border-borderStrong bg-surface text-brand`}
-              >
-                Teilnehmer
-              </Link>
-              <Link
-                to={`/course/${course.id}/edit`}
-                className={`${staffButtonShape} border border-borderStrong bg-surface text-brand`}
-              >
-                Bearbeiten
-              </Link>
-            </div>
-          ) : null}
+          {renderBookingActions(false)}
         </div>
       </div>
     </div>
