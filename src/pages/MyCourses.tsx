@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { Calendar, Plus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { supabase } from '../lib/supabase';
+import { visibleCourses } from '../lib/visibleScope';
 import { Course } from '../types';
 import { isCourseManagerRole } from '../lib/userRoles';
 import { formatDayLabel, formatTime } from '../lib/format';
@@ -33,13 +33,10 @@ const MyCourses: React.FC = () => {
     const fetchMyCourses = async () => {
       if (!userProfile || !isCourseManager) return;
 
-      const { data, error } = await supabase
-        .from('courses')
-        .select(`
+      const { data, error } = await visibleCourses(`
           *,
           teacher:users!courses_teacher_id_fkey(first_name, last_name)
         `)
-        .is('archived_at', null)
         .eq('teacher_id', userProfile.id)
         .order('date', { ascending: true })
         .order('time', { ascending: true });
@@ -47,7 +44,7 @@ const MyCourses: React.FC = () => {
       if (error) throw error;
       if (!isMounted) return;
 
-      const upcoming = (data || []).filter((course) => isCourseUpcoming(course));
+      const upcoming = ((data || []) as Course[]).filter((course) => isCourseUpcoming(course));
       setCourses(upcoming);
       const nextCounts = await fetchCourseParticipantCounts(upcoming.map((c) => c.id));
       if (isMounted) setCounts(nextCounts);

@@ -28,6 +28,7 @@ import { formatDate, formatTimeRange } from '../lib/format';
 import { fetchMemberPasses, type MemberPassSummary } from '../lib/passes';
 import { paymentMessageForCode } from '../lib/paymentTexts';
 import { supabase } from '../lib/supabase';
+import { isArchivedRow } from '../lib/visibleScope';
 import { withCourseTeachers } from '../lib/staffNames';
 import { canSelfEnrollInCourses } from '../lib/userRoles';
 import { useCourseEnrollment } from '../lib/useCourseEnrollment';
@@ -95,7 +96,7 @@ const MyRegistrations: React.FC = () => {
 
       const rows = ((data || []) as Registration[]).filter((row) => {
         const course = (row as { course?: { archived_at?: string | null } }).course;
-        return !course?.archived_at;
+        return !isArchivedRow(course);
       });
       const states = await fetchRegistrationRefundStates(
         rows.filter((row) => row.coverage_status === 'paid').map((row) => row.id),

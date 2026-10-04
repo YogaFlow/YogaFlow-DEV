@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import { visibleCourses, visibleMembers } from '../lib/visibleScope';
 import { formatDate } from '../lib/format';
 import { User, UserRole, Course, AdminRegisterForCourseResult, AdminRegisterCoverage } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -310,23 +311,17 @@ export default function Users() {
     setLoading(true);
     try {
       if (isTeacher) {
-        const { data, error } = await supabase
-          .from('users')
-          .select('*')
+        const { data, error } = await visibleMembers('*')
           .eq('role', 'user')
           .is('anonymized_at', null)
-          .is('archived_at', null)
           .order('last_name', { ascending: true });
         if (error) throw error;
         setUsers(data || []);
         setLoginExclusive(null);
       } else {
         const [list, flags] = await Promise.all([
-          supabase
-            .from('users')
-            .select('*')
+          visibleMembers('*')
             .is('anonymized_at', null)
-            .is('archived_at', null)
             .order('last_name', { ascending: true }),
           supabase.rpc('studio_member_login_exclusive'),
         ]);
@@ -352,9 +347,7 @@ export default function Users() {
 
   const fetchCourses = async () => {
     try {
-      let query = supabase
-        .from('courses')
-        .select('id, title, date, status, tenant_id, teacher_id, description, location, max_participants, price, frequency, pass_eligible, created_at, updated_at').is('archived_at', null)
+      let query = visibleCourses('id, title, date, status, tenant_id, teacher_id, description, location, max_participants, price, frequency, pass_eligible, created_at, updated_at')
         .neq('status', 'canceled')
         .order('date', { ascending: true });
 

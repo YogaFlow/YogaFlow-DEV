@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabase';
+import { isArchivedRow, visibleCourses } from '../visibleScope';
 import { Message, Course, User } from '../../types';
 import { isCourseUpcoming } from '../courseDateTime';
 import { isStudioAdmin, isTeacherOnly } from '../userRoles';
@@ -88,9 +89,7 @@ export function useMessagesData(userProfile: User | null) {
 
     try {
       const today = new Date().toISOString().split('T')[0];
-      let query = supabase
-        .from('courses')
-        .select('*').is('archived_at', null)
+      let query = visibleCourses('*')
         .neq('status', 'canceled')
         .gte('date', today);
 
@@ -120,9 +119,9 @@ export function useMessagesData(userProfile: User | null) {
 
       if (error) throw error;
       const upcomingCourses = await withCourseTeachers(
-        (data || []).filter((course) => isCourseUpcoming(course))
+        ((data || []) as Course[]).filter((course) => isCourseUpcoming(course)),
       );
-      setCourses(upcomingCourses);
+      setCourses(upcomingCourses as Course[]);
     } catch (error) {
       console.error('Error fetching courses:', error);
     }
@@ -188,7 +187,7 @@ export function useMessagesData(userProfile: User | null) {
         .filter((user) => {
           if (!user) return false;
           const row = user as { anonymized_at?: string | null; archived_at?: string | null };
-          return row.anonymized_at == null && row.archived_at == null;
+          return row.anonymized_at == null && !isArchivedRow(row);
         }) as unknown as User[];
       setParticipants(users);
     } catch (error) {

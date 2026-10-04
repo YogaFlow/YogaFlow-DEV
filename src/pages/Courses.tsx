@@ -14,6 +14,7 @@ import {
 } from '../lib/courseTeacherFilter';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+import { visibleCourses } from '../lib/visibleScope';
 import { Course } from '../types';
 import { isCourseCancelled, isCourseUpcoming } from '../lib/courseDateTime';
 import { formatDayLabel, formatTime } from '../lib/format';
@@ -42,22 +43,19 @@ const Courses: React.FC = () => {
 
   const fetchCourses = async () => {
     try {
-      const { data, error } = await supabase
-        .from('courses')
-        .select('*')
-        .is('archived_at', null)
+      const { data, error } = await visibleCourses('*')
         .gte('date', new Date().toISOString().split('T')[0])
         .order('date', { ascending: true })
         .order('time', { ascending: true });
 
       if (error) throw error;
       const upcomingCourses = await withCourseTeachers(
-        (data || []).filter((course) => isCourseUpcoming(course))
+        ((data || []) as Course[]).filter((course) => isCourseUpcoming(course)),
       );
       setCourses(upcomingCourses);
 
       if (upcomingCourses.length > 0) {
-        const courseIds = upcomingCourses.map(c => c.id);
+        const courseIds = upcomingCourses.map((c) => c.id);
         const { data: countsData, error: countsError } = await supabase.rpc(
           'get_course_participant_counts',
           { p_course_ids: courseIds }
@@ -96,10 +94,7 @@ const Courses: React.FC = () => {
 
     const loadData = async () => {
       try {
-        const { data, error } = await supabase
-          .from('courses')
-          .select('*')
-          .is('archived_at', null)
+        const { data, error } = await visibleCourses('*')
           .gte('date', new Date().toISOString().split('T')[0])
           .order('date', { ascending: true })
           .order('time', { ascending: true });
@@ -108,13 +103,13 @@ const Courses: React.FC = () => {
         if (!isMounted) return;
 
         const upcomingCourses = await withCourseTeachers(
-          (data || []).filter((course) => isCourseUpcoming(course))
+          ((data || []) as Course[]).filter((course) => isCourseUpcoming(course)),
         );
         if (!isMounted) return;
         setCourses(upcomingCourses);
 
         if (upcomingCourses.length > 0) {
-          const courseIds = upcomingCourses.map(c => c.id);
+          const courseIds = upcomingCourses.map((c) => c.id);
           const { data: countsData, error: countsError } = await supabase.rpc(
             'get_course_participant_counts',
             { p_course_ids: courseIds }

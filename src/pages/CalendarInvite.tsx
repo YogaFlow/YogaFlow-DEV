@@ -16,6 +16,7 @@ import {
 } from '../lib/calendarInvite';
 import { formatDate, formatTime } from '../lib/format';
 import { supabase } from '../lib/supabase';
+import { visibleCourses } from '../lib/visibleScope';
 import StudioMark from '../components/branding/StudioMark';
 import { getStudioLogoUrl } from '../lib/studioBranding';
 
@@ -71,9 +72,7 @@ const CalendarInvite: React.FC = () => {
             if (active) setError(true);
             return;
           }
-          const { data: course, error: courseErr } = await supabase
-            .from('courses')
-            .select('id, title, date, time, end_time, location, room').is('archived_at', null)
+          const { data: course, error: courseErr } = await visibleCourses('id, title, date, time, end_time, location, room')
             .eq('id', reg.course_id)
             .maybeSingle();
           if (courseErr || !course?.date || !course.time) {

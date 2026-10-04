@@ -1,9 +1,7 @@
-import { supabase } from './supabase';
+import { visibleMembers } from './visibleScope';
 
 export async function fetchStaffCount(): Promise<number> {
-  const { count, error } = await supabase
-    .from('users')
-    .select('id', { count: 'exact', head: true })
+  const { count, error } = await visibleMembers('id', { count: 'exact', head: true })
     .in('role', ['owner', 'admin', 'teacher'])
     .is('anonymized_at', null);
   if (error) return 0;

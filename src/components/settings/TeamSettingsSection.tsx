@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
+import { visibleMembers } from '../../lib/visibleScope';
 
 type StaffRow = {
   id: string;
@@ -23,9 +23,7 @@ export default function TeamSettingsSection() {
   useEffect(() => {
     let active = true;
     void (async () => {
-      const { data, error } = await supabase
-        .from('users')
-        .select('id, first_name, last_name, role')
+      const { data, error } = await visibleMembers('id, first_name, last_name, role')
         .in('role', ['owner', 'admin', 'teacher'])
         .is('anonymized_at', null)
         .order('last_name', { ascending: true });

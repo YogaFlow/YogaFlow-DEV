@@ -58,7 +58,7 @@ import {
 } from '../lib/cancellationDeadline';
 import { RELEASE_SEAT_LABEL } from '../lib/pendingPaymentLabel';
 import { paymentsClientConfig } from '../lib/paymentsClientConfig';
-import { supabase } from '../lib/supabase';
+import { visibleCourses } from '../lib/visibleScope';
 import { canSelfEnrollInCourse, canSelfEnrollInCourses } from '../lib/userRoles';
 import { useCourseCancellation } from '../lib/useCourseCancellation';
 import { useCourseDeletion } from '../lib/useCourseDeletion';
@@ -108,9 +108,7 @@ const CourseDetail: React.FC = () => {
       return;
     }
 
-    const { data, error } = await supabase
-      .from('courses')
-      .select('*').is('archived_at', null)
+    const { data, error } = await visibleCourses('*')
       .eq('id', courseId)
       .maybeSingle();
 

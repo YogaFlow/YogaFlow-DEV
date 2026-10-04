@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+import { isArchivedRow, visibleCourses } from '../lib/visibleScope';
 import { Course, CoverageStatus, PaymentMethod, Registration, User } from '../types';
 import { isCourseManagerRole, isStudioAdmin, isTeacherOnly } from '../lib/userRoles';
 import { Users, Mail, Phone, Search, Filter, Download, UserMinus } from 'lucide-react';
@@ -95,13 +96,11 @@ const Participants: React.FC = () => {
       if (!userProfile) return;
 
       try {
-        const { data: coursesData, error: coursesError } = await supabase
-          .from('courses')
-          .select('*').is('archived_at', null)
+        const { data: coursesData, error: coursesError } = await visibleCourses('*')
           .order('date', { ascending: true });
 
         if (coursesError) throw coursesError;
-        const upcomingCourses = (coursesData || []).filter((course) => {
+        const upcomingCourses = ((coursesData || []) as Course[]).filter((course) => {
           if (!isCourseVisibleThroughBerlinToday(course)) return false;
           if (isTeacherOnly(userProfile)) {
             return course.teacher_id === userProfile.id;
@@ -124,8 +123,8 @@ const Participants: React.FC = () => {
         if (isMounted) {
           const upcomingParticipants = (registrationsData || []).filter(
             (registration: any) => {
-              if (!registration.course || registration.course.archived_at) return false;
-              if (registration.user?.archived_at) return false;
+              if (!registration.course || isArchivedRow(registration.course)) return false;
+              if (isArchivedRow(registration.user)) return false;
               if (!isCourseVisibleThroughBerlinToday(registration.course)) return false;
               if (isTeacherOnly(userProfile) && registration.course.teacher_id !== userProfile.id) {
                 return false;

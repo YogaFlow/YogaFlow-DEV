@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+import { visibleCourses } from '../lib/visibleScope';
 import { isStudioAdmin, isTeacherOnly } from '../lib/userRoles';
 import { isCourseCancelled } from '../lib/courseDateTime';
 import { formatCents, formatDate, formatPrice, formatTime } from '../lib/format';
@@ -224,9 +225,7 @@ const CourseCheckout: React.FC = () => {
     if (!userProfile || !courseId) return;
     setErrorText('');
 
-    const { data: courseRow, error: courseError } = await supabase
-      .from('courses')
-      .select('id, title, date, time, teacher_id, status, price, pass_eligible').is('archived_at', null)
+    const { data: courseRow, error: courseError } = await visibleCourses('id, title, date, time, teacher_id, status, price, pass_eligible')
       .eq('id', courseId)
       .maybeSingle();
 

@@ -25,6 +25,7 @@ import { loadTaxSettings, studioHasPayment } from '../lib/taxStatus';
 import LedgerWaitingNotice from '../components/tax/LedgerWaitingNotice';
 import AccentPill from '../components/ui/AccentPill';
 import CourseRow from '../components/courses/CourseRow';
+import { isArchivedRow, visibleCourses as coursesVisible } from '../lib/visibleScope';
 
 type StatCard = {
   title: string;
@@ -82,9 +83,7 @@ const Dashboard: React.FC = () => {
         let participantCourseCandidates: Course[] = [];
 
         if (userProfile.role !== 'user') {
-          let coursesQuery = supabase
-            .from('courses')
-            .select('*').is('archived_at', null)
+          let coursesQuery = coursesVisible('*')
             .gte('date', new Date().toISOString().split('T')[0])
             .order('date', { ascending: true })
             .order('time', { ascending: true });
@@ -99,20 +98,22 @@ const Dashboard: React.FC = () => {
           if (!isMounted) return;
 
           const visibleCourses = await withCourseTeachers(
-            (coursesData || []).filter((course) => isCourseUpcoming(course)).slice(0, 5)
+            ((coursesData || []) as Course[])
+              .filter((course) => isCourseUpcoming(course))
+              .slice(0, 5),
           );
-          setCourses(await attachCounts(visibleCourses));
+          setCourses(await attachCounts(visibleCourses as Course[]));
         } else if (isMounted) {
-          const { data: participantCoursesData, error: participantCoursesError } = await supabase
-            .from('courses')
-            .select('*').is('archived_at', null)
+          const { data: participantCoursesData, error: participantCoursesError } = await coursesVisible('*')
             .gte('date', new Date().toISOString().split('T')[0])
             .order('date', { ascending: true })
             .order('time', { ascending: true })
             .limit(30);
 
           if (participantCoursesError) throw participantCoursesError;
-          participantCourseCandidates = await withCourseTeachers(participantCoursesData || []);
+          participantCourseCandidates = await withCourseTeachers(
+            (participantCoursesData || []) as Course[],
+          );
         }
 
         let myRegistrationsFromList = 0;
@@ -203,9 +204,7 @@ const Dashboard: React.FC = () => {
         } else {
           const yesterday = berlinIsoDate(-1);
           const todayBerlin = berlinIsoDate(0);
-          let checkoutQuery = supabase
-            .from('courses')
-            .select('id, title, date, time, status').is('archived_at', null)
+          let checkoutQuery = coursesVisible('id, title, date, time, status')
             .in('date', [yesterday, todayBerlin])
             .order('date', { ascending: true })
             .order('time', { ascending: true });
@@ -217,7 +216,7 @@ const Dashboard: React.FC = () => {
           const { data: checkoutCourses, error: checkoutError } = await checkoutQuery;
           if (checkoutError) throw checkoutError;
 
-          const checkoutIds = (checkoutCourses ?? []).map((row) => row.id);
+          const checkoutIds = ((checkoutCourses ?? []) as Array<{ id: string }>).map((row) => row.id);
           const openByCourse = new Map<string, number>();
           if (checkoutIds.length > 0) {
             const { data: openRows, error: openError } = await supabase
@@ -233,9 +232,11 @@ const Dashboard: React.FC = () => {
           }
 
           if (userProfile.role === 'owner' || userProfile.role === 'admin') {
+            // Embed auf courses: RLS blendet archivierte aus (course null).
+            // Zusätzlich isArchivedRow — falls Embed-Filter fehlt.
             const { data: paidRows, error: paidError } = await supabase
               .from('registrations')
-              .select('id, course:courses(id, title, date, time, status)')
+              .select('id, course:courses(id, title, date, time, status, archived_at)')
               .eq('cancel_reason', 'course_cancelled')
               .eq('coverage_status', 'paid');
             if (paidError) throw paidError;
@@ -258,7 +259,7 @@ const Dashboard: React.FC = () => {
             for (const row of paidList) {
               if (!openPayments.has(row.id)) continue;
               const course = Array.isArray(row.course) ? row.course[0] : row.course;
-              if (!course || !isCourseCancelled(course.status)) continue;
+              if (!course || isArchivedRow(course) || !isCourseCancelled(course.status)) continue;
               const current = grouped.get(course.id);
               if (current) {
                 current.open += 1;
@@ -284,10 +285,16 @@ const Dashboard: React.FC = () => {
 
           if (!isMounted) return;
           setCheckoutLines(
-            (checkoutCourses ?? [])
+            ((checkoutCourses ?? []) as Array<{
+              id: string;
+              title: string;
+              date: string;
+              time: string;
+              status: string | null;
+            }>)
               .filter(
                 (row) =>
-                  !isCourseCancelled(row.status) && (openByCourse.get(row.id) ?? 0) > 0
+                  !isCourseCancelled(row.status) && (openByCourse.get(row.id) ?? 0) > 0,
               )
               .map((row) => ({
                 id: row.id,
@@ -295,7 +302,7 @@ const Dashboard: React.FC = () => {
                 date: row.date,
                 time: row.time,
                 open: openByCourse.get(row.id) ?? 0,
-              }))
+              })),
           );
         }
 
@@ -314,12 +321,10 @@ const Dashboard: React.FC = () => {
 
       try {
         const today = new Date().toISOString().split('T')[0];
-        const { data: upcomingCoursesData } = await supabase
-          .from('courses')
-          .select('id, date, time, teacher_id, status').is('archived_at', null)
+        const { data: upcomingCoursesData } = await coursesVisible('id, date, time, teacher_id, status')
           .gte('date', today);
 
-        const upcomingCourses = (upcomingCoursesData || []).filter(
+        const upcomingCourses = ((upcomingCoursesData || []) as Course[]).filter(
           (course) => isCourseUpcoming(course) && !isCourseCancelled(course.status),
         );
         const upcomingCourseIds = upcomingCourses.map((course) => course.id);
@@ -351,12 +356,10 @@ const Dashboard: React.FC = () => {
         let myRegistrationsCount = 0;
 
         if (userProfile.role !== 'user') {
-          const { data } = await supabase
-            .from('courses')
-            .select('id, date, time, status').is('archived_at', null)
+          const { data } = await coursesVisible('id, date, time, status')
             .eq('teacher_id', userProfile.id)
             .gte('date', today);
-          myCoursesCount = (data || []).filter(
+          myCoursesCount = ((data || []) as Course[]).filter(
             (course) => isCourseUpcoming(course) && !isCourseCancelled(course.status),
           ).length;
         }
@@ -456,20 +459,21 @@ const Dashboard: React.FC = () => {
           path: '/my-registrations'
         },
         {
-          title: 'Teilnehmer',
+          title: 'Anmeldungen',
           value: stats.totalParticipants,
           path: '/participants'
         }
       ];
     }
 
+    // totalParticipants = belegte Plätze in kommenden Kursen (Anmeldungen), nicht Studio-Mitgliederzahl.
     const baseCards: StatCard[] = [
       {
         title: 'Kommende Kurse',
         value: stats.upcomingCourses,
       },
       {
-        title: 'Teilnehmer',
+        title: 'Anmeldungen',
         value: stats.totalParticipants,
         path: '/participants'
       }
