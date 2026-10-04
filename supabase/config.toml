@@ -61,3 +61,7 @@ verify_jwt = false
 # (Vault provider_jobs_secret / Cron pg_net). Gateway-JWT wäre unsinnig.
 [functions.payments-jobs]
 verify_jwt = false
+
+# ops-monitor (B2): Authorization Bearer = OPS_MONITOR_SECRET (Vault ops_monitor_secret).
+[functions.ops-monitor]
+verify_jwt = false
