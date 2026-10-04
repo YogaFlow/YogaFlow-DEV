@@ -91,6 +91,21 @@ export function cancelRuleLine(deadlineLabel: string | null | undefined): string
   return `Kostenlos abmelden bis ${deadlineLabel} – du bekommst den vollen Betrag zurück. Danach keine Erstattung.`;
 }
 
+/** Kompakt für Checkout-Fuß (UX-2 A4), max. kurz. */
+export function cancelRuleLineCompact(deadlineLabel: string | null | undefined): string {
+  if (!deadlineLabel) return 'Keine Erstattung bei Abmeldung (Frist vorbei)';
+  return `Kostenlos abmelden bis ${deadlineLabel}`;
+}
+
+export const WITHDRAWAL_NOTICE_COMPACT =
+  'Kein Widerrufsrecht bei festem Termin';
+
+/** Steuerzeile allein (Fußbereich), ohne Betrag. */
+export function checkoutTaxLineAlone(regime: TaxRegime, vatRateBp: number): string {
+  if (regime === 'small_business') return RECEIPT_TAX_SMALL_BUSINESS_SHORT;
+  return `inkl. ${vatPercentFromBp(vatRateBp)} % USt`;
+}
+
 export function confirmationSubject(courseTitle: string, dateLabel: string): string {
   return `Buchungsbestätigung: ${courseTitle} am ${dateLabel}`;
 }

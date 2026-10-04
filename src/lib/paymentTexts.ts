@@ -1,6 +1,11 @@
 /** Zentrale Texte für Online-Zahlung (2.2b). */
 
-export const PAYMENT_SHEET_TITLE = 'Online bezahlen';
+export const PAYMENT_SHEET_TITLE = 'Buchung abschließen';
+
+/** Kurze Hold-Pille im Checkout-Kopf (UX-2 A4). */
+export function paymentHoldPill(timeHm: string): string {
+  return `Platz reserviert bis ${timeHm}`;
+}
 
 export const PAY_NOW_LABEL = 'Jetzt bezahlen';
 
@@ -18,6 +23,9 @@ export function paymentSecureHint(studioName: string): string {
   const name = studioName.trim() || 'dein Studio';
   return `Sichere Zahlung über Stripe. Das Geld geht direkt an ${name}.`;
 }
+
+/** Kurzer Stripe-Hinweis unter dem Buchungsknopf. */
+export const PAYMENT_SECURE_SHORT = 'Sicher bezahlt über Stripe';
 
 export function paymentHoldHint(timeHm: string, minutesLeft: number): string {
   const n = Math.max(0, Math.floor(minutesLeft));

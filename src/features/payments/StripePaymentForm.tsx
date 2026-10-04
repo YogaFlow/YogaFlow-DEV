@@ -16,11 +16,14 @@ import {
 } from '@stripe/react-stripe-js';
 import { Lock, Loader2 } from 'lucide-react';
 import {
+  PAYMENT_SECURE_SHORT,
   PAYMENT_SUBMITTING,
-  payAmountLabel,
-  paymentSecureHint,
 } from '../../lib/paymentTexts';
-import { formatCents } from '../../lib/format';
+import { BINDING_BOOK_LABEL } from '../../lib/legalCheckoutTexts';
+import {
+  BookingCheckoutFooter,
+  type BookingSummaryData,
+} from '../../components/payments/BookingSummaryBlock';
 import {
   STRIPE_PAYMENT_ELEMENT_LAYOUT,
   stripePaymentAppearance,
@@ -34,18 +37,18 @@ type FormProps = {
   studioName: string;
   alertMessage?: string | null;
   submitLabel?: string;
+  bookingSummary?: BookingSummaryData | null;
   /** L2: nach Ablehnung neuen prepare-Versuch starten (statt confirm). */
   onRetry?: () => Promise<void>;
   onSubmitToken: (confirmationTokenId: string) => Promise<void>;
 };
 
 function PaymentFormInner({
-  amountCents,
   disabled,
   holdExpired,
-  studioName,
   alertMessage,
   submitLabel,
+  bookingSummary,
   onRetry,
   onSubmitToken,
 }: FormProps) {
@@ -61,7 +64,7 @@ function PaymentFormInner({
     disabled ||
     (!needsRetry && (!stripe || !elements));
   const alertText = localError ?? alertMessage ?? null;
-  const buttonLabel = submitLabel ?? payAmountLabel(formatCents(amountCents));
+  const buttonLabel = submitLabel ?? BINDING_BOOK_LABEL;
 
   const onPay = async () => {
     if (needsRetry && onRetry) {
@@ -85,6 +88,15 @@ function PaymentFormInner({
       }
       const { error, confirmationToken } = await stripe.createConfirmationToken({
         elements,
+        params: {
+          payment_method_data: {
+            billing_details: {
+              address: {
+                country: 'DE',
+              },
+            },
+          },
+        },
       });
       if (error || !confirmationToken?.id) {
         setLocalError(error?.message ?? 'Bitte prüfe die Angaben.');
@@ -96,6 +108,31 @@ function PaymentFormInner({
     }
   };
 
+  const payButton = (
+    <>
+      <button
+        type="button"
+        disabled={locked}
+        onClick={() => void onPay()}
+        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-brand px-5 text-[15px] font-medium text-onBrand active:bg-brandPressed disabled:opacity-50"
+        data-testid="checkout-pay"
+      >
+        {submitting || disabled ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+            <span>{PAYMENT_SUBMITTING}</span>
+          </>
+        ) : (
+          buttonLabel
+        )}
+      </button>
+      <p className="mt-2 inline-flex items-start gap-1.5 text-[12px] leading-snug text-textMuted">
+        <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+        <span>{PAYMENT_SECURE_SHORT}</span>
+      </p>
+    </>
+  );
+
   return (
     <div className="flex flex-col">
       <div className="min-h-[10rem]">
@@ -103,36 +140,32 @@ function PaymentFormInner({
           options={{
             layout: STRIPE_PAYMENT_ELEMENT_LAYOUT,
             wallets: STRIPE_PAYMENT_ELEMENT_WALLETS,
+            fields: {
+              billingDetails: {
+                address: {
+                  // if_required nicht im Stripe-Typen; never + country DE beim Token.
+                  country: 'never',
+                },
+              },
+            },
           }}
         />
       </div>
 
-      <div className="sticky bottom-0 z-10 -mx-5 mt-4 border-t border-border bg-surface px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        {alertText ? (
-          <p role="alert" className="mb-3 text-[13px] leading-snug text-danger">
-            {alertText}
-          </p>
-        ) : null}
-        <button
-          type="button"
-          disabled={locked}
-          onClick={() => void onPay()}
-          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-brand px-5 text-[15px] font-medium text-onBrand active:bg-brandPressed disabled:opacity-50"
-        >
-          {submitting || disabled ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-              <span>{PAYMENT_SUBMITTING}</span>
-            </>
-          ) : (
-            buttonLabel
-          )}
-        </button>
-        <p className="mt-2 inline-flex items-start gap-1.5 text-[12px] leading-snug text-textMuted">
-          <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-          <span>{paymentSecureHint(studioName)}</span>
-        </p>
-      </div>
+      {bookingSummary ? (
+        <BookingCheckoutFooter data={bookingSummary} alertMessage={alertText}>
+          {payButton}
+        </BookingCheckoutFooter>
+      ) : (
+        <div className="sticky bottom-0 z-10 -mx-5 mt-4 border-t border-border bg-surface px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          {alertText ? (
+            <p role="alert" className="mb-3 text-[13px] leading-snug text-danger">
+              {alertText}
+            </p>
+          ) : null}
+          {payButton}
+        </div>
+      )}
     </div>
   );
 }
@@ -148,6 +181,7 @@ type Props = {
   studioName: string;
   alertMessage?: string | null;
   submitLabel?: string;
+  bookingSummary?: BookingSummaryData | null;
   onRetry?: () => Promise<void>;
   onSubmitToken: (confirmationTokenId: string) => Promise<void>;
 };
@@ -162,6 +196,7 @@ export default function StripePaymentForm({
   studioName,
   alertMessage,
   submitLabel,
+  bookingSummary = null,
   onRetry,
   onSubmitToken,
 }: Props) {
@@ -223,6 +258,7 @@ export default function StripePaymentForm({
         studioName={studioName}
         alertMessage={alertMessage}
         submitLabel={submitLabel}
+        bookingSummary={bookingSummary}
         onRetry={onRetry}
         onSubmitToken={onSubmitToken}
       />

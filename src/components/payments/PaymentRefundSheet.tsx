@@ -26,6 +26,8 @@ import {
   type PaymentRefundDetail,
 } from '../../lib/refunds';
 import SegmentControl from '../ui/SegmentControl';
+import { FieldError } from '../ui/FormField';
+import ModalBackdrop from '../ui/ModalBackdrop';
 
 interface PaymentRefundSheetProps {
   /** null = geschlossen */
@@ -135,18 +137,16 @@ const PaymentRefundSheet: React.FC<PaymentRefundSheetProps> = ({
   const amountInvalid = mode === 'partial' && amountProblem != null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-text/45 sm:items-center sm:p-4"
-      onClick={busy ? undefined : onClose}
-      role="presentation"
+    <ModalBackdrop
+      open
+      visible
+      canDismiss={!busy}
+      onDismiss={onClose}
+      variant="sheet"
+      panelClassName="max-w-md"
+      labelledBy="payment-refund-title"
     >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="payment-refund-title"
-        className="max-h-[90vh] w-full overflow-y-auto rounded-t-lg border border-border bg-surface p-5 shadow-lg sm:max-w-md sm:rounded-lg sm:p-6"
-        onClick={(event) => event.stopPropagation()}
-      >
+      <div className="max-h-[90vh] overflow-y-auto p-5 sm:p-6">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h3 id="payment-refund-title" className="text-lg font-medium text-text">
@@ -265,7 +265,7 @@ const PaymentRefundSheet: React.FC<PaymentRefundSheetProps> = ({
                             setAmount(event.target.value);
                             setServerError('');
                           }}
-                          aria-invalid={amountInvalid}
+                          aria-invalid={amountInvalid || undefined}
                           aria-describedby={amountInvalid ? 'refund-amount-error' : undefined}
                           className={`h-11 w-32 rounded-md border bg-surface px-3 text-right text-[17px] tabular-nums text-text focus:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
                             amountInvalid ? 'border-danger' : 'border-border'
@@ -273,14 +273,8 @@ const PaymentRefundSheet: React.FC<PaymentRefundSheetProps> = ({
                         />
                         <span className="text-[17px] text-text">€</span>
                       </div>
-                      {amountInvalid ? (
-                        <span
-                          id="refund-amount-error"
-                          className="mt-1 flex items-start gap-1.5 text-[13px] text-danger"
-                        >
-                          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-                          {amountProblem}
-                        </span>
+                      {amountInvalid && amountProblem ? (
+                        <FieldError id="refund-amount-error" message={amountProblem} />
                       ) : null}
                     </label>
                   ) : null}
@@ -370,7 +364,7 @@ const PaymentRefundSheet: React.FC<PaymentRefundSheetProps> = ({
           </div>
         )}
       </div>
-    </div>
+    </ModalBackdrop>
   );
 };
 

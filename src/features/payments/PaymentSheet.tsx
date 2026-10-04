@@ -327,6 +327,7 @@ const PaymentSheet: React.FC<Props> = ({
       amountCents={amountCents}
       bookingSummary={summary}
       holdHint={holdHint}
+      holdUntilHm={timeHm}
       holdMinutesLeft={mins}
       holdExpired={holdExpired || code === 'HOLD_EXPIRED'}
       canClose={canClose}
@@ -352,6 +353,7 @@ const PaymentSheet: React.FC<Props> = ({
             studioName={studioName}
             alertMessage={formAlert}
             submitLabel={submitLabel}
+            bookingSummary={summary}
             onRetry={formAlert ? onRetry : undefined}
             onSubmitToken={onSubmitToken}
           />

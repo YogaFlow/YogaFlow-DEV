@@ -10,7 +10,10 @@ import {
   CONTINUE_TO_BOOKING_LABEL,
   WITHDRAWAL_NOTICE,
   cancelRuleLine,
+  cancelRuleLineCompact,
   checkoutPriceLine,
+  checkoutTaxLineAlone,
+  WITHDRAWAL_NOTICE_COMPACT,
   confirmationSubject,
   formatLegalCents,
   displayReceiptTaxText,
@@ -61,6 +64,18 @@ test('Abmelderegel K5 Frist / vorbei', () => {
   );
   assert.equal(cancelRuleLine(null), CANCEL_NO_LONGER);
   assert.equal(cancelRuleLine(''), CANCEL_NO_LONGER);
+});
+
+test('UX-2 A4 Abmelde kompakt + Steuerfuß', () => {
+  assert.equal(cancelRuleLineCompact('Fr, 03.10., 18:00'), 'Kostenlos abmelden bis Fr, 03.10., 18:00');
+  assert.equal(
+    cancelRuleLineCompact(null),
+    'Keine Erstattung bei Abmeldung (Frist vorbei)',
+  );
+  assert.equal(checkoutTaxLineAlone('small_business', 0), 'gemäß § 19 UStG ohne USt');
+  assert.equal(checkoutTaxLineAlone('regular', 1900), 'inkl. 19 % USt');
+  assert.equal(checkoutTaxLineAlone('regular', 700), 'inkl. 7 % USt');
+  assert.match(WITHDRAWAL_NOTICE_COMPACT, /Widerrufsrecht/);
 });
 
 test('Widerruf K5', () => {

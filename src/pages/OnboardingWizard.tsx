@@ -4,6 +4,9 @@ import { Heart, ChevronRight, ChevronLeft, Check, Loader2, LogOut, Eye, EyeOff }
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useTenant, buildStudioEntryHref, buildStudioAuthHref, APP_BASE_DOMAIN } from '../context/TenantContext';
+import LegalDocumentSheet, { LegalDocLink } from '../components/legal/LegalDocumentSheet';
+import type { LegalDocumentSlug } from '../generated/legalDocuments';
+import { FormField } from '../components/ui/FormField';
 
 const STEPS = ['Studio-Name', 'Studio-URL', 'Dein Name', 'Zugangsdaten', 'Zusammenfassung'];
 
@@ -69,10 +72,10 @@ const OnboardingWizard: React.FC = () => {
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
 
   const [agbAccepted, setAgbAccepted] = useState(false);
   const [avvAccepted, setAvvAccepted] = useState(false);
+  const [legalDoc, setLegalDoc] = useState<LegalDocumentSlug | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -445,92 +448,69 @@ const OnboardingWizard: React.FC = () => {
 
           {step === 3 && (
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-textMuted mb-2">Vorname</label>
-                <input
-                  type="text"
-                  value={firstName}
-                  onChange={e => setFirstName(e.target.value)}
-                  className="w-full px-4 py-3 border border-border rounded-sm focus:outline-none focus:ring-2 focus:ring-brand"
-                  autoFocus
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-textMuted mb-2">Nachname</label>
-                <input
-                  type="text"
-                  value={lastName}
-                  onChange={e => setLastName(e.target.value)}
-                  className="w-full px-4 py-3 border border-border rounded-sm focus:outline-none focus:ring-2 focus:ring-brand"
-                />
-              </div>
+              <FormField
+                id="onboarding-first-name"
+                label="Vorname"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                autoFocus
+                className="px-4"
+              />
+              <FormField
+                id="onboarding-last-name"
+                label="Nachname"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                className="px-4"
+              />
             </div>
           )}
 
           {step === 4 && (
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-textMuted mb-2">
-                  E-Mail-Adresse
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  className="w-full px-4 py-3 border border-border rounded-sm focus:outline-none focus:ring-2 focus:ring-brand"
-                  autoFocus
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-textMuted mb-2">Passwort</label>
+              <FormField
+                id="onboarding-email"
+                label="E-Mail-Adresse"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoFocus
+                className="px-4"
+              />
+              <label className="block" htmlFor="onboarding-password">
+                <span className="mb-1 block text-[13px] text-textMuted">Passwort</span>
                 <div className="relative">
                   <input
+                    id="onboarding-password"
                     type={showPassword ? 'text' : 'password'}
                     value={password}
-                    onChange={e => setPassword(e.target.value)}
+                    onChange={(e) => setPassword(e.target.value)}
                     placeholder="Mindestens 8 Zeichen"
-                    className="w-full px-4 py-3 pr-12 border border-border rounded-sm focus:outline-none focus:ring-2 focus:ring-brand"
+                    className="h-11 w-full rounded-md border border-border bg-surface px-4 pr-12 text-[15px] text-text focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-4 text-textSubtle hover:text-textMuted"
+                    className="absolute inset-y-0 right-0 flex items-center pr-4 text-textSubtle"
                     aria-label={showPassword ? 'Passwort verbergen' : 'Passwort anzeigen'}
                   >
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-textMuted mb-2">
-                  Passwort bestätigen
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPasswordConfirm ? 'text' : 'password'}
-                    value={passwordConfirm}
-                    onChange={e => setPasswordConfirm(e.target.value)}
-                    className={`w-full px-4 py-3 pr-12 border rounded-md focus:outline-none focus:ring-2 focus:ring-brand ${
-                      passwordConfirm && password !== passwordConfirm
-                        ? 'border-danger'
-                        : 'border-border'
-                    }`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPasswordConfirm(!showPasswordConfirm)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-4 text-textSubtle hover:text-textMuted"
-                    aria-label={showPasswordConfirm ? 'Passwort verbergen' : 'Passwort anzeigen'}
-                  >
-                    {showPasswordConfirm ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                  </button>
-                </div>
-                {passwordConfirm && password !== passwordConfirm && (
-                  <p className="mt-1 text-xs text-danger">
-                    Passwörter stimmen nicht überein.
-                  </p>
-                )}
-              </div>
+              </label>
+              <FormField
+                id="onboarding-password-confirm"
+                label="Passwort bestätigen"
+                type="password"
+                value={passwordConfirm}
+                onChange={(e) => setPasswordConfirm(e.target.value)}
+                className="px-4"
+                error={
+                  passwordConfirm && password !== passwordConfirm
+                    ? 'Passwörter stimmen nicht überein.'
+                    : null
+                }
+              />
             </div>
           )}
 
@@ -565,23 +545,17 @@ const OnboardingWizard: React.FC = () => {
                 />
                 <span className="text-sm text-textMuted">
                   Ich akzeptiere die{' '}
-                  <a
-                    href="/legal/agb"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-brand hover:underline"
-                  >
+                  <LegalDocLink slug="agb" onOpen={setLegalDoc} className="text-brand underline">
                     AGB
-                  </a>{' '}
+                  </LegalDocLink>{' '}
                   und die{' '}
-                  <a
-                    href="/legal/datenschutz"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-brand hover:underline"
+                  <LegalDocLink
+                    slug="datenschutz"
+                    onOpen={setLegalDoc}
+                    className="text-brand underline"
                   >
                     Datenschutzerklärung
-                  </a>
+                  </LegalDocLink>
                   .
                 </span>
               </label>
@@ -595,14 +569,13 @@ const OnboardingWizard: React.FC = () => {
                 />
                 <span className="text-sm text-textMuted">
                   Ich schließe den{' '}
-                  <a
-                    href="/legal/auftragsverarbeitung"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-brand hover:underline"
+                  <LegalDocLink
+                    slug="auftragsverarbeitung"
+                    onOpen={setLegalDoc}
+                    className="text-brand underline"
                   >
                     Vertrag zur Auftragsverarbeitung
-                  </a>{' '}
+                  </LegalDocLink>{' '}
                   ab.
                 </span>
               </label>
@@ -656,6 +629,7 @@ const OnboardingWizard: React.FC = () => {
           )}
         </div>
       </div>
+      <LegalDocumentSheet slug={legalDoc} onClose={() => setLegalDoc(null)} />
     </div>
   );
 };
