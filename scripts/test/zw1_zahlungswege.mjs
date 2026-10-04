@@ -242,6 +242,44 @@ async function main() {
       JSON.stringify(onsiteBook.data),
     );
 
+    // Z7: ohne Karte → zuletzt gewählte Zahlart als Default
+    const memberZ7 = await nutzerAnlegen(admin, {
+      email: SLUG + '.z7@example.com',
+      vorname: 'Z7',
+      nachname: 'Zw1',
+      rolle: 'user',
+      tenantId: tenant.id,
+      password,
+    });
+    const asZ7 = await login(url, anon, memberZ7.email, password, SLUG);
+    const kursZ7a = await kursAnlegen(admin, tenant.id, teacher.id, {
+      title: 'ZW1 Z7a',
+      price: 12,
+      date: berlinDate(9),
+    });
+    const z7Onsite = await asZ7.rpc('register_for_course', {
+      p_course_id: kursZ7a.id,
+      p_method: 'onsite',
+    });
+    ok('Z7 onsite book', z7Onsite.data?.success === true, JSON.stringify(z7Onsite.data));
+    const kursZ7b = await kursAnlegen(admin, tenant.id, teacher.id, {
+      title: 'ZW1 Z7b',
+      price: 12,
+      date: berlinDate(11),
+    });
+    const z7Opts = await asZ7.rpc('booking_payment_options', { p_course_id: kursZ7b.id });
+    ok(
+      'Z7 default nach Vor Ort = onsite',
+      z7Opts.data?.default === 'onsite',
+      JSON.stringify(z7Opts.data),
+    );
+    const { data: z7Row } = await admin
+      .from('users')
+      .select('last_booking_pay_method')
+      .eq('id', memberZ7.id)
+      .single();
+    ok('Z7 Spalte last_booking_pay_method', z7Row?.last_booking_pay_method === 'onsite');
+
     console.log('\nZW-1 fertig');
   } finally {
     try {

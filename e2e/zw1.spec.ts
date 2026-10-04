@@ -216,10 +216,11 @@ test('ZW1 N3 — Zahlungswege, Zahlart-Zeile, Neu-Hinweis, letzter Schalter', as
     if (histBook.error || !histBook.data?.success) {
       throw new Error(JSON.stringify(histBook));
     }
-    // Trigger setzt seen_at — für den Hinweis wieder freigeben (wie Bestandskundin vor N1)
+    // Wie Bestandskundin vor N1/Z7: Hinweis noch nicht gesehen, keine gespeicherte Wahl
+    // (Z7 würde sonst nach der Hist-Buchung Vor Ort als Default setzen)
     const { error: clearHint } = await admin
       .from('users')
-      .update({ online_pay_hint_seen_at: null })
+      .update({ online_pay_hint_seen_at: null, last_booking_pay_method: null })
       .eq('id', habitUser.id);
     if (clearHint) throw new Error(clearHint.message);
 
@@ -254,7 +255,8 @@ test('ZW1 N3 — Zahlungswege, Zahlart-Zeile, Neu-Hinweis, letzter Schalter', as
       date: berlinDate(12),
     });
     await habitPage.goto(`/course/${kursHint2.id}?tenant=${SLUG}`);
-    await expect(methodLine(habitPage)).toContainText('Online bezahlen', { timeout: 20_000 });
+    // Z7: zuletzt Vor Ort → Standard Vor Ort; Neu-Hinweis weg
+    await expect(methodLine(habitPage)).toContainText('Vor Ort bezahlen', { timeout: 20_000 });
     await expect(methodLine(habitPage).getByTestId('book-online-pay-badge')).toHaveCount(0);
     await expect(methodLine(habitPage).getByTestId('book-online-pay-hint')).toHaveCount(0);
     await habitCtx.close();
