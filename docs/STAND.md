@@ -1,6 +1,6 @@
 # STAND — Omlify DEV
 
-Stand: 2026-10-04 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [zw1_zahlungswege.md](berichte/zw1_zahlungswege.md) (Z8)
+Stand: 2026-10-04 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [k1_karten_online.md](berichte/k1_karten_online.md) (Teil 0)
 
 ## DEV
 
@@ -23,10 +23,12 @@ Stand: 2026-10-04 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [zw1_zah
 
 ## Nächste Schritte
 
-- Klicktest Z8 (Vera Neu-Hinweis; Nina Rückgängig Vor Ort)
+- **K1 Teil 0** — Inventur + Einhänge-Vorschlag prüfen ([Bericht](berichte/k1_karten_online.md)); danach Umsetzung
+- Klicktest Z8 (Vera Neu-Hinweis; Nina Rückgängig Vor Ort) — parallel offen
 
 ## Haltestellen / wartet auf Julius
 
+- **K1 Haltestelle 1** — Inventur/Vorschlag in [k1_karten_online.md](berichte/k1_karten_online.md) (10 offene Punkte)
 - **Z8 Haltestelle** — genau 2 Klickpunkte in [zw1_zahlungswege.md](berichte/zw1_zahlungswege.md)
 - Klicktest UX-4 Nachtrag N1–N3 (Toast-Balken mit neuem Kontrast erneut prüfen)
 - UX-2 B1: Test-Mail + Screenshots (falls noch offen)
@@ -36,10 +38,10 @@ Stand: 2026-10-04 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [zw1_zah
 
 ## hier weitermachen
 
-Nach Klicktest Z8: Freigabe oder nächste Story.
+Nach Freigabe K1 Teil 0 / Antworten auf die 10 Punkte: Umsetzung ab Schema.
 
 ## Verweise
 
 - Regeln: [.cursor/rules/omlify-autonom.mdc](../.cursor/rules/omlify-autonom.mdc), [.cursor/rules/rls-access-not-display.mdc](../.cursor/rules/rls-access-not-display.mdc)
-- Entscheidungen: [docs/entscheidungen/14_Zahlungswege.md](entscheidungen/14_Zahlungswege.md) (Z8)
+- Entscheidungen: [docs/entscheidungen/15_Karten_online.md](entscheidungen/15_Karten_online.md) (K1), [14_Zahlungswege.md](entscheidungen/14_Zahlungswege.md)
 - Offene Punkte: [docs/OFFENE_PUNKTE.md](OFFENE_PUNKTE.md)
