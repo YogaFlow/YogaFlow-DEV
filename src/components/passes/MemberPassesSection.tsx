@@ -16,6 +16,7 @@ import {
   type PassMovementView,
 } from '../../lib/passes';
 import AdjustPassDialog from './AdjustPassDialog';
+import ExtendPassDialog from './ExtendPassDialog';
 import PassHistoryList from './PassHistoryList';
 import SellPassDialog from './SellPassDialog';
 
@@ -49,6 +50,7 @@ const MemberPassesSection: React.FC<Props> = ({
   const [revokeBusy, setRevokeBusy] = useState(false);
   const [revokeError, setRevokeError] = useState('');
   const [adjustTarget, setAdjustTarget] = useState<ManagedPass | null>(null);
+  const [extendTarget, setExtendTarget] = useState<ManagedPass | null>(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -151,6 +153,14 @@ const MemberPassesSection: React.FC<Props> = ({
                         className="inline-flex min-h-11 items-center text-sm font-medium text-brand"
                       >
                         Korrigieren
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setExtendTarget(pass)}
+                        className="inline-flex min-h-11 items-center text-sm font-medium text-brand"
+                        data-testid={`extend-pass-${pass.id}`}
+                      >
+                        Verlängern
                       </button>
                       {unused ? (
                         <button
@@ -255,6 +265,16 @@ const MemberPassesSection: React.FC<Props> = ({
         onClose={() => setAdjustTarget(null)}
         onAdjusted={() => {
           setAdjustTarget(null);
+          void reload();
+        }}
+      />
+
+      <ExtendPassDialog
+        open={extendTarget != null}
+        pass={extendTarget}
+        onClose={() => setExtendTarget(null)}
+        onSaved={() => {
+          setExtendTarget(null);
           void reload();
         }}
       />

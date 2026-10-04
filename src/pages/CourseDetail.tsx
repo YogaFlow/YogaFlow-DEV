@@ -64,6 +64,8 @@ import { useCourseCancellation } from '../lib/useCourseCancellation';
 import { useCourseDeletion } from '../lib/useCourseDeletion';
 import { useCourseEnrollment } from '../lib/useCourseEnrollment';
 import { formatStaffName, withCourseTeachers } from '../lib/staffNames';
+import { listOnlinePassProducts, type OnlinePassProduct } from '../lib/passProducts';
+import { coursePassSavingsHint } from '../lib/passOnlineTexts';
 import type { Course } from '../types';
 
 const CourseDetail: React.FC = () => {
@@ -79,6 +81,7 @@ const CourseDetail: React.FC = () => {
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [descriptionOverflows, setDescriptionOverflows] = useState(false);
   const [payOptions, setPayOptions] = useState<BookingPaymentOptions | null>(null);
+  const [onlinePassProducts, setOnlinePassProducts] = useState<OnlinePassProduct[]>([]);
   const [chosenMethod, setChosenMethod] = useState<BookingPayMethod | null>(null);
   const [altPayOpen, setAltPayOpen] = useState(false);
   const [onsiteConfirmOpen, setOnsiteConfirmOpen] = useState(false);
@@ -99,6 +102,16 @@ const CourseDetail: React.FC = () => {
     mq.addEventListener('change', onChange);
     return () => mq.removeEventListener('change', onChange);
   }, []);
+
+  useEffect(() => {
+    if (!canSelfEnrollInCourses(userProfile)) {
+      setOnlinePassProducts([]);
+      return;
+    }
+    void listOnlinePassProducts()
+      .then(setOnlinePassProducts)
+      .catch(() => setOnlinePassProducts([]));
+  }, [userProfile]);
 
   const loadCourse = useCallback(async () => {
     if (!courseId) {
@@ -277,6 +290,19 @@ const CourseDetail: React.FC = () => {
   const passOption = payOptions?.methods.find((m) => m.method === 'pass') ?? null;
   const showAltPay = (payOptions?.methods.length ?? 0) > 1;
   const showOnlinePayHint = Boolean(payOptions?.showOnlinePayHint);
+  const passSavingsProduct =
+    course.pass_eligible !== false && !passOption && onlinePassProducts.length > 0
+      ? onlinePassProducts[0]
+      : null;
+  const passSavingsHint =
+    passSavingsProduct && course.price != null
+      ? coursePassSavingsHint({
+          passName: passSavingsProduct.name,
+          passPriceCents: passSavingsProduct.price_cents,
+          passUnits: passSavingsProduct.units,
+          coursePriceEuros: Number(course.price),
+        })
+      : null;
 
   const reloadPayOptions = async () => {
     if (!courseId || !canSelfEnrollInCourses(userProfile)) return;
@@ -973,6 +999,16 @@ const CourseDetail: React.FC = () => {
                     onSwitchToOnline={() => setChosenMethod('online')}
                     testId="book-method-line"
                   />
+                  {passSavingsHint ? (
+                    <button
+                      type="button"
+                      className="mt-2 text-left text-[13px] text-textMuted underline"
+                      onClick={() => navigate('/my-passes')}
+                      data-testid="pass-savings-hint"
+                    >
+                      {passSavingsHint}
+                    </button>
+                  ) : null}
                 </div>
               ) : null}
               <div className="mt-3 flex flex-col gap-2">{renderBookingActions(true)}</div>
@@ -1013,6 +1049,16 @@ const CourseDetail: React.FC = () => {
                 onSwitchToOnline={() => setChosenMethod('online')}
                 testId="book-method-line-mobile"
               />
+              {passSavingsHint ? (
+                <button
+                  type="button"
+                  className="text-left text-[13px] text-textMuted underline"
+                  onClick={() => navigate('/my-passes')}
+                  data-testid="pass-savings-hint-mobile"
+                >
+                  {passSavingsHint}
+                </button>
+              ) : null}
               {renderBookingActions(false)}
             </div>
           ) : (

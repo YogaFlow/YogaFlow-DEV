@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import {
   fetchOwnPassesWithHistory,
   formatPassUntil,
@@ -62,9 +63,17 @@ const MyPassesSection: React.FC = () => {
 
   return (
     <section className="space-y-3 border-b border-border pb-5">
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-textMuted">
-        Meine Karten
-      </h2>
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-textMuted">
+          Meine Karten
+        </h2>
+        <Link
+          to="/my-passes"
+          className="text-[13px] font-medium text-brand underline"
+        >
+          Alle Karten ›
+        </Link>
+      </div>
 
       {active.length === 0 ? (
         <p className="text-sm text-textSubtle italic">Keine aktiven Karten.</p>

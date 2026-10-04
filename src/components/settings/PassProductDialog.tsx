@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import type { PassProduct, PassValidityRule } from '../../types';
 import {
+  PASS_DESCRIPTION_MAX,
   PASS_MONTHS_MAX,
   PASS_MONTHS_MIN,
   PASS_NAME_MAX,
@@ -14,6 +15,16 @@ import {
   parseEuroToCents,
   updatePassProduct,
 } from '../../lib/passProducts';
+import {
+  ONLINE_AMOUNT_LIMIT_CENTS,
+  PRICE_ABOVE_LIMIT_HINT,
+} from '../../lib/legalCheckoutTexts';
+import {
+  onlinePassSwitchBlockReason,
+  passProductPreviewLine,
+} from '../../lib/passOnlineTexts';
+import { supabase } from '../../lib/supabase';
+import { toUiStatus } from '../../features/payments/paymentSetupTypes';
 
 type Props = {
   open: boolean;
@@ -35,13 +46,32 @@ const PassProductDialog: React.FC<Props> = ({ open, product, onClose, onSaved })
   const [name, setName] = useState('');
   const [units, setUnits] = useState(10);
   const [priceText, setPriceText] = useState('');
-  const [validityMode, setValidityMode] = useState<ValidityMode>('years_to_year_end');
+  const [description, setDescription] = useState('');
+  const [onlinePurchasable, setOnlinePurchasable] = useState(false);
+  const [validityMode, setValidityMode] = useState<ValidityMode>('months');
   const [years, setYears] = useState(3);
   const [months, setMonths] = useState(12);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [onlineReady, setOnlineReady] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    void supabase.rpc('get_payment_setup_status').then(({ data }) => {
+      const ui = toUiStatus(data?.onboarding_status);
+      const ready =
+        data?.online_payments_enabled === true &&
+        ui === 'active' &&
+        data?.card_active === true &&
+        data?.tax_setting_present === true &&
+        data?.legal_profile_present !== false &&
+        data?.avv_accepted !== false &&
+        data?.platform_enabled !== false;
+      setOnlineReady(ready);
+    });
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -49,6 +79,8 @@ const PassProductDialog: React.FC<Props> = ({ open, product, onClose, onSaved })
       setName(product.name);
       setUnits(product.units);
       setPriceText(centsToEuroInput(product.price_cents));
+      setDescription(product.description ?? '');
+      setOnlinePurchasable(product.online_purchasable === true);
       setValidityMode(product.validity_rule);
       if (product.validity_rule === 'years_to_year_end') {
         setYears(product.validity_value);
@@ -61,7 +93,9 @@ const PassProductDialog: React.FC<Props> = ({ open, product, onClose, onSaved })
       setName('');
       setUnits(10);
       setPriceText('');
-      setValidityMode('years_to_year_end');
+      setDescription('');
+      setOnlinePurchasable(false);
+      setValidityMode('months');
       setYears(3);
       setMonths(12);
     }
@@ -96,6 +130,23 @@ const PassProductDialog: React.FC<Props> = ({ open, product, onClose, onSaved })
       ? 'Bis Jahresende, 1 Jahr (empfohlen)'
       : `Bis Jahresende, ${years} Jahre (empfohlen)`;
 
+  const switchBlock = onlinePassSwitchBlockReason({
+    onlineReady,
+    priceCents,
+    limitCents: ONLINE_AMOUNT_LIMIT_CENTS,
+  });
+  const switchDisabled = switchBlock != null;
+
+  const preview =
+    priceCents != null && priceCents > 0 && units >= PASS_UNITS_MIN
+      ? passProductPreviewLine({
+          units,
+          priceCents,
+          validityRule: validityMode,
+          validityValue,
+        })
+      : '';
+
   const clampUnits = (raw: number) => {
     if (!Number.isFinite(raw)) return PASS_UNITS_MIN;
     return Math.min(PASS_UNITS_MAX, Math.max(PASS_UNITS_MIN, Math.round(raw)));
@@ -110,6 +161,15 @@ const PassProductDialog: React.FC<Props> = ({ open, product, onClose, onSaved })
       setError('Gib einen Preis über 0 € ein.');
       return;
     }
+    if (description.trim().length > PASS_DESCRIPTION_MAX) {
+      setError('Die Beschreibung darf höchstens 140 Zeichen haben.');
+      return;
+    }
+    const wantOnline = onlinePurchasable && !switchDisabled;
+    if (onlinePurchasable && switchDisabled) {
+      setError(switchBlock ?? 'Online kaufbar ist nicht möglich.');
+      return;
+    }
 
     const fields = {
       name: name.trim(),
@@ -117,6 +177,8 @@ const PassProductDialog: React.FC<Props> = ({ open, product, onClose, onSaved })
       price_cents: cents,
       validity_rule: validityMode,
       validity_value: validityMode === 'years_to_year_end' ? years : months,
+      description: description.trim() || null,
+      online_purchasable: wantOnline,
     };
 
     setSaving(true);
@@ -223,17 +285,87 @@ const PassProductDialog: React.FC<Props> = ({ open, product, onClose, onSaved })
                 value={priceText}
                 onChange={(ev) => setPriceText(ev.target.value)}
                 className="w-full rounded-sm border border-borderStrong px-4 py-3 text-text tabular-nums focus:border-transparent focus:ring-2 focus:ring-brand"
-                placeholder="z. B. 150"
+                placeholder="z. B. 120"
                 required
               />
               {perUnitLabel ? (
                 <p className="mt-1 text-sm tabular-nums text-textMuted">{perUnitLabel}</p>
               ) : null}
+              {priceCents != null && priceCents > ONLINE_AMOUNT_LIMIT_CENTS ? (
+                <p className="mt-1 text-sm text-textMuted">{PRICE_ABOVE_LIMIT_HINT}</p>
+              ) : null}
+            </div>
+
+            <div>
+              <label
+                htmlFor="pass-description"
+                className="mb-2 block text-sm font-medium text-textMuted"
+              >
+                Beschreibung (optional)
+              </label>
+              <textarea
+                id="pass-description"
+                value={description}
+                onChange={(ev) => setDescription(ev.target.value.slice(0, PASS_DESCRIPTION_MAX))}
+                maxLength={PASS_DESCRIPTION_MAX}
+                rows={2}
+                className="w-full rounded-sm border border-borderStrong px-4 py-3 text-text focus:border-transparent focus:ring-2 focus:ring-brand"
+                placeholder="Kurz, max. 140 Zeichen"
+              />
+              <p className="mt-1 text-xs tabular-nums text-textSubtle">
+                {description.length}/{PASS_DESCRIPTION_MAX}
+              </p>
             </div>
 
             <fieldset>
               <legend className="mb-2 text-sm font-medium text-textMuted">Gültigkeit</legend>
               <div className="space-y-3">
+                <label
+                  className={`flex cursor-pointer items-start gap-3 rounded-md border p-3.5 ${
+                    validityMode === 'months'
+                      ? 'border-brand bg-sage-50'
+                      : 'border-border bg-surface'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="pass-validity"
+                    className="mt-1 h-4 w-4 border-border text-brand focus:ring-brand"
+                    checked={validityMode === 'months'}
+                    onChange={() => setValidityMode('months')}
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[15px] font-medium text-text">
+                      Monate ab Kauf (empfohlen)
+                    </span>
+                    {validityMode === 'months' ? (
+                      <span className="mt-2 flex items-center gap-2">
+                        <label htmlFor="pass-months" className="text-sm text-textMuted">
+                          Monate
+                        </label>
+                        <input
+                          id="pass-months"
+                          type="number"
+                          min={PASS_MONTHS_MIN}
+                          max={PASS_MONTHS_MAX}
+                          value={months}
+                          onChange={(ev) => {
+                            const n = Number(ev.target.value);
+                            if (!Number.isFinite(n)) return;
+                            setMonths(
+                              Math.min(PASS_MONTHS_MAX, Math.max(PASS_MONTHS_MIN, Math.round(n))),
+                            );
+                          }}
+                          className="w-16 rounded-sm border border-borderStrong px-2 py-1.5 text-text tabular-nums focus:border-transparent focus:ring-2 focus:ring-brand"
+                        />
+                      </span>
+                    ) : null}
+                    {validityMode === 'months' ? (
+                      <span className="mt-1 block text-sm text-textMuted">{exampleValidity}</span>
+                    ) : null}
+                  </span>
+                </label>
+
                 <label
                   className={`flex cursor-pointer items-start gap-3 rounded-md border p-3.5 ${
                     validityMode === 'years_to_year_end'
@@ -275,59 +407,43 @@ const PassProductDialog: React.FC<Props> = ({ open, product, onClose, onSaved })
                     ) : null}
                   </span>
                 </label>
-
-                <label
-                  className={`flex cursor-pointer items-start gap-3 rounded-md border p-3.5 ${
-                    validityMode === 'months'
-                      ? 'border-brand bg-sage-50'
-                      : 'border-border bg-surface'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="pass-validity"
-                    className="mt-1 h-4 w-4 border-border text-brand focus:ring-brand"
-                    checked={validityMode === 'months'}
-                    onChange={() => setValidityMode('months')}
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[15px] font-medium text-text">Feste Dauer</span>
-                    {validityMode === 'months' ? (
-                      <span className="mt-2 flex items-center gap-2">
-                        <label htmlFor="pass-months" className="text-sm text-textMuted">
-                          Monate
-                        </label>
-                        <input
-                          id="pass-months"
-                          type="number"
-                          min={PASS_MONTHS_MIN}
-                          max={PASS_MONTHS_MAX}
-                          value={months}
-                          onChange={(ev) => {
-                            const n = Number(ev.target.value);
-                            if (!Number.isFinite(n)) return;
-                            setMonths(
-                              Math.min(PASS_MONTHS_MAX, Math.max(PASS_MONTHS_MIN, Math.round(n))),
-                            );
-                          }}
-                          className="w-16 rounded-sm border border-borderStrong px-2 py-1.5 text-text tabular-nums focus:border-transparent focus:ring-2 focus:ring-brand"
-                        />
-                      </span>
-                    ) : null}
-                    {validityMode === 'months' ? (
-                      <span className="mt-1 block text-sm text-textMuted">{exampleValidity}</span>
-                    ) : null}
-                  </span>
-                </label>
               </div>
 
               {showShortValidityHint ? (
                 <p className="mt-3 rounded-md border border-accent bg-accentSoft px-3.5 py-3 text-sm text-text">
-                  Kurze Gültigkeiten können gegenüber Privatkundinnen unwirksam sein. Empfohlen ist
-                  ‚Bis Jahresende, 3 Jahre‘.
+                  Kurze Gültigkeiten können gegenüber Privatkundinnen unwirksam sein. Empfohlen sind
+                  12 Monate ab Kauf.
                 </p>
               ) : null}
             </fieldset>
+
+            <div className="rounded-md border border-border px-3.5 py-3">
+              <label className={`flex min-h-11 items-start gap-3 ${switchDisabled ? 'opacity-70' : ''}`}>
+                <input
+                  type="checkbox"
+                  className="mt-1 h-4 w-4 rounded border-border text-brand focus:ring-brand disabled:opacity-50"
+                  checked={onlinePurchasable && !switchDisabled}
+                  disabled={switchDisabled}
+                  onChange={(ev) => setOnlinePurchasable(ev.target.checked)}
+                />
+                <span className="min-w-0">
+                  <span className="block text-[15px] font-medium text-text">Online kaufbar</span>
+                  {switchBlock ? (
+                    <span className="mt-1 block text-sm text-textMuted">{switchBlock}</span>
+                  ) : (
+                    <span className="mt-1 block text-sm text-textMuted">
+                      Teilnehmende kaufen und bezahlen selbst online (bis 250 €).
+                    </span>
+                  )}
+                </span>
+              </label>
+            </div>
+
+            {preview ? (
+              <p className="text-sm tabular-nums text-textMuted" data-testid="pass-product-preview">
+                {preview}
+              </p>
+            ) : null}
 
             {error ? (
               <div className="rounded-sm border border-danger bg-dangerSoft p-3">

@@ -10,6 +10,8 @@ import CreateCourse from './pages/CreateCourse';
 import EditCourse from './pages/EditCourse';
 import MyCourses from './pages/MyCourses';
 import MyRegistrations from './pages/MyRegistrations';
+import MyPasses from './pages/MyPasses';
+import Widerruf from './pages/Widerruf';
 import Profile from './pages/Profile';
 import Participants from './pages/Participants';
 import Users from './pages/Users';
@@ -295,6 +297,15 @@ function App() {
             <Route path="/verify-email"    element={<VerifyEmail />} />
             {/* UX-4 C1: Kalender-Seite (Token aus Mail; kein Login nötig) */}
             <Route path="/calendar" element={<CalendarInvite />} />
+            {/* K1: öffentlicher Widerruf ohne Login, mit Tenant-Kontext */}
+            <Route
+              path="/widerruf"
+              element={
+                <TenantGuard>
+                  <Widerruf />
+                </TenantGuard>
+              }
+            />
 
             {/* Apex: Token-Redirect oder Worker-Marketing / Subdomain: Dashboard oder Login */}
             <Route path="/" element={<HomeRouteWithTokenRedirect />} />
@@ -330,6 +341,7 @@ function App() {
               <Route path="course/:courseId" element={<CourseDetail />} />
               <Route path="my-courses" element={<MyCourses />} />
               <Route path="my-registrations" element={<MyRegistrations />} />
+              <Route path="my-passes" element={<MyPasses />} />
               <Route path="receipts/:receiptId" element={<Receipt />} />
               <Route path="profile" element={<Profile />} />
               <Route path="participants" element={<Participants />} />

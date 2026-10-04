@@ -11,6 +11,7 @@ import {
   MessageSquare,
   UserCog,
   ClipboardCheck,
+  Ticket,
   Receipt,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -21,6 +22,7 @@ import { useUnreadMessages } from '../../lib/useUnreadMessages';
 import { useOpenPaymentsCount } from '../../lib/useOpenPaymentsCount';
 import { openPaymentsBadge } from '../../lib/paymentsTabs';
 import { canSelfEnrollInCourses } from '../../lib/userRoles';
+import { useMyPassesNav } from '../../lib/useMyPassesNav';
 
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
   owner:   { label: 'Inhaberin/Inhaber', color: 'bg-brand text-onBrand' },
@@ -36,6 +38,7 @@ const Sidebar: React.FC = () => {
   const openPaymentsCount = useOpenPaymentsCount(isAdmin);
   const paymentsBadge = openPaymentsBadge(openPaymentsCount);
   const canSelfEnroll = canSelfEnrollInCourses(userProfile);
+  const showMyPasses = useMyPassesNav(canSelfEnroll);
 
   // Kurzer "Pop"-Effekt jedes Mal, wenn die Anzahl ungelesener Nachrichten steigt.
   const prevUnreadRef = useRef(unreadCount);
@@ -69,6 +72,13 @@ const Sidebar: React.FC = () => {
         icon: ClipboardCheck,
         label: 'Meine Anmeldungen',
       });
+      if (showMyPasses) {
+        items.push({
+          to: '/my-passes',
+          icon: Ticket,
+          label: 'Meine Karten',
+        });
+      }
     }
 
     items.push({ to: '/messages', icon: MessageSquare, label: 'Nachrichten' });

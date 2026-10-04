@@ -1,5 +1,6 @@
 import React from 'react';
 import { Heart } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const PLATFORM_LEGAL_LINKS = [
   { href: 'https://omlify.de/legal/impressum', label: 'Impressum' },
@@ -40,6 +41,16 @@ const LegalPage: React.FC = () => {
               </li>
             ))}
           </ul>
+          <p>
+            Online gekaufte Karten kannst du über{' '}
+            <Link
+              to="/widerruf"
+              className="font-medium text-brand underline underline-offset-4"
+            >
+              Widerruf
+            </Link>{' '}
+            widerrufen (Belegnummer und E-Mail).
+          </p>
           <p>Für Angaben zum Studio selbst gelten dessen eigene Angaben.</p>
         </div>
       </main>
