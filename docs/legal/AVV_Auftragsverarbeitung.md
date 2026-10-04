@@ -1,6 +1,6 @@
 # Vertrag über die Verarbeitung personenbezogener Daten im Auftrag
 
-**nach Art. 28 DSGVO** · **Stand:** 21.09.2026
+**nach Art. 28 DSGVO** · **Stand:** 04.10.2026
 
 ---
 
@@ -34,6 +34,7 @@ verantwortlich.
 ## § 2 Art, Zweck und Umfang der Verarbeitung
 
 **Zweck:** Betrieb einer Kurs- und Buchungsverwaltung für den Verantwortlichen.
+Abwicklung von Online-Zahlungen über das Stripe-Konto des Verantwortlichen (Zahlung auslösen, erstatten, Status abgleichen), Ausstellung von Belegen und Buchungsbestätigungen im Namen des Verantwortlichen, vorbereitende Buchhaltung.
 
 **Art der Verarbeitung:** Erheben, Speichern, Ordnen, Auslesen, Verwenden,
 Übermitteln an die betroffene Person, Einschränken, Löschen.
@@ -55,6 +56,9 @@ verantwortlich.
 | Buchungsdaten | Kurszuordnung, Status, Wartelistenposition, Zeitpunkte von Anmeldung und Stornierung |
 | Kommunikationsdaten | Inhalte von Nachrichten innerhalb der Software, Sender, Empfänger, Kursbezug, Lesestatus |
 | Protokolldaten | technische Verbindungsdaten beim Aufruf der Anwendung |
+| Zahlungs- und Abrechnungsdaten | Betrag, Zahlungsart, Status, Zeitpunkte, Erstattungen (Betrag, Grund, interne Notiz des Studios), Rückbuchungen, Karten und Guthaben, Buchungen der vorbereitenden Buchhaltung, Referenznummern beim Zahlungsdienstleister. Keine Kartendaten — die gibt die Person direkt bei Stripe ein. |
+| Belege | Belegnummer, Datum, Leistung, Betrag, Steuerangabe, Anbieterangaben des Studios |
+| Anbieterangaben des Studios | Name, Anschrift, Kontakt-E-Mail, Telefon, Steuernummer/USt-IdNr. (bei Einzelpersonen personenbezogen) |
 
 **Besondere Kategorien nach Art. 9 DSGVO** sind nicht Gegenstand dieses Vertrags.
 Die Software sieht keine Felder zur Erfassung von Gesundheitsdaten vor. Der
@@ -108,6 +112,8 @@ der Änderung kündigen.
 
 (3) Der Auftragsverarbeiter schließt mit jedem Unterauftragsverarbeiter einen
 Vertrag, der dessen Pflichten mindestens auf dem Niveau dieses Vertrags festlegt.
+
+(4) Keine Unterauftragsverarbeitung ist die Zahlungsabwicklung durch die Stripe Payments Europe, Ltd. (Irland). Stripe handelt über das eigene Stripe-Konto des Verantwortlichen als eigener Verantwortlicher; es gilt der Vertrag zwischen dem Verantwortlichen und Stripe. Der Auftragsverarbeiter übermittelt Stripe im Auftrag des Verantwortlichen nur die für die jeweilige Zahlung nötigen Angaben.
 
 ## § 7 Unterstützung des Verantwortlichen
 
@@ -181,7 +187,7 @@ betroffen ist.
 
 # Anlage 1 — Technische und organisatorische Maßnahmen
 
-**Stand:** 21.09.2026
+**Stand:** 04.10.2026
 
 ## Vertraulichkeit
 
@@ -216,6 +222,10 @@ verschlüsselt.
 Änderungen am System erfolgen ausschließlich über eine versionierte
 Quellcodeverwaltung mit nachvollziehbarer Historie; Änderungen am
 Datenbankschema ausschließlich über versionierte Migrationen.
+
+**Zahlungsdaten:** Kartendaten werden von Omlify weder verarbeitet noch gespeichert.
+
+**Protokolle:** E-Mail-Adressen, Beträge, Zahlungs- und Kontokennungen werden in Protokollen maskiert.
 
 ## Verfügbarkeit und Belastbarkeit
 
