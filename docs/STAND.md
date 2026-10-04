@@ -1,6 +1,6 @@
 # STAND — Omlify DEV
 
-Stand: 2026-10-04 · Branch `Julius` · HEAD (nach UX-2 B3 Push)
+Stand: 2026-10-04 · Branch `Julius` · HEAD `2d0fbeb`
 
 ## DEV
 
