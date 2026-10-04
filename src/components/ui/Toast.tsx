@@ -151,6 +151,7 @@ const ToastCard: React.FC<ToastCardProps> = ({ item, onDismiss, reducedMotion })
     <div
       role={toastRole(item.type)}
       data-testid={isError ? 'toast-error' : 'toast-success'}
+      data-duration-ms={item.durationMs == null ? 'stay' : String(item.durationMs)}
       data-paused={paused ? '1' : '0'}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
@@ -190,26 +191,24 @@ const ToastCard: React.FC<ToastCardProps> = ({ item, onDismiss, reducedMotion })
             {item.undoLabel}
           </button>
         ) : null}
-        {isError ? (
-          <button
-            type="button"
-            onClick={dismiss}
-            aria-label="Schließen"
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-onBrand/80 active:bg-white/10"
-            data-testid="toast-dismiss"
-          >
-            <X className="h-5 w-5" aria-hidden />
-          </button>
-        ) : null}
+        <button
+          type="button"
+          onClick={dismiss}
+          aria-label="Schließen"
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-onBrand/80 active:bg-white/10"
+          data-testid="toast-dismiss"
+        >
+          <X className="h-5 w-5" aria-hidden />
+        </button>
       </div>
       {showProgress ? (
         <div
-          className="absolute inset-x-0 bottom-0 h-[3px] bg-white/20"
+          className="absolute inset-x-0 bottom-0 h-0.5 bg-white/20"
           aria-hidden
           data-testid="toast-progress"
         >
           <div
-            className="h-full bg-onBrand"
+            className="h-full bg-onBrand/60"
             data-testid="toast-progress-fill"
             style={{ width: `${progress}%` }}
           />

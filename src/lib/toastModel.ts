@@ -18,9 +18,9 @@ export type ToastInput = {
   undoDurationMs?: number;
 };
 
-/** Kurze Bestätigung ohne Rückgängig — kein Zeitbalken. */
-export const TOAST_SUCCESS_MS = 3000;
-/** Bestätigung mit Rückgängig — mit Zeitbalken. */
+/** Bestätigung ohne Rückgängig — kein Zeitbalken (UX-5). */
+export const TOAST_SUCCESS_MS = 4000;
+/** Entfernen/Abmelden mit Rückgängig — mit Zeitbalken (UX-5). */
 export const TOAST_UNDO_MS = 6000;
 export const TOAST_ENTER_MS = 200;
 /** Längerer Text (> 60 Zeichen) verlängert die Dauer. */

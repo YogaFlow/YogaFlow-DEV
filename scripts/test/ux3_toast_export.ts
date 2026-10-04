@@ -27,7 +27,7 @@ test('Toast Rolle und Dauer', () => {
   assert.equal(toastRole('success'), 'status');
   assert.equal(toastRole('info'), 'status');
   assert.equal(toastRole('error'), 'alert');
-  assert.equal(TOAST_SUCCESS_MS, 3000);
+  assert.equal(TOAST_SUCCESS_MS, 4000);
   assert.equal(TOAST_UNDO_MS, 6000);
   assert.equal(toastAutoDismissMs('success'), TOAST_SUCCESS_MS);
   assert.equal(toastAutoDismissMs('success', undefined, true), TOAST_UNDO_MS);

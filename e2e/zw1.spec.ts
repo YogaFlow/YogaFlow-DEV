@@ -143,10 +143,10 @@ test('ZW1 N3 — Zahlungswege, Zahlart-Zeile, Neu-Hinweis, letzter Schalter', as
     await page.goto(`/course/${kurs.id}?tenant=${SLUG}`);
     const mobileBar = page.getByTestId('course-booking-bar-mobile');
     await expect(methodLine(page)).toContainText('Online bezahlen', { timeout: 20_000 });
-    await expect(methodLine(page)).toContainText('Ändern');
+    await expect(methodLine(page)).toHaveAttribute('data-bordered', '1');
     await expect(mobileBar.getByTestId('book-primary')).toHaveText('Weiter zur Zahlung');
 
-    // Ändern › öffnet Sheet → Vor Ort
+    // Zahlart-Feld öffnet Sheet → Vor Ort
     await methodLine(page).click();
     await expect(page.getByText('Vor Ort bezahlen')).toBeVisible();
     await page.getByText('Vor Ort bezahlen').click();
@@ -159,7 +159,7 @@ test('ZW1 N3 — Zahlungswege, Zahlart-Zeile, Neu-Hinweis, letzter Schalter', as
     await asOwner.rpc('set_allow_onsite_payment', { p_allow: true });
     await page.reload();
     await expect(methodLine(page)).toContainText('Vor Ort bezahlen', { timeout: 20_000 });
-    await expect(methodLine(page)).not.toContainText('Ändern');
+    await expect(methodLine(page)).toHaveAttribute('data-bordered', '0');
     await expect(mobileBar.getByTestId('book-primary')).toHaveText('Weiter zur Buchung');
     await mobileBar.getByTestId('book-primary').click();
     await expect(page.getByTestId('onsite-book-confirm')).toBeVisible();
@@ -168,8 +168,9 @@ test('ZW1 N3 — Zahlungswege, Zahlart-Zeile, Neu-Hinweis, letzter Schalter', as
     await expect(page.getByTestId('toast-success')).toContainText('Du bist dabei', {
       timeout: 15_000,
     });
+    await expect(page.getByTestId('toast-undo')).toHaveCount(0);
 
-    // (2) mit 10er-Karte → Ein-Tipp + Toast
+    // (2) mit 10er-Karte → Ein-Tipp + Toast ohne Rückgängig (UX-5)
     const kurs2 = await kursAnlegen(admin, tenant.id, teacher.id, {
       title: `ZW1 Pass ${laufId}`,
       price: 16,
@@ -199,7 +200,7 @@ test('ZW1 N3 — Zahlungswege, Zahlart-Zeile, Neu-Hinweis, letzter Schalter', as
     await expect(page.getByTestId('toast-success')).toContainText('Du bist dabei', {
       timeout: 15_000,
     });
-    await expect(page.getByTestId('toast-undo')).toBeVisible();
+    await expect(page.getByTestId('toast-undo')).toHaveCount(0);
 
     // (6) Neu-Hinweis einmal für Gewohnheits-Vor-Ort-Zahler
     const histKurs = await kursAnlegen(admin, tenant.id, teacher.id, {

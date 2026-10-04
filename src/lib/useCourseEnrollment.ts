@@ -18,7 +18,7 @@ import { RELEASE_SEAT_LABEL } from './pendingPaymentLabel';
 import { passRedeemErrorMessage } from './passes';
 import { supabase } from './supabase';
 import { enrolledToastLine } from './toastTexts';
-import { TOAST_UNDO_MS } from './toastModel';
+import { TOAST_UNDO_MS, toastUndoAllowed } from './toastModel';
 
 export type EnrollmentFeedbackDialog = FeedbackDialogState;
 
@@ -177,18 +177,7 @@ export function useCourseEnrollment(
         return true;
       }
 
-      const undo = {
-        durationMs: TOAST_UNDO_MS,
-        undo: {
-          label: 'Rückgängig',
-          onAction: async () => {
-            await supabase.rpc('unregister_from_course', { p_course_id: courseId });
-            onAfterSuccess();
-            fetchUserRegistrations();
-          },
-        },
-      };
-
+      // UX-5: Buchungen ohne Rückgängig — bei Vertipper normal abmelden.
       if (result?.waitlist_position) {
         showFeedbackDialog(
           `Du wurdest auf die Warteliste gesetzt (Position ${result.waitlist_position}). Du wirst benachrichtigt, wenn ein Platz frei wird.`,
@@ -203,7 +192,7 @@ export function useCourseEnrollment(
           result?.coverage === 'pass' && result.pass_remaining != null
             ? `${base} · noch ${result.pass_remaining}`
             : base;
-        showFeedbackDialog(successText, 'success', successText, undo);
+        showFeedbackDialog(successText, 'success', successText);
       }
       return true;
     } catch (error) {
@@ -281,8 +270,8 @@ export function useCourseEnrollment(
       fetchUserRegistrations();
 
       const refundCents = (data as { refund_cents?: number }).refund_cents ?? 0;
-      // UX-4 A2: Rückgängig nur wenn vollständig umkehrbar (keine Online-Erstattung).
-      const canUndo = refundCents === 0 && !wasPaidOnline;
+      // UX-5: Rückgängig nur bei Abmelden ohne Erstattung.
+      const canUndo = toastUndoAllowed({ refundCents, wasPaidOnline });
       const successText =
         refundCents > 0 || wasPaidOnline
           ? unregisterRefundSuccessMessage(refundCents)
