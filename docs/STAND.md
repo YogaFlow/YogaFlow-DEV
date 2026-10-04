@@ -22,6 +22,9 @@ Stand: 2026-10-04 · Branch `Julius` · HEAD siehe `git log -1`
 - Release-Plan (nur Doku) — [docs/RELEASE_GELDKETTE_PLAN.md](RELEASE_GELDKETTE_PLAN.md) Abschnitt 0 (+ §0.11 PROD-Replay)
 - **3.1** Zahlungsübersicht — Klicktest offen; Entscheidung 11 gilt (bestätigt 04.10.2026)
 - **3.2c** Erstattung Oberfläche — Klicktest offen
+- Entscheidungen 12 (Kaufprozess) und 13 (Überwachung/AVV) gelten
+  - [12_Kaufprozess_Rechtliches.md](entscheidungen/12_Kaufprozess_Rechtliches.md)
+  - [13_Ueberwachung_AVV.md](entscheidungen/13_Ueberwachung_AVV.md)
 
 ## Nächste Schritte
 
@@ -37,7 +40,7 @@ Stand: 2026-10-04 · Branch `Julius` · HEAD siehe `git log -1`
 
 ## hier weitermachen
 
-UX-1 fertig (Klicktest 04.10.). Als Nächstes B1 / B2.
+UX-1 fertig (Klicktest 04.10.). Entscheidungen 12 und 13 abgelegt. Als Nächstes B1 / B2.
 
 ## Verweise
 
