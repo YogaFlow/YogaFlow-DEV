@@ -17,7 +17,9 @@ Status: **angehalten** (Haltestelle 5 — Klicktest). Umsetzung der Antworten au
 
 ## Commits
 
-(siehe `git log` nach Push)
+- `9039429` feat(geldkette): stornierte Buchungen bis Kursende oder pending/failed sichtbar
+- `7e6b4a5` chore(dev): Probe-Guard fuer Generalprobe und DEP0190 in scripts/dev ohne Shell
+- `33ff1cf` docs(geldkette): Nachtrag Lauf 02.10, Probe/Replay-Runbook, STAND
 
 ## DoD
 
