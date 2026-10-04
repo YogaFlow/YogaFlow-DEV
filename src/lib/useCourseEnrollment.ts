@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ConfirmDialogState } from '../components/ui/ConfirmDialog';
+import type { FeedbackDialogState } from '../components/ui/FeedbackDialog';
 import { useAuth } from '../context/AuthContext';
 import { Course, RegisterForCourseResult, Registration } from '../types';
 import {
@@ -16,12 +17,9 @@ import { fetchRegistrationRefundStates } from './refunds';
 import { RELEASE_SEAT_LABEL } from './pendingPaymentLabel';
 import { passRedeemErrorMessage } from './passes';
 import { supabase } from './supabase';
+import { TOAST_UNDO_MS } from './toastModel';
 
-export type EnrollmentFeedbackDialog = {
-  title: string;
-  message: string;
-  type: 'success' | 'error';
-};
+export type EnrollmentFeedbackDialog = FeedbackDialogState;
 
 /** Spalten, die die Kursliste für die eigene Anmeldung wirklich lädt. */
 type OwnCourseRegistration = Pick<
@@ -74,12 +72,14 @@ export function useCourseEnrollment(
   const showFeedbackDialog = (
     message: string,
     type: 'success' | 'error' = 'success',
-    title?: string
+    title?: string,
+    extra?: Pick<FeedbackDialogState, 'undo' | 'durationMs'>,
   ) => {
     setFeedbackDialog({
       title: title || (type === 'success' ? 'Erfolg' : 'Hinweis'),
       message,
       type,
+      ...extra,
     });
   };
 
@@ -249,12 +249,24 @@ export function useCourseEnrollment(
       fetchUserRegistrations();
 
       const refundCents = (data as { refund_cents?: number }).refund_cents ?? 0;
+      const canUndo = refundCents === 0 && !wasPaidOnline;
       showFeedbackDialog(
         refundCents > 0 || wasPaidOnline
           ? unregisterRefundSuccessMessage(refundCents)
           : data.message || 'Erfolgreich abgemeldet.',
         'success',
         'Abmeldung erfolgreich',
+        canUndo
+          ? {
+              durationMs: TOAST_UNDO_MS,
+              undo: {
+                label: 'Rückgängig',
+                onAction: async () => {
+                  await handleRegister(courseId, false);
+                },
+              },
+            }
+          : undefined,
       );
     } catch (error) {
       console.error('Error unregistering from course:', error);

@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { TenantProvider, useTenant, buildApexHref, withDevTenant } from './context/TenantContext';
+import { ToastProvider } from './context/ToastContext';
 import AuthPage from './pages/AuthPage';
 import Dashboard from './pages/Dashboard';
 import Courses from './pages/Courses';
@@ -283,6 +284,7 @@ function App() {
         Auth onAuthStateChange/Profil und entlastet dieselbe supabase.co-Verbindung beim Cold Start.
       */}
       <TenantProvider>
+        <ToastProvider>
         <Router>
           <Routes>
             {/* Öffentliche Routen ohne Layout */}
@@ -338,6 +340,7 @@ function App() {
             </Route>
           </Routes>
         </Router>
+        </ToastProvider>
       </TenantProvider>
     </AuthProvider>
   );
