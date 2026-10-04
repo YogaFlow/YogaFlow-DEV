@@ -80,7 +80,10 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   };
 
   return (
-    <header className="sticky top-0 z-30 bg-surface/95 backdrop-blur supports-[backdrop-filter]:bg-surface/85 border-b border-border px-4 py-3 sm:px-6 sm:py-4 max-[380px]:px-3 max-[380px]:py-2.5">
+    <header
+      className="app-header sticky top-0 z-30 border-b border-border px-4 py-3 backdrop-blur sm:px-6 sm:py-4 max-[380px]:px-3 max-[380px]:py-2.5 bg-surface/95 supports-[backdrop-filter]:bg-surface/85 max-lg:bg-[color-mix(in_srgb,var(--color-brand)_8%,var(--color-surface))] max-lg:supports-[backdrop-filter]:bg-[color-mix(in_srgb,var(--color-brand)_8%,rgb(255_255_255_/_0.85))]"
+      data-testid="app-header"
+    >
       <div className="flex items-center justify-between">
         <div className="flex items-center min-w-0">
           <button

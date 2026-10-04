@@ -47,50 +47,46 @@ const Sidebar: React.FC = () => {
     prevUnreadRef.current = unreadCount;
   }, [unreadCount]);
 
+  /**
+   * UX-4 D1: täglich → wöchentlich → selten; Profil ganz unten über Abmelden.
+   * Owner/Admin: Übersicht · Kurse · Teilnehmer · Nachrichten · Zahlungen ·
+   * Kurse verwalten · Nutzerverwaltung · Einstellungen · Profil
+   */
   const getNavItems = () => {
-    const items = [
-      { to: '/dashboard',  icon: Home,          label: 'Übersicht' },
-      { to: '/courses',    icon: Calendar,      label: 'Kurse' },
-      { to: '/messages',   icon: MessageSquare, label: 'Nachrichten' },
-      { to: '/profile',    icon: User,          label: 'Profil' },
+    type NavItem = { to: string; icon: typeof Home; label: string };
+    const items: NavItem[] = [
+      { to: '/dashboard', icon: Home, label: 'Übersicht' },
+      { to: '/courses', icon: Calendar, label: 'Kurse' },
     ];
 
     if (isCourseLeader) {
-      const courseItems = [
-        { to: '/my-courses', icon: BookOpen, label: 'Kurse verwalten' },
-      ];
+      items.push({ to: '/participants', icon: Users, label: 'Teilnehmer' });
+    }
 
-      if (canSelfEnroll) {
-        courseItems.push({
-          to: '/my-registrations',
-          icon: ClipboardCheck,
-          label: 'Meine Anmeldungen',
-        });
-      }
-
-      courseItems.push({ to: '/participants', icon: Users, label: 'Teilnehmer' });
-      items.splice(2, 0, ...courseItems);
-    } else if (canSelfEnroll) {
-      items.splice(2, 0, {
+    if (canSelfEnroll) {
+      items.push({
         to: '/my-registrations',
         icon: ClipboardCheck,
         label: 'Meine Anmeldungen',
       });
     }
 
+    items.push({ to: '/messages', icon: MessageSquare, label: 'Nachrichten' });
+
     if (isAdmin) {
-      items.splice(-1, 0,
-        { to: '/payments', icon: Receipt, label: 'Zahlungen' },
-        { to: '/settings', icon: Settings, label: 'Einstellungen' },
-      );
+      items.push({ to: '/payments', icon: Receipt, label: 'Zahlungen' });
     }
 
     if (isCourseLeader) {
-      items.splice(-1, 0,
-        { to: '/users', icon: UserCog, label: 'Nutzerverwaltung' },
-      );
+      items.push({ to: '/my-courses', icon: BookOpen, label: 'Kurse verwalten' });
+      items.push({ to: '/users', icon: UserCog, label: 'Nutzerverwaltung' });
     }
 
+    if (isAdmin) {
+      items.push({ to: '/settings', icon: Settings, label: 'Einstellungen' });
+    }
+
+    items.push({ to: '/profile', icon: User, label: 'Profil' });
     return items;
   };
 
