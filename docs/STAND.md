@@ -1,20 +1,22 @@
 # STAND — Omlify DEV
 
-Stand: 2026-10-04 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [LAUF_UX2.md](berichte/LAUF_UX2.md)
+Stand: 2026-10-04 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [ux3_feinschliff.md](berichte/ux3_feinschliff.md)
 
 ## DEV
 
 - Migrationen bis `20261004150000` (B2 O1–O4 ops-monitor; davor legal_acceptances `20261004140000`, Belege bis `20261004122000`)
-- Functions (deployt): `ops-monitor`, `payments-jobs`, `payments-webhook`, `dispatch-emails`, `send-email` (UX-2 B1 Mail-Hülle + ICS)
-- Secrets (Namen): `OPS_MONITOR_SECRET`, `OPS_ALERT_EMAIL`; `OPS_HEARTBEAT_URL` nicht gesetzt
+- Functions (deployt): `calendar-ics` (neu UX-3), `ops-monitor`, `payments-jobs`, `payments-webhook`, `dispatch-emails`, `send-email`
+- Secrets (Namen): `CALENDAR_ICS_SECRET` (neu); `OPS_MONITOR_SECRET`, `OPS_ALERT_EMAIL`; `OPS_HEARTBEAT_URL` nicht gesetzt
 - Cron: `yogaflow_ops_monitor` alle 15 min (+ bestehende jobs)
 - ops_alerts offen: nur `demoalpha:disputes` (3); Fehlalarme O1–O3 erledigt
-- E2E: B1 3/3; UX-2 B3 4/4 (360-Baseline pixelgleich + Desktop 1280)
+- E2E: UX-3 3/3; UX-2 B3 4/4 (Kursdetail-360 pixelgleich; Kasse-360 C1-Wording-Baseline)
 - Legal: `src/generated/legalDocuments.ts` aus `docs/legal/*.md` (Build/Serve)
-- Deno: `npm run test:deno` 189/189 grün (UX-2 B1)
+- Deno: `npm run test:deno` 195/195 grün (UX-3 Kalender-Token + Mail-Texte)
 
 ## Zuletzt abgeschlossen
 
+- **UX-3 Feinschliff** Toast, calendar-ics, Check-in-Wording, Export-Zeitraum, Kursdetail Desktop
+  - Bericht: [docs/berichte/ux3_feinschliff.md](berichte/ux3_feinschliff.md)
 - **UX-2 Teil B3** Desktop Kursdetail + Kasse (360-Baseline zuerst) — siehe Bericht
   - Bericht: [docs/berichte/ux2_teil_b3.md](berichte/ux2_teil_b3.md)
 - **UX-2 Teil B2** Export unter Zahlungen — Commit `3deea79`
@@ -23,21 +25,17 @@ Stand: 2026-10-04 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [LAUF_UX
   - Bericht: [docs/berichte/ux2_teil_b1.md](berichte/ux2_teil_b1.md)
 - **UX-2 Teil A** Checkout, Legal-Pop-up, FormField, ModalBackdrop — Commit `cd16a93`
   - Bericht: [docs/berichte/ux2_teil_a.md](berichte/ux2_teil_a.md)
-- **Klicktest B1+B2** (Julius, 04.10.) — bestanden bis auf Gestaltung; Feedback → UX-2
-  - Lauf: [docs/berichte/LAUF_B1_B2.md](berichte/LAUF_B1_B2.md)
-- **B2 O1–O4** Cron-Toleranz, ledger nur mit Steuerstatus, `reviewed_at`, Tests + Rauchtest
-  - Bericht: [docs/berichte/b2_ueberwachung_avv.md](berichte/b2_ueberwachung_avv.md)
 - Entscheidungen 12 und 13 gelten
 
 ## Nächste Schritte
 
-- Haltestelle 5: Mail-Ansicht DEV-Postfach + Screenshots Gmail/iPhone; Klicktest UX-2 (A+B)
+- Haltestelle 5: Klicktest UX-3 (Klickliste im Bericht) + Mail-Screenshots Gmail/iPhone
 - Klicktest Nachtrag / 3.2c / 3.1
 
 ## Haltestellen / wartet auf Julius
 
-- Klicktest UX-2 (siehe LAUF_UX2) — Haltestelle 5
-- UX-2 B1: Test-Mail + Screenshots (Haltestelle 5)
+- Klicktest UX-3 — Haltestelle 5 ([ux3_feinschliff.md](berichte/ux3_feinschliff.md))
+- UX-2 B1: Test-Mail + Screenshots (weiterhin offen, falls noch nicht erledigt)
 - Klicktests Nachtrag, 3.2c, 3.1
 - Optional: `OPS_HEARTBEAT_URL` (Haltestelle 3)
 - Testkundin PROD: AVV nach Release über Banner — nichts extra
@@ -45,7 +43,7 @@ Stand: 2026-10-04 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [LAUF_UX
 
 ## hier weitermachen
 
-Haltestelle 5: Klickliste in [LAUF_UX2.md](berichte/LAUF_UX2.md); Mail-Screenshots Gmail/iPhone.
+Haltestelle 5: Klickliste in [ux3_feinschliff.md](berichte/ux3_feinschliff.md); Mail-Screenshots Gmail/iPhone.
 
 ## Verweise
 
