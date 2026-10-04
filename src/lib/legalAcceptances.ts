@@ -15,13 +15,19 @@ export async function loadAvvStatus(): Promise<LegalAcceptanceStatus | null> {
     p_document: 'avv',
   });
   if (error || !data || data.success === false) return null;
+  const currentHash = String(data.current_hash ?? '');
+  // Aktuell nur mit gleichem content_hash (Server-Kanon und Build-Konstante).
+  const hashMatches =
+    currentHash === AVV_CONTENT_HASH && data.accepted === true;
   return {
-    accepted: data.accepted === true,
+    accepted: hashMatches,
     currentVersion: String(data.current_version ?? AVV_VERSION),
-    currentHash: String(data.current_hash ?? AVV_CONTENT_HASH),
-    acceptedAt: data.accepted_at ? String(data.accepted_at) : null,
-    acceptedByName: data.accepted_by_name ? String(data.accepted_by_name) : null,
-    acceptedVersion: data.accepted_version ? String(data.accepted_version) : null,
+    currentHash: currentHash || AVV_CONTENT_HASH,
+    acceptedAt: hashMatches && data.accepted_at ? String(data.accepted_at) : null,
+    acceptedByName:
+      hashMatches && data.accepted_by_name ? String(data.accepted_by_name) : null,
+    acceptedVersion:
+      hashMatches && data.accepted_version ? String(data.accepted_version) : null,
   };
 }
 
