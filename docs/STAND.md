@@ -13,9 +13,11 @@ Stand: 2026-10-04 · Branch `Julius` · HEAD siehe `git log -1`
 
 ## Zuletzt abgeschlossen
 
+- **Klicktest B1+B2** (Julius, 04.10.) — bestanden bis auf Gestaltung; Feedback → UX-2
+  - Lauf: [docs/berichte/LAUF_B1_B2.md](berichte/LAUF_B1_B2.md)
 - **B2 O1–O4** Cron-Toleranz, ledger nur mit Steuerstatus, `reviewed_at`, Tests + Rauchtest
   - Bericht: [docs/berichte/b2_ueberwachung_avv.md](berichte/b2_ueberwachung_avv.md)
-- **B2** Überwachung + AVV-Zustimmung — **fertig** (Klicktest offen)
+- **B2** Überwachung + AVV-Zustimmung — **fertig**
   - Lauf: [docs/berichte/LAUF_B1_B2.md](berichte/LAUF_B1_B2.md)
 - **B1 Nachtrag N1–N6** — Belegfehler blockiert nie Zahlung; `retry_missing_receipts`; Steuer zum Zahlungsdatum; kein §-19-Raten; voller Satz; E2E 3/3
   - Bericht: [docs/berichte/b1_bestellknopf_belege.md](berichte/b1_bestellknopf_belege.md)
@@ -23,19 +25,19 @@ Stand: 2026-10-04 · Branch `Julius` · HEAD siehe `git log -1`
 
 ## Nächste Schritte
 
-- Klicktest B1 + B2 (gemeinsame Liste in LAUF_B1_B2)
+- UX-2 Teil A (A1–A4), dann Teil B (B1–B3) — Story [ux2_checkout_mail_export_desktop.md](stories/ux2_checkout_mail_export_desktop.md)
 - Klicktest Nachtrag / 3.2c / 3.1
 
 ## Haltestellen / wartet auf Julius
 
-- Klicktests B1, B2, Nachtrag, 3.2c, 3.1
+- Klicktests Nachtrag, 3.2c, 3.1; UX-2 nach Fertigstellung
 - Optional: `OPS_HEARTBEAT_URL` (Haltestelle 3)
 - Testkundin PROD: AVV nach Release über Banner — nichts extra
 - PROD: Altfehler `reviewed_at` nach Release-Plan 0.12 (Julius)
 
 ## hier weitermachen
 
-B2 inkl. O1–O4 auf Julius. Nächster Fokus: Klicktests.
+Nachtrag B2 O1–O4 übersprungen (fertig). Weiter mit UX-2 Teil A.
 
 ## Verweise
 

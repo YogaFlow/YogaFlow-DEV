@@ -16,9 +16,13 @@ Status **fertig** inkl. Nachtrag N1–N6. Bericht: [b1_bestellknopf_belege.md](b
 | E2E | `e2e/b1.spec.ts` 3/3 grün |
 | demoalpha Belege | `2026-00001`/`00002` receipt, `2026-00004` refund_receipt (`00003` Fehlbeleg Umkehr vor Fix) |
 
+## Klicktest B1+B2 (Julius, 04.10.)
+
+**Bestanden** bis auf Gestaltung. Fachlich/funktional ok (Banner, AVV, Checkout, Belege, Online-Schalter). Gestaltungs-Feedback steckt in Story [UX-2](../stories/ux2_checkout_mail_export_desktop.md) (Checkout, Pop-ups, Mails, Export, Desktop).
+
 ## B2 — Überwachung, AVV v2, AVV-Zustimmung
 
-Status **fertig** inkl. O1–O4 (Klicktest offen). Bericht: [b2_ueberwachung_avv.md](b2_ueberwachung_avv.md).
+Status **fertig** inkl. O1–O4. Klicktest Julius 04.10. bestanden (Gestaltung → UX-2). Bericht: [b2_ueberwachung_avv.md](b2_ueberwachung_avv.md).
 
 | Teil | Stand |
 |---|---|

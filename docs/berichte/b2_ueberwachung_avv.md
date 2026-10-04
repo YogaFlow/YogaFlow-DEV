@@ -1,6 +1,6 @@
 # Bericht B2 — Überwachung und AVV-Zustimmung
 
-Status: **fertig** (Klicktest offen, Haltestelle 5). Stand 04.10.2026.
+Status: **fertig**. Klicktest Julius 04.10. bestanden bis auf Gestaltung (→ UX-2). Stand 04.10.2026.
 
 Vorgabe: [docs/stories/b2_ueberwachung_avv.md](../stories/b2_ueberwachung_avv.md).
 Entscheidung 13 gilt. AVV V0 bereits zuvor (Stand 04.10.2026).
