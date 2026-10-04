@@ -47,13 +47,17 @@ import {
 import PaymentPendingStatus from '../components/ui/PaymentPendingStatus';
 import {
   ONLINE_REQUIRED_HINT,
+  ONLINE_REQUIRED_HINT_SHORT,
   PAY_NOW_LABEL,
 } from '../lib/paymentTexts';
 import {
   cancellationDeadlineLine,
   previewCancellationDeadlineIso,
 } from '../lib/cancellationDeadline';
-import { CONTINUE_TO_BOOKING_LABEL } from '../lib/legalCheckoutTexts';
+import {
+  CONTINUE_TO_BOOKING_LABEL,
+  CONTINUE_TO_BOOKING_LABEL_SHORT,
+} from '../lib/legalCheckoutTexts';
 import { RELEASE_SEAT_LABEL } from '../lib/pendingPaymentLabel';
 import { paymentsClientConfig } from '../lib/paymentsClientConfig';
 import {
@@ -373,9 +377,11 @@ const CourseDetail: React.FC = () => {
   }
 
   const buttonShape =
-    'inline-flex items-center justify-center rounded-full min-h-11 min-w-[9.5rem] px-5 text-[15px] font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2';
+    'inline-flex items-center justify-center whitespace-nowrap rounded-full min-h-11 min-w-[9.5rem] px-5 text-[15px] font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2';
+  const buttonShapeMobile =
+    'inline-flex items-center justify-center whitespace-nowrap rounded-full min-h-12 min-w-[8.25rem] px-5 text-[15px] font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2';
   const staffButtonShape =
-    'inline-flex items-center justify-center rounded-full min-h-11 px-5 text-[15px] font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2';
+    'inline-flex items-center justify-center whitespace-nowrap rounded-full min-h-11 px-5 text-[15px] font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2';
 
   const goBack = () => {
     if (location.key === 'default') {
@@ -503,7 +509,9 @@ const CourseDetail: React.FC = () => {
       </div>
     ) : null;
 
-  const renderBookingActions = (desktop: boolean) => (
+  const renderBookingActions = (desktop: boolean) => {
+    const shape = desktop ? buttonShape : buttonShapeMobile;
+    return (
     <>
       {canAct ? (
         isRegistered ? (
@@ -512,7 +520,7 @@ const CourseDetail: React.FC = () => {
               className={
                 desktop
                   ? 'flex w-full flex-col gap-2'
-                  : 'flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end'
+                  : 'flex shrink-0 flex-col items-stretch gap-2'
               }
             >
               {paymentsClientConfig().enabled && ownRegistration?.id ? (
@@ -524,7 +532,7 @@ const CourseDetail: React.FC = () => {
                       holdExpiresAt: ownRegistration.hold_expires_at,
                     })
                   }
-                  className={`${buttonShape} bg-brand text-onBrand active:bg-brandPressed${desktop ? ' w-full' : ''}`}
+                  className={`${shape} bg-brand text-onBrand active:bg-brandPressed${desktop ? ' w-full' : ''}`}
                 >
                   {PAY_NOW_LABEL}
                 </button>
@@ -532,7 +540,7 @@ const CourseDetail: React.FC = () => {
               <button
                 type="button"
                 onClick={() => requestUnregister(course)}
-                className={`${buttonShape} border border-borderStrong bg-surface text-textMuted active:bg-surfaceSunken${desktop ? ' w-full' : ''}`}
+                className={`${shape} border border-borderStrong bg-surface text-textMuted active:bg-surfaceSunken${desktop ? ' w-full' : ''}`}
               >
                 {RELEASE_SEAT_LABEL}
               </button>
@@ -542,7 +550,7 @@ const CourseDetail: React.FC = () => {
               type="button"
               onClick={() => requestUnregister(course)}
               data-testid="course-unregister"
-              className={`${buttonShape} border border-borderStrong bg-surface text-danger active:bg-dangerSoft${desktop ? ' w-full' : ''}`}
+              className={`${shape} border border-borderStrong bg-surface text-danger active:bg-dangerSoft${desktop ? ' w-full' : ''}`}
             >
               Abmelden
             </button>
@@ -552,18 +560,22 @@ const CourseDetail: React.FC = () => {
             type="button"
             onClick={() => requestEnroll('waitlist')}
             disabled={registering}
-            className={`${buttonShape} border border-accent bg-accentSoft text-accentText disabled:opacity-50${desktop ? ' w-full' : ''}`}
+            className={`${shape} border border-accent bg-accentSoft text-accentText disabled:opacity-50${desktop ? ' w-full' : ''}`}
           >
-            Auf die Warteliste
+            {desktop ? 'Auf die Warteliste' : 'Warteliste'}
           </button>
         ) : (
           <button
             type="button"
             onClick={() => requestEnroll('seat')}
             disabled={registering}
-            className={`${buttonShape} bg-brand text-onBrand active:bg-brandPressed disabled:opacity-50${desktop ? ' w-full' : ''}`}
+            className={`${shape} bg-brand text-onBrand active:bg-brandPressed disabled:opacity-50${desktop ? ' w-full' : ''}`}
           >
-            {onlineRequired ? CONTINUE_TO_BOOKING_LABEL : 'Anmelden'}
+            {onlineRequired
+              ? desktop
+                ? CONTINUE_TO_BOOKING_LABEL
+                : CONTINUE_TO_BOOKING_LABEL_SHORT
+              : 'Anmelden'}
           </button>
         )
       ) : null}
@@ -601,7 +613,8 @@ const CourseDetail: React.FC = () => {
         )
       ) : null}
     </>
-  );
+    );
+  };
 
   return (
     <div
@@ -937,23 +950,64 @@ const CourseDetail: React.FC = () => {
         </div>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-surface pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:hidden">
-        <div className="mx-auto flex min-h-11 max-w-2xl items-center justify-between gap-3 px-3 max-[380px]:px-2 sm:px-6">
-          <div className="min-w-0 shrink">
-            <p className="text-[19px] font-medium leading-tight text-text tabular-nums">
-              {formatPrice(course.price)}
-            </p>
-            {renderBookingStatus()}
-            {cancelDeadlineLineText ? (
-              <p
-                className="mt-0.5 text-[12px] leading-snug text-textMuted"
-                data-testid="cancel-deadline-line"
-              >
-                {cancelDeadlineLineText}
-              </p>
-            ) : null}
+      <div
+        className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-surface px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] lg:hidden"
+        data-testid="course-booking-bar-mobile"
+      >
+        <div className="mx-auto max-w-2xl">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              {isRegistered && registrationStatus === 'registered' && !showPendingPayment ? (
+                <span className="inline-flex items-center gap-1 text-[13px] font-medium text-success">
+                  <Check className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  <span className="truncate">
+                    {paymentStatusSuffix
+                      ? `Angemeldet · ${paymentStatusSuffix}`
+                      : 'Angemeldet'}
+                  </span>
+                </span>
+              ) : showPendingPayment ? (
+                <PaymentPendingStatus
+                  holdExpiresAt={resolveHoldExpiresAt(ownRegistration?.hold_expires_at)}
+                  className="!items-start"
+                />
+              ) : isRegistered && registrationStatus === 'waitlist' ? (
+                <AccentPill>
+                  {waitlistPosition ? `Warteliste Pos. ${waitlistPosition}` : 'Warteliste'}
+                </AccentPill>
+              ) : (
+                <p className="flex flex-wrap items-baseline gap-x-1.5 leading-tight">
+                  <span className="text-[19px] font-medium text-text tabular-nums">
+                    {formatPrice(course.price)}
+                  </span>
+                  <span className="text-[13px] text-textMuted">pro Termin</span>
+                </p>
+              )}
+            </div>
+            {renderBookingActions(false)}
           </div>
-          {renderBookingActions(false)}
+          {(onlineRequired && canAct && !isRegistered) || cancelDeadlineLineText ? (
+            <div className="mt-2 grid grid-cols-[1.25rem_minmax(0,1fr)] gap-x-2 gap-y-1.5 text-[12px] leading-snug text-textMuted">
+              {onlineRequired && canAct && !isRegistered ? (
+                <>
+                  <CreditCard
+                    className="mt-0.5 h-3.5 w-3.5 shrink-0 text-textSubtle"
+                    aria-hidden
+                  />
+                  <span>{ONLINE_REQUIRED_HINT_SHORT}</span>
+                </>
+              ) : null}
+              {cancelDeadlineLineText ? (
+                <>
+                  <Clock
+                    className="mt-0.5 h-3.5 w-3.5 shrink-0 text-textSubtle"
+                    aria-hidden
+                  />
+                  <span data-testid="cancel-deadline-line">{cancelDeadlineLineText}</span>
+                </>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

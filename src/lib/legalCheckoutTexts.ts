@@ -2,6 +2,9 @@
 
 export const CONTINUE_TO_BOOKING_LABEL = 'Weiter zur Buchung';
 
+/** Mobil Aktionsleiste: kurz, damit der Knopf nie umbricht (UX-4 N3). */
+export const CONTINUE_TO_BOOKING_LABEL_SHORT = 'Zur Buchung';
+
 export const BINDING_BOOK_LABEL = 'Zahlungspflichtig buchen';
 
 export const WITHDRAWAL_NOTICE =

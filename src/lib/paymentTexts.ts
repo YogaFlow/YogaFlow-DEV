@@ -12,6 +12,9 @@ export const PAY_NOW_LABEL = 'Jetzt bezahlen';
 /** UX-4 B2: freundlicher Hinweis ohne Schloss. */
 export const ONLINE_REQUIRED_HINT = 'Du bezahlst direkt bei der Buchung';
 
+/** Mobil Aktionsleiste, Zeile 2 (UX-4 N3). */
+export const ONLINE_REQUIRED_HINT_SHORT = 'Bezahlung direkt bei der Buchung';
+
 export const REGISTER_AND_PAY_LABEL = 'Anmelden und bezahlen';
 
 /** `formattedAmount` z. B. aus formatCents — „24,00 € bezahlen“. */

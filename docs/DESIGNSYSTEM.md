@@ -280,8 +280,14 @@ Für die spätere Expo-App bleibt die untere Leiste die Vorgabe — dort ist sie
 - Oben der Kurszustand (Abgesagt, Hat bereits begonnen, Ausgebucht, noch N Plätze,
   Dein Kurs). In der Aktionsleiste bzw. Buchungskarte der eigene Zustand (pro Termin,
   Angemeldet, Warteliste) und die passenden Aktionen.
-- Knöpfe einheitlich `rounded-full`, mind. 44 px. „Abmelden" mit Rahmen, nie
-  gefüllt (Regel 7). Mobil fest am unteren Rand; Desktop Aktionen in der Buchungskarte.
+- Knöpfe einheitlich `rounded-full`, mind. 44 px (mobil Aktionsleiste 48 px).
+  **Knöpfe brechen nie um** (`whitespace-nowrap`); zu lange Texte werden gekürzt
+  formuliert (mobil z. B. „Zur Buchung" statt „Weiter zur Buchung").
+  „Abmelden" mit Rahmen, nie gefüllt (Regel 7). Mobil fest am unteren Rand;
+  Desktop Aktionen in der Buchungskarte.
+- Mobil Aktionsleiste: Zeile 1 Preis + „pro Termin" links, Knopf rechts;
+  Zeile 2 volle Breite mit Icon-Spalte (Karte/Uhr) und grauer Hinweiszeile;
+  Innenabstand 16 px, unten `safe-area-inset-bottom`.
 - Gefüllt in `danger` ist nur der endgültige Bestätigungsknopf im Dialog.
 
 **Logo und Studiokopf:**

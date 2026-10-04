@@ -8,6 +8,7 @@ import {
   BINDING_BOOK_LABEL,
   CANCEL_NO_LONGER,
   CONTINUE_TO_BOOKING_LABEL,
+  CONTINUE_TO_BOOKING_LABEL_SHORT,
   WITHDRAWAL_NOTICE,
   cancelRuleLine,
   cancelRuleLineCompact,
@@ -26,6 +27,7 @@ import {
 
 test('Knöpfe K4', () => {
   assert.equal(CONTINUE_TO_BOOKING_LABEL, 'Weiter zur Buchung');
+  assert.equal(CONTINUE_TO_BOOKING_LABEL_SHORT, 'Zur Buchung');
   assert.equal(BINDING_BOOK_LABEL, 'Zahlungspflichtig buchen');
 });
 

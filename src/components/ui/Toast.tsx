@@ -81,7 +81,8 @@ const ToastCard: React.FC<ToastCardProps> = ({ item, onDismiss, reducedMotion })
   }, [paused, item.durationMs, item.createdAt, item.id, onDismiss, reducedMotion, exiting]);
 
   useEffect(() => {
-    if (!showProgress || item.durationMs == null) return;
+    const total = item.durationMs;
+    if (!showProgress || total == null) return;
     let raf = 0;
     const tick = () => {
       const pauseExtra =
@@ -89,7 +90,7 @@ const ToastCard: React.FC<ToastCardProps> = ({ item, onDismiss, reducedMotion })
           ? Date.now() - pauseStartedAt.current
           : 0;
       const elapsed = Date.now() - item.createdAt - pausedMs.current - pauseExtra;
-      const left = Math.max(0, 100 * (1 - elapsed / item.durationMs));
+      const left = Math.max(0, 100 * (1 - elapsed / total));
       setProgress(left);
       if (left > 0) raf = window.requestAnimationFrame(tick);
     };

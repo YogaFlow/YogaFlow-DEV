@@ -58,7 +58,7 @@ test('B3 — Kursdetail 360 Referenz (mobil unverändert)', async ({ page }) => 
   await expect(page.getByRole('heading', { name: 'UX2 B3 Kursdetail' })).toBeVisible({
     timeout: 20_000,
   });
-  await expect(page.getByRole('button', { name: /Weiter zur Buchung|Anmelden/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Zur Buchung|Weiter zur Buchung|Anmelden/ })).toBeVisible();
   await page.evaluate(() => document.fonts.ready);
   await expect(page).toHaveScreenshot('coursedetail-360.png', SHOT);
 });
