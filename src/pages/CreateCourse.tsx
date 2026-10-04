@@ -4,6 +4,7 @@ import { MapPin, Users, Save, ArrowLeft, Repeat, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTenant } from '../context/TenantContext';
 import { supabase } from '../lib/supabase';
+import { visibleMembers } from '../lib/visibleScope';
 import { countActivePassProducts } from '../lib/passProducts';
 import { DatePicker, TimePicker } from '../components/DateTimePicker';
 import PassEligibleToggle from '../components/courses/PassEligibleToggle';
@@ -161,9 +162,7 @@ const CreateCourse: React.FC = () => {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('id, first_name, last_name, email')
+      const { data, error } = await visibleMembers('id, first_name, last_name, email')
         .in('role', ['teacher', 'admin', 'owner'])
         .is('anonymized_at', null)
         .order('last_name', { ascending: true });

@@ -29,6 +29,7 @@ export async function fetchAllStudioPayments(query: {
   kind: PaymentKind | '';
   status: PaymentOverviewStatus | '';
   search: string;
+  includeArchived?: boolean;
 }): Promise<StudioPaymentRow[]> {
   const first = await fetchStudioPayments({ ...query, page: 1 });
   const pages = Math.max(1, Math.ceil(first.total / PAYMENTS_PAGE_SIZE));
@@ -45,6 +46,7 @@ export async function downloadPaymentsListCsv(query: {
   kind: PaymentKind | '';
   status: PaymentOverviewStatus | '';
   search: string;
+  includeArchived?: boolean;
 }): Promise<{ ok: true; rows: number } | { ok: false; message: string }> {
   try {
     const rows = await fetchAllStudioPayments(query);

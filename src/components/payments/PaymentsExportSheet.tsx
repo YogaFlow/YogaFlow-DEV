@@ -33,6 +33,7 @@ export type PaymentsExportFilters = {
   kind: PaymentKind | '';
   status: PaymentOverviewStatus | '';
   search: string;
+  includeArchived?: boolean;
 };
 
 type Props = {
@@ -178,6 +179,7 @@ export default function PaymentsExportSheet({ open, filters, onClose }: Props) {
             kind: filters.kind,
             status: filters.status,
             search: filters.search,
+            includeArchived: Boolean(filters.includeArchived),
             page: 1,
           });
           total += page.total;
@@ -190,7 +192,7 @@ export default function PaymentsExportSheet({ open, filters, onClose }: Props) {
     return () => {
       active = false;
     };
-  }, [open, monthList, filters.kind, filters.status, filters.search]);
+  }, [open, monthList, filters.kind, filters.status, filters.search, filters.includeArchived]);
 
   const run = async () => {
     if (busy) return;
@@ -206,6 +208,7 @@ export default function PaymentsExportSheet({ open, filters, onClose }: Props) {
             kind: filters.kind,
             status: filters.status,
             search: filters.search,
+            includeArchived: Boolean(filters.includeArchived),
           });
           allRows.push(...rows);
         }

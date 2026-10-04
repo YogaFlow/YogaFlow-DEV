@@ -410,7 +410,7 @@ const Payments: React.FC = () => {
 
       <PaymentsExportSheet
         open={exportOpen}
-        filters={{ month, kind, status, search }}
+        filters={{ month, kind, status, search, includeArchived }}
         onClose={() => setExportOpen(false)}
       />
     </div>

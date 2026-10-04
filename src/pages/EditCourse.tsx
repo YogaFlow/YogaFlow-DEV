@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { MapPin, Users, Save, ArrowLeft, AlertCircle, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+import { visibleMembers } from '../lib/visibleScope';
 import { futureSeriesCourses, pastCourseEditLocks } from '../lib/courseDateTime';
 import { countActivePassProducts } from '../lib/passProducts';
 import { Course } from '../types';
@@ -213,9 +214,7 @@ const EditCourse: React.FC = () => {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('id, first_name, last_name, email')
+      const { data, error } = await visibleMembers('id, first_name, last_name, email')
         .in('role', ['teacher', 'admin', 'owner'])
         .is('anonymized_at', null)
         .order('last_name', { ascending: true });
