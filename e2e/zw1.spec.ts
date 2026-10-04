@@ -124,9 +124,10 @@ test('ZW1 — Ein-Tipp, Anders bezahlen, nur Vor Ort, letzter Schalter', async (
     await alsAngemeldet(page, sess.session);
     await page.setViewportSize({ width: 360, height: 780 });
     await page.goto(`/course/${kurs.id}?tenant=${SLUG}`);
+    const mobileBar = page.getByTestId('course-booking-bar-mobile');
     await expect(methodLine(page)).toContainText('Online bezahlen', { timeout: 20_000 });
-    await expect(page.getByTestId('book-primary')).toBeVisible();
-    await page.getByTestId('book-alt-pay').click();
+    await expect(mobileBar.getByTestId('book-primary')).toBeVisible();
+    await mobileBar.getByTestId('book-alt-pay').click();
     await expect(page.getByText('Vor Ort bezahlen')).toBeVisible();
     await page.getByText('Vor Ort bezahlen').click();
     await expect(methodLine(page)).toContainText('Du bezahlst vor Ort');
@@ -136,8 +137,8 @@ test('ZW1 — Ein-Tipp, Anders bezahlen, nur Vor Ort, letzter Schalter', async (
     await asOwner.rpc('set_allow_onsite_payment', { p_allow: true });
     await page.reload();
     await expect(methodLine(page)).toContainText('Du bezahlst vor Ort', { timeout: 20_000 });
-    await expect(page.getByTestId('book-alt-pay')).toHaveCount(0);
-    await page.getByTestId('book-primary').click();
+    await expect(mobileBar.getByTestId('book-alt-pay')).toHaveCount(0);
+    await mobileBar.getByTestId('book-primary').click();
     await expect(page.getByTestId('onsite-book-confirm')).toBeVisible();
     await expect(page.getByTestId('onsite-binding-book')).toHaveText('Zahlungspflichtig buchen');
     await page.getByTestId('onsite-binding-book').click();
@@ -168,8 +169,8 @@ test('ZW1 — Ein-Tipp, Anders bezahlen, nur Vor Ort, letzter Schalter', async (
 
     await page.goto(`/course/${kurs2.id}?tenant=${SLUG}`);
     await expect(methodLine(page)).toContainText('10er-Karte', { timeout: 20_000 });
-    await expect(page.getByTestId('book-primary')).toContainText('Mit 10er-Karte buchen');
-    await page.getByTestId('book-primary').click();
+    await expect(mobileBar.getByTestId('book-primary')).toContainText('Mit 10er-Karte buchen');
+    await mobileBar.getByTestId('book-primary').click();
     await expect(page.getByText(/mit Karte bezahlt/i).first()).toBeVisible({ timeout: 15_000 });
 
     // (4) Einstellungen: letzter Schalter
