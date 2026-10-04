@@ -4,33 +4,31 @@ Stand: 2026-10-04 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [ux4_fei
 
 ## DEV
 
-- Migrationen bis `20261004150000` (B2 O1–O4 ops-monitor; davor legal_acceptances `20261004140000`, Belege bis `20261004122000`)
+- Migrationen bis `20261004180000` (UX-4 N1 AVV content_hash; davor B2 ops-monitor `20261004150000`)
 - Functions (deployt): `calendar-ics` (UX-4: json/inline), `ops-monitor`, `payments-jobs`, `payments-webhook`, `dispatch-emails`, `send-email`
 - Secrets (Namen): `CALENDAR_ICS_SECRET`; `OPS_MONITOR_SECRET`, `OPS_ALERT_EMAIL`; `OPS_HEARTBEAT_URL` nicht gesetzt
 - Cron: `yogaflow_ops_monitor` alle 15 min (+ bestehende jobs)
 - ops_alerts offen: nur `demoalpha:disputes` (3); Fehlalarme O1–O3 erledigt
-- E2E: UX-4 4/4; UX-2 2/2; UX-3 3/3; UX-2 B3 4/4
-- Legal: AVV-Hash = SHA-256 normalisierter Markdown (`b90051ca…`); Stand 04.10.2026
+- E2E: UX-4 Undo+Balken; UX-2 2/2; UX-3 3/3
+- Legal: AVV-Kanon `b90051ca…` in `legal_document_versions`; alte Zustimmung demoalpha zählt nicht → Banner
 - Deno: `npm run test:deno` 195/195 grün
-- CI: lokal `npm run check:ci` grün; GitHub **#220** success (`4bf7490`, [Lauf](https://github.com/YogaFlow/YogaFlow-DEV/actions/runs/37214579999))
+- CI: lokal `npm run check:ci` grün; GitHub-Run nach Push (Nummer nachziehen)
 
 ## Zuletzt abgeschlossen
 
-- **CI-Hotfix** Lint `_info` entfernt; `npm run check:ci`; DoD vor Push; Lint-Warnungen in OFFENE_PUNKTE
+- **UX-4 Nachtrag N1–N3** AVV content_hash, Toast-Zeitbalken 3 px, mobil Buchungsleiste
+  - Bericht: [docs/berichte/ux4_feinschliff_2.md](berichte/ux4_feinschliff_2.md)
+- **CI-Hotfix** Lint `_info`; `npm run check:ci`; Lint-Warnungen in OFFENE_PUNKTE
 - **UX-4 Feinschliff 2** Toast-Design/Undo, ⋯ mobil, Abmeldefrist, Erfolgsfenster, Kalender-Seite, Nav, Kopfleiste, AVV-Hash, FormField
-  - Bericht: [docs/berichte/ux4_feinschliff_2.md](berichte/ux4_feinschliff_2.md) — Haltestelle 5
-- **UX-3 Feinschliff** Toast, calendar-ics, Check-in-Wording, Export-Zeitraum, Kursdetail Desktop
-  - Bericht: [docs/berichte/ux3_feinschliff.md](berichte/ux3_feinschliff.md)
-- Entscheidungen 12 und 13 gelten
 
 ## Nächste Schritte
 
-- Haltestelle 5: Klicktest UX-4 (Klickliste im Bericht) + Kalender auf echten Geräten
-- Optional: Klicktest Nachtrag / 3.2c / 3.1
+- Klicktest Nachtrag N1–N3 (AVV-Banner, Toast-Balken, Buchungsleiste mobil)
+- Optional: Klicktest Nachtrag / 3.2c / 3.1; Kalender echte Geräte
 
 ## Haltestellen / wartet auf Julius
 
-- Klicktest UX-4 — Haltestelle 5 ([ux4_feinschliff_2.md](berichte/ux4_feinschliff_2.md))
+- Klicktest UX-4 Nachtrag N1–N3 — [ux4_feinschliff_2.md](berichte/ux4_feinschliff_2.md)
 - UX-2 B1: Test-Mail + Screenshots (falls noch offen)
 - Klicktests Nachtrag, 3.2c, 3.1
 - Optional: `OPS_HEARTBEAT_URL` (Haltestelle 3)
@@ -39,7 +37,7 @@ Stand: 2026-10-04 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [ux4_fei
 
 ## hier weitermachen
 
-Haltestelle 5: Klickliste in [ux4_feinschliff_2.md](berichte/ux4_feinschliff_2.md).
+Klicktest Nachtrag N1–N3 in [ux4_feinschliff_2.md](berichte/ux4_feinschliff_2.md).
 
 ## Verweise
 

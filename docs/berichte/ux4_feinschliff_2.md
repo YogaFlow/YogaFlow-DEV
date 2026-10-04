@@ -90,4 +90,33 @@ Screenshots (nicht committen): `docs/screenshots/ux4/`.
 ## Offen / warte auf Julius
 
 - Echte Geräte-Checks Kalender (Punkt 8–9, Tabelle oben).
-- AVV-Banner auf DEV nach Hash-Wechsel quittieren (append-only).
+- Nachzug Klicktest N1–N3 (siehe unten).
+
+## Nachtrag UX-4 (Klicktest Julius) — N1–N3
+
+Klickliste 1–12 ok bis auf N1–N3. Je ein Commit; `npm run check:ci` grün; Migration `20261004180000` auf DEV.
+
+### N1 — AVV-Banner fehlte trotz neuem Hash
+
+| | |
+|---|---|
+| Ursache | RPC verglich schon `content_hash`, aber `legal_document_versions` auf DEV hing noch am alten HTML-Hash `081aa26d…`. Die Demo-Zustimmung matchte den Kanon → `accepted: true` → kein Banner. |
+| Fix | Migration setzt Kanon auf Markdown-SHA `b90051ca…`; `current_avv_accepted` / `get_legal_acceptance_status` nur noch per `content_hash`; Client: `accepted` nur wenn Server-Hash = `AVV_CONTENT_HASH`. |
+| Test | `b2_legal_acceptances`: alte Hash-Zustimmung → `accepted: false`; Einschalten weiter gesperrt bis neue Zustimmung. |
+| Commit | `c6de114` |
+
+### N2 — Zeitbalken unsichtbar
+
+| | |
+|---|---|
+| Ursache | Balken nur `h-0.5` (2 px) am unteren Rand der dunklen Pille — praktisch unsichtbar; Auto-Dismiss-Timer lief im Context ohne Pause-Kopplung. |
+| Fix | 3 px `brandSoft` am unteren Rand; 5 s voll→leer; Hover/Fokus pausiert Balken und Dismiss; E2E prüft Sichtbarkeit und Schrumpfen. |
+| Commit | `3ffb738` |
+
+### N3 — Mobil Buchungsleiste unordentlich
+
+| | |
+|---|---|
+| Fix | Zeile 1: Preis + „pro Termin“ links, Knopf „Zur Buchung“ rechts (`nowrap`, min. 48 px). Zeile 2: Icon-Spalte + „Bezahlung direkt…“ / Abmeldefrist. Padding 16 px + `safe-area-inset-bottom`. Desktop-Buchungskarte unverändert. Designsystem: Knöpfe brechen nie um. |
+| Screenshots | `docs/screenshots/ux4/booking-bar-before-{360,390}.png` · `booking-bar-after-{360,390}.png` (nicht committen) |
+| Commit | `c1687ee` |
