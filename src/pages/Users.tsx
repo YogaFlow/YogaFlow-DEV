@@ -546,7 +546,7 @@ export default function Users() {
     if (full && coverage !== 'open' && coverage !== 'pass') {
       setFeedbackDialog({
         title: 'Hinweis',
-        message: 'Der Kurs ist voll. Kassieren geht erst, wenn die Person nachrückt.',
+        message: 'Der Kurs ist voll. Check-in geht erst, wenn die Person nachrückt.',
         type: 'info',
       });
       return;

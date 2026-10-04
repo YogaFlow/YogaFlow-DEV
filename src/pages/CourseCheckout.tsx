@@ -957,6 +957,7 @@ const CourseCheckout: React.FC = () => {
     <div className="mx-auto max-w-lg space-y-4 overflow-x-hidden pb-24 lg:max-w-[1120px]">
       <header>
         <h2 className="text-[22px] font-medium text-text">{course.title}</h2>
+        <p className="mt-1 text-[15px] text-textMuted">Wer ist da, wer hat bezahlt.</p>
         <p className="mt-1 text-[15px] tabular-nums text-textMuted">
           {formatDate(course.date)} · {formatTime(course.time)}
         </p>
@@ -1109,7 +1110,7 @@ const CourseCheckout: React.FC = () => {
                           onClick={() => void record(person, 'cash', null, null)}
                           className="inline-flex h-11 min-w-11 items-center justify-center rounded-full bg-brand px-4 text-[15px] font-medium text-onBrand active:bg-brandPressed"
                         >
-                          Bar
+                          Einchecken
                         </button>
                       ) : null}
                     </div>
@@ -1365,7 +1366,7 @@ const CourseCheckout: React.FC = () => {
                                 onClick={() => void record(person, 'cash', null, null)}
                                 className="inline-flex h-11 min-w-11 items-center justify-center rounded-full bg-brand px-4 text-[15px] font-medium text-onBrand active:bg-brandPressed"
                               >
-                                Bar
+                                Einchecken
                               </button>
                             ) : null}
                           </div>
@@ -1606,7 +1607,7 @@ const CourseCheckout: React.FC = () => {
                 disabled={dialogBusy}
                 className="inline-flex h-11 items-center rounded-full bg-brand px-4 text-[15px] font-medium text-onBrand active:bg-brandPressed disabled:opacity-50"
               >
-                Vermerken
+                Zahlung vermerken
               </button>
             </div>
           </div>

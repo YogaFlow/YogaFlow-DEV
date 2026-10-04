@@ -58,7 +58,7 @@ const RemovePersonDialog: React.FC<RemovePersonDialogProps> = ({
     ? `/course/${target.openCourseId}/kassieren`
     : '/participants';
   const openLabel = target.openBookings === 1 && target.openCourseId
-    ? 'Zur Kasse'
+    ? 'Zum Check-in'
     : 'Zur Teilnehmerliste';
 
   return (

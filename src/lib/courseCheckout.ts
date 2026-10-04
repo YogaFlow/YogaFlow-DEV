@@ -69,7 +69,7 @@ export function checkoutErrorMessage(code: string | undefined): string {
     case 'NO_VALID_PASS':
       return 'Keine gültige Karte für diesen Kurs.';
     case 'WAITLIST_NO_PAYMENT':
-      return 'Der Kurs ist voll. Kassieren geht erst, wenn die Person nachrückt.';
+      return 'Der Kurs ist voll. Check-in geht erst, wenn die Person nachrückt.';
     case 'PASS_EMPTY':
     case 'PASS_EXPIRED':
     case 'NOT_PASS_ELIGIBLE':
