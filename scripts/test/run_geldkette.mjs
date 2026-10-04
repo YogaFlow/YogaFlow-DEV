@@ -6,10 +6,16 @@
  *
  * Verwendung: npm run test:geldkette
  *             node scripts/test/run_geldkette.mjs
+ *
+ * Generalprobe (PROD-Kopie): OMLIFY_PROBE_REF=<ref> OMLIFY_ALLOW_PROBE=1
+ *   node scripts/test/run_geldkette.mjs --probe
+ * Stripe-/demoalpha-Rauchtests werden dort übersprungen (nur bauen/Guard hier;
+ * gegen Probe/PROD hier nichts ausführen).
  */
 import { spawnSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { probeErlaubt, probeRef } from './_helpers.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -46,6 +52,32 @@ const SKRIPTE = [
   's3_1_payment_overview.mjs',
 ];
 
+/** Auf der Probe: braucht demoalpha und/oder Stripe-Sandbox — überspringen. */
+const PROBE_SKIP = new Set([
+  'security_signup_role.mjs',
+]);
+
+/** Separate Rauchtests (nicht in SKRIPTE) — auf der Probe nicht laufen. */
+export const PROBE_SKIP_SMOKE = [
+  's2_2a_3_checkout_smoke.mjs',
+  's2_2a_4c_webhook_smoke.mjs',
+  's3_2b_refund_smoke.mjs',
+];
+
+const isProbe = probeErlaubt();
+if (isProbe) {
+  const ref = probeRef();
+  if (!ref) {
+    console.error('\n  FEHLER: --probe / OMLIFY_ALLOW_PROBE=1 braucht OMLIFY_PROBE_REF.\n');
+    process.exit(1);
+  }
+  console.log(`\n  Modus Probe (OMLIFY_PROBE_REF=${ref})`);
+  console.log(`  Übersprungen: ${[...PROBE_SKIP].join(', ')}`);
+  console.log(`  Rauchtests (manuell nie gegen Probe): ${PROBE_SKIP_SMOKE.join(', ')}\n`);
+}
+
+const LAUF_SKRIPTE = isProbe ? SKRIPTE.filter((d) => !PROBE_SKIP.has(d)) : SKRIPTE;
+
 function sleepMs(ms) {
   const ia = new Int32Array(new SharedArrayBuffer(4));
   Atomics.wait(ia, 0, 0, ms);
@@ -56,10 +88,13 @@ function isRateLimit(text) {
 }
 
 function runSkript(datei) {
-  const ergebnis = spawnSync(process.execPath, [join(root, 'scripts', 'test', datei)], {
+  const args = [join(root, 'scripts', 'test', datei)];
+  if (isProbe) args.push('--probe');
+  const ergebnis = spawnSync(process.execPath, args, {
     cwd: root,
     encoding: 'utf8',
     env: process.env,
+    shell: false,
   });
 
   const stdout = ergebnis.stdout ?? '';
@@ -84,8 +119,8 @@ function failTail(output, maxLines = 40) {
 /** @type {{ datei: string, label: string }[]} */
 const ergebnisse = [];
 
-for (let i = 0; i < SKRIPTE.length; i++) {
-  const datei = SKRIPTE[i];
+for (let i = 0; i < LAUF_SKRIPTE.length; i++) {
+  const datei = LAUF_SKRIPTE[i];
 
   if (i > 0) {
     console.log(`\n  … ${PAUSE_MS / 1000} s Pause …\n`);
@@ -132,12 +167,17 @@ console.log('\n── Übersicht ──');
 for (const e of ergebnisse) {
   console.log(`  ${e.label.padEnd(22)}  ${e.datei}`);
 }
-const offen = SKRIPTE.filter((d) => !ergebnisse.some((e) => e.datei === d));
+if (isProbe) {
+  for (const d of PROBE_SKIP) {
+    console.log(`  ${'übersprungen'.padEnd(22)}  ${d} (Probe)`);
+  }
+}
+const offen = LAUF_SKRIPTE.filter((d) => !ergebnisse.some((e) => e.datei === d));
 for (const d of offen) {
   console.log(`  ${'—'.padEnd(22)}  ${d} (nicht gelaufen)`);
 }
 
 const alleGruen =
-  ergebnisse.length === SKRIPTE.length &&
+  ergebnisse.length === LAUF_SKRIPTE.length &&
   ergebnisse.every((e) => e.label === 'grün' || e.label === 'grün nach Wiederholung');
 process.exit(alleGruen ? 0 : 1);

@@ -9,10 +9,10 @@
  * 5. db:status:dev
  */
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
-import { spawnSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assertDevGuard, ERLAUBTE_DEV_REF } from './dev_guard.mjs';
+import { runNodeScript, runSupabase } from './_spawn.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -31,17 +31,6 @@ function fail(msg) {
   process.exit(1);
 }
 
-function run(cmd, args, opts = {}) {
-  const r = spawnSync(cmd, args, {
-    cwd: root,
-    encoding: 'utf8',
-    shell: true,
-    stdio: opts.capture ? ['ignore', 'pipe', 'pipe'] : 'inherit',
-    ...opts,
-  });
-  return r;
-}
-
 assertDevGuard();
 
 const deploy = ladeEnv(join(root, '.env.deploy'));
@@ -55,7 +44,8 @@ const dbUrl =
   `postgresql://postgres.${ref}:${encodeURIComponent(password)}` +
   `@${host}.pooler.supabase.com:5432/postgres`;
 
-const listed = run('npx', ['supabase', 'migration', 'list', '--db-url', dbUrl], { capture: true });
+const listed = runSupabase(['migration', 'list', '--db-url', dbUrl], { capture: true });
+if (listed.error) fail(`Supabase-CLI: ${listed.error.message}`);
 if ((listed.status ?? 1) !== 0) {
   process.stderr.write(listed.stderr || listed.stdout || '');
   fail('migration list fehlgeschlagen');
@@ -96,29 +86,29 @@ if (pending.length === 0) {
     const allow = allowMatch[1].trim();
     if (!allow) fail(`${m.file}: "-- allow:" ist leer`);
 
-    const check = run(
-      'node',
-      [join(root, 'scripts/dev/check_migration_statements.mjs'), path, '--allow', allow],
-      { capture: true },
+    const check = runNodeScript(
+      join(root, 'scripts/dev/check_migration_statements.mjs'),
+      [path, '--allow', allow],
+      { stdio: ['ignore', 'pipe', 'pipe'] },
     );
     process.stdout.write(check.stdout || '');
     if (check.stderr) process.stderr.write(check.stderr);
+    if (check.error) fail(`check:migration: ${check.error.message}`);
     if ((check.status ?? 1) !== 0) {
       fail(`check:migration fehlgeschlagen für ${m.file}`);
     }
   }
 
   console.log('\n  db push --yes (DEV) …\n');
-  const push = run('npx', ['supabase', 'db', 'push', '--db-url', dbUrl, '--yes'], {
-    // secret not logged: we pass dbUrl; avoid printing in console via capture false
-  });
-  // Hide URL from accidental logs: we already printed the command without password via npx
+  const push = runSupabase(['db', 'push', '--db-url', dbUrl, '--yes']);
+  if (push.error) fail(`db push: ${push.error.message}`);
   if ((push.status ?? 1) !== 0) fail('db push fehlgeschlagen');
 }
 
 console.log('\n  db:status:dev …\n');
-const status = run('npx', ['supabase', 'migration', 'list', '--db-url', dbUrl], { capture: true });
+const status = runSupabase(['migration', 'list', '--db-url', dbUrl], { capture: true });
 process.stdout.write(status.stdout || '');
 if (status.stderr) process.stderr.write(status.stderr);
+if (status.error) fail(`db:status: ${status.error.message}`);
 if ((status.status ?? 1) !== 0) fail('db:status fehlgeschlagen');
 console.log('\n  OK  dev:apply\n');

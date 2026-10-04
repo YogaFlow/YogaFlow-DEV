@@ -3,10 +3,10 @@
  * DEV: provider_jobs pause/resume mit Guard.
  * Usage: node scripts/dev/dev_jobs.mjs pause|resume
  */
-import { spawnSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assertDevGuard } from './dev_guard.mjs';
+import { runNodeScript } from './_spawn.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 assertDevGuard();
@@ -18,10 +18,9 @@ if (mode !== 'pause' && mode !== 'resume') {
 }
 
 const flag = mode === 'pause' ? '--pause' : '--resume';
-const r = spawnSync('node', [join(root, 'scripts/dev/provider_jobs_secret.mjs'), flag], {
-  cwd: root,
-  encoding: 'utf8',
-  shell: true,
-  stdio: 'inherit',
-});
+const r = runNodeScript(join(root, 'scripts/dev/provider_jobs_secret.mjs'), [flag]);
+if (r.error) {
+  console.error(`\n  FEHLER: ${r.error.message}\n`);
+  process.exit(1);
+}
 process.exit(r.status ?? 1);

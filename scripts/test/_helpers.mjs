@@ -3,7 +3,7 @@
  * Aus a6_1_foundation.mjs und s2_1b_a_pending.mjs ausgelagert (2.2a-1).
  * Bestehende Skripte bleiben unverändert.
  */
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createClient } from '@supabase/supabase-js';
@@ -15,13 +15,33 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 /** @type {boolean} */
 export let devOk = false;
 
-export function ladeEnv() {
+/** true, wenn ausdrücklich freigegebene Probe-Ref (nicht DEV, nicht PROD). */
+export let probeMode = false;
+
+function ladeEnvDatei(path) {
+  if (!existsSync(path)) return {};
   const out = {};
-  for (const zeile of readFileSync(join(root, '.env'), 'utf8').split(/\r?\n/)) {
+  for (const zeile of readFileSync(path, 'utf8').split(/\r?\n/)) {
     const m = zeile.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/);
     if (m) out[m[1]] = m[2].trim().replace(/^["']|["']$/g, '');
   }
   return out;
+}
+
+export function ladeEnv() {
+  return ladeEnvDatei(join(root, '.env'));
+}
+
+/** Probe nur mit Env OMLIFY_PROBE_REF und Flag (--probe oder OMLIFY_ALLOW_PROBE=1). */
+export function probeErlaubt() {
+  return (
+    process.argv.includes('--probe') ||
+    process.env.OMLIFY_ALLOW_PROBE === '1'
+  );
+}
+
+export function probeRef() {
+  return (process.env.OMLIFY_PROBE_REF || '').trim();
 }
 
 export function seedPasswort() {
@@ -48,17 +68,41 @@ export function refAusKey(key) {
   }
 }
 
-/** Prüft URL/Keys gegen DEV und setzt `devOk`. */
+/**
+ * Prüft URL/Keys gegen DEV — oder gegen eine ausdrücklich freigegebene Probe-Ref.
+ * Probe: `OMLIFY_PROBE_REF=<ref>` und `--probe` bzw. `OMLIFY_ALLOW_PROBE=1`.
+ * Nie PROD (Vergleich mit PROD_REF aus .env.deploy, falls gesetzt).
+ */
 export function assertDevEnv(env) {
   const url = env.VITE_SUPABASE_URL;
   const anon = env.VITE_SUPABASE_ANON_KEY;
   const service = env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !anon || !service) abbruch('.env unvollständig (URL/ANON/SERVICE_ROLE)');
+
+  const wantProbe = probeErlaubt();
+  const pRef = probeRef();
+
+  if (wantProbe) {
+    if (!pRef) abbruch('Probe: OMLIFY_PROBE_REF fehlt');
+    if (!/^[a-z0-9]{20}$/.test(pRef)) abbruch('Probe: OMLIFY_PROBE_REF ungültig');
+    if (pRef === ERLAUBTE_REF) abbruch('Probe: OMLIFY_PROBE_REF darf nicht die DEV-Ref sein');
+    const deploy = ladeEnvDatei(join(root, '.env.deploy'));
+    const prodRef = (deploy.PROD_REF || '').trim();
+    if (prodRef && pRef === prodRef) abbruch('Probe: OMLIFY_PROBE_REF darf nicht PROD sein');
+    if (!url.includes(pRef)) abbruch('URL zeigt nicht auf die Probe (OMLIFY_PROBE_REF)');
+    if (refAusKey(anon) !== pRef) abbruch('Anon-Key gehört nicht zur Probe');
+    if (refAusKey(service) !== pRef) abbruch('Service-Role-Key gehört nicht zur Probe');
+    probeMode = true;
+    devOk = true;
+    return { url, anon, service, mode: 'probe', ref: pRef };
+  }
+
   if (!url.includes(ERLAUBTE_REF)) abbruch('URL zeigt nicht auf DEV');
   if (refAusKey(anon) !== ERLAUBTE_REF) abbruch('Anon-Key gehört nicht zu DEV');
   if (refAusKey(service) !== ERLAUBTE_REF) abbruch('Service-Role-Key gehört nicht zu DEV');
+  probeMode = false;
   devOk = true;
-  return { url, anon, service };
+  return { url, anon, service, mode: 'dev', ref: ERLAUBTE_REF };
 }
 
 export function ok(name, cond, detail = '') {

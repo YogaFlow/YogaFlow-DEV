@@ -27,9 +27,15 @@ import {
   ok,
   plattform,
   plattformStand,
+  probeErlaubt,
   seedPasswort,
   warteBis,
 } from './_helpers.mjs';
+
+if (probeErlaubt()) {
+  console.log('  übersprungen (Probe — Stripe/demoalpha-Rauchtest nur auf DEV)');
+  process.exit(0);
+}
 
 const SLUG = 'demoalpha';
 const EMAIL_PREFIX = 's22a4csmk';

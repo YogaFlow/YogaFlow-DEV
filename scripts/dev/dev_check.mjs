@@ -2,36 +2,57 @@
 /**
  * DEV-Qualitätstor: boundary, tsc, lint, build, deno, Unit-Tests (node --test), dist-Scan.
  */
-import { spawnSync } from 'node:child_process';
 import { readdirSync, readFileSync, existsSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 import { assertDevGuard } from './dev_guard.mjs';
+import { runNpm } from './_spawn.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 assertDevGuard();
 
-function run(label, cmd, args) {
+function run(label, r) {
   console.log(`\n== ${label} ==\n`);
-  const r = spawnSync(cmd, args, { cwd: root, encoding: 'utf8', shell: true, stdio: 'inherit' });
+  if (r.error) {
+    console.error(`\n  FEHLER: ${label}: ${r.error.message}\n`);
+    process.exit(1);
+  }
   if ((r.status ?? 1) !== 0) {
     console.error(`\n  FEHLER: ${label} fehlgeschlagen\n`);
     process.exit(r.status ?? 1);
   }
 }
 
-run('check:provider-boundary', 'npm', ['run', 'check:provider-boundary']);
-run('tsc', 'npx', ['tsc', '-p', 'tsconfig.app.json', '--noEmit']);
-run('lint', 'npm', ['run', 'lint']);
-run('build', 'npm', ['run', 'build']);
-run('test:deno', 'npm', ['run', 'test:deno']);
+const tscJs = join(root, 'node_modules', 'typescript', 'bin', 'tsc');
 
-run('Unit-Tests Client (node --test scripts/test/*.ts)', 'node', [
-  '--experimental-strip-types',
-  '--no-warnings',
-  '--test',
-  'scripts/test/*.ts',
-]);
+run('check:provider-boundary', runNpm(['run', 'check:provider-boundary']));
+run(
+  'tsc',
+  existsSync(tscJs)
+    ? spawnSync(process.execPath, [tscJs, '-p', 'tsconfig.app.json', '--noEmit'], {
+        cwd: root,
+        encoding: 'utf8',
+        shell: false,
+        stdio: 'inherit',
+      })
+    : runNpm(['exec', '--', 'tsc', '-p', 'tsconfig.app.json', '--noEmit']),
+);
+run('lint', runNpm(['run', 'lint']));
+run('build', runNpm(['run', 'build']));
+run('test:deno', runNpm(['run', 'test:deno']));
+
+const unitFiles = readdirSync(join(root, 'scripts', 'test'))
+  .filter((f) => f.endsWith('.ts'))
+  .map((f) => join('scripts', 'test', f));
+run(
+  'Unit-Tests Client (node --test scripts/test/*.ts)',
+  spawnSync(
+    process.execPath,
+    ['--experimental-strip-types', '--no-warnings', '--test', ...unitFiles],
+    { cwd: root, encoding: 'utf8', shell: false, stdio: 'inherit' },
+  ),
+);
 
 console.log('== dist-Scan ==\n');
 const dist = join(root, 'dist');
@@ -69,11 +90,8 @@ for (const file of walk(dist)) {
     re.lastIndex = 0;
     const matches = text.match(re) || [];
     for (const m of matches) {
-      // pk_live_ nur als Vergleichstext: Treffer ohne lange Key-Zeichen danach ok-ish;
-      // echte Keys haben typisch >20 Zeichen Payload.
       const payload = m.replace(/^(sk_(?:live|test)_|acct_|pk_live_)/, '');
-      if (payload.length < 8) continue; // nur Präfix / Kurzform
-      // Maskierer-Beispiele und Test-Fixtures oft mit "fake" / "stub"
+      if (payload.length < 8) continue;
       if (/fake|stub|example|redacted|omlify/i.test(m)) continue;
       console.error(`  Treffer ${name} in ${file}: ${m.slice(0, 12)}…`);
       bad += 1;
