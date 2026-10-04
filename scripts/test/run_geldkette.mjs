@@ -53,6 +53,7 @@ const SKRIPTE = [
   'b1_legal_profiles.mjs',
   'b1_receipts.mjs',
   'b2_legal_acceptances.mjs',
+  'b2_ops_monitor.mjs',
 ];
 
 /** Auf der Probe: braucht demoalpha und/oder Stripe-Sandbox — überspringen. */

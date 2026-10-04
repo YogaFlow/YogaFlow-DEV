@@ -29,6 +29,7 @@
     "dev:jobs:pause": "node scripts/dev/dev_jobs.mjs pause",
     "dev:jobs:resume": "node scripts/dev/dev_jobs.mjs resume",
     "dev:check": "node scripts/dev/dev_check.mjs",
+    "dev:ops:review": "node scripts/dev/ops_mark_reviewed.mjs",
     "dev:test": "node scripts/test/run_geldkette.mjs",
     "dev:e2e": "node scripts/dev/dev_guard.mjs && playwright test"
   },
