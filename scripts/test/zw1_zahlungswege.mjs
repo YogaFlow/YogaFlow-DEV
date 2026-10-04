@@ -280,6 +280,29 @@ async function main() {
       .single();
     ok('Z7 Spalte last_booking_pay_method', z7Row?.last_booking_pay_method === 'onsite');
 
+    // Z8: nach Vor-Ort-Buchung Trigger setzt hint_seen → zurücksetzen, Default bleibt onsite
+    const { error: clearZ8 } = await admin
+      .from('users')
+      .update({ online_pay_hint_seen_at: null, last_booking_pay_method: 'onsite' })
+      .eq('id', memberZ7.id);
+    ok('Z8 hint reset', !clearZ8, clearZ8?.message);
+    const z8Opts = await asZ7.rpc('booking_payment_options', { p_course_id: kursZ7b.id });
+    ok(
+      'Z8 default onsite + show_online_pay_hint',
+      z8Opts.data?.default === 'onsite' && z8Opts.data?.show_online_pay_hint === true,
+      JSON.stringify(z8Opts.data),
+    );
+    await admin
+      .from('users')
+      .update({ online_pay_hint_seen_at: new Date().toISOString() })
+      .eq('id', memberZ7.id);
+    const z8Seen = await asZ7.rpc('booking_payment_options', { p_course_id: kursZ7b.id });
+    ok(
+      'Z8 hint gesehen → false',
+      z8Seen.data?.show_online_pay_hint === false,
+      JSON.stringify(z8Seen.data),
+    );
+
     console.log('\nZW-1 fertig');
   } finally {
     try {
