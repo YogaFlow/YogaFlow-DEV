@@ -1,22 +1,31 @@
 /**
- * ZW-1 — Unit-Tests für Buchungstexte.
+ * ZW-1 / N1 — Unit-Tests für Buchungstexte.
  * node --experimental-strip-types --test scripts/test/zw1_booking_texts.ts
  */
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
-  altPayLabel,
+  BOOK_PRIMARY_ONLINE,
+  BOOK_PRIMARY_ONSITE,
+  CHANGE_PAY_METHOD_LABEL,
+  ONLINE_PAY_HINT_LINE,
+  bookingMethodDetail,
   bookingMethodLine,
+  bookingMethodTitle,
   bookingPrimaryLabel,
   passBookButtonLabel,
 } from '../../src/lib/bookingMethodTexts.ts';
 import { BINDING_BOOK_LABEL } from '../../src/lib/legalCheckoutTexts.ts';
 
-describe('ZW-1 bookingMethodTexts', () => {
+describe('ZW-1 N1 bookingMethodTexts', () => {
   it('pass Zeile und Knopf', () => {
     assert.equal(
-      bookingMethodLine('pass', { method: 'pass', label: '10er-Karte · noch 7' }),
-      '✓ Mit deiner 10er-Karte · noch 7',
+      bookingMethodTitle('pass', { label: '10er-Karte · noch 7' }),
+      '10er-Karte · noch 7',
+    );
+    assert.equal(
+      bookingMethodLine('pass', { label: '10er-Karte · noch 7' }),
+      '10er-Karte · noch 7',
     );
     assert.equal(passBookButtonLabel('10er-Karte · noch 7'), 'Mit 10er-Karte buchen');
     assert.equal(
@@ -25,16 +34,22 @@ describe('ZW-1 bookingMethodTexts', () => {
     );
   });
 
-  it('online / onsite Knöpfe', () => {
-    assert.equal(bookingMethodLine('online'), 'Online bezahlen');
-    assert.equal(bookingMethodLine('onsite'), 'Du bezahlst vor Ort');
-    assert.equal(bookingPrimaryLabel('online', { desktop: true }), 'Weiter zur Buchung');
-    assert.equal(bookingPrimaryLabel('online', { desktop: false }), 'Zur Buchung');
-    assert.equal(bookingPrimaryLabel('onsite', { desktop: false }), 'Zur Buchung');
+  it('online / onsite Zeile und Knöpfe', () => {
+    assert.equal(bookingMethodTitle('online'), 'Online bezahlen');
+    assert.equal(bookingMethodDetail('online'), 'Karte, Apple Pay');
+    assert.equal(bookingMethodLine('online'), 'Online bezahlen · Karte, Apple Pay');
+    assert.equal(bookingMethodTitle('onsite'), 'Vor Ort bezahlen');
+    assert.equal(bookingMethodDetail('onsite'), 'im Studio');
+    assert.equal(bookingMethodLine('onsite'), 'Vor Ort bezahlen · im Studio');
+    assert.equal(bookingPrimaryLabel('online'), BOOK_PRIMARY_ONLINE);
+    assert.equal(bookingPrimaryLabel('onsite'), BOOK_PRIMARY_ONSITE);
+    assert.equal(BOOK_PRIMARY_ONLINE, 'Weiter zur Zahlung');
+    assert.equal(BOOK_PRIMARY_ONSITE, 'Weiter zur Buchung');
   });
 
-  it('Anders bezahlen und Zahlungspflichtig', () => {
-    assert.equal(altPayLabel(), 'Anders bezahlen');
+  it('Ändern-Label, Hinweis und Zahlungspflichtig', () => {
+    assert.equal(CHANGE_PAY_METHOD_LABEL, 'Ändern');
+    assert.equal(ONLINE_PAY_HINT_LINE, 'Du kannst jetzt direkt online bezahlen.');
     assert.equal(BINDING_BOOK_LABEL, 'Zahlungspflichtig buchen');
   });
 });

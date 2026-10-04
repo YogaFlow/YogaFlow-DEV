@@ -17,6 +17,8 @@ export type BookingPaymentOptions = {
   onlineRequired: boolean;
   onlineReady: boolean;
   onlineUnavailableReason: string | null;
+  /** N1: einmaliger Hinweis für Gewohnheits-Vor-Ort-Zahler */
+  showOnlinePayHint: boolean;
 };
 
 function asMethod(raw: unknown): BookingPayMethod | null {
@@ -33,6 +35,7 @@ export async function fetchBookingPaymentOptions(
     onlineRequired: false,
     onlineReady: false,
     onlineUnavailableReason: null,
+    showOnlinePayHint: false,
   };
 
   const { data, error } = await supabase.rpc('booking_payment_options', {
@@ -50,6 +53,7 @@ export async function fetchBookingPaymentOptions(
     online_ready?: unknown;
     online_unavailable_reason?: unknown;
     reason?: unknown;
+    show_online_pay_hint?: unknown;
   } | null;
 
   const methods: BookingPayMethodOption[] = [];
@@ -86,5 +90,6 @@ export async function fetchBookingPaymentOptions(
     onlineRequired: row?.online_required === true,
     onlineReady: row?.online_ready === true,
     onlineUnavailableReason: reason,
+    showOnlinePayHint: row?.show_online_pay_hint === true,
   };
 }

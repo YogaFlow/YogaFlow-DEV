@@ -1,32 +1,57 @@
-/** ZW-1: Texte für Ein-Tipp-Buchung und „Anders bezahlen“. */
+/** ZW-1 / N1: Texte für Zahlart-Zeile und Primärknopf. */
 
 export type BookingMethodKind = 'pass' | 'online' | 'onsite';
 
-/** Gleichlautend zu legalCheckoutTexts (B1 K4) — hier lokal für Node-Unit-Tests. */
-const CONTINUE_DESKTOP = 'Weiter zur Buchung';
-const CONTINUE_MOBILE = 'Zur Buchung';
+/** Primärknopf je Zahlart (Desktop und Mobil gleich). */
+export const BOOK_PRIMARY_PASS = 'Mit 10er-Karte buchen';
+export const BOOK_PRIMARY_ONLINE = 'Weiter zur Zahlung';
+export const BOOK_PRIMARY_ONSITE = 'Weiter zur Buchung';
 
-/** Zeile unter dem Preis / in der Mobil-Leiste. */
-export function bookingMethodLine(
+export const ONLINE_PAY_HINT_LINE = 'Du kannst jetzt direkt online bezahlen.';
+export const CHANGE_PAY_METHOD_LABEL = 'Ändern';
+
+/** Titel der Zahlart-Zeile (ohne Detail / Ändern). */
+export function bookingMethodTitle(
   method: BookingMethodKind,
   passOption?: { label?: string | null } | null,
 ): string {
   if (method === 'pass') {
     const label = passOption?.label?.trim() || 'Karte';
-    return `✓ Mit deiner ${label}`;
+    // „10er-Karte · noch 7“ bleibt als Zeilentitel
+    return label;
   }
   if (method === 'online') return 'Online bezahlen';
-  return 'Du bezahlst vor Ort';
+  return 'Vor Ort bezahlen';
 }
 
-/** Primärknopf: pass → Mit …-Karte buchen; online/onsite → Zur Buchung. */
+/** Kurzdetail hinter dem Titel (vor „Ändern“). */
+export function bookingMethodDetail(method: BookingMethodKind): string | null {
+  if (method === 'pass') return null;
+  if (method === 'online') return 'Karte, Apple Pay';
+  return 'im Studio';
+}
+
+/**
+ * Komplette sichtbare Zeile (für Tests / Screenreader).
+ * Pass: „10er-Karte · noch 7“; Online/Vor Ort mit Detail.
+ */
+export function bookingMethodLine(
+  method: BookingMethodKind,
+  passOption?: { label?: string | null } | null,
+): string {
+  const title = bookingMethodTitle(method, passOption);
+  const detail = bookingMethodDetail(method);
+  return detail ? `${title} · ${detail}` : title;
+}
+
+/** Primärknopf: pass → Mit …-Karte buchen; online → Zahlung; onsite → Buchung. */
 export function bookingPrimaryLabel(
   method: BookingMethodKind,
-  opts?: { desktop?: boolean; passLabel?: string | null },
+  opts?: { passLabel?: string | null },
 ): string {
   if (method === 'pass') return passBookButtonLabel(opts?.passLabel);
-  if (opts?.desktop) return CONTINUE_DESKTOP;
-  return CONTINUE_MOBILE;
+  if (method === 'online') return BOOK_PRIMARY_ONLINE;
+  return BOOK_PRIMARY_ONSITE;
 }
 
 export function passBookButtonLabel(passLabel?: string | null): string {
@@ -37,8 +62,9 @@ export function passBookButtonLabel(passLabel?: string | null): string {
   return `Mit ${name}-Karte buchen`;
 }
 
+/** @deprecated N1: durch Zahlart-Zeile mit „Ändern ›“ ersetzt */
 export function altPayLabel(): string {
-  return 'Anders bezahlen';
+  return CHANGE_PAY_METHOD_LABEL;
 }
 
 export function methodChoiceTitle(method: BookingMethodKind): string {

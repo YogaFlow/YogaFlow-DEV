@@ -285,9 +285,11 @@ Für die spätere Expo-App bleibt die untere Leiste die Vorgabe — dort ist sie
   formuliert (mobil z. B. „Zur Buchung" statt „Weiter zur Buchung").
   „Abmelden" mit Rahmen, nie gefüllt (Regel 7). Mobil fest am unteren Rand;
   Desktop Aktionen in der Buchungskarte.
-- Mobil Aktionsleiste: Zeile 1 Preis + „pro Termin" links, Knopf rechts;
-  Zeile 2 volle Breite mit Icon-Spalte (Karte/Uhr) und grauer Hinweiszeile;
-  Innenabstand 16 px, unten `safe-area-inset-bottom`.
+- Mobil Aktionsleiste: Zeile 1 Preis + „pro Termin" links, Knopf rechts
+  („Weiter zur Zahlung" / „Weiter zur Buchung" / „Mit 10er-Karte buchen");
+  darunter antippbare Zahlart-Zeile (Icon, Titel, optional „Ändern ›");
+  darunter Abmeldefrist mit Icon-Spalte; Innenabstand 16 px, unten
+  `safe-area-inset-bottom`. Desktop-Buchungskarte: Zahlart-Zeile direkt über dem Knopf.
 - Gefüllt in `danger` ist nur der endgültige Bestätigungsknopf im Dialog.
 
 **Logo und Studiokopf:**

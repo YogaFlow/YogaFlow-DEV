@@ -37,7 +37,7 @@ export default function BookingPayMethodSheet({
     >
       <div className="px-4 pb-6 pt-4">
         <h2 id="booking-pay-method-title" className="text-[17px] font-medium text-text">
-          Anders bezahlen
+          Zahlungsart wählen
         </h2>
         <fieldset className="mt-4 space-y-2">
           <legend className="sr-only">Zahlungsweg</legend>

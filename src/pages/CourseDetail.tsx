@@ -5,7 +5,6 @@ import {
   Calendar,
   Check,
   Clock,
-  CreditCard,
   MapPin,
   MoreHorizontal,
   User,
@@ -13,6 +12,7 @@ import {
 } from 'lucide-react';
 import CourseCancelDialog from '../components/courses/CourseCancelDialog';
 import CourseDeleteDialog from '../components/courses/CourseDeleteDialog';
+import BookingPayMethodRow from '../components/courses/BookingPayMethodRow';
 import BookingPayMethodSheet from '../components/courses/BookingPayMethodSheet';
 import CourseEnrollmentDialogs from '../components/courses/CourseEnrollmentDialogs';
 import OnsiteBookConfirmSheet from '../components/courses/OnsiteBookConfirmSheet';
@@ -26,11 +26,7 @@ import {
   type BookingPayMethod,
   type BookingPaymentOptions,
 } from '../lib/bookingPaymentOptions';
-import {
-  altPayLabel,
-  bookingMethodLine,
-  bookingPrimaryLabel,
-} from '../lib/bookingMethodTexts';
+import { bookingPrimaryLabel } from '../lib/bookingMethodTexts';
 import {
   courseDurationMinutes,
   isCourseCancelled,
@@ -281,8 +277,9 @@ const CourseDetail: React.FC = () => {
   const activeMethod: BookingPayMethod =
     chosenMethod ?? payOptions?.defaultMethod ?? 'onsite';
   const passOption = payOptions?.methods.find((m) => m.method === 'pass') ?? null;
-  const methodLine = bookingMethodLine(activeMethod, passOption);
   const showAltPay = (payOptions?.methods.length ?? 0) > 1;
+  const showOnlinePayHint =
+    Boolean(payOptions?.showOnlinePayHint) && activeMethod === 'online';
 
   const reloadPayOptions = async () => {
     if (!courseId || !canSelfEnrollInCourses(userProfile)) return;
@@ -445,14 +442,6 @@ const CourseDetail: React.FC = () => {
     ) : (
       <div className="mt-0.5">
         <p className="text-[13px] text-textMuted">pro Termin</p>
-        {canAct && !isRegistered ? (
-          <p
-            className="mt-0.5 text-[13px] text-textMuted"
-            data-testid="book-method-line"
-          >
-            {methodLine}
-          </p>
-        ) : null}
       </div>
     );
 
@@ -563,54 +552,27 @@ const CourseDetail: React.FC = () => {
             </button>
           )
         ) : isFull ? (
-          <div className={desktop ? 'flex w-full flex-col gap-1' : 'flex shrink-0 flex-col items-stretch gap-1'}>
-            <button
-              type="button"
-              onClick={() => requestEnroll('waitlist')}
-              disabled={registering}
-              data-testid="book-primary"
-              className={`${shape} border border-accent bg-accentSoft text-accentText disabled:opacity-50${desktop ? ' w-full' : ''}`}
-            >
-              {desktop ? 'Auf die Warteliste' : 'Warteliste'}
-            </button>
-            {showAltPay ? (
-              <button
-                type="button"
-                onClick={() => setAltPayOpen(true)}
-                disabled={registering}
-                data-testid="book-alt-pay"
-                className={`min-h-11 text-[13px] font-medium text-brand active:text-brandPressed${desktop ? ' w-full text-left' : ''}`}
-              >
-                {altPayLabel()} ›
-              </button>
-            ) : null}
-          </div>
+          <button
+            type="button"
+            onClick={() => requestEnroll('waitlist')}
+            disabled={registering}
+            data-testid="book-primary"
+            className={`${shape} border border-accent bg-accentSoft text-accentText disabled:opacity-50${desktop ? ' w-full' : ''}`}
+          >
+            {desktop ? 'Auf die Warteliste' : 'Warteliste'}
+          </button>
         ) : (
-          <div className={desktop ? 'flex w-full flex-col gap-1' : 'flex shrink-0 flex-col items-stretch gap-1'}>
-            <button
-              type="button"
-              onClick={() => requestEnroll('seat')}
-              disabled={registering}
-              data-testid="book-primary"
-              className={`${shape} bg-brand text-onBrand active:bg-brandPressed disabled:opacity-50${desktop ? ' w-full' : ''}`}
-            >
-              {bookingPrimaryLabel(activeMethod, {
-                desktop,
-                passLabel: passOption?.label,
-              })}
-            </button>
-            {showAltPay ? (
-              <button
-                type="button"
-                onClick={() => setAltPayOpen(true)}
-                disabled={registering}
-                data-testid="book-alt-pay"
-                className={`min-h-11 text-[13px] font-medium text-brand active:text-brandPressed${desktop ? ' w-full text-left' : ''}`}
-              >
-                {altPayLabel()} ›
-              </button>
-            ) : null}
-          </div>
+          <button
+            type="button"
+            onClick={() => requestEnroll('seat')}
+            disabled={registering}
+            data-testid="book-primary"
+            className={`${shape} bg-brand text-onBrand active:bg-brandPressed disabled:opacity-50${desktop ? ' w-full' : ''}`}
+          >
+            {bookingPrimaryLabel(activeMethod, {
+              passLabel: passOption?.label,
+            })}
+          </button>
         )
       ) : null}
       {showStaffLinks ? (
@@ -985,7 +947,19 @@ const CourseDetail: React.FC = () => {
                   {cancelDeadlineLineText}
                 </p>
               ) : null}
-              <div className="mt-5 flex flex-col gap-2">{renderBookingActions(true)}</div>
+              {canAct && !isRegistered ? (
+                <div className="mt-4">
+                  <BookingPayMethodRow
+                    method={activeMethod}
+                    passLabel={passOption?.label}
+                    canChange={showAltPay}
+                    showOnlineHint={showOnlinePayHint}
+                    onChange={() => setAltPayOpen(true)}
+                    testId="book-method-line"
+                  />
+                </div>
+              ) : null}
+              <div className="mt-3 flex flex-col gap-2">{renderBookingActions(true)}</div>
             </div>
           </aside>
         </div>
@@ -1027,26 +1001,25 @@ const CourseDetail: React.FC = () => {
             </div>
             {renderBookingActions(false)}
           </div>
-          {(canAct && !isRegistered) || cancelDeadlineLineText ? (
-            <div className="mt-2 grid grid-cols-[1.25rem_minmax(0,1fr)] gap-x-2 gap-y-1.5 text-[12px] leading-snug text-textMuted">
-              {canAct && !isRegistered ? (
-                <>
-                  <CreditCard
-                    className="mt-0.5 h-3.5 w-3.5 shrink-0 text-textSubtle"
-                    aria-hidden
-                  />
-                  <span data-testid="book-method-line-mobile">{methodLine}</span>
-                </>
-              ) : null}
-              {cancelDeadlineLineText ? (
-                <>
-                  <Clock
-                    className="mt-0.5 h-3.5 w-3.5 shrink-0 text-textSubtle"
-                    aria-hidden
-                  />
-                  <span data-testid="cancel-deadline-line">{cancelDeadlineLineText}</span>
-                </>
-              ) : null}
+          {canAct && !isRegistered ? (
+            <div className="mt-2">
+              <BookingPayMethodRow
+                method={activeMethod}
+                passLabel={passOption?.label}
+                canChange={showAltPay}
+                showOnlineHint={showOnlinePayHint}
+                onChange={() => setAltPayOpen(true)}
+                testId="book-method-line-mobile"
+              />
+            </div>
+          ) : null}
+          {cancelDeadlineLineText ? (
+            <div className="mt-2 grid grid-cols-[1.25rem_minmax(0,1fr)] gap-x-2 text-[12px] leading-snug text-textMuted">
+              <Clock
+                className="mt-0.5 h-3.5 w-3.5 shrink-0 text-textSubtle"
+                aria-hidden
+              />
+              <span data-testid="cancel-deadline-line">{cancelDeadlineLineText}</span>
             </div>
           ) : null}
         </div>
