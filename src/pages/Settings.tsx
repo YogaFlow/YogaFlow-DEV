@@ -275,6 +275,7 @@ export default function Settings() {
         <div className="min-w-0 flex-1">
           <Link
             to="/settings"
+            data-testid="settings-back"
             className="mb-4 inline-flex min-h-11 items-center gap-2 text-[15px] font-medium text-text lg:hidden"
           >
             <ArrowLeft className="h-5 w-5" aria-hidden />

@@ -125,7 +125,8 @@ test('4 — Einstellungen: Übersicht → Buchungen → Stornofrist speichern', 
   await page.getByTestId('cancellation-window').fill(String(next));
   await page.getByRole('button', { name: 'Einstellungen speichern' }).click();
   await expect(page.getByText('Die Buchungseinstellungen sind gespeichert.')).toBeVisible();
-  await page.getByRole('link', { name: 'Einstellungen' }).click();
+  await page.getByRole('button', { name: 'OK' }).click();
+  await page.goto('/settings?tenant=demoalpha');
   await expect(page.getByTestId('settings-cat-buchungen')).toContainText(`Stornofrist ${next} h`);
   await screenshot(page, 'einstellungen-buchungen', 'ux1');
 
