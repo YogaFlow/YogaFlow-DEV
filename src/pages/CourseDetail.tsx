@@ -13,14 +13,24 @@ import {
 } from 'lucide-react';
 import CourseCancelDialog from '../components/courses/CourseCancelDialog';
 import CourseDeleteDialog from '../components/courses/CourseDeleteDialog';
+import BookingPayMethodSheet from '../components/courses/BookingPayMethodSheet';
 import CourseEnrollmentDialogs from '../components/courses/CourseEnrollmentDialogs';
-import PassBookChoiceDialog from '../components/courses/PassBookChoiceDialog';
+import OnsiteBookConfirmSheet from '../components/courses/OnsiteBookConfirmSheet';
 import AccentPill from '../components/ui/AccentPill';
 import FeedbackDialog from '../components/ui/FeedbackDialog';
 import PaymentSheet from '../features/payments/PaymentSheet';
 import { useAuth } from '../context/AuthContext';
 import { useTenant } from '../context/TenantContext';
-import { fetchBookingPaymentOptions } from '../lib/bookingPaymentOptions';
+import {
+  fetchBookingPaymentOptions,
+  type BookingPayMethod,
+  type BookingPaymentOptions,
+} from '../lib/bookingPaymentOptions';
+import {
+  altPayLabel,
+  bookingMethodLine,
+  bookingPrimaryLabel,
+} from '../lib/bookingMethodTexts';
 import {
   courseDurationMinutes,
   isCourseCancelled,
@@ -45,26 +55,13 @@ import {
   resolveHoldExpiresAt,
 } from '../lib/devPendingPaymentMock';
 import PaymentPendingStatus from '../components/ui/PaymentPendingStatus';
-import {
-  ONLINE_REQUIRED_HINT,
-  ONLINE_REQUIRED_HINT_SHORT,
-  PAY_NOW_LABEL,
-} from '../lib/paymentTexts';
+import { PAY_NOW_LABEL } from '../lib/paymentTexts';
 import {
   cancellationDeadlineLine,
   previewCancellationDeadlineIso,
 } from '../lib/cancellationDeadline';
-import {
-  CONTINUE_TO_BOOKING_LABEL,
-  CONTINUE_TO_BOOKING_LABEL_SHORT,
-} from '../lib/legalCheckoutTexts';
 import { RELEASE_SEAT_LABEL } from '../lib/pendingPaymentLabel';
 import { paymentsClientConfig } from '../lib/paymentsClientConfig';
-import {
-  fetchMemberPasses,
-  findUsablePass,
-  type MemberPassSummary,
-} from '../lib/passes';
 import { supabase } from '../lib/supabase';
 import { canSelfEnrollInCourse, canSelfEnrollInCourses } from '../lib/userRoles';
 import { useCourseCancellation } from '../lib/useCourseCancellation';
@@ -85,9 +82,10 @@ const CourseDetail: React.FC = () => {
   const [notFound, setNotFound] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [descriptionOverflows, setDescriptionOverflows] = useState(false);
-  const [ownPasses, setOwnPasses] = useState<MemberPassSummary[]>([]);
-  const [passChoice, setPassChoice] = useState<'seat' | 'waitlist' | null>(null);
-  const [onlineRequired, setOnlineRequired] = useState(false);
+  const [payOptions, setPayOptions] = useState<BookingPaymentOptions | null>(null);
+  const [chosenMethod, setChosenMethod] = useState<BookingPayMethod | null>(null);
+  const [altPayOpen, setAltPayOpen] = useState(false);
+  const [onsiteConfirmOpen, setOnsiteConfirmOpen] = useState(false);
   const [paySheet, setPaySheet] = useState<{
     registrationId: string;
     holdExpiresAt?: string | null;
@@ -186,15 +184,12 @@ const CourseDetail: React.FC = () => {
   useEffect(() => {
     setLoading(true);
     setDescriptionExpanded(false);
-    setPassChoice(null);
+    setChosenMethod(null);
+    setAltPayOpen(false);
+    setOnsiteConfirmOpen(false);
     void loadCourse();
     if (canSelfEnrollInCourses(userProfile)) {
       void fetchUserRegistrations();
-      void fetchBookingPaymentOptions().then((opts) => {
-        setOnlineRequired(opts.onlineRequired);
-      });
-    } else {
-      setOnlineRequired(false);
     }
     // fetchUserRegistrations is recreated every render; reload on course/profile change only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -202,19 +197,25 @@ const CourseDetail: React.FC = () => {
 
   useEffect(() => {
     let cancelled = false;
-    const loadPasses = async () => {
-      if (!userProfile?.id || !canSelfEnrollInCourses(userProfile)) {
-        setOwnPasses([]);
+    const loadOptions = async () => {
+      if (!courseId || !canSelfEnrollInCourses(userProfile)) {
+        setPayOptions(null);
+        setChosenMethod(null);
         return;
       }
-      const passes = await fetchMemberPasses(userProfile.id);
-      if (!cancelled) setOwnPasses(passes);
+      const opts = await fetchBookingPaymentOptions(courseId);
+      if (cancelled) return;
+      setPayOptions(opts);
+      setChosenMethod((prev) => {
+        if (prev && opts.methods.some((m) => m.method === prev)) return prev;
+        return opts.defaultMethod;
+      });
     };
-    void loadPasses();
+    void loadOptions();
     return () => {
       cancelled = true;
     };
-  }, [userProfile?.id, userProfile?.role, courseId]);
+  }, [courseId, userProfile?.id, userProfile?.role]);
 
   const description = course?.description?.trim() ?? '';
 
@@ -277,35 +278,39 @@ const CourseDetail: React.FC = () => {
   const isFull = registeredCount >= course.max_participants;
   const remaining = course.max_participants - registeredCount;
   const cancelled = isCourseCancelled(course.status);
-  const usablePass = findUsablePass(ownPasses, {
-    date: course.date,
-    price: course.price,
-    pass_eligible: course.pass_eligible,
-  });
+  const activeMethod: BookingPayMethod =
+    chosenMethod ?? payOptions?.defaultMethod ?? 'onsite';
+  const passOption = payOptions?.methods.find((m) => m.method === 'pass') ?? null;
+  const methodLine = bookingMethodLine(activeMethod, passOption);
+  const showAltPay = (payOptions?.methods.length ?? 0) > 1;
+
+  const reloadPayOptions = async () => {
+    if (!courseId || !canSelfEnrollInCourses(userProfile)) return;
+    const opts = await fetchBookingPaymentOptions(courseId);
+    setPayOptions(opts);
+    setChosenMethod((prev) => {
+      if (prev && opts.methods.some((m) => m.method === prev)) return prev;
+      return opts.defaultMethod;
+    });
+  };
 
   const requestEnroll = (mode: 'seat' | 'waitlist') => {
     if (registering) return;
-    if (usablePass) {
-      setPassChoice(mode);
-      return;
-    }
-    void handleRegister(course.id, false);
+    void (async () => {
+      if (activeMethod === 'onsite' && mode === 'seat') {
+        setOnsiteConfirmOpen(true);
+        return;
+      }
+      const ok = await handleRegister(course.id, { method: activeMethod });
+      if (ok) void reloadPayOptions();
+    })();
   };
 
-  const confirmPassChoice = async (usePass: boolean) => {
-    const ok = await handleRegister(course.id, usePass);
+  const confirmOnsiteBook = async () => {
+    const ok = await handleRegister(course.id, { method: 'onsite' });
     if (ok) {
-      setPassChoice(null);
-      if (userProfile?.id) {
-        const passes = await fetchMemberPasses(userProfile.id);
-        setOwnPasses(passes);
-      }
-    } else if (usePass) {
-      setPassChoice(null);
-      if (userProfile?.id) {
-        const passes = await fetchMemberPasses(userProfile.id);
-        setOwnPasses(passes);
-      }
+      setOnsiteConfirmOpen(false);
+      void reloadPayOptions();
     }
   };
   const upcoming = isCourseUpcoming(course);
@@ -440,10 +445,12 @@ const CourseDetail: React.FC = () => {
     ) : (
       <div className="mt-0.5">
         <p className="text-[13px] text-textMuted">pro Termin</p>
-        {onlineRequired && canAct && !isRegistered ? (
-          <p className="mt-0.5 inline-flex items-center gap-1 text-[13px] text-textMuted">
-            <CreditCard className="h-3.5 w-3.5 shrink-0 text-textSubtle" aria-hidden />
-            <span>{ONLINE_REQUIRED_HINT}</span>
+        {canAct && !isRegistered ? (
+          <p
+            className="mt-0.5 text-[13px] text-textMuted"
+            data-testid="book-method-line"
+          >
+            {methodLine}
           </p>
         ) : null}
       </div>
@@ -556,27 +563,54 @@ const CourseDetail: React.FC = () => {
             </button>
           )
         ) : isFull ? (
-          <button
-            type="button"
-            onClick={() => requestEnroll('waitlist')}
-            disabled={registering}
-            className={`${shape} border border-accent bg-accentSoft text-accentText disabled:opacity-50${desktop ? ' w-full' : ''}`}
-          >
-            {desktop ? 'Auf die Warteliste' : 'Warteliste'}
-          </button>
+          <div className={desktop ? 'flex w-full flex-col gap-1' : 'flex shrink-0 flex-col items-stretch gap-1'}>
+            <button
+              type="button"
+              onClick={() => requestEnroll('waitlist')}
+              disabled={registering}
+              data-testid="book-primary"
+              className={`${shape} border border-accent bg-accentSoft text-accentText disabled:opacity-50${desktop ? ' w-full' : ''}`}
+            >
+              {desktop ? 'Auf die Warteliste' : 'Warteliste'}
+            </button>
+            {showAltPay ? (
+              <button
+                type="button"
+                onClick={() => setAltPayOpen(true)}
+                disabled={registering}
+                data-testid="book-alt-pay"
+                className={`min-h-11 text-[13px] font-medium text-brand active:text-brandPressed${desktop ? ' w-full text-left' : ''}`}
+              >
+                {altPayLabel()} ›
+              </button>
+            ) : null}
+          </div>
         ) : (
-          <button
-            type="button"
-            onClick={() => requestEnroll('seat')}
-            disabled={registering}
-            className={`${shape} bg-brand text-onBrand active:bg-brandPressed disabled:opacity-50${desktop ? ' w-full' : ''}`}
-          >
-            {onlineRequired
-              ? desktop
-                ? CONTINUE_TO_BOOKING_LABEL
-                : CONTINUE_TO_BOOKING_LABEL_SHORT
-              : 'Anmelden'}
-          </button>
+          <div className={desktop ? 'flex w-full flex-col gap-1' : 'flex shrink-0 flex-col items-stretch gap-1'}>
+            <button
+              type="button"
+              onClick={() => requestEnroll('seat')}
+              disabled={registering}
+              data-testid="book-primary"
+              className={`${shape} bg-brand text-onBrand active:bg-brandPressed disabled:opacity-50${desktop ? ' w-full' : ''}`}
+            >
+              {bookingPrimaryLabel(activeMethod, {
+                desktop,
+                passLabel: passOption?.label,
+              })}
+            </button>
+            {showAltPay ? (
+              <button
+                type="button"
+                onClick={() => setAltPayOpen(true)}
+                disabled={registering}
+                data-testid="book-alt-pay"
+                className={`min-h-11 text-[13px] font-medium text-brand active:text-brandPressed${desktop ? ' w-full text-left' : ''}`}
+              >
+                {altPayLabel()} ›
+              </button>
+            ) : null}
+          </div>
         )
       ) : null}
       {showStaffLinks ? (
@@ -629,16 +663,23 @@ const CourseDetail: React.FC = () => {
         feedbackDialog={feedbackDialog}
         setFeedbackDialog={setFeedbackDialog}
       />
-      <PassBookChoiceDialog
-        open={passChoice != null && usablePass != null}
-        mode={passChoice ?? 'seat'}
-        pass={usablePass ?? { pass_id: '', name: '', remaining: 0, units_total: 0, valid_until: '' }}
-        onlineRequired={onlineRequired}
-        onlineAmountLabel={course ? formatPrice(course.price) : null}
+      <BookingPayMethodSheet
+        open={altPayOpen}
+        methods={payOptions?.methods ?? []}
+        selected={activeMethod}
+        onSelect={(method) => setChosenMethod(method)}
+        onClose={() => setAltPayOpen(false)}
+      />
+      <OnsiteBookConfirmSheet
+        open={onsiteConfirmOpen}
         busy={registering}
-        onConfirm={(usePass) => void confirmPassChoice(usePass)}
-        onCancel={() => {
-          if (!registering) setPassChoice(null);
+        courseTitle={course.title}
+        courseWhen={`${formatDate(course.date)} · ${formatTimeRange(course.time, course.end_time)}`}
+        price={course.price}
+        cancelDeadlineLine={cancelDeadlineLineText}
+        onConfirm={() => void confirmOnsiteBook()}
+        onClose={() => {
+          if (!registering) setOnsiteConfirmOpen(false);
         }}
       />
       <PaymentSheet
@@ -986,15 +1027,15 @@ const CourseDetail: React.FC = () => {
             </div>
             {renderBookingActions(false)}
           </div>
-          {(onlineRequired && canAct && !isRegistered) || cancelDeadlineLineText ? (
+          {(canAct && !isRegistered) || cancelDeadlineLineText ? (
             <div className="mt-2 grid grid-cols-[1.25rem_minmax(0,1fr)] gap-x-2 gap-y-1.5 text-[12px] leading-snug text-textMuted">
-              {onlineRequired && canAct && !isRegistered ? (
+              {canAct && !isRegistered ? (
                 <>
                   <CreditCard
                     className="mt-0.5 h-3.5 w-3.5 shrink-0 text-textSubtle"
                     aria-hidden
                   />
-                  <span>{ONLINE_REQUIRED_HINT_SHORT}</span>
+                  <span data-testid="book-method-line-mobile">{methodLine}</span>
                 </>
               ) : null}
               {cancelDeadlineLineText ? (

@@ -120,14 +120,25 @@ export function useCourseEnrollment(
     }
   };
 
-  const handleRegister = async (courseId: string, usePass = false) => {
+  const handleRegister = async (
+    courseId: string,
+    usePassOrOpts: boolean | { method?: 'pass' | 'online' | 'onsite'; usePass?: boolean } = false,
+  ) => {
     if (!userProfile || registering) return false;
+
+    const opts =
+      typeof usePassOrOpts === 'boolean'
+        ? { usePass: usePassOrOpts }
+        : usePassOrOpts ?? {};
+    const usePass = opts.usePass === true || opts.method === 'pass';
+    const method = opts.method ?? (usePass ? 'pass' : undefined);
 
     setRegistering(true);
     try {
       const { data, error } = await supabase.rpc('register_for_course', {
         p_course_id: courseId,
         p_use_pass: usePass,
+        ...(method ? { p_method: method } : {}),
       });
 
       if (error) throw error;
@@ -158,20 +169,38 @@ export function useCourseEnrollment(
         return true;
       }
 
+      const undo = {
+        durationMs: TOAST_UNDO_MS,
+        undo: {
+          label: 'Rückgängig',
+          onAction: async () => {
+            await supabase.rpc('unregister_from_course', { p_course_id: courseId });
+            onAfterSuccess();
+            fetchUserRegistrations();
+          },
+        },
+      };
+
       if (result?.waitlist_position) {
         showFeedbackDialog(
           `Du wurdest auf die Warteliste gesetzt (Position ${result.waitlist_position}). Du wirst benachrichtigt, wenn ein Platz frei wird.`,
           'success',
-          'Warteliste'
+          'Warteliste',
         );
       } else if (result?.coverage === 'pass' && result.pass_remaining != null) {
         showFeedbackDialog(
           `Angemeldet · mit Karte bezahlt (noch ${result.pass_remaining})`,
           'success',
-          'Anmeldung erfolgreich'
+          'Anmeldung erfolgreich',
+          undo,
         );
       } else {
-        showFeedbackDialog(result?.message || 'Erfolgreich angemeldet.', 'success', 'Anmeldung erfolgreich');
+        showFeedbackDialog(
+          result?.message || 'Erfolgreich angemeldet.',
+          'success',
+          'Anmeldung erfolgreich',
+          undo,
+        );
       }
       return true;
     } catch (error) {
