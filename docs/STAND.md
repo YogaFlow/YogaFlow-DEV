@@ -4,7 +4,7 @@ Stand: 2026-10-04 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [ux5_buc
 
 ## DEV
 
-- Migrationen bis `20261004240000` (UX-5 Archiv-RLS; davor `20261004230000` archived_at)
+- Migrationen bis `20261004250000` (RLS ohne Anzeige-Filter; davor `20261004240000` get_open_coverage, `20261004230000` archived_at)
 - Functions (deployt): `calendar-ics`, `ops-monitor`, `payments-jobs`, `payments-webhook`, `dispatch-emails`, `send-email` (unverändert)
 - Secrets (Namen): `CALENDAR_ICS_SECRET`; `OPS_MONITOR_SECRET`, `OPS_ALERT_EMAIL`; `OPS_HEARTBEAT_URL` nicht gesetzt
 - Cron: `yogaflow_ops_monitor` alle 15 min (+ bestehende jobs)
@@ -17,17 +17,17 @@ Stand: 2026-10-04 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [ux5_buc
 
 ## Zuletzt abgeschlossen
 
-- **UX-5 C-Nachzug** — RLS blendet archivierte Kurse/Mitglieder aus; Rückgaben-Lücke; Kachel „Anmeldungen“; E2E Archive
+- **UX-5 RLS-Korrektur** — `archived_at` aus vier SELECT-Policies entfernt (`20261004250000`); Anzeige nur über `visibleScope` + Listen-RPCs; Zahlungen-Archiv/CSV mit Namen; Regel `rls-access-not-display`
   - Bericht: [docs/berichte/ux5_buchungsleiste_toast_demo.md](berichte/ux5_buchungsleiste_toast_demo.md) → Haltestelle 5
-- **UX-5 A/B/C** — Buchungsleiste, Toast, Reset/Seed, `archived_at`
+- **UX-5 A/B/C + Nachzug** — Buchungsleiste, Toast, Reset/Seed, Archiv-Filter in Lese-Schicht
 
 ## Nächste Schritte
 
-- Klicktest UX-5 Nachzug (Haltestelle 5, kurze Liste)
+- Klicktest UX-5 (kurze Liste: Übersicht, Zahlungen-Archiv mit Kursnamen, Export)
 
 ## Haltestellen / wartet auf Julius
 
-- **UX-5 Haltestelle 5** — kurze Klickliste (Übersicht, Kurse, Check-in, Teilnehmer, Kalender, Nachrichten) in [ux5_buchungsleiste_toast_demo.md](berichte/ux5_buchungsleiste_toast_demo.md)
+- **UX-5 Haltestelle 5** — kurze Klickliste in [ux5_buchungsleiste_toast_demo.md](berichte/ux5_buchungsleiste_toast_demo.md)
 - Klicktest ZW-1 Nachtrag N1–N4 (teilweise erledigt laut Story UX-5)
 - Klicktest UX-4 Nachtrag N1–N3 (Toast-Balken mit neuem Kontrast erneut prüfen)
 - UX-2 B1: Test-Mail + Screenshots (falls noch offen)
@@ -37,10 +37,10 @@ Stand: 2026-10-04 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [ux5_buc
 
 ## hier weitermachen
 
-Nach Klicktest UX-5 Nachzug: Freigabe oder Rest aus der Liste.
+Nach Klicktest UX-5: Freigabe oder Rest aus der Liste.
 
 ## Verweise
 
-- Regeln: [.cursor/rules/omlify-autonom.mdc](../.cursor/rules/omlify-autonom.mdc)
+- Regeln: [.cursor/rules/omlify-autonom.mdc](../.cursor/rules/omlify-autonom.mdc), [.cursor/rules/rls-access-not-display.mdc](../.cursor/rules/rls-access-not-display.mdc)
 - Entscheidungen: [docs/entscheidungen/](entscheidungen/)
 - Offene Punkte: [docs/OFFENE_PUNKTE.md](OFFENE_PUNKTE.md)

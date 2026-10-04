@@ -214,17 +214,58 @@ test('UX5 — archivierter Kurs/Person auf Owner- und Teilnehmer-Seiten unsichtb
     await page.goto(`/courses?tenant=${SLUG}`);
     await expect(page.getByText(visibleTitle, { exact: false })).toBeVisible({ timeout: 15_000 });
 
-    // Zahlungen: Standard ohne Archiv — kein Smoke-Titel; mit Umschalter darf er erscheinen
+    // Zahlungen: Standard ohne Archiv; mit Umschalter Kurs- + Personenname sichtbar
     await page.goto(`/payments?tenant=${SLUG}`);
     await page.waitForLoadState('networkidle');
     const archiveToggle = page.getByTestId('payments-include-archived');
-    if (await archiveToggle.count()) {
-      await expect(archiveToggle).not.toBeChecked();
-      await assertAbsent(page, archivedTitle);
-      await archiveToggle.check();
-      await page.waitForLoadState('networkidle');
-      // Mit Archiv: Titel oder Name der Geldspur darf sichtbar sein (kein harter Muss-Check,
-      // falls Liste paginiert/leer nach Filter). Fehlen beider gilt als ok, solange Toggle da ist.
+    await expect(archiveToggle).toBeVisible({ timeout: 15_000 });
+    await expect(archiveToggle).not.toBeChecked();
+    await assertAbsent(page, archivedTitle);
+    await assertAbsent(page, archivedName);
+    await archiveToggle.check();
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByText(archivedTitle, { exact: false }).first()).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(page.getByText(archivedFirst, { exact: false }).first()).toBeVisible();
+
+    // CSV-Zahlungsliste mit Archiv enthält Kursnamen (RPC + CSV-Builder, gleiche Quelle wie Export)
+    const month = `${berlinDate(0).slice(0, 7)}-01`;
+    const payPage = await asOwner.rpc('get_studio_payments', {
+      p_month: month,
+      p_kind: null,
+      p_status: null,
+      p_search: null,
+      p_page: 1,
+      p_include_archived: true,
+    });
+    if (payPage.error || !payPage.data?.success) {
+      throw new Error('get_studio_payments: ' + JSON.stringify(payPage));
+    }
+    const items = (payPage.data.items ?? []) as Array<{
+      course_title?: string | null;
+      first_name?: string | null;
+      last_name?: string | null;
+    }>;
+    const hit = items.find((row) => row.course_title === archivedTitle);
+    if (!hit) throw new Error('Archiv-Zahlung fehlt in get_studio_payments');
+    const { buildPaymentsListCsv } = await import('../src/lib/paymentsExportCsv.ts');
+    const csv = buildPaymentsListCsv(items as never, new Map());
+    if (!csv.includes(archivedTitle)) {
+      throw new Error('CSV ohne archivierten Kurstitel');
+    }
+    if (!csv.includes(archivedFirst) && !csv.includes(archivedLast)) {
+      throw new Error('CSV ohne archivierten Personennamen');
+    }
+
+    // RLS: Owner kann archivierten Kurs lesen (Zugriff ≠ Anzeige)
+    const { data: archivedReadable, error: readErr } = await asOwner
+      .from('courses')
+      .select('id, title, archived_at')
+      .eq('id', archivedCourse.id)
+      .maybeSingle();
+    if (readErr || !archivedReadable?.archived_at) {
+      throw new Error('Owner muss archivierten Kurs per SELECT lesen können');
     }
 
     const userCtx = await browser.newContext();

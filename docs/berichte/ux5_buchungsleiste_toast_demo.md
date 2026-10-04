@@ -147,28 +147,35 @@ Hinweis: Ein Reset **nach** dem Seed würde die neuen Demokurse ohne Geldspur wi
 
 **Ursache:** `Dashboard.tsx` „Rückgaben offen“ lud Registrierungen mit Embed `course:courses(...)` **ohne** `archived_at`-Filter. Client-Filter auf Kurslisten reichten nicht für Embeds; SECURITY-DEFINER-RPCs (z. B. `get_open_coverage`) umgingen Client-Filter ebenfalls.
 
-**Zentrale Lösung:**
+**Zentrale Lösung (Anzeige, nicht RLS):**
 
-1. Migration `20261004240000` — RLS SELECT auf `courses` und Manager/Lehrer-`users` nur `archived_at IS NULL`; `get_open_coverage` filtert Archiv. Ausnahme bleibt `get_studio_payments(p_include_archived)`.
-2. Client-Helfer `src/lib/visibleScope.ts` (`visibleCourses` / `visibleMembers` / `onlyVisible`) für alle Listen.
-3. Kachel „Teilnehmer“ → **„Anmeldungen“** (zählt belegte Plätze in kommenden Kursen, nicht Studio-Mitglieder; 0 bei 4 geseedeten Personen ohne kommende Anmeldung war kein Bug).
+1. Client-Helfer `src/lib/visibleScope.ts` (`visibleCourses` / `visibleMembers` / `onlyVisible` / `isArchivedRow`) für alle Listen und Embeds.
+2. Listen-RPCs: `get_open_coverage` filtert `archived_at IS NULL`; `get_studio_payments(p_include_archived)` behält den Umschalter.
+3. Buchbarkeit: `register_for_course` + Trigger prüfen weiter `archived_at` (seit 230000).
+4. Kachel „Teilnehmer“ → **„Anmeldungen“** (belegte Plätze in kommenden Kursen; 0 bei Seed ohne kommende Anmeldung war kein Bug).
+
+### Korrektur: `archived_at` darf nicht in RLS-SELECT
+
+Migration `20261004240000` hatte `archived_at IS NULL` in vier SELECT-Policies gelegt. Das war ein Architekturfehler: RLS = Zugriffsschutz, nicht Anzeige. Owner/Admin brauchen archivierte Kurse/Personen für Zahlungen-Archiv, CSV-Export, Belege und Prüfspur.
+
+**Korrektur:** Migration `20261004250000` stellt die vier Policies auf den Stand vor 240000 wieder her (`courses_select_own_tenant`, `users_select_managers`, `users_select_teacher_participants`, `users_select_teacher_staff`). `get_open_coverage` behält den Archiv-Filter in der Lese-Schicht. Regel: [.cursor/rules/rls-access-not-display.mdc](../../.cursor/rules/rls-access-not-display.mdc).
 
 ### Audit: Stelle → filtert `archived_at`?
 
 | Stelle | Art | filtert? | Anmerkung |
 |---|---|---|---|
-| RLS `courses_select_own_tenant` | Policy | **ja** (ab 240000) | zentral |
-| RLS `users_select_managers` / teacher_* | Policy | **ja** (ab 240000) | eigenes Profil (`users_select_own`) weiter ohne Archiv-Zwang |
-| `register_for_course` + Trigger Guard | RPC/Trigger | **ja** | seit 230000 |
+| RLS `courses_select_own_tenant` | Policy | **nein** (ab 250000) | nur Tenant; Zugriff ja, Anzeige nein |
+| RLS `users_select_managers` / teacher_* | Policy | **nein** (ab 250000) | wie vor 240000 |
+| `register_for_course` + Trigger Guard | RPC/Trigger | **ja** | seit 230000 — Buchbarkeit |
 | `get_studio_payments` | RPC | **ja** (Default) | Umschalter `p_include_archived` |
-| `get_open_coverage` | RPC | **ja** (ab 240000) | war Lücke |
+| `get_open_coverage` | RPC | **ja** (ab 240000) | Lese-Schicht |
 | `get_course_participant_counts` | RPC | n/a | nur IDs, die der Client schon gefiltert hat |
 | `staff_names` | RPC | nein | nur IDs aus sichtbaren Kursen |
 | `visibleScope` + Kurse/Detail/Checkout/Kalender/MyCourses/Participants/Users/Messages/Dashboard | Client | **ja** | |
-| `Dashboard` Rückgaben-Embed | Client | **ja** | war Lücke; jetzt RLS + `isArchivedRow` |
-| `MyRegistrations` Embed | Client | **ja** | Filter `isArchivedRow` |
-| `Payments.tsx` | Client/RPC | Ausnahme | Umschalter Archiv |
-| `CreateCourse`/`EditCourse`/`Profile` users | Client | n/a | Schreib-/Eigenprofil |
+| `Dashboard` Rückgaben-Embed | Client | **ja** | `isArchivedRow` |
+| `MyRegistrations` Embed | Client | **ja** | `isArchivedRow` |
+| `Payments.tsx` / CSV-Export | Client/RPC | Ausnahme | Umschalter Archiv inkl. Kurs-/Personennamen |
+| `CreateCourse`/`EditCourse` | Client | Lehrerliste | `visibleMembers` |
 | `pass_products.archived_at` | Produkt | eigen | A4, nicht UX-5 |
 
 Kartenprodukte (`pass_products.archived_at`) unverändert — eigene Story A4.
@@ -179,19 +186,15 @@ Kartenprodukte (`pass_products.archived_at`) unverändert — eigene Story A4.
 |---|---|
 | `npm run check:ci` | grün |
 | Unit `ux5_buchungsleiste_toast` | grün |
+| `scripts/test/security_ux5_archived_select.mjs` | grün — Owner liest archivierten Kurs; fremdes Studio nicht |
 | E2E `e2e/ux5.spec.ts` (e2eapp) | **1/1** |
-| E2E `e2e/ux5-archive.spec.ts` | **1/1** — archivierter abgesagter Kurs + Person auf Owner-/Teilnehmer-Seiten unsichtbar |
+| E2E `e2e/ux5-archive.spec.ts` | **1/1** — Listen ohne Archiv; Zahlungen-Archiv zeigt Kurs- + Personenname; CSV mit Archiv enthält Kursnamen; Owner-SELECT archiviert |
 | E2E `e2e/zw1.spec.ts` | **1/1** |
 
-## STOPP — Haltestelle 5 (kurze Klickliste Nachzug)
+## STOPP — Haltestelle 5 (kurze Klickliste)
 
-Owner Olivia · Passwort in `supabase/.env.dev`. Keine Smoke-Titel (`S22A…`) erwarten.
+Owner Olivia · Passwort in `supabase/.env.dev`. Keine Smoke-Titel (`S22A…`) in normalen Listen erwarten.
 
-1. **Übersicht** — „Rückgaben offen“ ohne Smoke; Kachel heißt „Anmeldungen“ (kann 0 sein).
-2. **Kurse** — nur die 6 Seed-Kurse.
-3. **Check-in** (Übersicht / heutige Zeilen) — keine archivierten Titel.
-4. **Teilnehmer** — Vera/Karla/Olaf/Nina; keine Alt-Smoke-Personen.
-5. **Kalender** (`/calendar`) — keine Smoke-Titel.
-6. **Nachrichten** — Kursauswahl ohne Archiv/Smoke.
-
-Optional: Zahlungen Standard ohne Archiv; Umschalter zeigt Alt-Zahlungen.
+1. **Übersicht** — „Rückgaben offen“ ohne Smoke; Kachel „Anmeldungen“.
+2. **Zahlungen** — Standard ohne Archiv; Umschalter „Archiv anzeigen“ → archivierte Zahlung zeigt **Kursname + Personenname**.
+3. **Export** — CSV „Zahlungsliste“ mit Archiv enthält Kursnamen der archivierten Kurse.
