@@ -1,4 +1,4 @@
-export type SettingsCategoryId = 'studio' | 'buchungen' | 'zahlungen' | 'karten' | 'team';
+export type SettingsCategoryId = 'studio' | 'buchungen' | 'zahlungen' | 'karten' | 'team' | 'rechtliches';
 
 export type SettingsCategory = {
   id: SettingsCategoryId;
@@ -12,6 +12,7 @@ export const SETTINGS_CATEGORIES: SettingsCategory[] = [
   { id: 'zahlungen', title: 'Zahlungen', to: '/settings/zahlungen' },
   { id: 'karten', title: 'Karten', to: '/settings/karten' },
   { id: 'team', title: 'Team', to: '/settings/team' },
+  { id: 'rechtliches', title: 'Rechtliches', to: '/settings/rechtliches' },
 ];
 
 export function parseSettingsCategory(raw: string | null | undefined): SettingsCategoryId | null {
@@ -20,7 +21,8 @@ export function parseSettingsCategory(raw: string | null | undefined): SettingsC
     raw === 'buchungen' ||
     raw === 'zahlungen' ||
     raw === 'karten' ||
-    raw === 'team'
+    raw === 'team' ||
+    raw === 'rechtliches'
   ) {
     return raw;
   }
@@ -57,6 +59,10 @@ export function teamStatusLine(count: number): string {
   return count === 1 ? '1 Person' : `${count} Personen`;
 }
 
+export function legalStatusLine(complete: boolean): string {
+  return complete ? 'Anbieterangaben vollständig' : 'Anbieterangaben fehlen';
+}
+
 export type SettingsAttention = {
   id: string;
   title: string;
@@ -69,6 +75,7 @@ export function settingsAttentionItems(input: {
   stripeReady: boolean;
   hasAccount: boolean;
   platformEnabled?: boolean;
+  legalProfilePresent?: boolean;
 }): SettingsAttention[] {
   const items: SettingsAttention[] = [];
   const onlineRelevant = input.onlineEnabled || input.platformEnabled === true;
@@ -77,6 +84,13 @@ export function settingsAttentionItems(input: {
       id: 'tax',
       title: 'Steuerstatus fehlt',
       to: '/settings/zahlungen',
+    });
+  }
+  if (onlineRelevant && input.legalProfilePresent === false) {
+    items.push({
+      id: 'legal',
+      title: 'Anbieterangaben fehlen – ohne sie ist keine Online-Zahlung möglich.',
+      to: '/settings/rechtliches',
     });
   }
   if ((input.hasAccount || input.onlineEnabled) && !input.stripeReady) {

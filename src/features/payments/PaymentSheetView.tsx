@@ -25,6 +25,9 @@ import {
   paymentSecureHint,
 } from '../../lib/paymentTexts';
 import { formatCents } from '../../lib/format';
+import BookingSummaryBlock, {
+  type BookingSummaryData,
+} from '../../components/payments/BookingSummaryBlock';
 
 export type PaymentSheetViewPhase =
   | 'idle'
@@ -47,6 +50,7 @@ export type PaymentSheetViewProps = {
   courseTitle?: string | null;
   courseWhen?: string | null;
   amountCents?: number | null;
+  bookingSummary?: BookingSummaryData | null;
   /** Fertige Fristzeile, z. B. paymentHoldHint(…). */
   holdHint?: string | null;
   holdMinutesLeft: number;
@@ -104,6 +108,7 @@ const PaymentSheetView: React.FC<PaymentSheetViewProps> = ({
   courseTitle,
   courseWhen,
   amountCents,
+  bookingSummary = null,
   holdHint,
   holdMinutesLeft,
   holdExpired,
@@ -226,8 +231,10 @@ const PaymentSheetView: React.FC<PaymentSheetViewProps> = ({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4">
-          {(courseTitle || amountLabel) &&
-          (showPreparing || showForm || showSuccess || showProcessing) ? (
+          {bookingSummary && (showPreparing || showForm) ? (
+            <BookingSummaryBlock data={bookingSummary} />
+          ) : (courseTitle || amountLabel) &&
+            (showPreparing || showForm || showSuccess || showProcessing) ? (
             <div className="mb-4 space-y-1">
               {courseTitle ? (
                 <p className="text-[15px] font-medium text-text">{courseTitle}</p>

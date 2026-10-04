@@ -20,6 +20,7 @@ export interface PaymentSetupStatus {
   charges_enabled: boolean;
   card_active: boolean;
   tax_setting_present: boolean;
+  legal_profile_present?: boolean;
   online_payments_enabled: boolean;
   allow_onsite_payment: boolean;
   requirements_pending: boolean;
@@ -63,6 +64,7 @@ export function mockStatus(ui: PaymentUiStatus): PaymentSetupStatus {
     charges_enabled: ui === 'active',
     card_active: ui === 'active',
     tax_setting_present: true,
+    legal_profile_present: true,
     online_payments_enabled: ui === 'active',
     allow_onsite_payment: true,
     requirements_pending: ui === 'active',

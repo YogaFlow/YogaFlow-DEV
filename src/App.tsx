@@ -26,6 +26,7 @@ import JoinStudio from './pages/JoinStudio';
 import CourseDetail from './pages/CourseDetail';
 import CourseCheckout from './pages/CourseCheckout';
 import PaymentsHub, { OpenPaymentsRedirect } from './pages/PaymentsHub';
+import Receipt from './pages/Receipt';
 
 /** Nur DEV — sonst kein Chunk mit paymentSheet / DevPaymentSheet im dist. */
 const LazyDevPaymentSheetStates = import.meta.env.DEV
@@ -324,6 +325,7 @@ function App() {
               <Route path="course/:courseId" element={<CourseDetail />} />
               <Route path="my-courses" element={<MyCourses />} />
               <Route path="my-registrations" element={<MyRegistrations />} />
+              <Route path="receipts/:receiptId" element={<Receipt />} />
               <Route path="profile" element={<Profile />} />
               <Route path="participants" element={<Participants />} />
               <Route path="open-payments" element={<OpenPaymentsRedirect />} />

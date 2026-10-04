@@ -38,8 +38,8 @@ import PaymentPendingStatus from '../components/ui/PaymentPendingStatus';
 import {
   ONLINE_REQUIRED_HINT,
   PAY_NOW_LABEL,
-  REGISTER_AND_PAY_LABEL,
 } from '../lib/paymentTexts';
+import { CONTINUE_TO_BOOKING_LABEL } from '../lib/legalCheckoutTexts';
 import { RELEASE_SEAT_LABEL } from '../lib/pendingPaymentLabel';
 import { paymentsClientConfig } from '../lib/paymentsClientConfig';
 import {
@@ -352,6 +352,15 @@ const CourseDetail: React.FC = () => {
         }
         courseId={course?.id}
         courseBookable={Boolean(course && !cancelled && isCourseUpcoming(course))}
+        courseMeta={
+          course
+            ? {
+                durationMinutes: courseDurationMinutes(course),
+                place: [course.location, course.room].filter(Boolean).join(' · ') || null,
+                teacherName: formatStaffName(course.teacher) || null,
+              }
+            : null
+        }
         onClose={() => setPaySheet(null)}
         onFinished={() => {
           void fetchUserRegistrations();
@@ -608,7 +617,7 @@ const CourseDetail: React.FC = () => {
                 disabled={registering}
                 className={`${buttonShape} bg-brand text-onBrand active:bg-brandPressed disabled:opacity-50`}
               >
-                {onlineRequired ? REGISTER_AND_PAY_LABEL : 'Anmelden'}
+                {onlineRequired ? CONTINUE_TO_BOOKING_LABEL : 'Anmelden'}
               </button>
             )
           ) : null}

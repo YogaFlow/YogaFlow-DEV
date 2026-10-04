@@ -23,6 +23,7 @@ import {
   type RegistrationRefundState,
 } from '../lib/refundTexts';
 import { fetchRegistrationRefundStates } from '../lib/refunds';
+import { listReceiptsForPayments } from '../lib/receipts';
 import { formatDate, formatTimeRange } from '../lib/format';
 import { fetchMemberPasses, type MemberPassSummary } from '../lib/passes';
 import { paymentMessageForCode } from '../lib/paymentTexts';
@@ -40,6 +41,7 @@ const MyRegistrations: React.FC = () => {
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [ownPasses, setOwnPasses] = useState<MemberPassSummary[]>([]);
   const [refundStates, setRefundStates] = useState<Record<string, RegistrationRefundState>>({});
+  const [receiptIds, setReceiptIds] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [feedback, setFeedback] = useState<FeedbackDialogState | null>(null);
@@ -96,6 +98,19 @@ const MyRegistrations: React.FC = () => {
         rows.filter((row) => row.coverage_status === 'paid').map((row) => row.id),
       );
       setRefundStates(states);
+      const paymentToReg = Object.fromEntries(
+        Object.values(states)
+          .filter((state) => state.payment_id)
+          .map((state) => [state.payment_id as string, state.registration_id]),
+      );
+      const receipts = await listReceiptsForPayments(Object.keys(paymentToReg));
+      const nextReceipts: Record<string, string> = {};
+      for (const receipt of receipts) {
+        if (receipt.kind !== 'receipt') continue;
+        const registrationId = paymentToReg[receipt.payment_id];
+        if (registrationId) nextReceipts[registrationId] = receipt.id;
+      }
+      setReceiptIds(nextReceipts);
 
       const visible = rows.filter((registration: Registration) => {
         if (
@@ -312,6 +327,7 @@ const MyRegistrations: React.FC = () => {
         <EnrollmentCards
           registrations={registrations}
           refundStates={refundStates}
+          receiptIds={receiptIds}
           ownPasses={ownPasses}
           onCoverageChanged={() => void loadRegistrations()}
           onFeedback={(message, type) =>

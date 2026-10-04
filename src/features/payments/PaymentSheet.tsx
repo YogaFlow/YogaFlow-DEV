@@ -13,10 +13,14 @@ import {
   PAYMENT_RETRY_LABEL,
   paymentHoldHint,
   paymentMessageForCode,
-  payAmountLabel,
 } from '../../lib/paymentTexts';
+import { BINDING_BOOK_LABEL } from '../../lib/legalCheckoutTexts';
 import { formatBerlinDateTime } from '../../lib/courseDateTime';
-import { formatCents } from '../../lib/format';
+import { formatDuration } from '../../lib/format';
+import { formatCancellationDeadline } from '../../lib/passRefundInfo';
+import { loadStudioProviderInfo } from '../../lib/studioLegalProfile';
+import { supabase } from '../../lib/supabase';
+import type { BookingSummaryData } from '../../components/payments/BookingSummaryBlock';
 import {
   clearPaymentAttempt,
   storePaymentAttempt,
@@ -42,6 +46,11 @@ type Props = {
   courseId?: string | null;
   /** HOLD_EXPIRED: „Zum Kurs“ nur wenn noch buchbar. */
   courseBookable?: boolean;
+  courseMeta?: {
+    durationMinutes?: number | null;
+    place?: string | null;
+    teacherName?: string | null;
+  } | null;
   /** Ergebnis nach 3-D-Secure-Return — kein prepare. */
   outcome?: PaymentSheetOutcome | null;
   onClose: () => void;
@@ -71,6 +80,7 @@ const PaymentSheet: React.FC<Props> = ({
   courseWhen,
   courseId,
   courseBookable = false,
+  courseMeta = null,
   outcome = null,
   onClose,
   onFinished,
@@ -81,6 +91,7 @@ const PaymentSheet: React.FC<Props> = ({
   const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(false);
   const [tick, setTick] = useState(0);
+  const [summary, setSummary] = useState<BookingSummaryData | null>(null);
 
   const outcomeMode = outcome != null;
 
@@ -214,6 +225,66 @@ const PaymentSheet: React.FC<Props> = ({
     // L1: kein onFinished hier — Reload erst beim Schließen.
   };
 
+  useEffect(() => {
+    if (!open || !registrationId) {
+      setSummary(null);
+      return;
+    }
+    let active = true;
+    void (async () => {
+      const [provider, reg] = await Promise.all([
+        loadStudioProviderInfo(),
+        supabase
+          .from('registrations')
+          .select('cancellation_deadline')
+          .eq('id', registrationId)
+          .maybeSingle(),
+      ]);
+      if (!active) return;
+      const amount = checkout.prepare?.amountCents;
+      if (!provider?.present || amount == null) {
+        setSummary(null);
+        return;
+      }
+      const deadlineIso = reg.data?.cancellation_deadline ?? null;
+      const deadlineMs = deadlineIso ? new Date(deadlineIso).getTime() : NaN;
+      const deadlineOk = deadlineIso && Number.isFinite(deadlineMs) && deadlineMs > Date.now();
+      setSummary({
+        title: courseTitle ?? 'Kurs',
+        whenLabel: courseWhen ?? '',
+        durationLabel:
+          courseMeta?.durationMinutes != null
+            ? formatDuration(courseMeta.durationMinutes)
+            : null,
+        place: courseMeta?.place ?? null,
+        teacher: courseMeta?.teacherName ?? null,
+        amountCents: amount,
+        regime: provider.regime === 'regular' ? 'regular' : 'small_business',
+        vatRateBp: provider.vat_rate_bp ?? 0,
+        providerName: provider.legal_name,
+        providerCity: provider.city,
+        providerStreet: provider.street,
+        providerHouseNumber: provider.house_number,
+        providerPostalCode: provider.postal_code,
+        providerContactEmail: provider.contact_email,
+        providerPhone: provider.phone,
+        cancelDeadlineLabel: deadlineOk ? formatCancellationDeadline(deadlineIso) : null,
+      });
+    })();
+    return () => {
+      active = false;
+    };
+  }, [
+    open,
+    registrationId,
+    checkout.prepare?.amountCents,
+    courseTitle,
+    courseWhen,
+    courseMeta?.durationMinutes,
+    courseMeta?.place,
+    courseMeta?.teacherName,
+  ]);
+
   const amountCents = checkout.prepare?.amountCents ?? null;
   const showLiveForm =
     !outcomeMode &&
@@ -239,11 +310,7 @@ const PaymentSheet: React.FC<Props> = ({
       : null;
 
   const submitLabel =
-    phase === 'error' && formAlert
-      ? PAYMENT_RETRY_LABEL
-      : amountCents != null
-        ? payAmountLabel(formatCents(amountCents))
-        : undefined;
+    phase === 'error' && formAlert ? PAYMENT_RETRY_LABEL : BINDING_BOOK_LABEL;
 
   if (!mounted || !open) return null;
 
@@ -258,6 +325,7 @@ const PaymentSheet: React.FC<Props> = ({
       courseTitle={courseTitle}
       courseWhen={courseWhen}
       amountCents={amountCents}
+      bookingSummary={summary}
       holdHint={holdHint}
       holdMinutesLeft={mins}
       holdExpired={holdExpired || code === 'HOLD_EXPIRED'}

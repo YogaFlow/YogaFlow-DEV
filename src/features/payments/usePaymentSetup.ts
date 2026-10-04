@@ -73,6 +73,7 @@ export async function refreshOnboardingStatus(): Promise<PaymentSetupStatus> {
 
 function mapSwitchError(code: string | null, fallback: string): string {
   if (code === 'TAX_SETTING_MISSING') return copy.switchErrors.TAX_SETTING_MISSING;
+  if (code === 'LEGAL_PROFILE_MISSING') return copy.switchErrors.LEGAL_PROFILE_MISSING;
   if (code === 'PROVIDER_NOT_READY') return copy.switchErrors.PROVIDER_NOT_READY;
   if (code === 'PLATFORM_DISABLED') return copy.switchErrors.PLATFORM_DISABLED;
   return fallback;

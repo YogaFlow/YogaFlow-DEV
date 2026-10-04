@@ -13,7 +13,9 @@ import {
   passRefundStatusLine,
 } from '../../lib/passRefundInfo';
 import { RELEASE_SEAT_LABEL } from '../../lib/pendingPaymentLabel';
+import { Link } from 'react-router-dom';
 import { PAY_NOW_LABEL } from '../../lib/paymentTexts';
+import { RECEIPT_LINK_LABEL } from '../../lib/legalCheckoutTexts';
 import { paymentsClientConfig } from '../../lib/paymentsClientConfig';
 import {
   applyPassToRegistration,
@@ -44,6 +46,8 @@ interface EnrollmentCardsProps {
   releasingCourseId?: string | null;
   /** get_registration_refund_states je Buchung */
   refundStates?: Record<string, RegistrationRefundState>;
+  /** Beleg-ID je Anmeldung (K12) */
+  receiptIds?: Record<string, string>;
 }
 
 function isOwnCancellation(registration: Registration): boolean {
@@ -92,6 +96,7 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({
   onPayNow,
   releasingCourseId = null,
   refundStates = {},
+  receiptIds = {},
 }) => {
   const [busyId, setBusyId] = useState<string | null>(null);
   const forcePending = isDevPendingPaymentMock();
@@ -177,8 +182,9 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({
           </span>
         );
 
+        const receiptId = receiptIds[registration.id];
         const showFooter = Boolean(
-          progress || pay || usable || (paymentPending && !courseCancelled),
+          progress || pay || usable || receiptId || (paymentPending && !courseCancelled),
         );
 
         return (
@@ -225,6 +231,15 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({
                       </button>
                     ) : null}
                   </div>
+                ) : null}
+                {receiptId ? (
+                  <Link
+                    to={`/receipts/${receiptId}`}
+                    data-testid="receipt-link"
+                    className="inline-flex h-11 items-center rounded-full border border-borderStrong bg-surface px-4 text-[13px] font-medium text-brand active:bg-surfaceSunken"
+                  >
+                    {RECEIPT_LINK_LABEL}
+                  </Link>
                 ) : null}
                 {usable ? (
                   <button

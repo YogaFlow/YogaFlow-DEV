@@ -7,6 +7,7 @@ import {
   Calendar,
   ChevronRight,
   CreditCard,
+  Scale,
   Users,
   Wallet,
 } from 'lucide-react';
@@ -16,6 +17,7 @@ import { withDevTenant } from '../context/TenantContext';
 import BookingSettingsSection from '../components/settings/BookingSettingsSection';
 import PassProductsSection from '../components/settings/PassProductsSection';
 import StudioDesignSection from '../components/settings/StudioDesignSection';
+import LegalProfileSection from '../components/settings/LegalProfileSection';
 import TaxSettingsSection from '../components/settings/TaxSettingsSection';
 import TeamSettingsSection from '../components/settings/TeamSettingsSection';
 import { fetchStaffCount } from '../lib/settingsStaff';
@@ -28,6 +30,7 @@ import { asCivilIsoDate } from '../lib/courseDateTime';
 import {
   bookingsStatusLine,
   cardsStatusLine,
+  legalStatusLine,
   parseSettingsCategory,
   paymentsStatusLine,
   settingsAttentionItems,
@@ -47,6 +50,7 @@ const ICONS: Record<SettingsCategoryId, typeof Building2> = {
   zahlungen: Wallet,
   karten: CreditCard,
   team: Users,
+  rechtliches: Scale,
 };
 
 type OverviewData = {
@@ -60,6 +64,7 @@ const EMPTY_LINES: Record<SettingsCategoryId, string> = {
   zahlungen: '',
   karten: '',
   team: '',
+  rechtliches: '',
 };
 
 async function loadPaymentSetup(): Promise<PaymentSetupStatus | null> {
@@ -100,12 +105,14 @@ async function loadOverview(input: {
   const onlineEnabled = setup?.online_payments_enabled === true;
   const ui = setup ? toUiStatus(setup.onboarding_status) : null;
   const stripeReady = ui === 'active';
+  const legalPresent = setup?.legal_profile_present === true;
   const attention = settingsAttentionItems({
     onlineEnabled,
     taxPresent: Boolean(setup?.tax_setting_present ?? current),
     stripeReady,
     hasAccount: setup?.has_account === true,
     platformEnabled: setup?.platform_enabled === true,
+    legalProfilePresent: setup ? legalPresent : undefined,
   });
   return {
     lines: {
@@ -114,6 +121,7 @@ async function loadOverview(input: {
       zahlungen: paymentsStatusLine({ onlineEnabled, taxLabel }),
       karten: cardsStatusLine(activeCards),
       team: teamStatusLine(staffCount),
+      rechtliches: legalStatusLine(legalPresent),
     },
     attention,
   };
@@ -154,6 +162,7 @@ function CategoryContent({
     );
   }
   if (category === 'karten') return <PassProductsSection />;
+  if (category === 'rechtliches') return <LegalProfileSection isOwner={isOwner} />;
   return <TeamSettingsSection />;
 }
 

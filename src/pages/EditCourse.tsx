@@ -9,6 +9,7 @@ import { Course } from '../types';
 import { DatePicker, TimePicker } from '../components/DateTimePicker';
 import PassEligibleToggle from '../components/courses/PassEligibleToggle';
 import { isTeacherOnly, TEACHER_SELF_HINT } from '../lib/userRoles';
+import { PRICE_ABOVE_LIMIT_HINT } from '../lib/legalCheckoutTexts';
 
 interface CourseLeader {
   id: string;
@@ -37,6 +38,7 @@ const EditCourse: React.FC = () => {
   const [updateScope, setUpdateScope] = useState<'single' | 'series'>('single');
   const [passEligible, setPassEligible] = useState(true);
   const [showPassEligible, setShowPassEligible] = useState(false);
+  const [onlineEnabled, setOnlineEnabled] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
   const [selectedEndTime, setSelectedEndTime] = useState<Date | null>(null);
@@ -97,6 +99,12 @@ const EditCourse: React.FC = () => {
   useEffect(() => {
     fetchCourse();
   }, [courseId]);
+
+  useEffect(() => {
+    void supabase.rpc('get_payment_setup_status').then(({ data }) => {
+      setOnlineEnabled(data?.online_payments_enabled === true);
+    });
+  }, []);
 
   useEffect(() => {
     if (userProfile) fetchCourseLeaders();
@@ -753,6 +761,9 @@ const EditCourse: React.FC = () => {
               </div>
               {scheduleMoneyLocked ? (
                 <p className="mt-1 text-xs text-textMuted">{pastHint}</p>
+              ) : null}
+              {onlineEnabled && Number.parseFloat(formData.price) > 250 ? (
+                <p className="mt-2 text-sm text-textMuted">{PRICE_ABOVE_LIMIT_HINT}</p>
               ) : null}
             </div>
           </div>

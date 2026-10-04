@@ -87,6 +87,8 @@ export const copy = {
   switchErrors: {
     TAX_SETTING_MISSING: 'Bitte hinterlege zuerst deinen Steuerstatus',
     TAX_SETTING_LINK: 'Zu den Steuern',
+    LEGAL_PROFILE_MISSING: 'Bitte hinterlege zuerst die Anbieterangaben',
+    LEGAL_PROFILE_LINK: 'Zu den Anbieterangaben',
     PROVIDER_NOT_READY: 'Dein Stripe-Konto ist noch nicht bereit.',
     PLATFORM_DISABLED: 'Online-Zahlung ist auf der Plattform noch nicht freigeschaltet.',
   },

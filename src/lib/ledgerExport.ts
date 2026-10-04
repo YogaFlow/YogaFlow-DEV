@@ -41,6 +41,7 @@ export type LedgerExportRow = {
   tax_regime: string;
   vat_rate_bp: number;
   method: string | null;
+  receipt_number?: string;
 };
 
 export type LedgerExportResult =
@@ -96,7 +97,22 @@ export async function fetchLedgerExport(from: string, to: string): Promise<Ledge
     p_to: toCivil,
   });
   if (error) return { ok: false, message: exportErrorMessage(error) };
-  return { ok: true, rows: (data ?? []) as LedgerExportRow[] };
+  const rows = (data ?? []) as LedgerExportRow[];
+  const paymentIds = [...new Set(rows.map((row) => row.payment_id).filter(Boolean))];
+  if (paymentIds.length > 0) {
+    const { data: receipts } = await supabase
+      .from('receipts')
+      .select('payment_id, number')
+      .eq('kind', 'receipt')
+      .in('payment_id', paymentIds);
+    const byPayment = new Map(
+      (receipts ?? []).map((row) => [String(row.payment_id), String(row.number)]),
+    );
+    for (const row of rows) {
+      row.receipt_number = byPayment.get(row.payment_id) ?? '';
+    }
+  }
+  return { ok: true, rows };
 }
 
 function csvCell(value: string): string {
@@ -150,6 +166,7 @@ export function buildLedgerLinesCsv(rows: LedgerExportRow[]): string {
     'Steuer',
     'Buchungs-ID',
     'Zahlungs-ID',
+    'Belegnummer',
   ];
   const lines = [header.join(';')];
   for (const row of rows) {
@@ -164,6 +181,7 @@ export function buildLedgerLinesCsv(rows: LedgerExportRow[]): string {
         csvCell(taxLabel(row.tax_regime, row.vat_rate_bp)),
         csvCell(row.event_id),
         csvCell(row.payment_id),
+        csvCell(row.receipt_number ?? ''),
       ].join(';'),
     );
   }

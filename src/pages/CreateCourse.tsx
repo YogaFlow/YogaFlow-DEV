@@ -8,6 +8,7 @@ import { countActivePassProducts } from '../lib/passProducts';
 import { DatePicker, TimePicker } from '../components/DateTimePicker';
 import PassEligibleToggle from '../components/courses/PassEligibleToggle';
 import { isTeacherOnly, TEACHER_SELF_HINT } from '../lib/userRoles';
+import { PRICE_ABOVE_LIMIT_HINT } from '../lib/legalCheckoutTexts';
 
 interface CourseLeader {
   id: string;
@@ -44,6 +45,7 @@ const CreateCourse: React.FC = () => {
   const [recurringEndDate, setRecurringEndDate] = useState('');
   const [passEligible, setPassEligible] = useState(true);
   const [showPassEligible, setShowPassEligible] = useState(false);
+  const [onlineEnabled, setOnlineEnabled] = useState(false);
   const maxParticipantsTouchedRef = useRef(false);
 
   const timeToMinutes = (time: string): number => {
@@ -98,6 +100,12 @@ const CreateCourse: React.FC = () => {
       max_participants: String(tenant.default_max_participants),
     }));
   }, [tenant]);
+
+  useEffect(() => {
+    void supabase.rpc('get_payment_setup_status').then(({ data }) => {
+      setOnlineEnabled(data?.online_payments_enabled === true);
+    });
+  }, []);
 
   useEffect(() => {
     if (userProfile) fetchCourseLeaders();
@@ -725,6 +733,9 @@ const CreateCourse: React.FC = () => {
                 />
                 <span className="absolute right-3 top-3 text-textSubtle font-semibold">€</span>
               </div>
+              {onlineEnabled && Number.parseFloat(formData.price) > 250 ? (
+                <p className="mt-2 text-sm text-textMuted">{PRICE_ABOVE_LIMIT_HINT}</p>
+              ) : null}
             </div>
           </div>
 

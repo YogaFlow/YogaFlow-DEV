@@ -1,6 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { AlertTriangle, Check, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { formatCents, formatDateTime } from '../../lib/format';
+import { RECEIPT_LINK_LABEL, refundReceiptHeading } from '../../lib/legalCheckoutTexts';
+import { listReceiptsForPayments, type ReceiptRecord } from '../../lib/receipts';
 import {
   DISPUTE_OPEN_HINT,
   REFUND_FEE_HINT,
@@ -52,6 +55,7 @@ const PaymentRefundSheet: React.FC<PaymentRefundSheetProps> = ({
   const [serverError, setServerError] = useState('');
   const [busy, setBusy] = useState(false);
   const [successCents, setSuccessCents] = useState<number | null>(null);
+  const [receipts, setReceipts] = useState<ReceiptRecord[]>([]);
 
   const load = useCallback(async () => {
     if (!paymentId) return;
@@ -60,6 +64,8 @@ const PaymentRefundSheet: React.FC<PaymentRefundSheetProps> = ({
     const next = await fetchPaymentRefunds(paymentId);
     setDetail(next);
     setLoadError(next == null);
+    const found = await listReceiptsForPayments([paymentId]);
+    setReceipts(found);
     setLoading(false);
   }, [paymentId]);
 
@@ -187,6 +193,23 @@ const PaymentRefundSheet: React.FC<PaymentRefundSheetProps> = ({
               >
                 <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden />
                 {refundSuccessMessage(successCents)}
+              </p>
+            ) : null}
+
+            {receipts.length > 0 ? (
+              <p className="flex flex-wrap gap-3 text-[15px]">
+                {receipts.map((row) => (
+                  <Link
+                    key={row.id}
+                    to={`/receipts/${row.id}`}
+                    data-testid={row.kind === 'receipt' ? 'receipt-link' : 'refund-receipt-link'}
+                    className="font-medium text-brand underline"
+                  >
+                    {row.kind === 'receipt'
+                      ? RECEIPT_LINK_LABEL
+                      : refundReceiptHeading(row.snapshot.original_number ?? row.number)}
+                  </Link>
+                ))}
               </p>
             ) : null}
 

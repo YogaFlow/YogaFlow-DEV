@@ -86,6 +86,17 @@ test('Aufmerksamkeit und sichtbare Kategorien', () => {
   });
   assert.equal(none.length, 0);
 
+  const legal = settingsAttentionItems({
+    onlineEnabled: true,
+    taxPresent: true,
+    stripeReady: true,
+    hasAccount: true,
+    platformEnabled: true,
+    legalProfilePresent: false,
+  });
+  assert.equal(legal.some((item) => item.id === 'legal'), true);
+
   assert.equal(visibleSettingsCategories(true).some((item) => item.id === 'studio'), true);
+  assert.equal(visibleSettingsCategories(true).some((item) => item.id === 'rechtliches'), true);
   assert.equal(visibleSettingsCategories(false).some((item) => item.id === 'studio'), false);
 });
