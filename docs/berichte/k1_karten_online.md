@@ -285,7 +285,7 @@ Schichten auf `Julius` (Commits): SQL `debe870` · Functions `f3b49c5` · Logik 
 - Unit: `scripts/test/k1_pass_texts.mjs` (in `check:ci`)
 - SQL: `scripts/test/k1_pass_online.mjs` (in `run_geldkette`)
 - Deno: Checkout prepare-pass + Consent (199 Tests)
-- E2E: `e2e/k1.spec.ts` (e2eapp)
+- E2E: `e2e/k1.spec.ts` (e2eapp) — 1/1 grün; Kauf über synthetische `pi_…` + `complete_online_payment` (kein Connect-Konto in e2eapp). Echtes 4242: Klickpunkt 3 demoalpha.
 
 ---
 
@@ -303,5 +303,11 @@ Schichten auf `Julius` (Commits): SQL `debe870` · Functions `f3b49c5` · Logik 
 10. **Öffentlich** — `/widerruf?tenant=demoalpha` ohne Login: Beleg+E-Mail → Zusammenfassung oder neutraler Hinweis.
 11. **Owner** — Online-Zahlung nicht bereit: Schalter „Online kaufbar“ gesperrt mit Grund.
 12. **Mail** — Bestätigung „Karte ist bereit“ (UX-3-Shell) mit Widerrufshinweis im Fuß (DEV-Mail-Zeile / Inbox).
+
+### Offene Lücken
+
+- E2E kauft ohne Stripe-4242 (kein chargebares Connect-Konto in e2eapp); 4242 im Klicktest.
+- Studio-Fuß ohne dedizierten Widerruf-Link außer `/legal` → Widerruf (Klickpunkt 10).
+- Demo-Seed (`demo_seed_v2`) auf DEV nach Push ggf. neu laufen lassen.
 
 STOPP — wartet auf Julius’ Klicktest.

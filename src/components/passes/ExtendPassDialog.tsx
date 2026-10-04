@@ -41,7 +41,7 @@ const ExtendPassDialog: React.FC<Props> = ({ open, pass, onClose, onSaved }) => 
     try {
       const { data, error: err } = await supabase.rpc('extend_pass', {
         p_pass_id: pass.id,
-        p_valid_until: until,
+        p_new_valid_until: until,
         p_note: note.trim(),
       });
       if (err) {
