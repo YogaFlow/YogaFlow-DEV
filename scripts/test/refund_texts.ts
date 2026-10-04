@@ -10,6 +10,7 @@ import {
   centsToRefundInput,
   courseCancelRefundDone,
   courseCancelRefundLine,
+  isCancelledEnrollmentVisible,
   memberRemovalRefundLine,
   onlinePaidStatusLine,
   onlineRefundInfo,
@@ -108,6 +109,21 @@ test('Erstattungsstand: läuft, voll, teil, fehlgeschlagen, nichts', () => {
   assert.equal(failed?.tone, 'delayed');
   assert.equal(refundProgress(state()), null);
   assert.equal(refundProgress(null), null);
+});
+
+test('stornierte Buchung sichtbar bis Kursende, danach nur pending/failed', () => {
+  const future = { date: '2099-06-15', time: '10:00:00', end_time: '11:00:00' };
+  const past = { date: '2020-01-01', time: '10:00:00', end_time: '11:00:00' };
+  const now = new Date('2026-10-04T12:00:00Z');
+
+  assert.equal(isCancelledEnrollmentVisible(future, null, now), true);
+  assert.equal(isCancelledEnrollmentVisible(future, state(), now), true);
+  assert.equal(isCancelledEnrollmentVisible(past, null, now), false);
+  assert.equal(isCancelledEnrollmentVisible(past, state(), now), false);
+  assert.equal(isCancelledEnrollmentVisible(past, state({ refunded_cents: 2400, refundable_cents: 0 }), now), false);
+  assert.equal(isCancelledEnrollmentVisible(past, state({ pending_cents: 2400 }), now), true);
+  assert.equal(isCancelledEnrollmentVisible(past, state({ failed: true }), now), true);
+  assert.equal(isCancelledEnrollmentVisible(null, state({ pending_cents: 2400 }), now), false);
 });
 
 test('Owner: Zusammenfassung, Eingabe, Prüfung', () => {

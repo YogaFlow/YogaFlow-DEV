@@ -1,3 +1,4 @@
+import { hasCourseEnded } from './courseDateTime.ts';
 import { formatCents } from './format.ts';
 import { formatCancellationDeadline } from './passRefundInfo.ts';
 
@@ -89,6 +90,21 @@ export function refundProgress(
     };
   }
   return null;
+}
+
+/**
+ * Stornierte Buchung in „Meine Anmeldungen“:
+ * sichtbar bis Kursende, zusätzlich danach solange Erstattung läuft oder fehlgeschlagen ist.
+ */
+export function isCancelledEnrollmentVisible(
+  course: { date?: string | null; time?: string | null; end_time?: string | null } | null | undefined,
+  state: RegistrationRefundState | null | undefined,
+  now: Date = new Date(),
+): boolean {
+  if (!course) return false;
+  if (!hasCourseEnded(course, now)) return true;
+  if (!state || state.payment_cents <= 0) return false;
+  return state.pending_cents > 0 || state.failed;
 }
 
 /** Zusammenfassung im Erstatten-Dialog (Owner/Admin). */

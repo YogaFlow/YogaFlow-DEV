@@ -14,12 +14,14 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useTenant } from '../context/TenantContext';
 import {
-  hasCourseEnded,
   isCourseCancelled,
   isCourseUpcoming,
   isRegistrationVisible,
 } from '../lib/courseDateTime';
-import { refundProgress, type RegistrationRefundState } from '../lib/refundTexts';
+import {
+  isCancelledEnrollmentVisible,
+  type RegistrationRefundState,
+} from '../lib/refundTexts';
 import { fetchRegistrationRefundStates } from '../lib/refunds';
 import { formatDate, formatTimeRange } from '../lib/format';
 import { fetchMemberPasses, type MemberPassSummary } from '../lib/passes';
@@ -96,17 +98,13 @@ const MyRegistrations: React.FC = () => {
       setRefundStates(states);
 
       const visible = rows.filter((registration: Registration) => {
-        if (registration.cancel_reason === 'course_cancelled') {
-          const course = registration.course;
-          return course != null && isCourseUpcoming(course);
-        }
-        if (registration.status === 'cancelled') {
-          // Abgemeldet: nur zeigen, solange es zur Online-Zahlung etwas zu sagen gibt.
-          const course = registration.course;
-          return (
-            course != null &&
-            !hasCourseEnded(course) &&
-            refundProgress(states[registration.id]) != null
+        if (
+          registration.cancel_reason === 'course_cancelled' ||
+          registration.status === 'cancelled'
+        ) {
+          return isCancelledEnrollmentVisible(
+            registration.course,
+            states[registration.id],
           );
         }
         return isRegistrationVisible(registration);
