@@ -93,7 +93,10 @@ const MyRegistrations: React.FC = () => {
 
       setOwnPasses(passes);
 
-      const rows = (data || []) as Registration[];
+      const rows = ((data || []) as Registration[]).filter((row) => {
+        const course = (row as { course?: { archived_at?: string | null } }).course;
+        return !course?.archived_at;
+      });
       const states = await fetchRegistrationRefundStates(
         rows.filter((row) => row.coverage_status === 'paid').map((row) => row.id),
       );

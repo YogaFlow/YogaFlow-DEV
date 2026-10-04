@@ -90,7 +90,7 @@ export function useMessagesData(userProfile: User | null) {
       const today = new Date().toISOString().split('T')[0];
       let query = supabase
         .from('courses')
-        .select('*')
+        .select('*').is('archived_at', null)
         .neq('status', 'canceled')
         .gte('date', today);
 
@@ -175,7 +175,9 @@ export function useMessagesData(userProfile: User | null) {
     try {
       const { data, error } = await supabase
         .from('registrations')
-        .select('user:users!registrations_user_id_fkey(id, first_name, last_name, email, anonymized_at)')
+        .select(
+          'user:users!registrations_user_id_fkey(id, first_name, last_name, email, anonymized_at, archived_at)',
+        )
         .eq('course_id', courseId)
         .is('cancellation_timestamp', null);
 
@@ -183,7 +185,11 @@ export function useMessagesData(userProfile: User | null) {
       const users = (data ?? [])
         .map((row) => row.user)
         .flat()
-        .filter((user) => user && (user as { anonymized_at?: string | null }).anonymized_at == null) as unknown as User[];
+        .filter((user) => {
+          if (!user) return false;
+          const row = user as { anonymized_at?: string | null; archived_at?: string | null };
+          return row.anonymized_at == null && row.archived_at == null;
+        }) as unknown as User[];
       setParticipants(users);
     } catch (error) {
       console.error('Error fetching participants:', error);

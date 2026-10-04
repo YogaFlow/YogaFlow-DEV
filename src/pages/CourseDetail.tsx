@@ -110,7 +110,7 @@ const CourseDetail: React.FC = () => {
 
     const { data, error } = await supabase
       .from('courses')
-      .select('*')
+      .select('*').is('archived_at', null)
       .eq('id', courseId)
       .maybeSingle();
 

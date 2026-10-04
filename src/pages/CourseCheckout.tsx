@@ -226,7 +226,7 @@ const CourseCheckout: React.FC = () => {
 
     const { data: courseRow, error: courseError } = await supabase
       .from('courses')
-      .select('id, title, date, time, teacher_id, status, price, pass_eligible')
+      .select('id, title, date, time, teacher_id, status, price, pass_eligible').is('archived_at', null)
       .eq('id', courseId)
       .maybeSingle();
 

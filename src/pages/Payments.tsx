@@ -65,6 +65,7 @@ const Payments: React.FC = () => {
   const [status, setStatus] = useState<PaymentOverviewStatus | ''>('');
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
+  const [includeArchived, setIncludeArchived] = useState(false);
   const [page, setPage] = useState(1);
 
   const [rows, setRows] = useState<StudioPaymentRow[]>([]);
@@ -85,7 +86,7 @@ const Payments: React.FC = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [month, kind, status, search]);
+  }, [month, kind, status, search, includeArchived]);
 
   const load = useCallback(async () => {
     if (!allowed || !month) {
@@ -94,7 +95,14 @@ const Payments: React.FC = () => {
     }
     setLoading(true);
     try {
-      const result = await fetchStudioPayments({ month, kind, status, search, page });
+      const result = await fetchStudioPayments({
+        month,
+        kind,
+        status,
+        search,
+        page,
+        includeArchived,
+      });
       setRows(result.items);
       setTotal(result.total);
       setLoadError(false);
@@ -106,7 +114,7 @@ const Payments: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [allowed, month, kind, status, search, page]);
+  }, [allowed, month, kind, status, search, page, includeArchived]);
 
   useEffect(() => {
     void load();
@@ -257,6 +265,16 @@ const Payments: React.FC = () => {
             aria-label="Name suchen"
             maxLength={60}
           />
+        </label>
+        <label className="col-span-2 flex min-h-11 items-center gap-2 text-[13px] text-text md:col-span-4">
+          <input
+            type="checkbox"
+            checked={includeArchived}
+            onChange={(e) => setIncludeArchived(e.target.checked)}
+            data-testid="payments-include-archived"
+            className="h-4 w-4 rounded border-border"
+          />
+          Archiv anzeigen
         </label>
       </section>
 

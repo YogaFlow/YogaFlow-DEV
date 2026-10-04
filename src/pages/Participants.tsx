@@ -97,7 +97,7 @@ const Participants: React.FC = () => {
       try {
         const { data: coursesData, error: coursesError } = await supabase
           .from('courses')
-          .select('*')
+          .select('*').is('archived_at', null)
           .order('date', { ascending: true });
 
         if (coursesError) throw coursesError;
@@ -124,7 +124,8 @@ const Participants: React.FC = () => {
         if (isMounted) {
           const upcomingParticipants = (registrationsData || []).filter(
             (registration: any) => {
-              if (!registration.course) return false;
+              if (!registration.course || registration.course.archived_at) return false;
+              if (registration.user?.archived_at) return false;
               if (!isCourseVisibleThroughBerlinToday(registration.course)) return false;
               if (isTeacherOnly(userProfile) && registration.course.teacher_id !== userProfile.id) {
                 return false;

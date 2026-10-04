@@ -7,6 +7,8 @@ export type StudioPaymentsQuery = {
   status: PaymentOverviewStatus | '';
   search: string;
   page: number;
+  /** UX-5: Standard false = ohne archivierte Kurse/Personen. */
+  includeArchived?: boolean;
 };
 
 export type StudioPaymentsPage = {
@@ -22,6 +24,7 @@ export async function fetchStudioPayments(query: StudioPaymentsQuery): Promise<S
     p_status: query.status || null,
     p_search: query.search.trim() || null,
     p_page: query.page,
+    p_include_archived: Boolean(query.includeArchived),
   });
   if (error) throw error;
   const body = data as

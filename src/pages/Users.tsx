@@ -315,6 +315,7 @@ export default function Users() {
           .select('*')
           .eq('role', 'user')
           .is('anonymized_at', null)
+          .is('archived_at', null)
           .order('last_name', { ascending: true });
         if (error) throw error;
         setUsers(data || []);
@@ -325,6 +326,7 @@ export default function Users() {
             .from('users')
             .select('*')
             .is('anonymized_at', null)
+            .is('archived_at', null)
             .order('last_name', { ascending: true }),
           supabase.rpc('studio_member_login_exclusive'),
         ]);
@@ -352,7 +354,7 @@ export default function Users() {
     try {
       let query = supabase
         .from('courses')
-        .select('id, title, date, status, tenant_id, teacher_id, description, location, max_participants, price, frequency, pass_eligible, created_at, updated_at')
+        .select('id, title, date, status, tenant_id, teacher_id, description, location, max_participants, price, frequency, pass_eligible, created_at, updated_at').is('archived_at', null)
         .neq('status', 'canceled')
         .order('date', { ascending: true });
 

@@ -84,7 +84,7 @@ const Dashboard: React.FC = () => {
         if (userProfile.role !== 'user') {
           let coursesQuery = supabase
             .from('courses')
-            .select('*')
+            .select('*').is('archived_at', null)
             .gte('date', new Date().toISOString().split('T')[0])
             .order('date', { ascending: true })
             .order('time', { ascending: true });
@@ -105,7 +105,7 @@ const Dashboard: React.FC = () => {
         } else if (isMounted) {
           const { data: participantCoursesData, error: participantCoursesError } = await supabase
             .from('courses')
-            .select('*')
+            .select('*').is('archived_at', null)
             .gte('date', new Date().toISOString().split('T')[0])
             .order('date', { ascending: true })
             .order('time', { ascending: true })
@@ -205,7 +205,7 @@ const Dashboard: React.FC = () => {
           const todayBerlin = berlinIsoDate(0);
           let checkoutQuery = supabase
             .from('courses')
-            .select('id, title, date, time, status')
+            .select('id, title, date, time, status').is('archived_at', null)
             .in('date', [yesterday, todayBerlin])
             .order('date', { ascending: true })
             .order('time', { ascending: true });
@@ -316,7 +316,7 @@ const Dashboard: React.FC = () => {
         const today = new Date().toISOString().split('T')[0];
         const { data: upcomingCoursesData } = await supabase
           .from('courses')
-          .select('id, date, time, teacher_id, status')
+          .select('id, date, time, teacher_id, status').is('archived_at', null)
           .gte('date', today);
 
         const upcomingCourses = (upcomingCoursesData || []).filter(
@@ -337,13 +337,13 @@ const Dashboard: React.FC = () => {
         if (participantCourseIds.length > 0) {
           const { data: seatRows } = await supabase
             .from('registrations')
-            .select('id, user:users!registrations_user_id_fkey(anonymized_at)')
+            .select('id, user:users!registrations_user_id_fkey(anonymized_at, archived_at)')
             .eq('status', 'registered')
             .is('cancellation_timestamp', null)
             .in('course_id', participantCourseIds);
           totalParticipantsCount = (seatRows ?? []).filter((row) => {
             const person = Array.isArray(row.user) ? row.user[0] : row.user;
-            return !person?.anonymized_at;
+            return !person?.anonymized_at && !person?.archived_at;
           }).length;
         }
 
@@ -353,7 +353,7 @@ const Dashboard: React.FC = () => {
         if (userProfile.role !== 'user') {
           const { data } = await supabase
             .from('courses')
-            .select('id, date, time, status')
+            .select('id, date, time, status').is('archived_at', null)
             .eq('teacher_id', userProfile.id)
             .gte('date', today);
           myCoursesCount = (data || []).filter(

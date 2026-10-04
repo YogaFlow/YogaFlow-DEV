@@ -45,6 +45,7 @@ const Courses: React.FC = () => {
       const { data, error } = await supabase
         .from('courses')
         .select('*')
+        .is('archived_at', null)
         .gte('date', new Date().toISOString().split('T')[0])
         .order('date', { ascending: true })
         .order('time', { ascending: true });
@@ -98,6 +99,7 @@ const Courses: React.FC = () => {
         const { data, error } = await supabase
           .from('courses')
           .select('*')
+          .is('archived_at', null)
           .gte('date', new Date().toISOString().split('T')[0])
           .order('date', { ascending: true })
           .order('time', { ascending: true });

@@ -39,6 +39,7 @@ const MyCourses: React.FC = () => {
           *,
           teacher:users!courses_teacher_id_fkey(first_name, last_name)
         `)
+        .is('archived_at', null)
         .eq('teacher_id', userProfile.id)
         .order('date', { ascending: true })
         .order('time', { ascending: true });

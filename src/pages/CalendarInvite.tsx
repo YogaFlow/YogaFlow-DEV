@@ -73,7 +73,7 @@ const CalendarInvite: React.FC = () => {
           }
           const { data: course, error: courseErr } = await supabase
             .from('courses')
-            .select('id, title, date, time, end_time, location, room')
+            .select('id, title, date, time, end_time, location, room').is('archived_at', null)
             .eq('id', reg.course_id)
             .maybeSingle();
           if (courseErr || !course?.date || !course.time) {
