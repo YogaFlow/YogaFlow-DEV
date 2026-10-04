@@ -308,6 +308,6 @@ Schichten auf `Julius` (Commits): SQL `debe870` · Functions `f3b49c5` · Logik 
 
 - E2E kauft ohne Stripe-4242 (kein chargebares Connect-Konto in e2eapp); 4242 im Klicktest.
 - Studio-Fuß ohne dedizierten Widerruf-Link außer `/legal` → Widerruf (Klickpunkt 10).
-- Demo-Seed (`demo_seed_v2`) auf DEV nach Push ggf. neu laufen lassen.
+- Demoalpha-Produkte auf DEV gesetzt (5er 65 € / 10er 120 €, online, 12 Monate); Karlas bestehende Karte unverändert. Vollständiger `demo_seed_v2` optional.
 
 STOPP — wartet auf Julius’ Klicktest.

@@ -4,7 +4,7 @@ Stand: 2026-10-04 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [k1_kart
 
 ## DEV
 
-- Migrationen bis `20261004274000` (K1 Belege/Ops/Mails; davor `2026100427*` Pass-Online Schema/Checkout/Widerruf)
+- Migrationen bis `20261004275000` (K1 Beleg nach Pass-Anlage; davor `2026100427*` Schema/Checkout/Widerruf/Mails)
 - Functions (deployt): `payments-checkout`, `dispatch-emails`, `payments-jobs`, `payments-webhook` (+ bestehende)
 - Secrets (Namen): `CALENDAR_ICS_SECRET`; `OPS_MONITOR_SECRET`, `OPS_ALERT_EMAIL`; `OPS_HEARTBEAT_URL` nicht gesetzt
 - Cron: `yogaflow_expire_pass_payment_attempts`, `yogaflow_pass_expiry_reminders` (+ bestehende)
