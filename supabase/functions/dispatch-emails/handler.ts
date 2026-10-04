@@ -205,13 +205,17 @@ export function buildPromotionEmail(input: {
   return { subject, html };
 }
 
+const RECEIPT_TAX_SMALL_BUSINESS_FULL =
+  "Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.";
+
 function priceLine(amountCents: number, regime: string | null, vatRateBp: number | null): string {
   const amount = formatEurCents(Math.abs(amountCents));
   if (regime === "regular") {
     const pct = Math.round((vatRateBp ?? 1900) / 100);
     return `${amount} inkl. ${pct} % USt`;
   }
-  return `${amount} · gemäß § 19 UStG ohne USt`;
+  // N5: Bestätigungsmail zeigt den vollen §-19-Satz, nicht die Checkout-Kurzform.
+  return `${amount} · ${RECEIPT_TAX_SMALL_BUSINESS_FULL}`;
 }
 
 function cancelLine(deadlineIso: string | null | undefined): string {

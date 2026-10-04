@@ -285,7 +285,10 @@ Deno.test("18. payment_succeeded: gueltig gesendet; erstattet skipped", async ()
   assert(subject.includes("Buchungsbestätigung"), "Betreff");
   assert(html.includes(amount) && html.includes("Yin") && html.includes("05.10.2026"), "Text");
   assert(html.includes("2026-00001"), "Belegnummer");
-  assert(html.includes("§ 19 UStG"), "Steuer");
+  assert(
+    html.includes("Gemäß § 19 UStG wird keine Umsatzsteuer berechnet."),
+    "Steuer voller Satz",
+  );
 
   const { deps, mails, marks } = makeDeps({
     rows: [{

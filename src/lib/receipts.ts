@@ -12,6 +12,7 @@ export type ReceiptSnapshot = {
   contact_email?: string;
   phone?: string | null;
   tax_text?: string;
+  regime?: string;
   service_text?: string;
   course_title?: string;
   course_date?: string;

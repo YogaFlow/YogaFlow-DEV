@@ -13,6 +13,8 @@ import {
   checkoutPriceLine,
   confirmationSubject,
   formatLegalCents,
+  displayReceiptTaxText,
+  RECEIPT_TAX_SMALL_BUSINESS_FULL,
   receiptServiceText,
   receiptTaxLine,
   refundReceiptHeading,
@@ -30,10 +32,19 @@ test('Preis K5 je Steuerregime', () => {
   assert.equal(checkoutPriceLine(2400, 'small_business', 0), '24,00 € · gemäß § 19 UStG ohne USt');
 });
 
-test('Belegsteuer K8', () => {
+test('Belegsteuer K8 / Anzeige N5', () => {
   assert.equal(receiptTaxLine('regular', 1900), 'enthält 19 % USt');
   assert.equal(receiptTaxLine('regular', 700), 'enthält 7 % USt');
   assert.equal(receiptTaxLine('small_business', 0), 'gemäß § 19 UStG ohne USt');
+  assert.equal(
+    displayReceiptTaxText('small_business', 'gemäß § 19 UStG ohne USt'),
+    RECEIPT_TAX_SMALL_BUSINESS_FULL,
+  );
+  assert.equal(
+    displayReceiptTaxText(undefined, 'gemäß § 19 UStG ohne USt'),
+    'Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.',
+  );
+  assert.equal(displayReceiptTaxText('regular', 'enthält 19 % USt'), 'enthält 19 % USt');
 });
 
 test('Leistungstext K8', () => {

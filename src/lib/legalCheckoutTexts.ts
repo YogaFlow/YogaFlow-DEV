@@ -52,9 +52,31 @@ export function checkoutPriceLine(
   return `${amount} inkl. ${vatPercentFromBp(vatRateBp)} % USt`;
 }
 
+/** Voller Satz auf Belegseite und in der Bestätigungsmail (N5). */
+export const RECEIPT_TAX_SMALL_BUSINESS_FULL =
+  'Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.';
+
+/** Kurzform im Schnappschuss / K5-Checkout (K8). */
+export const RECEIPT_TAX_SMALL_BUSINESS_SHORT = 'gemäß § 19 UStG ohne USt';
+
 export function receiptTaxLine(regime: TaxRegime, vatRateBp: number): string {
-  if (regime === 'small_business') return 'gemäß § 19 UStG ohne USt';
+  if (regime === 'small_business') return RECEIPT_TAX_SMALL_BUSINESS_SHORT;
   return `enthält ${vatPercentFromBp(vatRateBp)} % USt`;
+}
+
+/** Anzeige: nie die Kurzform aus dem Schnappschuss allein zeigen. */
+export function displayReceiptTaxText(
+  regime: string | null | undefined,
+  taxText: string | null | undefined,
+): string {
+  if (
+    regime === 'small_business' ||
+    taxText === RECEIPT_TAX_SMALL_BUSINESS_SHORT ||
+    taxText === RECEIPT_TAX_SMALL_BUSINESS_FULL
+  ) {
+    return RECEIPT_TAX_SMALL_BUSINESS_FULL;
+  }
+  return taxText?.trim() || '';
 }
 
 export function receiptServiceText(title: string, dateIso: string, time: string): string {

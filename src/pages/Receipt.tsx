@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { formatLegalCents, RECEIPT_HEADING, RECEIPT_PRINT_LABEL, refundReceiptHeading } from '../lib/legalCheckoutTexts';
+import {
+  displayReceiptTaxText,
+  formatLegalCents,
+  RECEIPT_HEADING,
+  RECEIPT_PRINT_LABEL,
+  refundReceiptHeading,
+} from '../lib/legalCheckoutTexts';
 import { loadReceipt, type ReceiptRecord } from '../lib/receipts';
 import { formatNumericDate } from '../lib/format';
 import { berlinIsoFromInstant } from '../lib/courseDateTime';
@@ -48,7 +54,9 @@ function ReceiptBody({ receipt }: { receipt: ReceiptRecord }) {
       <p className="mt-5 text-[22px] font-medium tabular-nums text-text">
         {formatLegalCents(receipt.amount_cents)}
       </p>
-      <p className="mt-1 text-[15px] text-text">{snap.tax_text ?? ''}</p>
+      <p className="mt-1 text-[15px] text-text">
+        {displayReceiptTaxText(snap.regime, snap.tax_text)}
+      </p>
     </article>
   );
 }
