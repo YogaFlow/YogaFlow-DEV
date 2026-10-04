@@ -263,15 +263,17 @@ Für die spätere Expo-App bleibt die untere Leiste die Vorgabe — dort ist sie
   „Hans Peter abgemeldet“.
 - Dauer und Zeitbalken (Hover/Fokus pausiert weiter):
 
-  | Art | Dauer | Zeitbalken |
-  |---|---|---|
-  | Kurze Bestätigung ohne Rückgängig („Gespeichert“) | 3 s | nein |
-  | Bestätigung mit Rückgängig (Abmelden, Entfernen, Ein-Tipp mit Karte) | 6 s | ja (`onBrand` 3 px) |
-  | Fehler | bleibt bis geschlossen | nein |
-  | Längerer Text (> 60 Zeichen) | + 1 s | wie oben |
+  | Art | Rückgängig | Dauer | Zeitbalken |
+  |---|---|---|---|
+  | Bestätigung (gebucht, gespeichert, gesendet) | nein | 4 s | nein |
+  | Entfernen/Abmelden — nur wenn ohne Erstattung umkehrbar | ja | 6 s | ja (2 px, `onBrand` 60 %) |
+  | Fehler | — | bleibt bis Schließen | nein |
+  | Längerer Text (> 60 Zeichen) | wie oben | + 1 s | wie oben |
 
-- **Rückgängig nur bei vollständig umkehrbaren Aktionen.** Abmelden einer online
-  bezahlten Buchung löst eine Erstattung aus → Toast ohne Rückgängig.
+- **Buchungen ohne Rückgängig** (auch mit Karte): bei Vertipper normal abmelden.
+- **Rückgängig nur bei vollständig umkehrbaren Entfernen/Abmelden-Aktionen.** Abmelden
+  einer online bezahlten Buchung löst eine Erstattung aus → Toast ohne Rückgängig.
+- Jeder Toast: Wischen oder Tipp auf ✕ schließt sofort; Pause bei Hover/Fokus bleibt.
 - Fehler: bleibt bis zum Schließen, `role="alert"`.
 - Folgeschwere Aktionen (Kurs absagen, löschen, erstatten, entfernen): weiterhin
   `ConfirmDialog` mit Abdunklung und Unschärfe (`ModalBackdrop`), kein Browser-`confirm()`.
@@ -294,7 +296,7 @@ Für die spätere Expo-App bleibt die untere Leiste die Vorgabe — dort ist sie
   Desktop Aktionen in der Buchungskarte.
 - Mobil Aktionsleiste: Zeile 1 Preis + „pro Termin" links, Knopf rechts
   („Weiter zur Zahlung" / „Weiter zur Buchung" / „Mit 10er-Karte buchen");
-  darunter antippbare Zahlart-Zeile (Icon, Titel, optional „Ändern ›");
+  darunter Zahlart als Auswahlfeld (Rahmen + Chevron bei mehreren Wegen; sonst Info);
   darunter Abmeldefrist mit Icon-Spalte; Innenabstand 16 px, unten
   `safe-area-inset-bottom`. Desktop-Buchungskarte: Zahlart-Zeile direkt über dem Knopf.
 - Gefüllt in `danger` ist nur der endgültige Bestätigungsknopf im Dialog.

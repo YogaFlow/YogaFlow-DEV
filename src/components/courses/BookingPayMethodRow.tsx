@@ -1,9 +1,9 @@
-import { Coins, CreditCard, Ticket } from 'lucide-react';
+import { ChevronRight, Coins, CreditCard, Ticket } from 'lucide-react';
 import type { BookingPayMethod } from '../../lib/bookingPaymentOptions';
+import { bookingPayMethodFieldAppearance } from '../../lib/bookingBarLayout';
 import {
   bookingMethodDetail,
   bookingMethodTitle,
-  CHANGE_PAY_METHOD_LABEL,
   ONLINE_PAY_HINT_LINE,
 } from '../../lib/bookingMethodTexts';
 
@@ -23,8 +23,8 @@ function IconFor({ method }: { method: BookingPayMethod }) {
 }
 
 /**
- * Zahlart-Zeile über dem Buchungsknopf (ZW-1 N1).
- * Bei mehreren Wegen antippbar → öffnet Auswahl-Sheet.
+ * Zahlart als Auswahlfeld (UX-5): bei mehreren Wegen Rahmen + Chevron;
+ * bei nur einem Weg reine Info ohne Rahmen.
  */
 export default function BookingPayMethodRow({
   method,
@@ -36,7 +36,11 @@ export default function BookingPayMethodRow({
 }: Props) {
   const title = bookingMethodTitle(method, { label: passLabel });
   const detail = bookingMethodDetail(method);
-  const hint = showOnlineHint && method === 'online';
+  const appearance = bookingPayMethodFieldAppearance({
+    method,
+    canChange,
+    showOnlineHint,
+  });
 
   const body = (
     <>
@@ -52,48 +56,50 @@ export default function BookingPayMethodRow({
           {detail ? (
             <span className="text-[13px] text-textMuted">· {detail}</span>
           ) : null}
-          {hint ? (
-            <span
-              className="inline-flex items-center rounded-sm bg-accentSoft px-1.5 py-0.5 text-[11px] font-medium text-accentText"
-              data-testid="book-online-pay-badge"
-            >
-              Neu
-            </span>
-          ) : null}
-          {canChange ? (
-            <span className="text-[13px] font-medium text-brand">
-              {CHANGE_PAY_METHOD_LABEL} ›
-            </span>
-          ) : null}
         </span>
-        {hint ? (
-          <span
-            className="mt-0.5 block text-[12px] leading-snug text-textMuted"
-            data-testid="book-online-pay-hint"
-          >
-            {ONLINE_PAY_HINT_LINE}
-          </span>
-        ) : null}
       </span>
+      {appearance.showNeuBadge ? (
+        <span
+          className="inline-flex shrink-0 items-center rounded-sm bg-accentSoft px-1.5 py-0.5 text-[11px] font-medium text-accentText"
+          data-testid="book-online-pay-badge"
+        >
+          Neu
+        </span>
+      ) : null}
+      {appearance.showChevron ? (
+        <ChevronRight className="h-4 w-4 shrink-0 text-textMuted" aria-hidden />
+      ) : null}
     </>
   );
 
+  const hint = appearance.showNeuHint ? (
+    <span
+      className="mt-1.5 block text-[12px] leading-snug text-textMuted"
+      data-testid="book-online-pay-hint"
+    >
+      {ONLINE_PAY_HINT_LINE}
+    </span>
+  ) : null;
+
   if (canChange && onChange) {
     return (
-      <button
-        type="button"
-        data-testid={testId}
-        onClick={onChange}
-        className="flex w-full min-h-11 items-start gap-2 rounded-md text-left active:bg-surfaceSunken/60"
-      >
-        {body}
-      </button>
+      <div data-testid={testId} data-bordered="1">
+        <button
+          type="button"
+          onClick={onChange}
+          className="flex h-12 w-full items-center gap-2 rounded-md border border-border bg-surface px-3 text-left active:bg-surfaceSunken/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+        >
+          {body}
+        </button>
+        {hint}
+      </div>
     );
   }
 
   return (
-    <div data-testid={testId} className="flex w-full items-start gap-2">
-      {body}
+    <div data-testid={testId} data-bordered="0">
+      <div className="flex h-12 w-full items-center gap-2 px-0">{body}</div>
+      {hint}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 # STAND — Omlify DEV
 
-Stand: 2026-10-04 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [zw1_zahlungswege.md](berichte/zw1_zahlungswege.md)
+Stand: 2026-10-04 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [ux5_buchungsleiste_toast_demo.md](berichte/ux5_buchungsleiste_toast_demo.md)
 
 ## DEV
 
@@ -9,26 +9,27 @@ Stand: 2026-10-04 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [zw1_zah
 - Secrets (Namen): `CALENDAR_ICS_SECRET`; `OPS_MONITOR_SECRET`, `OPS_ALERT_EMAIL`; `OPS_HEARTBEAT_URL` nicht gesetzt
 - Cron: `yogaflow_ops_monitor` alle 15 min (+ bestehende jobs)
 - ops_alerts offen: nur `demoalpha:disputes` (3); Fehlalarme O1–O3 erledigt
-- E2E: ZW-1 Nachtrag 1/1 (`e2eapp`, 6 Fälle); UX-4 Undo+Balken; UX-2 2/2; UX-3 3/3
+- E2E: UX-5 1/1 (`e2eapp`); ZW-1 Nachtrag 1/1; UX-4 Undo+Balken; UX-2 2/2; UX-3 3/3
 - Legal: AVV-Kanon `b90051ca…` in `legal_document_versions`
 - Deno: `npm run test:deno` 195/195 grün
-- CI: lokal `npm run check:ci` grün (nach ZW-1 Nachtrag N1–N4)
+- CI: lokal `npm run check:ci` grün (UX-5 A/B)
 
 ## Zuletzt abgeschlossen
 
-- **ZW-1 Nachtrag N1–N4** — Zahlart-Zeile, Toast-Dauer, E2E sechs Fälle, Z7 last_booking_pay_method + LAST_METHOD-Doku
-  - Bericht: [docs/berichte/zw1_zahlungswege.md](berichte/zw1_zahlungswege.md)
-- **ZW-1 Zahlungswege / Ein-Tipp-Buchung** — Entscheidung 14, `booking_payment_options`
+- **UX-5 A/B** — Buchungsleiste gestapelt; Toast 4 s / Undo nur Abmelden 6 s; Buchungen ohne Undo
+  - Bericht: [docs/berichte/ux5_buchungsleiste_toast_demo.md](berichte/ux5_buchungsleiste_toast_demo.md) (C1 Inventur → STOPP)
+- **ZW-1 Nachtrag N1–N4** — Zahlart-Zeile, Toast-Dauer, E2E sechs Fälle, Z7 last_booking_pay_method
   - Bericht: [docs/berichte/zw1_zahlungswege.md](berichte/zw1_zahlungswege.md)
 
 ## Nächste Schritte
 
-- Klicktest ZW-1 Nachtrag (Liste in [zw1_zahlungswege.md](berichte/zw1_zahlungswege.md))
-- Optional: Klicktest UX-4 Nachtrag / 3.2c / 3.1
+- Freigabe Inventur demoalpha (Haltestelle 4) → Reset-Skript + Seed v2
+- Danach Klicktest UX-5 (Haltestelle 5)
 
 ## Haltestellen / wartet auf Julius
 
-- **Klicktest ZW-1 Nachtrag N1–N4** — [zw1_zahlungswege.md](berichte/zw1_zahlungswege.md)
+- **UX-5 C1 Inventur demoalpha** — Zahlen in [ux5_buchungsleiste_toast_demo.md](berichte/ux5_buchungsleiste_toast_demo.md) · Haltestelle 4
+- Klicktest ZW-1 Nachtrag N1–N4 (teilweise erledigt laut Story UX-5)
 - Klicktest UX-4 Nachtrag N1–N3 (Toast-Balken mit neuem Kontrast erneut prüfen)
 - UX-2 B1: Test-Mail + Screenshots (falls noch offen)
 - Optional: `OPS_HEARTBEAT_URL` (Haltestelle 3)
@@ -37,7 +38,7 @@ Stand: 2026-10-04 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [zw1_zah
 
 ## hier weitermachen
 
-Klicktest ZW-1 Nachtrag in [zw1_zahlungswege.md](berichte/zw1_zahlungswege.md).
+Freigabe zu C1 in [ux5_buchungsleiste_toast_demo.md](berichte/ux5_buchungsleiste_toast_demo.md), dann C2 Reset + C3 Seed.
 
 ## Verweise
 

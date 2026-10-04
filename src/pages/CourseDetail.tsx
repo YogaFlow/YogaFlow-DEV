@@ -386,7 +386,11 @@ const CourseDetail: React.FC = () => {
 
   const buttonShape =
     'inline-flex items-center justify-center whitespace-nowrap rounded-full min-h-11 min-w-[9.5rem] px-5 text-[15px] font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2';
-  const buttonShapeMobile =
+  /** Gestapelte Buchungsleiste (UX-5): Primärknopf volle Breite, 52 px. */
+  const buttonShapeMobileStack =
+    'inline-flex items-center justify-center whitespace-nowrap rounded-full min-h-[52px] w-full px-5 text-[15px] font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2';
+  /** Angemeldet / Warteliste: Knopf neben Status. */
+  const buttonShapeMobileInline =
     'inline-flex items-center justify-center whitespace-nowrap rounded-full min-h-12 min-w-[8.25rem] px-5 text-[15px] font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2';
   const staffButtonShape =
     'inline-flex items-center justify-center whitespace-nowrap rounded-full min-h-11 px-5 text-[15px] font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2';
@@ -512,7 +516,11 @@ const CourseDetail: React.FC = () => {
     ) : null;
 
   const renderBookingActions = (desktop: boolean) => {
-    const shape = desktop ? buttonShape : buttonShapeMobile;
+    const mobileShape =
+      !desktop && canAct && !isRegistered
+        ? buttonShapeMobileStack
+        : buttonShapeMobileInline;
+    const shape = desktop ? buttonShape : mobileShape;
     return (
     <>
       {canAct ? (
@@ -927,10 +935,22 @@ const CourseDetail: React.FC = () => {
 
           <aside className="sticky top-6" data-testid="course-booking-card">
             <div className="rounded-md border border-border bg-surface p-5 shadow-lg">
-              <p className="text-[22px] font-medium leading-tight text-text tabular-nums">
-                {formatPrice(course.price)}
-              </p>
-              {renderBookingStatus()}
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[22px] font-medium leading-tight text-text tabular-nums">
+                    {formatPrice(course.price)}
+                  </p>
+                  {renderBookingStatus()}
+                </div>
+                {cancelDeadlineLineText ? (
+                  <p
+                    className="max-w-[11rem] text-right text-[12px] leading-snug text-textMuted line-clamp-2"
+                    data-testid="cancel-deadline-line"
+                  >
+                    {cancelDeadlineLineText}
+                  </p>
+                ) : null}
+              </div>
               {occupancyLine ? (
                 <div className="mt-4">
                   <div
@@ -945,16 +965,8 @@ const CourseDetail: React.FC = () => {
                   <p className="mt-2 text-[13px] tabular-nums text-textMuted">{occupancyLine}</p>
                 </div>
               ) : null}
-              {cancelDeadlineLineText ? (
-                <p
-                  className="mt-3 text-[13px] leading-snug text-textMuted"
-                  data-testid="cancel-deadline-line"
-                >
-                  {cancelDeadlineLineText}
-                </p>
-              ) : null}
               {canAct && !isRegistered ? (
-                <div className="mt-4">
+                <div className="mt-3">
                   <BookingPayMethodRow
                     method={activeMethod}
                     passLabel={passOption?.label}
@@ -972,43 +984,28 @@ const CourseDetail: React.FC = () => {
       </div>
 
       <div
-        className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-surface px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-surface px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-[0_-4px_16px_rgba(31,27,22,0.08)] lg:hidden"
         data-testid="course-booking-bar-mobile"
       >
         <div className="mx-auto max-w-2xl">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              {isRegistered && registrationStatus === 'registered' && !showPendingPayment ? (
-                <span className="inline-flex items-center gap-1 text-[13px] font-medium text-success">
-                  <Check className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                  <span className="truncate">
-                    {paymentStatusSuffix
-                      ? `Angemeldet · ${paymentStatusSuffix}`
-                      : 'Angemeldet'}
-                  </span>
-                </span>
-              ) : showPendingPayment ? (
-                <PaymentPendingStatus
-                  holdExpiresAt={resolveHoldExpiresAt(ownRegistration?.hold_expires_at)}
-                  className="!items-start"
-                />
-              ) : isRegistered && registrationStatus === 'waitlist' ? (
-                <AccentPill>
-                  {waitlistPosition ? `Warteliste Pos. ${waitlistPosition}` : 'Warteliste'}
-                </AccentPill>
-              ) : (
-                <p className="flex flex-wrap items-baseline gap-x-1.5 leading-tight">
-                  <span className="text-[19px] font-medium text-text tabular-nums">
+          {canAct && !isRegistered ? (
+            <div className="flex flex-col gap-3">
+              <div className="flex items-start justify-between gap-3">
+                <p className="min-w-0 flex flex-wrap items-baseline gap-x-1.5 leading-tight">
+                  <span className="text-[20px] font-semibold text-text tabular-nums">
                     {formatPrice(course.price)}
                   </span>
                   <span className="text-[13px] text-textMuted">pro Termin</span>
                 </p>
-              )}
-            </div>
-            {renderBookingActions(false)}
-          </div>
-          {canAct && !isRegistered ? (
-            <div className="mt-2">
+                {cancelDeadlineLineText ? (
+                  <p
+                    className="max-w-[11rem] text-right text-[12px] leading-snug text-textMuted line-clamp-2"
+                    data-testid="cancel-deadline-line"
+                  >
+                    {cancelDeadlineLineText}
+                  </p>
+                ) : null}
+              </div>
               <BookingPayMethodRow
                 method={activeMethod}
                 passLabel={passOption?.label}
@@ -1017,17 +1014,51 @@ const CourseDetail: React.FC = () => {
                 onChange={() => setAltPayOpen(true)}
                 testId="book-method-line-mobile"
               />
+              {renderBookingActions(false)}
             </div>
-          ) : null}
-          {cancelDeadlineLineText ? (
-            <div className="mt-2 grid grid-cols-[1.25rem_minmax(0,1fr)] gap-x-2 text-[12px] leading-snug text-textMuted">
-              <Clock
-                className="mt-0.5 h-3.5 w-3.5 shrink-0 text-textSubtle"
-                aria-hidden
-              />
-              <span data-testid="cancel-deadline-line">{cancelDeadlineLineText}</span>
-            </div>
-          ) : null}
+          ) : (
+            <>
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  {isRegistered && registrationStatus === 'registered' && !showPendingPayment ? (
+                    <span className="inline-flex items-center gap-1 text-[13px] font-medium text-success">
+                      <Check className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                      <span className="truncate">
+                        {paymentStatusSuffix
+                          ? `Angemeldet · ${paymentStatusSuffix}`
+                          : 'Angemeldet'}
+                      </span>
+                    </span>
+                  ) : showPendingPayment ? (
+                    <PaymentPendingStatus
+                      holdExpiresAt={resolveHoldExpiresAt(ownRegistration?.hold_expires_at)}
+                      className="!items-start"
+                    />
+                  ) : isRegistered && registrationStatus === 'waitlist' ? (
+                    <AccentPill>
+                      {waitlistPosition ? `Warteliste Pos. ${waitlistPosition}` : 'Warteliste'}
+                    </AccentPill>
+                  ) : (
+                    <p className="flex flex-wrap items-baseline gap-x-1.5 leading-tight">
+                      <span className="text-[20px] font-semibold text-text tabular-nums">
+                        {formatPrice(course.price)}
+                      </span>
+                      <span className="text-[13px] text-textMuted">pro Termin</span>
+                    </p>
+                  )}
+                </div>
+                {renderBookingActions(false)}
+              </div>
+              {cancelDeadlineLineText ? (
+                <p
+                  className="mt-2 text-[12px] leading-snug text-textMuted"
+                  data-testid="cancel-deadline-line"
+                >
+                  {cancelDeadlineLineText}
+                </p>
+              ) : null}
+            </>
+          )}
         </div>
       </div>
     </div>
