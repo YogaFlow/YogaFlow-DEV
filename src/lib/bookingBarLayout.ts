@@ -14,14 +14,17 @@ export type BookingPayMethodFieldAppearance = {
 };
 
 /**
- * Vier Zustände für Snapshots: drei Zahlarten (mehrere Wege) + nur ein Weg.
+ * Zustände für Snapshots: Zahlarten × Neu-Hinweis (Z8) + nur ein Weg.
+ * Badge/Hinweis bei Online oder Vor Ort, wenn showOnlineHint (nicht bei Karte).
  */
 export function bookingPayMethodFieldAppearance(opts: {
   method: BookingPayMethodFieldKind;
   canChange: boolean;
   showOnlineHint?: boolean;
 }): BookingPayMethodFieldAppearance {
-  const showNeu = Boolean(opts.showOnlineHint && opts.method === 'online');
+  const showNeu = Boolean(
+    opts.showOnlineHint && (opts.method === 'online' || opts.method === 'onsite'),
+  );
   return {
     kind: opts.method,
     bordered: opts.canChange,

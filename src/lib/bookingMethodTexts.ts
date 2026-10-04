@@ -8,7 +8,44 @@ export const BOOK_PRIMARY_ONLINE = 'Weiter zur Zahlung';
 export const BOOK_PRIMARY_ONSITE = 'Weiter zur Buchung';
 
 export const ONLINE_PAY_HINT_LINE = 'Du kannst jetzt direkt online bezahlen.';
+/** Z8: wenn Vor Ort Standard ist — Tipp wechselt auf Online. */
+export const ONLINE_PAY_HINT_SWITCH_LINE = 'Neu: Du kannst jetzt auch online bezahlen ›';
 export const CHANGE_PAY_METHOD_LABEL = 'Ändern';
+
+export type OnlinePayHintUi = {
+  showBadge: boolean;
+  hintLine: string | null;
+  /** Hinweiszeile tippbar → Auswahl Online, nichts gebucht. */
+  hintSwitchesToOnline: boolean;
+};
+
+/**
+ * Z8: Hinweis-UI für Online-Standard / Vor-Ort-Standard × gesehen ja/nein.
+ * `showOnlinePayHint` kommt von `booking_payment_options` (serverseitig).
+ */
+export function onlinePayHintUi(opts: {
+  showOnlinePayHint: boolean;
+  activeMethod: BookingMethodKind;
+}): OnlinePayHintUi {
+  if (!opts.showOnlinePayHint) {
+    return { showBadge: false, hintLine: null, hintSwitchesToOnline: false };
+  }
+  if (opts.activeMethod === 'online') {
+    return {
+      showBadge: true,
+      hintLine: ONLINE_PAY_HINT_LINE,
+      hintSwitchesToOnline: false,
+    };
+  }
+  if (opts.activeMethod === 'onsite') {
+    return {
+      showBadge: true,
+      hintLine: ONLINE_PAY_HINT_SWITCH_LINE,
+      hintSwitchesToOnline: true,
+    };
+  }
+  return { showBadge: false, hintLine: null, hintSwitchesToOnline: false };
+}
 
 /** Titel der Zahlart-Zeile (ohne Detail / Ändern). */
 export function bookingMethodTitle(

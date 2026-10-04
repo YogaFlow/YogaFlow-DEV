@@ -4,7 +4,7 @@ import { bookingPayMethodFieldAppearance } from '../../lib/bookingBarLayout';
 import {
   bookingMethodDetail,
   bookingMethodTitle,
-  ONLINE_PAY_HINT_LINE,
+  onlinePayHintUi,
 } from '../../lib/bookingMethodTexts';
 
 type Props = {
@@ -13,6 +13,8 @@ type Props = {
   canChange: boolean;
   showOnlineHint?: boolean;
   onChange?: () => void;
+  /** Z8: Tipp auf Switch-Hinweis → Auswahl Online. */
+  onSwitchToOnline?: () => void;
   testId?: string;
 };
 
@@ -32,6 +34,7 @@ export default function BookingPayMethodRow({
   canChange,
   showOnlineHint = false,
   onChange,
+  onSwitchToOnline,
   testId = 'book-method-line',
 }: Props) {
   const title = bookingMethodTitle(method, { label: passLabel });
@@ -40,6 +43,10 @@ export default function BookingPayMethodRow({
     method,
     canChange,
     showOnlineHint,
+  });
+  const hintUi = onlinePayHintUi({
+    showOnlinePayHint: showOnlineHint,
+    activeMethod: method,
   });
 
   const body = (
@@ -72,13 +79,24 @@ export default function BookingPayMethodRow({
     </>
   );
 
-  const hint = appearance.showNeuHint ? (
-    <span
-      className="mt-1.5 block text-[12px] leading-snug text-textMuted"
-      data-testid="book-online-pay-hint"
-    >
-      {ONLINE_PAY_HINT_LINE}
-    </span>
+  const hint = hintUi.hintLine ? (
+    hintUi.hintSwitchesToOnline && onSwitchToOnline ? (
+      <button
+        type="button"
+        onClick={onSwitchToOnline}
+        className="mt-1.5 block w-full text-left text-[12px] leading-snug text-accentText underline-offset-2 active:underline focus:outline-none focus-visible:underline"
+        data-testid="book-online-pay-hint"
+      >
+        {hintUi.hintLine}
+      </button>
+    ) : (
+      <span
+        className="mt-1.5 block text-[12px] leading-snug text-textMuted"
+        data-testid="book-online-pay-hint"
+      >
+        {hintUi.hintLine}
+      </span>
+    )
   ) : null;
 
   if (canChange && onChange) {

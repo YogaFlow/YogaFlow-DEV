@@ -312,6 +312,7 @@ async function pastPaidOnsite(member, titleSuffix, dayOffset) {
 await pastPaidOnsite(vera, 'Vera 1', -14);
 await pastPaidOnsite(vera, 'Vera 2', -10);
 await pastPaidOnsite(vera, 'Vera 3', -7);
+// Z8: Vera sieht den Neu-Hinweis trotz Vor-Ort-Standard (last = onsite, hint_seen leer)
 await admin
   .from('users')
   .update({ online_pay_hint_seen_at: null, last_booking_pay_method: 'onsite' })

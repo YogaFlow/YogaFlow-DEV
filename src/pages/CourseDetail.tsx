@@ -276,8 +276,7 @@ const CourseDetail: React.FC = () => {
     chosenMethod ?? payOptions?.defaultMethod ?? 'onsite';
   const passOption = payOptions?.methods.find((m) => m.method === 'pass') ?? null;
   const showAltPay = (payOptions?.methods.length ?? 0) > 1;
-  const showOnlinePayHint =
-    Boolean(payOptions?.showOnlinePayHint) && activeMethod === 'online';
+  const showOnlinePayHint = Boolean(payOptions?.showOnlinePayHint);
 
   const reloadPayOptions = async () => {
     if (!courseId || !canSelfEnrollInCourses(userProfile)) return;
@@ -971,6 +970,7 @@ const CourseDetail: React.FC = () => {
                     canChange={showAltPay}
                     showOnlineHint={showOnlinePayHint}
                     onChange={() => setAltPayOpen(true)}
+                    onSwitchToOnline={() => setChosenMethod('online')}
                     testId="book-method-line"
                   />
                 </div>
@@ -1010,6 +1010,7 @@ const CourseDetail: React.FC = () => {
                 canChange={showAltPay}
                 showOnlineHint={showOnlinePayHint}
                 onChange={() => setAltPayOpen(true)}
+                onSwitchToOnline={() => setChosenMethod('online')}
                 testId="book-method-line-mobile"
               />
               {renderBookingActions(false)}
