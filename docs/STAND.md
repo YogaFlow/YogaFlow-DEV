@@ -4,7 +4,7 @@ Stand: 2026-10-04 · Branch `Julius` · HEAD siehe `git log -1`
 
 ## DEV
 
-- Migrationen bis `20261002230000` (Claims zurückgeben ohne Zählung)
+- Migrationen bis `20261004100000` (B1 Belege; davor `20261004090000` Anbieterangaben)
 - Functions (deployt): `payments-jobs`, `payments-webhook` (du_ + `PAYMENT_NOT_READY`), `dispatch-emails`
 - E2E: `npm run dev:e2e` (Playwright, nur DEV-Guard, Studio `demoalpha`) — 11 Fälle
   (3.2c ×3, 3.1 ×1, Datumsfelder ×2, UX-1 ×5)
@@ -40,7 +40,14 @@ Stand: 2026-10-04 · Branch `Julius` · HEAD siehe `git log -1`
 
 ## hier weitermachen
 
-UX-1 fertig (Klicktest 04.10.). Entscheidungen 12 und 13 abgelegt. Als Nächstes B1 / B2.
+B1 Teil A+C (Schema/RPCs/Tests) liegen auf Julius. **Als Nächstes in B1:**
+1. Teil D — `dispatch-emails` Vertragsbestätigung (K6), `send-email` fromName/replyTo (K7), Gate ohne Beleg, Erstattungsmail mit Beleglink (K9)
+2. Teil B — Texte `legalCheckoutTexts.ts`, Knopf „Weiter zur Buchung“ / „Zahlungspflichtig buchen“, Sheet-Block K5
+3. Einstellungen → Rechtliches → Anbieterangaben + Aufmerksamkeit
+4. Seite `/receipts/:id`, Links in Meine Anmeldungen und Zahlungen, CSV-Spalte Belegnummer
+5. Kurs anlegen/ändern: Hinweis > 250 €
+6. E2E (3 Fälle) + `dev:check` / `dev:test`
+Danach B2: zuerst Überwachung (`ops-monitor`), AVV hängt am Sperr-Mechanismus K2 (schon da).
 
 ## Verweise
 

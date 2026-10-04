@@ -26,7 +26,7 @@ Rückweg dieses Schritts, nicht weiter.
 
 PROD-Stand laut `origin/main`: zuletzt `20260928213000_security_courses_teacher_guard_hotfix`
 (davor `20260926160500`). **Vor dem Abend mit `npm run db:status:prod` bestätigen.**
-46 Dateien, alle mit Versionsnummer **vor oder nach** `20260928213000` — die ersten 20 liegen
+48 Dateien, alle mit Versionsnummer **vor oder nach** `20260928213000` — die ersten 20 liegen
 davor und brauchen `--include-all` (zweite Bestätigung `INCLUDE-ALL`).
 
 | # | Version | Datei (ohne Präfix) | Block |
@@ -77,6 +77,8 @@ davor und brauchen `--include-all` (zweite Bestätigung `INCLUDE-ALL`).
 | 44 | `20261002220000` | `s3_1_payment_overview` | F |
 | 45 | `20261002223000` | `s3_1_notification_payment_path` | F |
 | 46 | `20261002230000` | `claim_release_without_count` | F |
+| 47 | `20261004090000` | `b1_legal_profiles` | G — Kaufprozess (B1 Schema) |
+| 48 | `20261004100000` | `b1_receipts` | G |
 
 `db push` wendet alle in einem Lauf an. Die Blöcke A–F sind Prüfpunkte der **Generalprobe**
 (Zählwerte nach jedem Block, siehe 0.7); am Abend selbst genügt ein Lauf, wenn die Generalprobe
@@ -309,6 +311,8 @@ Detail je Story. Vollständige Reihenfolge: Abschnitt 0.1. PROD hat zuletzt `202
 | `20261002220000` | `s3_1_payment_overview.sql` | 3.1: `get_studio_payments`, Status-Ableitung |
 | `20261002223000` | `s3_1_notification_payment_path.sql` | 3.1: Glocke führt zur Zahlung |
 | `20261002230000` | `claim_release_without_count.sql` | Claims zurückgeben ohne `tries`/`attempts` zu erhöhen |
+| `20261004090000` | `b1_legal_profiles.sql` | B1: Anbieterangaben, `LEGAL_PROFILE_MISSING`, 250-€-Grenze |
+| `20261004100000` | `b1_receipts.sql` | B1: Belege, Zähler, Trigger nach Zahlung/Erstattung |
 
 **Release-Hinweis 3.2a/3.2b (Online-Erstattung):** Reihenfolge strikt — **Pause → Migrationen → Functions → Resume**:
 
