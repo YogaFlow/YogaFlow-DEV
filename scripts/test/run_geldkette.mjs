@@ -50,6 +50,7 @@ const SKRIPTE = [
   's3_2a_refunds.mjs',
   's3_2c_refund_previews.mjs',
   's3_1_payment_overview.mjs',
+  'b1_legal_profiles.mjs',
 ];
 
 /** Auf der Probe: braucht demoalpha und/oder Stripe-Sandbox — überspringen. */

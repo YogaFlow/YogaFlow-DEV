@@ -16,6 +16,7 @@ import {
   clientMitTenant,
   kursAnlegen,
   ladeEnv,
+  legalProfileSetzen,
   login,
   nutzerAnlegen,
   ok,
@@ -61,6 +62,7 @@ async function setupOnlineStudio(admin, asOwner, tenantId, acctRef) {
   if (tax.error || !tax.data?.success) {
     abbruch('set_tax_setting: ' + (tax.error?.message || JSON.stringify(tax.data)));
   }
+  await legalProfileSetzen(asOwner);
   const on = await asOwner.rpc('set_online_payments_enabled', { p_enabled: true });
   if (on.error || !on.data?.success) {
     abbruch('set_online_payments_enabled: ' + (on.error?.message || JSON.stringify(on.data)));
@@ -422,6 +424,7 @@ async function main() {
         p_valid_from: berlinDate(0),
       });
       if (tax.error || !tax.data?.success) abbruch('tax2: ' + JSON.stringify(tax));
+      await legalProfileSetzen(asOwner2);
       const on = await asOwner2.rpc('set_online_payments_enabled', { p_enabled: true });
       if (on.error || !on.data?.success) abbruch('online2: ' + JSON.stringify(on));
       await asOwner2.rpc('set_allow_onsite_payment', { p_allow: false });

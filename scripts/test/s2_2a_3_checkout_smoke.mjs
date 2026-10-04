@@ -24,6 +24,7 @@ import {
   clientMitTenant,
   kursAnlegen,
   ladeEnv,
+  legalProfileSetzen,
   login,
   nutzerAnlegen,
   ok,
@@ -178,6 +179,7 @@ async function main() {
     onlineWas = setupBefore?.online_payments_enabled === true;
     onsiteWas = setupBefore?.allow_onsite_payment !== false;
 
+    await legalProfileSetzen(ownerClient);
     const on = await ownerClient.rpc('set_online_payments_enabled', { p_enabled: true });
     if (on.error || !on.data?.success) abbruch('Online an: ' + (on.error?.message || JSON.stringify(on.data)));
     const offSite = await ownerClient.rpc('set_allow_onsite_payment', { p_allow: false });

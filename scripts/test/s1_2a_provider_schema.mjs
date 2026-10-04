@@ -465,6 +465,21 @@ async function main() {
     });
     ok('Steuerstatus ab heute gesetzt', taxHeute.data?.success === true, JSON.stringify(taxHeute.data));
 
+    ok(
+      'Ohne Anbieterangaben → LEGAL_PROFILE_MISSING',
+      rpcFehler(await asOwner.rpc('set_online_payments_enabled', { p_enabled: true }), 'LEGAL_PROFILE_MISSING')
+    );
+    const legal = await asOwner.rpc('upsert_studio_legal_profile', {
+      p_legal_name: 'Yoga Test · Inhaberin',
+      p_street: 'Testweg',
+      p_house_number: '1',
+      p_postal_code: '10115',
+      p_city: 'Berlin',
+      p_country: 'DE',
+      p_contact_email: 'studio@example.com',
+    });
+    ok('Anbieterangaben gesetzt', legal.data?.success === true, JSON.stringify(legal.data));
+
     const on = await asOwner.rpc('set_online_payments_enabled', { p_enabled: true });
     ok('Einschalten ok', on.data?.success === true && on.data.changed === true, JSON.stringify(on.data));
     const tpsOn = await einstellungen(admin, tMain.id);

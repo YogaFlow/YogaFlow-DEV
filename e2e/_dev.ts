@@ -15,6 +15,7 @@ import {
   clientMitTenant,
   kursAnlegen,
   ladeEnv,
+  legalProfileSetzen,
   login,
   nutzerAnlegen,
   plattform,
@@ -109,6 +110,7 @@ export async function devKontext(): Promise<DevCtx> {
       p_valid_from: berlinDate(0),
     });
   }
+  await legalProfileSetzen(owner);
   await owner.rpc('set_online_payments_enabled', { p_enabled: true });
   await owner.rpc('set_allow_onsite_payment', { p_allow: false });
 

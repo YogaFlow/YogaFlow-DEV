@@ -221,6 +221,18 @@ async function main() {
 
   console.log('Online einschalten (ready)');
   await plattform(admin, true);
+  const legal = await ownerClient.rpc('upsert_studio_legal_profile', {
+    p_legal_name: 'Yoga Test · Inhaberin',
+    p_street: 'Testweg',
+    p_house_number: '1',
+    p_postal_code: '10115',
+    p_city: 'Berlin',
+    p_country: 'DE',
+    p_contact_email: 'studio@example.com',
+  });
+  if (legal.error || !legal.data?.success) {
+    abbruch('legal: ' + (legal.error?.message || JSON.stringify(legal.data)));
+  }
   const { data: on, error: onErr } = await ownerClient.rpc('set_online_payments_enabled', { p_enabled: true });
   if (onErr || !on?.success) abbruch('einschalten: ' + (onErr?.message || JSON.stringify(on)));
   ok('online an', on.online_payments_enabled === true);

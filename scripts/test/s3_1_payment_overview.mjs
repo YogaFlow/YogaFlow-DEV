@@ -13,6 +13,7 @@ import {
   clientMitTenant,
   kursAnlegen,
   ladeEnv,
+  legalProfileSetzen,
   login,
   nutzerAnlegen,
   ok,
@@ -45,6 +46,7 @@ async function setupOnline(admin, asOwner, tenantId) {
     p_valid_from: berlinDate(-30),
   });
   if (tax.error || !tax.data?.success) abbruch('tax: ' + JSON.stringify(tax.data ?? tax.error));
+  await legalProfileSetzen(asOwner);
   const on = await asOwner.rpc('set_online_payments_enabled', { p_enabled: true });
   if (on.error || !on.data?.success) abbruch('online on: ' + JSON.stringify(on.data ?? on.error));
   const onsite = await asOwner.rpc('set_allow_onsite_payment', { p_allow: false });

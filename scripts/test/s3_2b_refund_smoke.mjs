@@ -24,6 +24,7 @@ import {
   clientMitTenant,
   kursAnlegen,
   ladeEnv,
+  legalProfileSetzen,
   login,
   nutzerAnlegen,
   ok,
@@ -283,6 +284,7 @@ async function main() {
       }
     }
 
+    await legalProfileSetzen(ownerClient);
     await ownerClient.rpc('set_online_payments_enabled', { p_enabled: true });
     await ownerClient.rpc('set_allow_onsite_payment', { p_allow: false });
 

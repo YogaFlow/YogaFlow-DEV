@@ -15,6 +15,7 @@ import {
   clientMitTenant,
   kursAnlegen,
   ladeEnv,
+  legalProfileSetzen,
   login,
   nutzerAnlegen,
   ok,
@@ -56,6 +57,7 @@ async function setupStudio(admin, asOwner, tenantId, acctRef) {
   if (tax.error || !tax.data?.success) {
     abbruch('tax: ' + (tax.error?.message || JSON.stringify(tax.data)));
   }
+  await legalProfileSetzen(asOwner);
   const on = await asOwner.rpc('set_online_payments_enabled', { p_enabled: true });
   if (on.error || !on.data?.success) abbruch('online: ' + JSON.stringify(on.data));
   const onsite = await asOwner.rpc('set_allow_onsite_payment', { p_allow: false });

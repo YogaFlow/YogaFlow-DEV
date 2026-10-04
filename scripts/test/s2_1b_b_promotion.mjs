@@ -13,7 +13,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createClient } from '@supabase/supabase-js';
-import { warteBis } from './_helpers.mjs';
+import { legalProfileSetzen, warteBis } from './_helpers.mjs';
 
 const ERLAUBTE_REF = 'mufxhtctutfpzklwqnze';
 const SLUG = 's21bbprom';
@@ -255,6 +255,7 @@ async function onlinePflichtAn(admin, ownerClient, tenantId) {
     if (!data?.success) abbruch('set_tax_setting: ' + JSON.stringify(data));
   }
   {
+    await legalProfileSetzen(ownerClient);
     const { data, error } = await ownerClient.rpc('set_online_payments_enabled', { p_enabled: true });
     if (error) abbruch('set_online_payments_enabled: ' + error.message);
     if (!data?.success) abbruch('set_online_payments_enabled: ' + JSON.stringify(data));

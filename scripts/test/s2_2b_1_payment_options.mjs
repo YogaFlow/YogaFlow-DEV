@@ -17,6 +17,7 @@ import {
   login,
   nutzerAnlegen,
   ok,
+  legalProfileSetzen,
   plattform,
   plattformStand,
   resteEntfernen,
@@ -109,11 +110,7 @@ async function main() {
     const off = await asMember.rpc('booking_payment_options');
     if (off.error) abbruch('options off: ' + off.error.message);
     ok('ohne Pflicht false', off.data?.online_required === false, JSON.stringify(off.data));
-    ok(
-      'nur online_required',
-      off.data && Object.keys(off.data).length === 1 && 'online_required' in off.data,
-      JSON.stringify(off.data),
-    );
+    ok('ohne Pflicht reason LEGAL oder null', 'reason' in (off.data ?? {}));
 
     // Online-Pflicht an
     const acctRef = 'acct_s22b1_' + randomUUID().replace(/-/g, '').slice(0, 16);
@@ -125,6 +122,7 @@ async function main() {
       p_valid_from: berlinDate(0),
     });
     if (tax.error || !tax.data?.success) abbruch('tax: ' + JSON.stringify(tax));
+    await legalProfileSetzen(asOwner);
     const on = await asOwner.rpc('set_online_payments_enabled', { p_enabled: true });
     if (on.error || !on.data?.success) abbruch('online: ' + JSON.stringify(on));
     const onsite = await asOwner.rpc('set_allow_onsite_payment', { p_allow: false });
@@ -133,13 +131,7 @@ async function main() {
     const required = await asMember.rpc('booking_payment_options');
     if (required.error) abbruch('options on: ' + required.error.message);
     ok('mit Pflicht true', required.data?.online_required === true, JSON.stringify(required.data));
-    ok(
-      'nur online_required (an)',
-      required.data &&
-        Object.keys(required.data).length === 1 &&
-        'online_required' in required.data,
-      JSON.stringify(required.data),
-    );
+    ok('mit Pflicht reason null', required.data?.reason == null, JSON.stringify(required.data));
 
     // Mitglied anderes Studio mit Header dieses Studios → FORBIDDEN
     const fremd = await asForeignOnSlug.rpc('booking_payment_options');

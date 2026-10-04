@@ -244,6 +244,28 @@ export async function kursAnlegen(admin, tenantId, teacherId, opts = {}) {
   return data;
 }
 
+const LEGAL_DEFAULTS = {
+  p_legal_name: 'Yoga Test · Inhaberin',
+  p_street: 'Testweg',
+  p_house_number: '1',
+  p_postal_code: '10115',
+  p_city: 'Berlin',
+  p_country: 'DE',
+  p_contact_email: 'studio@example.com',
+  p_phone: null,
+  p_tax_id: null,
+};
+
+/** B1: Anbieterangaben im Studio-Kontext des Clients (Owner). */
+export async function legalProfileSetzen(client, overrides = {}) {
+  const args = { ...LEGAL_DEFAULTS, ...overrides };
+  const { data, error } = await client.rpc('upsert_studio_legal_profile', args);
+  if (error || !data?.success) {
+    abbruch('upsert_studio_legal_profile: ' + (error?.message || JSON.stringify(data)));
+  }
+  return data;
+}
+
 export async function plattform(admin, enabled) {
   const { data, error } = await admin.rpc('set_platform_flag', {
     p_key: 'online_payments',
