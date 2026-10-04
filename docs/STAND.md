@@ -12,30 +12,32 @@ Stand: 2026-10-04 · Branch `Julius` · HEAD siehe `git log -1`
 
 ## Zuletzt abgeschlossen
 
-- **Nachtrag Lauf 02.10.** — Antworten umgesetzt; angehalten an Haltestelle 5 (Klicktest)
+- **UX-1** Erstatten / Zahlungen-Reiter / Einstellungen — **fertig**
+  (Klicktest Julius 04.10.2026, alle Punkte ok, 360 + 1280 px)
+  - Bericht: [docs/berichte/ux1_zahlungen_erstatten_einstellungen.md](berichte/ux1_zahlungen_erstatten_einstellungen.md)
+- **Nachtrag Lauf 02.10.** — Antworten umgesetzt; Klicktest offen
   - Bericht: [docs/berichte/nachtrag_lauf_2026-10-02.md](berichte/nachtrag_lauf_2026-10-02.md)
 - **Lauf 02.10.** — Übersicht: [docs/berichte/LAUF_2026-10-02.md](berichte/LAUF_2026-10-02.md)
 - Kleine Punkte a–e — [docs/berichte/kleine_punkte_2026-10-02.md](berichte/kleine_punkte_2026-10-02.md)
 - Release-Plan (nur Doku) — [docs/RELEASE_GELDKETTE_PLAN.md](RELEASE_GELDKETTE_PLAN.md) Abschnitt 0 (+ §0.11 PROD-Replay)
 - **3.1** Zahlungsübersicht — Klicktest offen; Entscheidung 11 gilt (bestätigt 04.10.2026)
 - **3.2c** Erstattung Oberfläche — Klicktest offen
-- **UX-1** Erstatten / Zahlungen-Reiter / Einstellungen — Klicktest offen
-  - Bericht: [docs/berichte/ux1_zahlungen_erstatten_einstellungen.md](berichte/ux1_zahlungen_erstatten_einstellungen.md)
 
 ## Nächste Schritte
 
-- Klicktest UX-1
+- Story B1 (Anbieterangaben, Bestellknopf, Bestätigungs-E-Mail, Belege)
+- Story B2 (Überwachung, AVV v2, AVV-Zustimmung)
 - Klicktest Nachtrag (stornierte Buchungen bis Kursende / pending / failed)
 - Klicktest 3.2c + 3.1
 
 ## Haltestellen / wartet auf Julius
 
-- UX-1 + Nachtrag + 3.2c + 3.1: Klicktest
+- Nachtrag + 3.2c + 3.1: Klicktest
 - Optional: Probe-Lauf freigeben (nicht autonom gegen Probe)
 
 ## hier weitermachen
 
-UX-1 fertig gebaut. Haltestelle Klicktest. Bericht [ux1_zahlungen_erstatten_einstellungen.md](berichte/ux1_zahlungen_erstatten_einstellungen.md).
+UX-1 fertig (Klicktest 04.10.). Als Nächstes B1 / B2.
 
 ## Verweise
 

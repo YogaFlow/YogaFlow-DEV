@@ -1,6 +1,7 @@
 # Bericht UX-1 — Erstatten in einem Schritt, Zahlungen mit Reitern, Einstellungen — 2026-10-04
 
-Status: **angehalten** (Haltestelle 5 — Klicktest Julius). Nur Oberfläche. Keine Migration, keine Edge Function.
+Status: **fertig**. Klicktest Julius 04.10.2026, alle Punkte ok, 360 + 1280 px.
+Nur Oberfläche. Keine Migration, keine Edge Function.
 
 Vorgabe: [docs/stories/ux1_zahlungen_erstatten_einstellungen.md](../stories/ux1_zahlungen_erstatten_einstellungen.md).
 Grundlage: [DESIGNSYSTEM.md](../DESIGNSYSTEM.md), [Entscheidung 10](../entscheidungen/10_Erstattung.md),
@@ -101,6 +102,6 @@ Test-Studio in (5): eigener Tenant ohne Steuerstatus, Aufräumen über `delete_t
 9. Zahlungen-Reiter Alle: Tipp auf Online-Zahlung öffnet dasselbe Erstatten-Sheet.
 10. Desktop 1280: Einstellungen links Liste, rechts Inhalt.
 
-## hier weitermachen
+## Klicktest Julius
 
-Haltestelle 5. Weiter nach Julius’ Klickfeedback.
+04.10.2026 — alle Punkte der Klickliste ok, 360 + 1280 px. Keine Nacharbeit.
