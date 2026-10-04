@@ -1,8 +1,41 @@
+import { execSync } from 'node:child_process';
+import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { defineConfig, loadEnv, build as viteBuild, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 
 import { cloudflare } from "@cloudflare/vite-plugin";
 import { legalRollupInput, writeLegalHtmlPages } from './scripts/render-legal-pages.mjs';
+
+function buildSha(): string {
+  try {
+    return execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
+  } catch {
+    return 'unknown';
+  }
+}
+
+/** Schreibt public/version.json und setzt VITE_BUILD_SHA (ZW-1 Vorab: Build sichtbar). */
+function writeVersionJson(): Plugin {
+  const sha = buildSha();
+  const payload = JSON.stringify(
+    { sha, builtAt: new Date().toISOString() },
+    null,
+    2,
+  );
+  return {
+    name: 'write-version-json',
+    config() {
+      return { define: { 'import.meta.env.VITE_BUILD_SHA': JSON.stringify(sha) } };
+    },
+    buildStart() {
+      writeFileSync(join(process.cwd(), 'public', 'version.json'), `${payload}\n`);
+    },
+    configureServer() {
+      writeFileSync(join(process.cwd(), 'public', 'version.json'), `${payload}\n`);
+    },
+  };
+}
 
 const mpaInput = {
   main: 'index.html',
@@ -87,6 +120,7 @@ export default defineConfig(({ mode, command }) => {
 
   return {
     plugins: [
+      writeVersionJson(),
       react(),
       ...(includeLegalPages ? [stripLegalScripts()] : []),
       ...(marketingBuild ? [] : [cloudflare(), isolatedMarketingBuild()]),

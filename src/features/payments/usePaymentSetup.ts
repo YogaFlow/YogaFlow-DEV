@@ -77,6 +77,7 @@ function mapSwitchError(code: string | null, fallback: string): string {
   if (code === 'AVV_MISSING') return copy.switchErrors.AVV_MISSING;
   if (code === 'PROVIDER_NOT_READY') return copy.switchErrors.PROVIDER_NOT_READY;
   if (code === 'PLATFORM_DISABLED') return copy.switchErrors.PLATFORM_DISABLED;
+  if (code === 'LAST_METHOD') return copy.switchErrors.LAST_METHOD;
   return fallback;
 }
 

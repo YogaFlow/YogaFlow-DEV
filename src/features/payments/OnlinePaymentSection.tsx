@@ -242,7 +242,8 @@ export default function OnlinePaymentSection({ isOwner }: Props) {
             </div>
           ) : null}
 
-          <div className="space-y-1">
+          <div className="space-y-1" data-testid="payment-methods">
+            <p className="text-[15px] font-medium text-text">{copy.active.methodsTitle}</p>
             <label
               className={`flex min-h-11 items-center gap-3 ${isOwner ? 'cursor-pointer' : 'cursor-default opacity-80'}`}
             >
@@ -252,6 +253,7 @@ export default function OnlinePaymentSection({ isOwner }: Props) {
                 disabled={!isOwner || busy}
                 onChange={(e) => void onToggleOnline(e.target.checked)}
                 className="h-4 w-4 rounded-sm border-border text-brand focus:ring-brand"
+                data-testid="toggle-online-method"
               />
               <span className="text-[15px] text-text">{copy.active.onlineLabel}</span>
             </label>
@@ -264,9 +266,36 @@ export default function OnlinePaymentSection({ isOwner }: Props) {
                 disabled={!isOwner || busy}
                 onChange={(e) => void onToggleOnsite(e.target.checked)}
                 className="h-4 w-4 rounded-sm border-border text-brand focus:ring-brand"
+                data-testid="toggle-onsite-method"
               />
               <span className="text-[15px] text-text">{copy.active.onsiteLabel}</span>
             </label>
+            <p className="text-[13px] text-textMuted">{copy.active.lastMethodHint}</p>
+            {status.online_payments_enabled &&
+            (!status.tax_setting_present ||
+              status.legal_profile_present === false ||
+              status.avv_accepted === false) ? (
+              <p role="status" className="text-[15px] text-text" data-testid="online-not-ready">
+                {copy.active.onlineNotReady(
+                  !status.tax_setting_present
+                    ? copy.onlineReadyReasons.TAX_SETTING_MISSING
+                    : status.legal_profile_present === false
+                      ? copy.onlineReadyReasons.LEGAL_PROFILE_MISSING
+                      : copy.onlineReadyReasons.AVV_MISSING,
+                )}{' '}
+                {!status.tax_setting_present ? (
+                  <a href="#steuern" className="underline text-brand">
+                    {copy.switchErrors.TAX_SETTING_LINK}
+                  </a>
+                ) : (
+                  <a href="/settings/rechtliches" className="underline text-brand">
+                    {status.legal_profile_present === false
+                      ? copy.switchErrors.LEGAL_PROFILE_LINK
+                      : copy.switchErrors.AVV_LINK}
+                  </a>
+                )}
+              </p>
+            ) : null}
           </div>
 
           {switchError ? (

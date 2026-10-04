@@ -209,7 +209,7 @@ const ToastCard: React.FC<ToastCardProps> = ({ item, onDismiss, reducedMotion })
           data-testid="toast-progress"
         >
           <div
-            className="h-full bg-brandSoft"
+            className="h-full bg-onBrand"
             data-testid="toast-progress-fill"
             style={{ width: `${progress}%` }}
           />

@@ -71,8 +71,11 @@ export const copy = {
 
   active: {
     lead: 'Online-Zahlung ist bereit.',
-    onlineLabel: 'Online-Zahlung für Buchungen anbieten',
-    onsiteLabel: 'Zahlung vor Ort weiterhin erlauben',
+    methodsTitle: 'Wie können Teilnehmende bezahlen?',
+    onlineLabel: 'Online (Karte, Apple Pay, Google Pay)',
+    onsiteLabel: 'Vor Ort (bar, PayPal, Überweisung)',
+    lastMethodHint: 'Mindestens ein Zahlungsweg muss an bleiben.',
+    onlineNotReady: (reason: string) => `Online ist noch nicht bereit: ${reason}`,
     requirementsPending: (dateLabel: string) =>
       `Stripe braucht bis ${dateLabel} weitere Angaben, sonst wird die Online-Zahlung pausiert.`,
     requirementsCta: 'Angaben ergänzen',
@@ -93,7 +96,18 @@ export const copy = {
     AVV_LINK: 'Zur AVV',
     PROVIDER_NOT_READY: 'Dein Stripe-Konto ist noch nicht bereit.',
     PLATFORM_DISABLED: 'Online-Zahlung ist auf der Plattform noch nicht freigeschaltet.',
+    LAST_METHOD: 'Mindestens ein Zahlungsweg muss an bleiben.',
   },
+
+  onlineReadyReasons: {
+    TAX_SETTING_MISSING: 'Steuerstatus fehlt',
+    LEGAL_PROFILE_MISSING: 'Anbieterangaben fehlen',
+    AVV_MISSING: 'AVV fehlt',
+    PROVIDER_NOT_READY: 'Stripe-Konto ist noch nicht bereit',
+    PLATFORM_DISABLED: 'auf der Plattform noch nicht freigeschaltet',
+    AMOUNT_ABOVE_RECEIPT_LIMIT: 'Preis über 250 €',
+    ONLINE_DISABLED: 'ausgeschaltet',
+  } as Record<string, string>,
 
   formError: 'Das Formular konnte nicht geladen werden. Bitte versuche es noch einmal.',
   refreshing: 'Status wird aktualisiert…',

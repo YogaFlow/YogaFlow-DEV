@@ -151,6 +151,12 @@ function CategoryContent({
               <span>Anwendungsname:</span>
               <span className="font-medium text-text">Omlify</span>
             </div>
+            <div className="flex justify-between gap-3">
+              <span>Build:</span>
+              <span className="font-medium text-text tabular-nums" data-testid="app-build-sha">
+                {import.meta.env.VITE_BUILD_SHA || 'dev'}
+              </span>
+            </div>
           </div>
         </div>
       </div>
