@@ -136,6 +136,11 @@ async function main() {
       p_valid_from: berlinDate(0),
     });
     await legalProfileSetzen(asOwner2, { p_legal_name: 'Yoga Ost', p_city: 'Hamburg' });
+    await asOwner2.rpc('set_tax_setting', {
+      p_regime: 'regular',
+      p_vat_rate_bp: 1900,
+      p_valid_from: berlinDate(0),
+    });
 
     const kurs = await kursAnlegen(admin, tenant.id, teacher.id, { title: 'Yin', price: 24 });
     const kurs2 = await kursAnlegen(admin, tenant2.id, owner2.id, { title: 'Vinyasa', price: 18 });
@@ -153,6 +158,127 @@ async function main() {
       abbruch('anmelden 2: ' + (book2.error?.message || JSON.stringify(book2.data)));
     }
 
+    // NEGATIV: erzwungener Belegfehler — Zahlung muss trotzdem gebucht werden.
+    const forceUser = await nutzerAnlegen(admin, {
+      email: SLUG + '.force@example.com',
+      vorname: 'Force',
+      nachname: 'Fail',
+      rolle: 'user',
+      tenantId: tenant.id,
+      password,
+    });
+    const asForce = await login(url, anon, forceUser.email, password, SLUG);
+    const kursForce = await kursAnlegen(admin, tenant.id, teacher.id, { title: 'Force', price: 5 });
+    const bookForce = await asForce.rpc('register_for_course', {
+      p_course_id: kursForce.id,
+      p_use_pass: false,
+    });
+    if (bookForce.error || !bookForce.data?.registration_id) {
+      abbruch('anmelden Force: ' + (bookForce.error?.message || JSON.stringify(bookForce.data)));
+    }
+    const { data: forcePayId, error: forceErr } = await admin.rpc(
+      'debug_insert_payment_force_receipt_fail',
+      {
+        p_tenant_id: tenant.id,
+        p_registration_id: bookForce.data.registration_id,
+        p_amount_cents: 500,
+      },
+    );
+    if (forceErr) abbruch('NEGATIV force: ' + forceErr.message);
+    const { data: forcePay } = await admin
+      .from('payments')
+      .select('id, status')
+      .eq('id', forcePayId)
+      .maybeSingle();
+    ok('NEGATIV Zahlung gebucht', forcePay?.status === 'succeeded', forcePay?.status);
+    const { data: forceReceipts } = await admin
+      .from('receipts')
+      .select('id')
+      .eq('payment_id', forcePayId)
+      .eq('kind', 'receipt');
+    ok('NEGATIV kein Beleg', (forceReceipts || []).length === 0);
+    const { data: forceEvents } = await admin
+      .from('events')
+      .select('type, payload')
+      .eq('tenant_id', tenant.id)
+      .eq('type', 'receipt.issue_failed')
+      .eq('subject_id', forcePayId);
+    ok(
+      'NEGATIV Ereignis receipt.issue_failed',
+      (forceEvents || []).length === 1 &&
+        forceEvents?.[0]?.payload?.error_code === 'FORCED_RECEIPT_FAIL' &&
+        forceEvents?.[0]?.payload?.payment_id === forcePayId,
+      JSON.stringify(forceEvents?.[0]?.payload),
+    );
+
+    // N4: fehlender Steuerstatus → kein Beleg, Event TAX_STATUS_MISSING.
+    const { data: tenantNoTax, error: tntErr } = await admin
+      .from('tenants')
+      .insert({ name: 'B1 NoTax', slug: SLUG + 'nt' })
+      .select('id')
+      .single();
+    if (tntErr) abbruch('Studio NoTax: ' + tntErr.message);
+    const ownerNt = await nutzerAnlegen(admin, {
+      email: SLUG + '.nt.owner@example.com',
+      vorname: 'Owner',
+      nachname: 'NoTax',
+      rolle: 'owner',
+      tenantId: tenantNoTax.id,
+      password,
+    });
+    const memberNt = await nutzerAnlegen(admin, {
+      email: SLUG + '.nt.user@example.com',
+      vorname: 'User',
+      nachname: 'NoTax',
+      rolle: 'user',
+      tenantId: tenantNoTax.id,
+      password,
+    });
+    const asOwnerNt = await login(url, anon, ownerNt.email, password, SLUG + 'nt');
+    const asMemberNt = await login(url, anon, memberNt.email, password, SLUG + 'nt');
+    await legalProfileSetzen(asOwnerNt, { p_legal_name: 'No Tax Yoga', p_city: 'Leipzig' });
+    const kursNt = await kursAnlegen(admin, tenantNoTax.id, ownerNt.id, { title: 'NoTax', price: 12 });
+    const bookNt = await asMemberNt.rpc('register_for_course', {
+      p_course_id: kursNt.id,
+      p_use_pass: false,
+    });
+    if (bookNt.error || !bookNt.data?.registration_id) {
+      abbruch('anmelden NoTax: ' + (bookNt.error?.message || JSON.stringify(bookNt.data)));
+    }
+    const payNt = await stripeZahlung(admin, tenantNoTax.id, bookNt.data.registration_id, 1200);
+    const { data: payNtRow } = await admin.from('payments').select('id, status').eq('id', payNt).single();
+    ok('N4 Zahlung ohne Steuerstatus gebucht', payNtRow?.status === 'succeeded');
+    const { data: ntReceipts } = await admin
+      .from('receipts')
+      .select('id')
+      .eq('payment_id', payNt);
+    ok('N4 kein Beleg ohne Steuerstatus', (ntReceipts || []).length === 0);
+    const { data: ntEvents } = await admin
+      .from('events')
+      .select('payload')
+      .eq('tenant_id', tenantNoTax.id)
+      .eq('type', 'receipt.issue_failed')
+      .eq('subject_id', payNt);
+    ok(
+      'N4 TAX_STATUS_MISSING',
+      ntEvents?.[0]?.payload?.error_code === 'TAX_STATUS_MISSING',
+      JSON.stringify(ntEvents?.[0]?.payload),
+    );
+
+    // N2: Steuer setzen → retry_missing_receipts holt Beleg nach.
+    await asOwnerNt.rpc('set_tax_setting', {
+      p_regime: 'small_business',
+      p_vat_rate_bp: 0,
+      p_valid_from: berlinDate(-1),
+    });
+    const { data: retryRes, error: retryErr } = await admin.rpc('retry_missing_receipts', {
+      p_tenant_id: tenantNoTax.id,
+    });
+    if (retryErr) abbruch('retry_missing_receipts: ' + retryErr.message);
+    const rNt = await asOwnerNt.rpc('get_receipt_by_payment', { p_payment_id: payNt });
+    ok('N2 Nachholen Beleg', rNt.data?.success === true && !!rNt.data?.number, rNt.data?.number);
+    ok('N2 retry zählt', (retryRes?.payments_issued ?? 0) >= 1, JSON.stringify(retryRes));
+
     const pay1 = await stripeZahlung(admin, tenant.id, book.data.registration_id, 2400);
     const payB = await stripeZahlung(admin, tenant.id, bookB.data.registration_id, 2400);
     const pay2 = await stripeZahlung(admin, tenant2.id, book2.data.registration_id, 1800);
@@ -163,10 +289,12 @@ async function main() {
     const year = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin', year: 'numeric' }).format(
       new Date(),
     );
+    // forcePay verbraucht keine Nummer (fehlgeschlagen vor next_receipt_number).
     ok('Nummer 1', r1.data?.number === `${year}-00001`, r1.data?.number);
     ok('Nummer 2 gleiches Studio', rB.data?.number === `${year}-00002`, rB.data?.number);
     ok('anderes Studio zählt getrennt', r2.data?.number === `${year}-00001`, r2.data?.number);
-    ok('§ 19-Satz', r1.data?.snapshot?.tax_text === 'gemäß § 19 UStG ohne USt');
+    ok('§ 19-Kurzform im Schnappschuss', r1.data?.snapshot?.tax_text === 'gemäß § 19 UStG ohne USt');
+    ok('regular USt im Schnappschuss', r2.data?.snapshot?.tax_text === 'enthält 19 % USt');
     ok('Leistungstext', String(r1.data?.snapshot?.service_text || '').includes('Yin'));
 
     const again = await admin.rpc ? null : null;
@@ -281,7 +409,7 @@ async function main() {
       console.error('Plattform wiederherstellen:', e);
     }
     try {
-      await resteEntfernen(admin, [SLUG, SLUG2], EMAIL_PREFIX);
+      await resteEntfernen(admin, [SLUG, SLUG2, SLUG + 'nt'], EMAIL_PREFIX);
     } catch (e) {
       console.error('Reste:', e);
     }
