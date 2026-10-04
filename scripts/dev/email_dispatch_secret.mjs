@@ -5,7 +5,10 @@
  *
  * DB-Zugang wie scripts/db.mjs: .env.deploy DEV_REF / DEV_DB_HOST / DEV_DB_PASSWORD.
  *
- * Verwendung: node scripts/dev/email_dispatch_secret.mjs
+ * Verwendung:
+ *   node scripts/dev/email_dispatch_secret.mjs           # URL + Secret setzen
+ *   node scripts/dev/email_dispatch_secret.mjs --pause   # URL leeren (Cron loggt nur)
+ *   node scripts/dev/email_dispatch_secret.mjs --resume  # URL wieder setzen
  */
 import { readFileSync, writeFileSync, existsSync, mkdtempSync, unlinkSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
@@ -16,6 +19,12 @@ import { tmpdir } from 'node:os';
 
 const ERLAUBTE_REF = 'mufxhtctutfpzklwqnze';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+
+const mode = (() => {
+  if (process.argv.includes('--pause')) return 'pause';
+  if (process.argv.includes('--resume')) return 'resume';
+  return 'set';
+})();
 
 function ladeEnv(path) {
   if (!existsSync(path)) return {};
@@ -57,13 +66,40 @@ if (ref !== ERLAUBTE_REF) {
 }
 
 const functionUrl = `https://${ref}.supabase.co/functions/v1/dispatch-emails`;
-const secret = randomBytes(32).toString('base64url');
+const envDevPath = join(root, 'supabase', '.env.dev');
+const existing = (ladeEnv(envDevPath).EMAIL_DISPATCH_SECRET || '').trim();
+const reused = existing.length > 0;
+const secret = reused ? existing : randomBytes(32).toString('base64url');
 
 const dbUrl =
   `postgresql://postgres.${ref}:${encodeURIComponent(password)}` +
   `@${host}.pooler.supabase.com:5432/postgres`;
 
-const sql = `
+const pauseSql = `
+DO $vault$
+DECLARE
+  v_url_id uuid;
+BEGIN
+  SELECT id INTO v_url_id FROM vault.secrets WHERE name = 'email_dispatch_url';
+  IF v_url_id IS NULL THEN
+    PERFORM vault.create_secret('', 'email_dispatch_url', 'B2 dispatch-emails URL (paused)');
+  ELSE
+    PERFORM vault.update_secret(v_url_id, '');
+  END IF;
+END;
+$vault$;
+
+SELECT
+  CASE
+    WHEN EXISTS (
+      SELECT 1 FROM vault.decrypted_secrets
+      WHERE name = 'email_dispatch_url' AND btrim(COALESCE(decrypted_secret, '')) = ''
+    ) THEN 1 ELSE 0
+  END AS url_paused,
+  (SELECT count(*)::int FROM vault.secrets WHERE name = 'email_dispatch_secret') AS secret_ok;
+`;
+
+const setSql = `
 DO $vault$
 DECLARE
   v_url_id uuid;
@@ -92,9 +128,11 @@ SELECT
   (SELECT count(*)::int FROM vault.secrets WHERE name = 'email_dispatch_secret') AS secret_ok;
 `;
 
+const runSql = mode === 'pause' ? pauseSql : setSql;
+
 const tmpDir = mkdtempSync(join(tmpdir(), 'omlify-vault-'));
 const tmpSql = join(tmpDir, 'vault.sql');
-writeFileSync(tmpSql, sql, 'utf8');
+writeFileSync(tmpSql, runSql, 'utf8');
 
 const result = spawnSync(
   'psql',
@@ -109,20 +147,37 @@ try {
 }
 
 if (result.status !== 0) {
-  // Kein Secret in der Fehlerausgabe erwarten; trotzdem keine SQL-Datei mehr.
   console.error(result.stderr || result.stdout || 'psql fehlgeschlagen');
   fail('Vault-Einträge konnten nicht geschrieben werden');
 }
 
 const out = (result.stdout || '').trim();
-// Erwartung: eine Zeile "1|1"
+
+if (mode === 'pause') {
+  if (!/^1\|/m.test(out) && !/1\|/.test(out)) {
+    fail('Pause nicht bestätigt (url_paused)');
+  }
+  console.log('  Pause: email_dispatch_url geleert (DEV). Cron ruft dispatch-emails nicht auf.');
+  console.log('  Secret unverändert. Resume: node scripts/dev/email_dispatch_secret.mjs --resume');
+  process.exit(0);
+}
+
 if (!/^1\|1\b/m.test(out) && !/1\|1/.test(out)) {
   fail('Vault-Einträge nicht bestätigt (url_ok/secret_ok)');
 }
 
-upsertEnvLine(join(root, 'supabase', '.env.dev'), 'EMAIL_DISPATCH_SECRET', secret);
+upsertEnvLine(envDevPath, 'EMAIL_DISPATCH_SECRET', secret);
 
-console.log('  Vault-Einträge email_dispatch_url / email_dispatch_secret gesetzt (DEV).');
-console.log('  EMAIL_DISPATCH_SECRET in supabase/.env.dev geschrieben.');
-console.log('  Als Nächstes: npm run secrets:dev');
+if (mode === 'resume') {
+  console.log('  Resume: email_dispatch_url wieder gesetzt (DEV).');
+} else {
+  console.log('  Vault-Einträge email_dispatch_url / email_dispatch_secret gesetzt (DEV).');
+  console.log('  EMAIL_DISPATCH_SECRET in supabase/.env.dev geschrieben.');
+  console.log('  Als Nächstes: npm run secrets:dev');
+}
+if (reused) {
+  console.log('  Bestehendes EMAIL_DISPATCH_SECRET aus supabase/.env.dev für Vault verwendet.');
+} else {
+  console.log('  EMAIL_DISPATCH_SECRET neu erzeugt und in supabase/.env.dev geschrieben.');
+}
 console.log('  Secret wird nicht ausgegeben.');
