@@ -41,10 +41,11 @@ demoalpha danach (nur Nummern/Arten, keine Personendaten):
 |---|---|---|
 | 2026-00001 | receipt | 24,00 € |
 | 2026-00002 | receipt | 24,00 € |
-| 2026-00003 | receipt | −10,00 € (Fehlbeleg vor Fix, Umkehrzahlung) |
+| 2026-00003 | receipt | −10,00 € (Fehlbeleg vor Fix, Umkehrzahlung; bleibt append-only) |
 | 2026-00004 | refund_receipt | −10,00 € |
 
 Mindestens ein Beleg und ein Erstattungsbeleg: ja. Anbieterangaben: 1 Zeile.
+Hinweis Claude (04.10.): `2026-00003` absichtlich nicht korrigierbar (append-only, nur DEV).
 
 ## DoD
 

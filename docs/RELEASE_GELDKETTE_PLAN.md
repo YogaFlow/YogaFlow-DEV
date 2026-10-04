@@ -120,6 +120,9 @@ prüfen, dass `functions:prod` die Datei mitnimmt (sonst blockt das Gateway Stri
 | `STRIPE_WEBHOOK_SECRET_2` | nicht setzen | nur zur Rotation |
 | `PAYMENTS_PROVIDER` | **nie** auf PROD | — |
 | Cloudflare `VITE_STRIPE_PUBLISHABLE_KEY`, `VITE_PAYMENTS_MODE` | **leer lassen** | `pk_live_…` / `live` |
+| `OPS_MONITOR_SECRET` | setzen (Zufallswert) | — |
+| `OPS_ALERT_EMAIL` | setzen (Julius’ Ops-Adresse) | — |
+| `OPS_HEARTBEAT_URL` | optional | — |
 
 ### 0.4 Vault-Einträge (PROD-eigene Werte)
 
@@ -129,6 +132,8 @@ prüfen, dass `functions:prod` die Datei mitnimmt (sonst blockt das Gateway Stri
 | `email_dispatch_secret` | = `EMAIL_DISPATCH_SECRET` | zusammen mit URL |
 | `provider_jobs_url` | `…/functions/v1/payments-jobs` | **zuletzt**, nach allen Functions |
 | `provider_jobs_secret` | = `PROVIDER_JOBS_SECRET` | zusammen mit URL |
+| `ops_monitor_url` | `…/functions/v1/ops-monitor` | nach Deploy `ops-monitor` |
+| `ops_monitor_secret` | = `OPS_MONITOR_SECRET` | zusammen mit URL |
 
 Fehlt ein Eintrag, ruft der Cron nichts auf (nur Log). Die DEV-Skripte
 `scripts/dev/email_dispatch_secret.mjs` und `provider_jobs_secret.mjs` sind DEV-gebunden — für
@@ -145,6 +150,7 @@ Die Migrationen legen fünf Jobs an; sie laufen ab dem Push:
 | `yogaflow_expire_payment_holds` | `* * * * *` | läuft, ohne Online-Zahlung keine Holds |
 | `yogaflow_dispatch_emails` | `* * * * *` | ruft nichts auf, bis `email_dispatch_url` gesetzt ist |
 | `yogaflow_process_provider_jobs` | `* * * * *` | ruft nichts auf, bis `provider_jobs_url` gesetzt ist |
+| `yogaflow_ops_monitor` | `*/15 * * * *` | ruft nichts auf, bis `ops_monitor_url` gesetzt ist |
 
 **Pause** (für spätere Releases mit laufenden Jobs, Muster 3.2a/3.2b): Vault-URL leeren
 (`provider_jobs_url`, ggf. `email_dispatch_url`) → Cron loggt nur. **Fortsetzen:** URL wieder
@@ -261,6 +267,24 @@ nur über den normalen Erstattungs-/Support-Weg. Rohzeilen nicht löschen (Appen
 
 **Offen bis gebaut:** Das PROD-Replay-Skript selbst existiert noch nicht — dieses Runbook ist die
 Vorgabe; Implementierung eigene Story nach dem Schema-Release.
+
+### 0.12 PROD — alte provider_events_raw-Fehler als geprüft markieren (B2 O3)
+
+Runbook-Schritt für Julius (nicht Cursor). Das DEV-Skript `npm run dev:ops:review` ist
+DEV-gebunden und darf nicht gegen PROD laufen.
+
+**Wann:** Nach Schema-Push inkl. `reviewed_at` / `ops_mark_provider_errors_reviewed`, wenn auf
+PROD bekannte Altfehler in `provider_events_raw` liegen, die nicht mehr alarmieren sollen
+(ops-monitor (c)/(e) zählen nur `reviewed_at IS NULL`).
+
+**Ablauf (Julius)**
+
+1. Readonly: Anzahl ungeprüfter Fehler und `max(received_at)` erheben (nur Zählwerte/Zeit, keine Payloads).
+2. Mit PROD-Service-Role (Terminal, getippte Bestätigung wo nötig):
+   `SELECT public.ops_mark_provider_errors_reviewed('<ISO-Zeitpunkt>'::timestamptz);`
+   — Zeitpunkt so wählen, dass nur Altbestand markiert wird (z. B. Release-Abend minus Puffer).
+3. ops-monitor einmal anstoßen oder 15 min warten; offene Keys prüfen.
+4. Neue echte Fehler bleiben ungeprüft und alarmieren weiter.
 
 ---
 

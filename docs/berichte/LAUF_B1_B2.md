@@ -18,16 +18,17 @@ Status **fertig** inkl. Nachtrag N1–N6. Bericht: [b1_bestellknopf_belege.md](b
 
 ## B2 — Überwachung, AVV v2, AVV-Zustimmung
 
-Status **fertig** (Klicktest offen). Bericht: [b2_ueberwachung_avv.md](b2_ueberwachung_avv.md).
+Status **fertig** inkl. O1–O4 (Klicktest offen). Bericht: [b2_ueberwachung_avv.md](b2_ueberwachung_avv.md).
 
 | Teil | Stand |
 |---|---|
 | AVV-Text v2 | Stand 04.10.2026, gerendert |
-| `ops-monitor` | 15 min Cron, `retry_missing_receipts`, U2 inkl. (i), Entprellen, Mail an `OPS_ALERT_EMAIL` (Redirect) |
+| `ops-monitor` | 15 min Cron, `retry_missing_receipts`, U2 inkl. (i), O1–O3-Fixes, Entprellen |
 | AVV-Zustimmung | `legal_acceptances`, Banner, Aufmerksamkeit, Onboarding-Checkbox, `AVV_MISSING` |
 | Testkundin PROD | bestätigt AVV nach Release über Banner — nichts extra |
+| O4 nach Fix | offen nur `demoalpha:disputes` (3); vier Fehlalarme → erledigt |
 
-Rauchtest ops-monitor: collect + HTTP OK, Mail ausgelöst (`mailed=true`).
+E2E akzeptiert AVV per RPC in `_dev.ts` (nicht UI). Echte UI-Zustimmung = Klicktest.
 
 ## Fragen an Julius
 
