@@ -39,16 +39,12 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 - [x] **`scripts/db.mjs` DEP0190** — `5de4849` (02.10.2026): ruft
       `node_modules/supabase/bin/supabase(.exe)` ohne Shell auf; die DB-URL läuft nicht mehr
       durch cmd. Belegt mit `db.mjs status dev` und `dev:apply` (grün).
-- [ ] **DEP0190 in den `scripts/dev/*`-Wrappern** (`dev_check.mjs:16`, `dev_jobs.mjs:24`,
-      `dev_secrets.mjs:16`, `dev_deploy.mjs:30`, `dev_apply.mjs:38`): starten `npm`/`node`
-      mit `shell: true`, ohne Zugangsdaten in den Argumenten — nur noch die Warnung.
-      Unter Windows braucht `npm` (`npm.cmd`) eine Shell; bei Gelegenheit `node` direkt
-      über `process.execPath` starten.
+- [x] **DEP0190 in den `scripts/dev/*`-Wrappern** — (04.10.2026): `scripts/dev/_spawn.mjs`
+      startet `node`/`npm-cli.js`/`npx-cli.js`/`supabase` ohne Shell; Wrapper umgestellt.
 - [x] **CI auf Node 24** — `5e87b8e` (02.10.2026): `ci.yml` `checkout@v5`,
       `setup-node@v5`, `node-version: 24`; `backup-prod.yml` `checkout@v5`.
-- [ ] **`backup-prod.yml`: `supabase/setup-cli@v1` läuft noch auf Node 20.** `v2` ist ein
-      neuer Major (composite) und betrifft den PROD-Backup-Workflow — Julius entscheidet
-      (Frage in `berichte/LAUF_2026-10-02.md`).
+- [ ] **`backup-prod.yml`: `supabase/setup-cli@v1` belassen bis nach dem Geldkette-Release**
+      (Julius 04.10.2026). `v2` ist neuer Major am PROD-Backup — erst danach anheben.
 
 ## Geldkette 2.1b / 2.2 / 3.2
 
@@ -57,7 +53,8 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 - [x] **3.2b Edge/Webhook** — DEV 02.10.2026; Rauch F1–F6 grün. Hotfix `du_` Dispute-Refs
       + Race `PAYMENT_NOT_READY`; Replay-Skript DEV. Bericht `3_2ab_erstattung.md`.
 - [ ] **PROD: Webhook-Ereignisse mit finalem Verarbeitungsfehler erneut fahren** —
-      DEV: `scripts/dev/replay_provider_event.mjs` (Disputes). PROD-Analog / Runbook offen.
+      DEV: `scripts/dev/replay_provider_event.mjs` unverändert. PROD-Runbook:
+      `docs/RELEASE_GELDKETTE_PLAN.md` §0.11; PROD-Skript noch nicht gebaut.
 - [x] **3.2c UI** — DEV 02.10.2026 (`5e9e6f7`…`86154f4`); E2E 3/3 grün; Klicktest Julius
       offen. Bericht `3_2c_erstattung_oberflaeche.md`.
 - [x] **Glocke „Rückbuchung offen“** führt seit `20261002223000` zur Zahlung (3.1).

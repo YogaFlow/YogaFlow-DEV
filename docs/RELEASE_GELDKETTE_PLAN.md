@@ -172,12 +172,18 @@ URL beider Ziele: `https://<PROD_REF>.supabase.co/functions/v1/payments-webhook`
    317 Buchungen / 507800 Cent (Abschnitt 3), 8 Legacy-Absagen konsistent, Kurse je `status`,
    `platform_flags` = `online_payments | false`, `tenant_payment_settings` leer, fünf Cron-Jobs,
    beide Lehrer-Guard-Trigger `tgenabled = 'O'`.
-4. `npm run test:geldkette` gegen die Probe (alle 27 Skripte grün).
+4. Geldkette-Tests gegen die Probe (nicht DEV, nicht PROD):
+   - `.env` temporär auf Probe-URL und Probe-Keys stellen (oder eigene Env).
+   - `OMLIFY_PROBE_REF=<probe-ref>` und `OMLIFY_ALLOW_PROBE=1` setzen.
+   - `node scripts/test/run_geldkette.mjs --probe`
+   - Guard (`assertDevEnv`): Ref muss `OMLIFY_PROBE_REF` sein, darf weder DEV-Ref noch
+     `PROD_REF` aus `.env.deploy` sein; braucht Flag **und** Env.
+   - Übersprungen auf der Probe: `security_signup_role.mjs` (braucht `demoalpha`) sowie die
+     Stripe-Rauchtests `s2_2a_3_checkout_smoke`, `s2_2a_4c_webhook_smoke`,
+     `s3_2b_refund_smoke` (Exit 0 mit Hinweis, wenn mit `--probe` gestartet).
 
-**Hindernis:** Die Testskripte erlauben nur die DEV-Ref (`scripts/dev/dev_guard.mjs`
-`ERLAUBTE_DEV_REF`, `_helpers.mjs` `assertDevEnv`). Gegen eine Probe laufen sie heute nicht.
-Außerdem fehlt in der Kopie `demoalpha`; `security_signup_role.mjs` nutzt es. Entscheidung
-nötig (Frage in `berichte/LAUF_2026-10-02.md`).
+**Nicht hier ausführen** — nur vorbereiten. Gegen PROD und gegen die Probe erst, wenn Julius
+den Lauf freigibt.
 
 ### 0.8 Ablauf und Rückweg je Schritt
 
@@ -213,12 +219,45 @@ Die DEV-Rauchtests (`s1_4_…`, `s2_2a_3_…`, `s2_2a_4c_…`, `s3_2b_…`) brau
       Onboarding-/Gebühren-Texte vom Anwalt (`paymentSetupCopy.ts`).
 - [ ] **Steuerberatung:** Hauptbuch-Konten, H5' Teilerstattung, Kleinunternehmer/Regel, Export.
 - [ ] **Belege (4.2):** Quittungen/Rechnungen je Zahlung und Erstattung.
-- [ ] **Replay-Skript für PROD:** Webhook-Ereignisse mit finalem Fehler nachfahren
-      (DEV: `scripts/dev/replay_provider_event.mjs`, DEV-gebunden).
+- [ ] **PROD-Replay** nach Abschnitt 0.11 (eigenes Runbook; DEV-Skript unverändert).
 - [ ] PROD-Gegenstück zu `provider_jobs_secret.mjs` / `email_dispatch_secret.mjs` (Pause/Resume).
 - [ ] Stripe-Ziele 0.6 anlegen, Live-Secrets 0.3, Cloudflare-Variablen, Payment-Method-Domain je
       Studio (`register_payment_domain` PROD-Analog).
 - [ ] Erstes Studio einzeln einschalten, kleine echte Zahlung, Erstattung, Hauptbuch prüfen.
+
+### 0.11 PROD-Replay — Runbook (Webhook-Ereignisse mit finalem Fehler)
+
+Eigenes Runbook. Das DEV-Skript `scripts/dev/replay_provider_event.mjs` bleibt DEV-gebunden und
+wird **nicht** umgebogen. Gegen PROD nur Julius, mit getippter Bestätigung wo `db.mjs` das verlangt.
+
+**Wann:** Nach dem Functions-Deploy, wenn in `provider_events_raw` Zeilen mit finalem
+`processing_error` liegen (nicht `null`, nicht nur transient), die nach Code-Fix erneut
+verarbeitet werden sollen — z. B. Dispute-Prefix, `PAYMENT_NOT_READY` nach Schema-Nachzug.
+
+**Voraussetzungen**
+
+1. Live-Backup frisch (`backup-prod.yml`).
+2. `payments-webhook` auf dem Stand, der den Fehler behebt (Deploy aus Schritt 0.8).
+3. Stripe-Live-Secrets **nur** wenn der Plattform-Schalter schon an ist; sonst betrifft Replay
+   nur bereits gespeicherte Rohzeilen ohne neuen Stripe-Abruf — Adapter-Nachlesen braucht Keys.
+4. Liste der Event-IDs vorher nur lesend erheben (SQL auf PROD-Readonly oder Julius-Terminal),
+   keine Secrets/Personendaten in Tickets.
+
+**Ablauf (Julius)**
+
+1. Readonly: betroffene `provider_events_raw.id` / `event_id` / `processing_error` notieren.
+2. Pro Ereignis: Verarbeitung erneut anstoßen — **PROD-eigenes** Vorgehen (Skript oder RPC),
+   analog zur DEV-Idee „Rohzeile erneut dem Webhook-Pfad zuführen“, aber mit PROD-Ref,
+   PROD-Secrets und eigener Bestätigung. Kein Aufruf von `replay_provider_event.mjs` gegen PROD.
+3. Prüfen: `processed_at` gesetzt, `processing_error` leer; fachliche Folge (Erstattung,
+   Dispute-Zeile, Glocke) stimmig.
+4. Bei Fehler: stoppen, Backup-Restore nur wenn Schreibschaden; sonst Fehler belassen und fixen.
+
+**Rückweg:** Kein automatisches Undo der fachlichen Buchung. Falsch verarbeitete Erstattungen
+nur über den normalen Erstattungs-/Support-Weg. Rohzeilen nicht löschen (Append-only / Trigger).
+
+**Offen bis gebaut:** Das PROD-Replay-Skript selbst existiert noch nicht — dieses Runbook ist die
+Vorgabe; Implementierung eigene Story nach dem Schema-Release.
 
 ---
 
