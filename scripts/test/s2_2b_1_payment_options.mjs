@@ -17,6 +17,7 @@ import {
   login,
   nutzerAnlegen,
   ok,
+  avvAkzeptieren,
   legalProfileSetzen,
   plattform,
   plattformStand,
@@ -123,6 +124,7 @@ async function main() {
     });
     if (tax.error || !tax.data?.success) abbruch('tax: ' + JSON.stringify(tax));
     await legalProfileSetzen(asOwner);
+    await avvAkzeptieren(asOwner);
     const on = await asOwner.rpc('set_online_payments_enabled', { p_enabled: true });
     if (on.error || !on.data?.success) abbruch('online: ' + JSON.stringify(on));
     const onsite = await asOwner.rpc('set_allow_onsite_payment', { p_allow: false });
@@ -132,6 +134,12 @@ async function main() {
     if (required.error) abbruch('options on: ' + required.error.message);
     ok('mit Pflicht true', required.data?.online_required === true, JSON.stringify(required.data));
     ok('mit Pflicht reason null', required.data?.reason == null, JSON.stringify(required.data));
+    ok(
+      'Methoden enthalten online',
+      Array.isArray(required.data?.methods) &&
+        required.data.methods.some((m) => m.method === 'online'),
+      JSON.stringify(required.data),
+    );
 
     // Mitglied anderes Studio mit Header dieses Studios → FORBIDDEN
     const fremd = await asForeignOnSlug.rpc('booking_payment_options');

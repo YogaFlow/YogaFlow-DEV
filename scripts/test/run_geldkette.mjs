@@ -54,6 +54,7 @@ const SKRIPTE = [
   'b1_receipts.mjs',
   'b2_legal_acceptances.mjs',
   'b2_ops_monitor.mjs',
+  'zw1_zahlungswege.mjs',
 ];
 
 /** Auf der Probe: braucht demoalpha und/oder Stripe-Sandbox — überspringen. */

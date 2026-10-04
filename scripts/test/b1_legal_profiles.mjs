@@ -11,6 +11,7 @@ import {
   clientMitTenant,
   kursAnlegen,
   ladeEnv,
+  avvAkzeptieren,
   legalProfileSetzen,
   login,
   nutzerAnlegen,
@@ -206,9 +207,14 @@ async function main() {
     const missing = await asMember.rpc('booking_payment_options');
     if (missing.error) abbruch('options: ' + missing.error.message);
     ok('ohne Angaben online_required false', missing.data?.online_required === false);
-    ok('Grund LEGAL_PROFILE_MISSING', missing.data?.reason === 'LEGAL_PROFILE_MISSING');
+    ok(
+      'ohne Online-Schalter reason ONLINE_DISABLED',
+      missing.data?.reason === 'ONLINE_DISABLED',
+      JSON.stringify(missing.data),
+    );
 
     await legalProfileSetzen(asOwner);
+    await avvAkzeptieren(asOwner);
     const saved = await asOwner.rpc('get_studio_legal_profile');
     ok('Owner liest Profil', saved.data?.present === true && saved.data?.legal_name === 'Yoga Test · Inhaberin');
 
@@ -228,7 +234,11 @@ async function main() {
     if (onsite.error || !onsite.data?.success) abbruch('onsite: ' + JSON.stringify(onsite));
 
     const ok250 = await asMember.rpc('booking_payment_options', { p_amount_cents: 25000 });
-    ok('250,00 € online möglich', ok250.data?.online_required === true && ok250.data?.reason == null);
+    ok(
+      '250,00 € online möglich',
+      ok250.data?.online_required === true && ok250.data?.reason == null,
+      JSON.stringify(ok250.data),
+    );
 
     const over = await asMember.rpc('booking_payment_options', { p_amount_cents: 25001 });
     ok(

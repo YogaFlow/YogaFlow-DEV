@@ -266,6 +266,23 @@ export async function legalProfileSetzen(client, overrides = {}) {
   return data;
 }
 
+/** B2/ZW-1: aktuelle AVV-Zustimmung (Markdown-Hash aus legal_document_versions). */
+export const AVV_TEST_VERSION = '2026-10-04';
+export const AVV_TEST_HASH =
+  'b90051caf84bc2deb99535bff2218eec4067d61209ba70d5294c04c20cd5e1d3';
+
+export async function avvAkzeptieren(client, overrides = {}) {
+  const { data, error } = await client.rpc('accept_legal_document', {
+    p_document: 'avv',
+    p_version: overrides.version ?? AVV_TEST_VERSION,
+    p_content_hash: overrides.hash ?? AVV_TEST_HASH,
+  });
+  if (error || !data?.success) {
+    abbruch('accept_legal_document: ' + (error?.message || JSON.stringify(data)));
+  }
+  return data;
+}
+
 export async function plattform(admin, enabled) {
   const { data, error } = await admin.rpc('set_platform_flag', {
     p_key: 'online_payments',
