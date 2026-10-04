@@ -34,10 +34,16 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const type: ToastTone = input.type ?? 'success';
       const id = `toast-${++toastSeq}`;
       const hasUndo = Boolean(input.undo);
-      const durationMs = toastAutoDismissMs(type, input.durationMs, hasUndo);
+      const text = toastDisplayText(input);
+      const durationMs = toastAutoDismissMs(
+        type,
+        input.durationMs ?? (hasUndo ? input.undoDurationMs : undefined),
+        hasUndo,
+        text.length,
+      );
       const item: ToastItem = {
         id,
-        text: toastDisplayText(input),
+        text,
         type,
         undoLabel: input.undo?.label,
         durationMs,

@@ -29,6 +29,7 @@ import {
 import { paymentPendingDeadlinePhrase } from '../lib/pendingPaymentLabel';
 import PaymentPendingStatus from '../components/ui/PaymentPendingStatus';
 import AccentPill from '../components/ui/AccentPill';
+import { staffUnregisteredToastLine } from '../lib/toastTexts';
 
 function shownMemberEmail(user: { email?: string | null; anonymized_at?: string | null } | null | undefined): string {
   if (!user || user.anonymized_at) return '';
@@ -253,9 +254,13 @@ const Participants: React.FC = () => {
       }
 
       setParticipants(prev => prev.filter(p => p.id !== participant.id));
+      const unregLine = staffUnregisteredToastLine(
+        participant.user?.first_name,
+        participant.user?.last_name,
+      );
       setFeedbackDialog({
-        title: 'Abgemeldet',
-        message: result.message || 'Teilnehmer wurde erfolgreich abgemeldet.',
+        title: unregLine,
+        message: unregLine,
         type: 'success',
       });
     } catch (error) {

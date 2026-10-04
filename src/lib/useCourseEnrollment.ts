@@ -17,6 +17,7 @@ import { fetchRegistrationRefundStates } from './refunds';
 import { RELEASE_SEAT_LABEL } from './pendingPaymentLabel';
 import { passRedeemErrorMessage } from './passes';
 import { supabase } from './supabase';
+import { enrolledToastLine } from './toastTexts';
 import { TOAST_UNDO_MS } from './toastModel';
 
 export type EnrollmentFeedbackDialog = FeedbackDialogState;
@@ -122,7 +123,13 @@ export function useCourseEnrollment(
 
   const handleRegister = async (
     courseId: string,
-    usePassOrOpts: boolean | { method?: 'pass' | 'online' | 'onsite'; usePass?: boolean } = false,
+    usePassOrOpts:
+      | boolean
+      | {
+          method?: 'pass' | 'online' | 'onsite';
+          usePass?: boolean;
+          course?: Pick<Course, 'title' | 'date' | 'time'>;
+        } = false,
   ) => {
     if (!userProfile || registering) return false;
 
@@ -132,6 +139,7 @@ export function useCourseEnrollment(
         : usePassOrOpts ?? {};
     const usePass = opts.usePass === true || opts.method === 'pass';
     const method = opts.method ?? (usePass ? 'pass' : undefined);
+    const courseMeta = opts.course;
 
     setRegistering(true);
     try {
@@ -187,20 +195,15 @@ export function useCourseEnrollment(
           'success',
           'Warteliste',
         );
-      } else if (result?.coverage === 'pass' && result.pass_remaining != null) {
-        showFeedbackDialog(
-          `Angemeldet · mit Karte bezahlt (noch ${result.pass_remaining})`,
-          'success',
-          'Anmeldung erfolgreich',
-          undo,
-        );
       } else {
-        showFeedbackDialog(
-          result?.message || 'Erfolgreich angemeldet.',
-          'success',
-          'Anmeldung erfolgreich',
-          undo,
-        );
+        const base = courseMeta
+          ? enrolledToastLine(courseMeta)
+          : 'Du bist dabei';
+        const successText =
+          result?.coverage === 'pass' && result.pass_remaining != null
+            ? `${base} · noch ${result.pass_remaining}`
+            : base;
+        showFeedbackDialog(successText, 'success', successText, undo);
       }
       return true;
     } catch (error) {

@@ -56,8 +56,8 @@ test('Toast: kurze Zeile und Undo-Regel', () => {
   assert.equal(toastUndoAllowed({ refundCents: 0, wasPaidOnline: false }), true);
   assert.equal(toastUndoAllowed({ refundCents: 100, wasPaidOnline: false }), false);
   assert.equal(toastUndoAllowed({ refundCents: 0, wasPaidOnline: true }), false);
-  assert.equal(TOAST_SUCCESS_MS, 4000);
-  assert.equal(TOAST_UNDO_MS, 5000);
+  assert.equal(TOAST_SUCCESS_MS, 3000);
+  assert.equal(TOAST_UNDO_MS, 6000);
 });
 
 test('Kopfleiste-Kontrast für 5 Beispielfarben ≥ 4,5:1', () => {

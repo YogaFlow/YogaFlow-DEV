@@ -54,6 +54,16 @@ export function formatTime(value: string | null | undefined): string {
   return `${match[1].padStart(2, '0')}:${match[2]}`;
 }
 
+/** Kurzer Wochentag ohne Punkt: „Mi“ (für Toast-Zeilen). */
+export function formatShortWeekday(value: string | null | undefined): string {
+  if (value == null || value === '') return '';
+  const parts = parseCivilDate(value);
+  if (!parts) return '';
+  return stripTrailingDot(
+    new Intl.DateTimeFormat(LOCALE, { weekday: 'short' }).format(civilToLocalDate(parts)),
+  );
+}
+
 /** 18:30 – 19:30 (en dash with spaces) */
 export function formatTimeRange(
   start: string | null | undefined,

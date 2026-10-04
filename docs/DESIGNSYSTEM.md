@@ -259,10 +259,17 @@ Für die spätere Expo-App bleibt die untere Leiste die Vorgabe — dort ist sie
   Mobil unten über der Navigation, Desktop unten mittig. Hineingleiten 200 ms;
   wegwischbar; `prefers-reduced-motion` → nur einblenden.
 - Links Icon im farbigen Kreis (Erfolg: Marke, Fehler: Gefahr). Eine kurze fette Zeile.
-- Erfolg ohne Rückgängig: 4 s, kein Zeitbalken, `role="status"`.
-- Mit „Rückgängig": 5 s und Zeitbalken 3 px am unteren Rand der Pille (`brandSoft`
-  auf dunklem Grund), von voll nach leer; bei Hover/Fokus pausieren. Knopf in heller
-  Markenfarbe, Tippfläche ≥ 44 px.
+- Texte konkret statt allgemein: „Du bist dabei · Yin Yoga, Mi 20:00“;
+  „Hans Peter abgemeldet“.
+- Dauer und Zeitbalken (Hover/Fokus pausiert weiter):
+
+  | Art | Dauer | Zeitbalken |
+  |---|---|---|
+  | Kurze Bestätigung ohne Rückgängig („Gespeichert“) | 3 s | nein |
+  | Bestätigung mit Rückgängig (Abmelden, Entfernen, Ein-Tipp mit Karte) | 6 s | ja (`onBrand` 3 px) |
+  | Fehler | bleibt bis geschlossen | nein |
+  | Längerer Text (> 60 Zeichen) | + 1 s | wie oben |
+
 - **Rückgängig nur bei vollständig umkehrbaren Aktionen.** Abmelden einer online
   bezahlten Buchung löst eine Erstattung aus → Toast ohne Rückgängig.
 - Fehler: bleibt bis zum Schließen, `role="alert"`.

@@ -298,13 +298,19 @@ const CourseDetail: React.FC = () => {
         setOnsiteConfirmOpen(true);
         return;
       }
-      const ok = await handleRegister(course.id, { method: activeMethod });
+      const ok = await handleRegister(course.id, {
+        method: activeMethod,
+        course: { title: course.title, date: course.date, time: course.time },
+      });
       if (ok) void reloadPayOptions();
     })();
   };
 
   const confirmOnsiteBook = async () => {
-    const ok = await handleRegister(course.id, { method: 'onsite' });
+    const ok = await handleRegister(course.id, {
+      method: 'onsite',
+      course: { title: course.title, date: course.date, time: course.time },
+    });
     if (ok) {
       setOnsiteConfirmOpen(false);
       void reloadPayOptions();
