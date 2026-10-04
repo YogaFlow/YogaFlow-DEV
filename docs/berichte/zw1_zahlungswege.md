@@ -18,7 +18,7 @@ Sonderregeln wie UX-2-Langlauf: Haltestelle 5 blockiert nicht den Lauf (grüner 
 | N1 | `ef15a3f` | Zahlart-Zeile, Knopftexte, `online_pay_hint_seen_at` |
 | N2 | `f90ffc5` | Toast 3 s / 6 s, konkrete Texte |
 | N3 | `3d0ceb2` | E2E sechs Fälle |
-| N4 | (dieser Push) | Z7 `last_booking_pay_method`, Entscheidung Z7, Doku LAST_METHOD |
+| N4 | `cce7d2e` | Z7 `last_booking_pay_method`, Entscheidung Z7, Doku LAST_METHOD |
 
 ## Vorab-Befunde
 
