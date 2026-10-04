@@ -1,6 +1,6 @@
 # STAND — Omlify DEV
 
-Stand: 2026-10-04 · Branch `Julius` · HEAD `2d0fbeb`
+Stand: 2026-10-04 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [LAUF_UX2.md](berichte/LAUF_UX2.md)
 
 ## DEV
 
@@ -45,7 +45,7 @@ Stand: 2026-10-04 · Branch `Julius` · HEAD `2d0fbeb`
 
 ## hier weitermachen
 
-Haltestelle 5: gemeinsame Klickliste UX-2 A+B (max. 12 Punkte); Mail-Screenshots.
+Haltestelle 5: Klickliste in [LAUF_UX2.md](berichte/LAUF_UX2.md); Mail-Screenshots Gmail/iPhone.
 
 ## Verweise
 
