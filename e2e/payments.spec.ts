@@ -54,7 +54,7 @@ test('Owner filtert Online und sieht die Teilerstattung im Detail', async ({ pag
 
   await alsAngemeldet(page, ctx.ownerSession);
   await page.setViewportSize({ width: 360, height: 780 });
-  await page.goto('/payments?tenant=demoalpha');
+  await page.goto('/payments?tab=alle&tenant=demoalpha');
   await page.getByLabel('Art').selectOption('online');
   await page.getByLabel('Name suchen').fill(ctx.laufId);
   const cards = page.getByTestId('payment-cards');

@@ -15,8 +15,14 @@ import {
   onlinePaidStatusLine,
   onlineRefundInfo,
   refundErrorMessage,
+  checkoutPassLine,
+  composeRefundNote,
+  onlinePaidCheckoutLine,
+  refundAmountError,
   refundFormError,
   refundInputToCents,
+  refundReasonError,
+  refundSuccessMessage,
   refundProgress,
   refundReasonLabel,
   refundSummary,
@@ -139,9 +145,36 @@ test('Owner: Zusammenfassung, Eingabe, Prüfung', () => {
   assert.equal(refundInputToCents('abc'), null);
   assert.equal(refundInputToCents('0'), null);
   assert.equal(refundFormError('10,00', 'Kulanz', 2400), null);
-  assert.equal(n(refundFormError('25,00', 'Kulanz', 2400)), 'Höchstens 24,00 € sind noch erstattbar.');
-  assert.equal(refundFormError('10,00', '  ', 2400), 'Bitte gib einen Grund an.');
+  assert.equal(n(refundFormError('25,00', 'Kulanz', 2400)), 'Höchstens 24,00 € möglich');
+  assert.equal(refundFormError('10,00', '  ', 2400), 'Bitte einen Grund wählen.');
   assert.equal(refundFormError('10,00', 'x'.repeat(201), 2400), 'Der Grund darf höchstens 200 Zeichen haben.');
+});
+
+test('UX-1 Betrag: Alles, Teil, zu hoch, leer, Komma', () => {
+  assert.equal(refundAmountError('all', '', 2400), null);
+  assert.equal(refundAmountError('all', '', 0), 'Bitte einen Betrag eingeben');
+  assert.equal(refundAmountError('partial', '10,00', 2400), null);
+  assert.equal(refundAmountError('partial', '10,5', 2400), null);
+  assert.equal(n(refundAmountError('partial', '25,00', 1400)), 'Höchstens 14,00 € möglich');
+  assert.equal(refundAmountError('partial', '', 2400), 'Bitte einen Betrag eingeben');
+  assert.equal(refundAmountError('partial', '0', 2400), 'Bitte einen Betrag eingeben');
+  assert.equal(refundAmountError('partial', 'abc', 2400), 'Bitte einen Betrag eingeben');
+});
+
+test('UX-1 Grund: Chip, Sonstiges Pflicht, Zusatz', () => {
+  assert.equal(refundReasonError('Kulanz', ''), null);
+  assert.equal(refundReasonError('Kulanz', 'Notiz'), null);
+  assert.equal(refundReasonError('', ''), 'Bitte einen Grund wählen.');
+  assert.equal(refundReasonError('Sonstiges', ''), 'Bitte den Grund angeben.');
+  assert.equal(refundReasonError('Sonstiges', '  '), 'Bitte den Grund angeben.');
+  assert.equal(refundReasonError('Sonstiges', 'Doppelt'), null);
+  assert.equal(composeRefundNote('Kulanz', ''), 'Kulanz');
+  assert.equal(composeRefundNote('Kulanz', 'Kulanz intern'), 'Kulanz · Kulanz intern');
+  assert.equal(composeRefundNote('Sonstiges', 'Anderer Grund'), 'Anderer Grund');
+  assert.equal(n(onlinePaidCheckoutLine(2400, 0)), 'Online bezahlt · 24,00 €');
+  assert.equal(n(onlinePaidCheckoutLine(2400, 1000)), 'Online bezahlt · 24,00 € · 10,00 € erstattet');
+  assert.equal(checkoutPassLine('10er-Karte', 9), '10er-Karte · noch 9');
+  assert.equal(n(refundSuccessMessage(1000)), '10,00 € werden erstattet');
 });
 
 test('Fehlercodes verständlich', () => {

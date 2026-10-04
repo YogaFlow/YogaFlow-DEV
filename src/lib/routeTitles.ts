@@ -7,12 +7,17 @@ const TITLES: Record<string, string | undefined> = {
   '/my-courses': 'Kurse verwalten',
   '/my-registrations': 'Meine Anmeldungen',
   '/participants': 'Teilnehmer',
-  '/open-payments': 'Offene Zahlungen',
+  '/open-payments': 'Zahlungen',
   '/payments': 'Zahlungen',
   '/messages': 'Nachrichten',
   '/profile': 'Profil',
   '/users': 'Nutzerverwaltung',
   '/settings': 'Einstellungen',
+  '/settings/studio': 'Studio',
+  '/settings/buchungen': 'Buchungen',
+  '/settings/zahlungen': 'Zahlungen',
+  '/settings/karten': 'Karten',
+  '/settings/team': 'Team',
   '/create-course': 'Neuer Kurs',
 };
 

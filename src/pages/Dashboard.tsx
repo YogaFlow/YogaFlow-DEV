@@ -668,7 +668,7 @@ const Dashboard: React.FC = () => {
       {openCoverage && isAdmin ? (
         <section className="overflow-hidden rounded-md border border-border bg-surface">
           <Link
-            to="/open-payments"
+            to="/payments?tab=offen"
             className="flex min-h-11 items-center gap-3 px-3.5 py-3 text-[17px] font-medium text-text no-underline active:bg-surfaceSunken focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset"
           >
             <span className="min-w-0 flex-1">

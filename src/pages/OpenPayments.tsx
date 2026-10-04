@@ -42,7 +42,7 @@ type BatchRow = {
   still_waived_count: number;
 };
 
-const OpenPayments: React.FC = () => {
+const OpenPayments: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const { userProfile } = useAuth();
   const allowed = isStudioAdmin(userProfile);
 
@@ -219,9 +219,11 @@ const OpenPayments: React.FC = () => {
         </p>
       ) : (
         <section className="overflow-hidden rounded-md border border-border bg-surface">
-          <div className="border-b border-border px-3.5 py-3">
-            <h2 className="text-[17px] font-medium text-text">Offene Zahlungen</h2>
-          </div>
+          {embedded ? null : (
+            <div className="border-b border-border px-3.5 py-3">
+              <h2 className="text-[17px] font-medium text-text">Offene Zahlungen</h2>
+            </div>
+          )}
           <ul className="divide-y divide-border">
             {people.map((person) => {
               const open = !!expanded[person.userId];

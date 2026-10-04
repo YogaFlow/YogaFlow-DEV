@@ -7,6 +7,8 @@ import { isStudioAdmin, isTeacherOnly } from '../lib/userRoles';
 import { isCourseCancelled } from '../lib/courseDateTime';
 import { formatCents, formatDate, formatPrice, formatTime } from '../lib/format';
 import PaymentRefundSheet from '../components/payments/PaymentRefundSheet';
+import { fetchRegistrationRefundStates } from '../lib/refunds';
+import { checkoutPassLine, onlinePaidCheckoutLine } from '../lib/refundTexts';
 import type { CoverageStatus, PaymentMethod, WaivedReason } from '../types';
 import UndoBar from '../components/ui/UndoBar';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
@@ -60,6 +62,9 @@ type Person = {
   holdExpiresAt: string | null;
   /** Stripe-Kartenzahlung (Original), auch wenn teilweise erstattet */
   onlinePaymentId: string | null;
+  onlineAmountCents: number | null;
+  onlineRefundedCents: number;
+  onlineRefundableCents: number;
 };
 
 type CourseHead = {
@@ -419,8 +424,20 @@ const CourseCheckout: React.FC = () => {
           (row.hold_expires_at as string | null) ?? null,
         ),
         onlinePaymentId: onlineByRegistration.get(row.id) ?? null,
+        onlineAmountCents: null,
+        onlineRefundedCents: 0,
+        onlineRefundableCents: 0,
       };
     });
+
+    const refundStates = await fetchRegistrationRefundStates(next.map((person) => person.registrationId));
+    for (const person of next) {
+      const state = refundStates[person.registrationId];
+      if (!state) continue;
+      person.onlineAmountCents = state.payment_cents;
+      person.onlineRefundedCents = state.refunded_cents;
+      person.onlineRefundableCents = state.refundable_cents;
+    }
 
     const [sellable, passesMap] = await Promise.all([
       fetchSellablePassProducts(),
@@ -806,7 +823,12 @@ const CourseCheckout: React.FC = () => {
     <PaymentRefundSheet
       paymentId={refundSheet?.paymentId ?? null}
       firstName={refundSheet?.firstName ?? ''}
-      subtitle={refundSheet ? `${refundSheet.name} · ${course.title}` : undefined}
+      subtitle={
+        refundSheet
+          ? `${refundSheet.name} · ${course.title} · ${formatDate(course.date)}`
+          : undefined
+      }
+      onChanged={() => void load()}
       onClose={() => setRefundSheet(null)}
     />
   );
@@ -967,10 +989,31 @@ const CourseCheckout: React.FC = () => {
                     pass_eligible: course.pass_eligible,
                   })
                 : null;
-            const canRefund = seesMethod && person.onlinePaymentId != null && !person.paymentPending;
-            const showMenu = open || canRevertWaive || canSellPass || canUndoPass || canRefund;
+            const canRefund =
+              seesMethod &&
+              person.onlinePaymentId != null &&
+              !person.paymentPending &&
+              person.onlineRefundableCents > 0;
+            const showMenu = open || canRevertWaive || canSellPass || canUndoPass;
             const menuOpen = menuFor === person.registrationId;
             const passLabel = passBadgeLabel(passesByUser[person.userId] ?? []);
+            const passLine =
+              person.coverage === 'pass'
+                ? checkoutPassLine(
+                    (passesByUser[person.userId] ?? []).find((pass) => pass.pass_id === person.passId)
+                      ?.name ?? 'Karte',
+                    person.passRemaining ?? 0,
+                  )
+                : passLabel
+                  ? checkoutPassLine(
+                      (passesByUser[person.userId] ?? [])[0]?.name ?? 'Karte',
+                      (passesByUser[person.userId] ?? [])[0]?.remaining ?? 0,
+                    )
+                  : null;
+            const onlineLine =
+              person.onlinePaymentId && person.onlineAmountCents != null && person.onlineAmountCents > 0
+                ? onlinePaidCheckoutLine(person.onlineAmountCents, person.onlineRefundedCents)
+                : null;
             return (
               <div key={person.registrationId}>
                 <div className="flex items-center gap-2 px-3.5 py-2">
@@ -981,18 +1024,49 @@ const CourseCheckout: React.FC = () => {
                         <PaymentPendingStatus holdExpiresAt={person.holdExpiresAt} />
                       </div>
                     ) : (
-                    <p className="mt-0.5 flex flex-wrap items-center gap-x-1 gap-y-0.5 text-[13px] text-text">
-                      {person.coverage === 'paid' || person.coverage === 'pass' ? (
-                        <Check className="h-4 w-4 shrink-0" aria-hidden />
+                    <div className="mt-0.5 space-y-0.5">
+                      {onlineLine ? (
+                        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-text">
+                          {person.coverage === 'paid' ? (
+                            <Check className="h-4 w-4 shrink-0" aria-hidden />
+                          ) : null}
+                          <span className="tabular-nums">{onlineLine}</span>
+                          {canRefund ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setRefundSheet({
+                                  paymentId: person.onlinePaymentId as string,
+                                  firstName: person.firstName,
+                                  name,
+                                })
+                              }
+                              className="inline-flex min-h-11 items-center rounded-full border border-border px-3 text-[13px] font-medium text-textMuted active:bg-surfaceSunken"
+                            >
+                              Erstatten
+                            </button>
+                          ) : null}
+                        </p>
+                      ) : person.coverage !== 'pass' ? (
+                        <p className="flex flex-wrap items-center gap-x-1 gap-y-0.5 text-[13px] text-text">
+                          {person.coverage === 'paid' ? (
+                            <Check className="h-4 w-4 shrink-0" aria-hidden />
+                          ) : null}
+                          <span>{status.text}</span>
+                          {status.detail ? (
+                            <span className="text-textMuted tabular-nums">· {status.detail}</span>
+                          ) : null}
+                        </p>
                       ) : null}
-                      <span>{status.text}</span>
-                      {status.detail ? (
-                        <span className="text-textMuted tabular-nums">· {status.detail}</span>
+                      {passLine ? (
+                        <p className="flex items-center gap-1 text-[13px] text-textMuted tabular-nums">
+                          {person.coverage === 'pass' ? (
+                            <Check className="h-4 w-4 shrink-0 text-text" aria-hidden />
+                          ) : null}
+                          {passLine}
+                        </p>
                       ) : null}
-                      {passLabel && person.coverage !== 'pass' ? (
-                        <span className="text-textMuted tabular-nums">· {passLabel}</span>
-                      ) : null}
-                    </p>
+                    </div>
                     )}
                   </div>
                   {showMenu ? (
@@ -1033,22 +1107,6 @@ const CourseCheckout: React.FC = () => {
                 </div>
                 {menuOpen ? (
                   <div className="border-t border-border bg-surfaceSunken px-3.5 py-1">
-                    {canRefund ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMenuFor(null);
-                          setRefundSheet({
-                            paymentId: person.onlinePaymentId as string,
-                            firstName: person.firstName,
-                            name,
-                          });
-                        }}
-                        className="flex min-h-11 w-full items-center text-left text-[15px] text-text"
-                      >
-                        Online-Zahlung · Erstatten…
-                      </button>
-                    ) : null}
                     {canSellPass ? (
                       <button
                         type="button"

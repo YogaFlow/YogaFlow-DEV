@@ -83,18 +83,15 @@ test('2 — Owner erstattet 10 € von Hand, Teilnehmerin sieht Teilerstattung',
   await alsAngemeldet(ownerPage, ctx.ownerSession);
   await ownerPage.setViewportSize({ width: 360, height: 780 });
   await ownerPage.goto(`/course/${kurs.id}/kassieren?tenant=demoalpha`);
-  await ownerPage.getByRole('button', { name: /^Mehr für Lene/ }).click();
-  await ownerPage.getByRole('button', { name: 'Online-Zahlung · Erstatten…' }).click();
-  await expect(ownerPage.getByTestId('refundable')).toContainText('24,00 €');
-  await ownerPage.getByRole('button', { name: 'Erstatten', exact: true }).click();
-  await ownerPage.getByLabel('Betrag').fill('10,00');
-  await ownerPage.getByLabel('Grund').fill(`E2E ${ctx.laufId}`);
-  await ownerPage.getByRole('button', { name: 'Weiter' }).click();
-  await expect(ownerPage.getByTestId('refund-summary')).toContainText('10,00 €');
+  await ownerPage.getByRole('button', { name: 'Erstatten' }).click();
+  await expect(ownerPage.getByTestId('refundable')).toContainText('noch erstattbar 24,00 €');
+  await ownerPage.getByRole('tab', { name: 'Teilbetrag' }).click();
+  await ownerPage.locator('input[inputmode="decimal"]').fill('10,00');
+  await ownerPage.getByRole('button', { name: 'Kulanz' }).click();
   await screenshot(ownerPage, 'owner-erstatten-bestaetigen');
   await ownerPage.getByRole('button', { name: '10,00 € erstatten' }).click();
-  await expect(ownerPage.getByTestId('refund-list')).toContainText('10,00 €');
-  await expect(ownerPage.getByTestId('refundable')).toContainText('14,00 €');
+  await expect(ownerPage.getByTestId('refund-success')).toContainText('10,00 € werden erstattet');
+  await expect(ownerPage.getByTestId('refundable')).toContainText('noch erstattbar 14,00 €');
   await screenshot(ownerPage, 'owner-erstattungsliste');
   await ownerPage.close();
 

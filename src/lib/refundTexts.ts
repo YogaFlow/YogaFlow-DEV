@@ -107,6 +107,38 @@ export function isCancelledEnrollmentVisible(
   return state.pending_cents > 0 || state.failed;
 }
 
+export const REFUND_FEE_HINT = 'Stripe erstattet seine Gebühr für die Zahlung nicht.';
+
+export const REFUND_REASON_CHIPS = ['Kulanz', 'Doppelt gebucht', 'Krankheit', 'Sonstiges'] as const;
+export type RefundReasonChip = (typeof REFUND_REASON_CHIPS)[number];
+
+export type RefundAmountMode = 'all' | 'partial';
+
+/** Zeile in der Kasse: Online-Zahlung, Betrag und ggf. bereits erstattet. */
+export function onlinePaidCheckoutLine(amountCents: number, refundedCents: number): string {
+  const paid = `Online bezahlt · ${formatCents(amountCents)}`;
+  if (refundedCents > 0) return `${paid} · ${formatCents(refundedCents)} erstattet`;
+  return paid;
+}
+
+/** 10er-Karte als eigene Zeile. */
+export function checkoutPassLine(name: string, remaining: number): string {
+  const label = name.trim() || 'Karte';
+  return `${label} · noch ${remaining}`;
+}
+
+export function refundSuccessMessage(amountCents: number): string {
+  return `${formatCents(amountCents)} werden erstattet`;
+}
+
+/** Chip plus optionaler Zusatz — nur für das Studio sichtbar. */
+export function composeRefundNote(chip: string, extra: string): string {
+  const add = extra.trim();
+  if (chip === 'Sonstiges') return add;
+  if (!chip) return add;
+  return add ? `${chip} · ${add}` : chip;
+}
+
 /** Zusammenfassung im Erstatten-Dialog (Owner/Admin). */
 export function refundSummary(
   firstName: string,
@@ -115,7 +147,7 @@ export function refundSummary(
 ): string {
   const who = firstName.trim() || 'die Person';
   const rest = Math.max(refundableCents - amountCents, 0);
-  return `${formatCents(amountCents)} an ${who} erstatten. Danach noch erstattbar: ${formatCents(rest)}. Stripe erstattet seine Gebühr für die Zahlung nicht.`;
+  return `${formatCents(amountCents)} an ${who} erstatten. Danach noch erstattbar: ${formatCents(rest)}. ${REFUND_FEE_HINT}`;
 }
 
 /** Vorbelegung des Betragsfelds: 2400 → „24,00“. */
@@ -139,18 +171,41 @@ export function refundInputToCents(input: string): number | null {
 
 export const REFUND_NOTE_MAX = 200;
 
+export function refundAmountError(
+  mode: RefundAmountMode,
+  input: string,
+  refundableCents: number,
+): string | null {
+  if (mode === 'all') {
+    return refundableCents > 0 ? null : 'Bitte einen Betrag eingeben';
+  }
+  const cents = refundInputToCents(input);
+  if (cents == null) return 'Bitte einen Betrag eingeben';
+  if (cents > refundableCents) return `Höchstens ${formatCents(refundableCents)} möglich`;
+  return null;
+}
+
+export function refundReasonError(chip: string, extra: string): string | null {
+  if (!chip) return 'Bitte einen Grund wählen.';
+  if (chip === 'Sonstiges' && !extra.trim()) return 'Bitte den Grund angeben.';
+  if (extra.trim().length > REFUND_NOTE_MAX) return 'Der Grund darf höchstens 200 Zeichen haben.';
+  return null;
+}
+
 /** Prüfung vor dem Absenden; null = in Ordnung. */
 export function refundFormError(
   input: string,
   note: string,
   refundableCents: number,
+  options?: { mode?: RefundAmountMode; chip?: string; extra?: string },
 ): string | null {
-  const cents = refundInputToCents(input);
-  if (cents == null) return 'Gib einen Betrag wie 10,00 ein.';
-  if (cents > refundableCents) {
-    return `Höchstens ${formatCents(refundableCents)} sind noch erstattbar.`;
+  const mode = options?.mode ?? 'partial';
+  const amountProblem = refundAmountError(mode, input, refundableCents);
+  if (amountProblem) return amountProblem;
+  if (options?.chip != null || options?.extra != null) {
+    return refundReasonError(options.chip ?? '', options.extra ?? '');
   }
-  if (!note.trim()) return 'Bitte gib einen Grund an.';
+  if (!note.trim()) return 'Bitte einen Grund wählen.';
   if (note.trim().length > REFUND_NOTE_MAX) return 'Der Grund darf höchstens 200 Zeichen haben.';
   return null;
 }

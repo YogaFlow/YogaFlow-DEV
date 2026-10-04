@@ -11,7 +11,6 @@ import {
   MessageSquare,
   UserCog,
   ClipboardCheck,
-  Wallet,
   Receipt,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -19,6 +18,8 @@ import { useTenant } from '../../context/TenantContext';
 import StudioMark from '../branding/StudioMark';
 import { getStudioLogoUrl } from '../../lib/studioBranding';
 import { useUnreadMessages } from '../../lib/useUnreadMessages';
+import { useOpenPaymentsCount } from '../../lib/useOpenPaymentsCount';
+import { openPaymentsBadge } from '../../lib/paymentsTabs';
 import { canSelfEnrollInCourses } from '../../lib/userRoles';
 
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
@@ -32,6 +33,8 @@ const Sidebar: React.FC = () => {
   const { userProfile, signOut, isAdmin, isCourseLeader } = useAuth();
   const { tenant } = useTenant();
   const { unreadCount } = useUnreadMessages();
+  const openPaymentsCount = useOpenPaymentsCount(isAdmin);
+  const paymentsBadge = openPaymentsBadge(openPaymentsCount);
   const canSelfEnroll = canSelfEnrollInCourses(userProfile);
 
   // Kurzer "Pop"-Effekt jedes Mal, wenn die Anzahl ungelesener Nachrichten steigt.
@@ -78,7 +81,6 @@ const Sidebar: React.FC = () => {
     if (isAdmin) {
       items.splice(-1, 0,
         { to: '/payments', icon: Receipt, label: 'Zahlungen' },
-        { to: '/open-payments', icon: Wallet, label: 'Offene Zahlungen' },
         { to: '/settings', icon: Settings, label: 'Einstellungen' },
       );
     }
@@ -121,6 +123,7 @@ const Sidebar: React.FC = () => {
         <ul className="space-y-2">
           {navItems.map((item) => {
             const isMessages = item.to === '/messages';
+            const isPayments = item.to === '/payments';
             const hasUnread = isMessages && unreadCount > 0;
             return (
               <li key={item.to}>
@@ -154,7 +157,19 @@ const Sidebar: React.FC = () => {
                           </span>
                         )}
                       </span>
-                      {item.label}
+                      <span className="flex min-w-0 flex-1 items-center gap-2">
+                        {item.label}
+                        {isPayments && paymentsBadge ? (
+                          <span
+                            aria-label={`${openPaymentsCount} offene Zahlungen`}
+                            className={`min-w-[1.25rem] rounded-full px-1.5 text-center text-[11px] font-semibold leading-5 tabular-nums ${
+                              isActive ? 'bg-onBrand/15 text-onBrand' : 'bg-brand text-onBrand'
+                            }`}
+                          >
+                            {paymentsBadge}
+                          </span>
+                        ) : null}
+                      </span>
                     </>
                   )}
                 </NavLink>
