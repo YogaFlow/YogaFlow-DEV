@@ -30,7 +30,8 @@ test('Toast Rolle und Dauer', () => {
   assert.equal(toastAutoDismissMs('success'), TOAST_SUCCESS_MS);
   assert.equal(toastAutoDismissMs('success', undefined, true), TOAST_UNDO_MS);
   assert.equal(toastAutoDismissMs('error'), null);
-  assert.equal(toastDisplayText({ title: 'Abgemeldet', message: 'Erfolgreich abgemeldet.' }), 'Abgemeldet — Erfolgreich abgemeldet.');
+  assert.equal(toastDisplayText({ title: 'Abgemeldet', message: 'Abgemeldet' }), 'Abgemeldet');
+  assert.equal(toastDisplayText({ message: 'Abgemeldet' }), 'Abgemeldet');
 });
 
 test('Export Monatsgrenzen und Jahr', () => {

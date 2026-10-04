@@ -249,13 +249,16 @@ export function useCourseEnrollment(
       fetchUserRegistrations();
 
       const refundCents = (data as { refund_cents?: number }).refund_cents ?? 0;
+      // UX-4 A2: Rückgängig nur wenn vollständig umkehrbar (keine Online-Erstattung).
       const canUndo = refundCents === 0 && !wasPaidOnline;
-      showFeedbackDialog(
+      const successText =
         refundCents > 0 || wasPaidOnline
           ? unregisterRefundSuccessMessage(refundCents)
-          : data.message || 'Erfolgreich abgemeldet.',
+          : 'Abgemeldet';
+      showFeedbackDialog(
+        successText,
         'success',
-        'Abmeldung erfolgreich',
+        successText,
         canUndo
           ? {
               durationMs: TOAST_UNDO_MS,

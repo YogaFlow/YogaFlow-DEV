@@ -255,17 +255,23 @@ Für die spätere Expo-App bleibt die untere Leiste die Vorgabe — dort ist sie
 
 **Rückmeldungen (Toast):**
 
-- Erfolg: Toast unten (mobil über der Navigation), 4 s sichtbar, kein OK-Knopf,
-  nicht blockierend, `role="status"`. Wo sinnvoll mit „Rückgängig".
-- Fehler: Toast in Fehlerfarbe, bleibt bis zum Schließen, `role="alert"`.
+- Dunkle Pille (`bg-text`, Schrift weiß), Radius 14 px, Schatten, max. 420 px.
+  Mobil unten über der Navigation, Desktop unten mittig. Hineingleiten 200 ms;
+  wegwischbar; `prefers-reduced-motion` → nur einblenden.
+- Links Icon im farbigen Kreis (Erfolg: Marke, Fehler: Gefahr). Eine kurze fette Zeile.
+- Erfolg ohne Rückgängig: 4 s, kein Zeitbalken, `role="status"`.
+- Mit „Rückgängig": 5 s und dünner Zeitbalken; Knopf in heller Markenfarbe, Tippfläche ≥ 44 px.
+- **Rückgängig nur bei vollständig umkehrbaren Aktionen.** Abmelden einer online
+  bezahlten Buchung löst eine Erstattung aus → Toast ohne Rückgängig.
+- Fehler: bleibt bis zum Schließen, `role="alert"`.
 - Folgeschwere Aktionen (Kurs absagen, löschen, erstatten, entfernen): weiterhin
   `ConfirmDialog` mit Abdunklung und Unschärfe (`ModalBackdrop`), kein Browser-`confirm()`.
 
 **Kursdetailseite:**
 
 - Mobil (unter `lg`): Brotkrumen „Zurück", Titel 22 px, Infokarte mit Trennlinien,
-  destruktive Verwaltung als rote Textlinks unter dem Inhalt (Kurs absagen, Kurs löschen),
-  feste Aktionsleiste unten.
+  Verwaltung über „⋯"-Menü oben rechts (Bearbeiten, Kurs absagen, Kurs löschen in `danger`),
+  feste Aktionsleiste unten; keine losen roten Links.
 - Desktop (`lg`+): Brotkrumen „Kurse ›", Titel 32 px, Termin-Chips, Infokacheln links,
   sticky Buchungskarte rechts (Belegung nur dort). Verwaltung über „⋯"-Menü (Bearbeiten,
   Kurs absagen, Kurs löschen in `danger`); keine losen roten Links unten.

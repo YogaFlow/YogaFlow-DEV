@@ -48,11 +48,14 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const type: ToastTone = input.type ?? 'success';
       const id = `toast-${++toastSeq}`;
       const hasUndo = Boolean(input.undo);
+      const durationMs = toastAutoDismissMs(type, input.durationMs, hasUndo);
       const item: ToastItem = {
         id,
         text: toastDisplayText(input),
         type,
         undoLabel: input.undo?.label,
+        durationMs,
+        createdAt: Date.now(),
         onUndo: input.undo
           ? async () => {
               try {
@@ -66,12 +69,11 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       setItems((prev) => [...prev, item].slice(-3));
 
-      const ms = toastAutoDismissMs(type, input.durationMs, hasUndo);
-      if (ms != null) {
+      if (durationMs != null) {
         clearTimer(id);
         timers.current.set(
           id,
-          window.setTimeout(() => dismissToast(id), ms),
+          window.setTimeout(() => dismissToast(id), durationMs),
         );
       }
     },
