@@ -79,6 +79,8 @@ export interface PassProduct {
   price_cents: number;
   validity_rule: PassValidityRule;
   validity_value: number;
+  description?: string | null;
+  online_purchasable?: boolean;
   is_scheduled: boolean;
   archived_at: string | null;
   created_at: string;
@@ -93,7 +95,8 @@ export type PassMovementKind =
   | 'redeem_reversal'
   | 'expire'
   | 'revoke'
-  | 'manual_adjustment';
+  | 'manual_adjustment'
+  | 'void';
 
 export interface Pass {
   id: string;

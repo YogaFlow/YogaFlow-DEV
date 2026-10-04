@@ -243,6 +243,8 @@ export function refundReasonLabel(reason: string): string {
       return 'Manuell';
     case 'provider_dashboard':
       return 'Stripe-Dashboard';
+    case 'withdrawal':
+      return 'Widerruf';
     default:
       return reason;
   }

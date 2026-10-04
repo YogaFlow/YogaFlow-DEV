@@ -10,6 +10,7 @@ export const PASS_MONTHS_MIN = 1;
 export const PASS_MONTHS_MAX = 60;
 export const PASS_NAME_MIN = 2;
 export const PASS_NAME_MAX = 80;
+export const PASS_DESCRIPTION_MAX = 140;
 
 const GENERIC_ERROR = 'Das hat nicht geklappt. Bitte versuche es erneut.';
 
@@ -26,6 +27,8 @@ export type PassProductFields = {
   price_cents: number;
   validity_rule: PassValidityRule;
   validity_value: number;
+  description?: string | null;
+  online_purchasable?: boolean;
 };
 
 export type PassProductMutationResult =
@@ -103,6 +106,10 @@ export function passProductErrorMessage(code: string | null | undefined): string
       return 'Es gibt schon eine Karte mit diesem Namen.';
     case 'ARCHIVED':
       return 'Diese Karte ist archiviert. Hole sie zuerst zurück.';
+    case 'INVALID_DESCRIPTION':
+      return 'Die Beschreibung darf höchstens 140 Zeichen haben.';
+    case 'ONLINE_NOT_AVAILABLE':
+      return 'Online kaufbar ist gerade nicht möglich (Zahlung nicht bereit oder Preis über 250 €).';
     case 'FORBIDDEN':
     case 'NOT_FOUND':
       return GENERIC_ERROR;
@@ -162,6 +169,8 @@ export async function createPassProduct(
     p_price_cents: fields.price_cents,
     p_validity_rule: fields.validity_rule,
     p_validity_value: fields.validity_value,
+    p_description: fields.description ?? null,
+    p_online_purchasable: fields.online_purchasable === true,
   });
   return mapRpcResult(data, error);
 }
@@ -177,8 +186,63 @@ export async function updatePassProduct(
     p_price_cents: fields.price_cents,
     p_validity_rule: fields.validity_rule,
     p_validity_value: fields.validity_value,
+    p_description: fields.description ?? null,
+    p_online_purchasable: fields.online_purchasable === true,
   });
   return mapRpcResult(data, error);
+}
+
+export type OnlinePassProduct = {
+  id: string;
+  name: string;
+  units: number;
+  price_cents: number;
+  validity_rule: PassValidityRule;
+  validity_value: number;
+  description: string | null;
+  price_per_unit_cents: number | null;
+};
+
+export async function listOnlinePassProducts(): Promise<OnlinePassProduct[]> {
+  const { data, error } = await supabase.rpc('list_online_pass_products');
+  if (error) {
+    console.error(error);
+    throw error;
+  }
+  const body = (data ?? {}) as {
+    success?: boolean;
+    products?: OnlinePassProduct[];
+    error?: string;
+  };
+  if (body.success !== true) return [];
+  return Array.isArray(body.products) ? body.products : [];
+}
+
+/** Häufigster Kurspreis (Euro → Cent) aktiver kommender Kurse; null wenn keiner. */
+export async function fetchMostCommonCoursePriceCents(): Promise<number | null> {
+  const { data, error } = await supabase
+    .from('courses')
+    .select('price')
+    .is('archived_at', null)
+    .order('date', { ascending: true })
+    .limit(200);
+  if (error || !data?.length) return null;
+  const counts = new Map<number, number>();
+  for (const row of data) {
+    const euros = Number(row.price);
+    if (!Number.isFinite(euros) || euros <= 0) continue;
+    const cents = Math.round(euros * 100);
+    counts.set(cents, (counts.get(cents) ?? 0) + 1);
+  }
+  let best: number | null = null;
+  let bestN = 0;
+  for (const [cents, n] of counts) {
+    if (n > bestN || (n === bestN && best != null && cents < best)) {
+      best = cents;
+      bestN = n;
+    }
+  }
+  return best;
 }
 
 export async function setPassProductArchived(

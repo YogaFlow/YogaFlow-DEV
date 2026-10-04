@@ -70,29 +70,8 @@ export function usePaymentCheckout() {
     setMessage(paymentMessageForCode(errCode));
   }, []);
 
-  const runPrepare = useCallback(
-    async (
-      registrationId: string,
-      options?: { mode?: 'initial' | 'retry' },
-    ): Promise<PrepareOk | null> => {
-      const retry = options?.mode === 'retry';
-      setPhase(retry ? 'retrying' : 'preparing');
-      setCode(null);
-      setMessage(null);
-      // L2: beim Retry prepare nicht leeren — Payment Element bleibt gemountet.
-      if (!retry) setPrepare(null);
-
-      const { data, error } = await supabase.functions.invoke('payments-checkout', {
-        body: { action: 'prepare', registration_id: registrationId },
-      });
-
-      if (error) {
-        const body = await readInvokeErrorBody(error);
-        fail(body.code ?? 'INVALID_REQUEST');
-        return null;
-      }
-
-      const row = (data ?? {}) as Record<string, unknown>;
+  const applyPrepareRow = useCallback(
+    (row: Record<string, unknown>): PrepareOk | null => {
       if (typeof row.code === 'string' && row.attempt_id == null) {
         fail(row.code);
         return null;
@@ -129,6 +108,67 @@ export function usePaymentCheckout() {
       return next;
     },
     [fail],
+  );
+
+  const runPrepare = useCallback(
+    async (
+      registrationId: string,
+      options?: { mode?: 'initial' | 'retry' },
+    ): Promise<PrepareOk | null> => {
+      const retry = options?.mode === 'retry';
+      setPhase(retry ? 'retrying' : 'preparing');
+      setCode(null);
+      setMessage(null);
+      // L2: beim Retry prepare nicht leeren — Payment Element bleibt gemountet.
+      if (!retry) setPrepare(null);
+
+      const { data, error } = await supabase.functions.invoke('payments-checkout', {
+        body: { action: 'prepare', registration_id: registrationId },
+      });
+
+      if (error) {
+        const body = await readInvokeErrorBody(error);
+        fail(body.code ?? 'INVALID_REQUEST');
+        return null;
+      }
+
+      return applyPrepareRow((data ?? {}) as Record<string, unknown>);
+    },
+    [applyPrepareRow, fail],
+  );
+
+  /** K1: Online-Kartenkauf mit Consent-Hashes. */
+  const runPreparePass = useCallback(
+    async (
+      productId: string,
+      immediateUseHash: string,
+      withdrawalInfoHash: string,
+      options?: { mode?: 'initial' | 'retry' },
+    ): Promise<PrepareOk | null> => {
+      const retry = options?.mode === 'retry';
+      setPhase(retry ? 'retrying' : 'preparing');
+      setCode(null);
+      setMessage(null);
+      if (!retry) setPrepare(null);
+
+      const { data, error } = await supabase.functions.invoke('payments-checkout', {
+        body: {
+          action: 'prepare',
+          product_id: productId,
+          immediate_use_hash: immediateUseHash,
+          withdrawal_info_hash: withdrawalInfoHash,
+        },
+      });
+
+      if (error) {
+        const body = await readInvokeErrorBody(error);
+        fail(body.code ?? 'INVALID_REQUEST');
+        return null;
+      }
+
+      return applyPrepareRow((data ?? {}) as Record<string, unknown>);
+    },
+    [applyPrepareRow, fail],
   );
 
   /** L2: Nach Ablehnung/3DS-Fehler neuen Versuch vorbereiten (neue attempt_id). */
@@ -177,6 +217,21 @@ export function usePaymentCheckout() {
 
       if (regStatus === 'registered' || regStatus === 'cancelled') {
         const c = completion ?? 'ALREADY_COMPLETED';
+        const msg = paymentMessageForCode(c);
+        setPhase('done');
+        setCode(c);
+        setMessage(msg);
+        return { kind: 'done', code: c, message: msg };
+      }
+
+      // K1: Kartenkauf hat keine registration_status — succeeded reicht.
+      const subjectType =
+        typeof row.subject_type === 'string' ? row.subject_type : null;
+      if (
+        subjectType === 'pass_product' &&
+        (attemptStatus === 'succeeded' || completion === 'COMPLETED')
+      ) {
+        const c = completion ?? 'COMPLETED';
         const msg = paymentMessageForCode(c);
         setPhase('done');
         setCode(c);
@@ -342,6 +397,7 @@ export function usePaymentCheckout() {
     busy,
     reset,
     runPrepare,
+    runPreparePass,
     runRetryPrepare,
     runConfirm,
     runStatus,

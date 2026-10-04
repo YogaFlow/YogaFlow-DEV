@@ -54,6 +54,7 @@ function checkNoSecretsInRepo() {
 
 run('Typen prüfen', npx, ['tsc', '-p', 'tsconfig.app.json', '--noEmit']);
 run('Lint', npm, ['run', 'lint']);
+run('K1 Pass-Texte', 'node', ['scripts/test/k1_pass_texts.mjs']);
 run('Stripe nur im Adapter', npm, ['run', 'check:provider-boundary']);
 run('Edge-Function-Tests', npm, ['run', 'test:deno']);
 run('Build', npm, ['run', 'build'], {

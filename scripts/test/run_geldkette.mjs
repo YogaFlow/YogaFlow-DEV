@@ -56,6 +56,7 @@ const SKRIPTE = [
   'b2_legal_acceptances.mjs',
   'b2_ops_monitor.mjs',
   'zw1_zahlungswege.mjs',
+  'k1_pass_online.mjs',
 ];
 
 /** Auf der Probe: braucht demoalpha und/oder Stripe-Sandbox — überspringen. */
