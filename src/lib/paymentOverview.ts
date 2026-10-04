@@ -36,7 +36,7 @@ export type StatusTone = 'neutral' | 'pending' | 'attention' | 'muted';
 export const PAYMENTS_PAGE_SIZE = 50;
 
 export const PAYMENT_SUMS_HINT =
-  'Summen und Umsatz stehen im CSV-Export unter Einstellungen → Export.';
+  'Summen und Umsatz stehen im Export unter „Exportieren“.';
 
 const KIND_LABELS: Record<PaymentKind, string> = {
   cash: 'Bar',

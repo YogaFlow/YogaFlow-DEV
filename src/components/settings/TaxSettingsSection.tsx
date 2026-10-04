@@ -1,11 +1,6 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { asCivilIsoDate, berlinIsoDate } from '../../lib/courseDateTime';
-import {
-  LEDGER_EXPORT_FOOTNOTE,
-  downloadLedgerCsv,
-  fetchLedgerExport,
-  monthBounds,
-} from '../../lib/ledgerExport';
 import {
   type TaxSettingRow,
   choiceFromSetting,
@@ -13,11 +8,9 @@ import {
   taxHistoryLine,
   taxStatusSentence,
 } from '../../lib/taxStatus';
+import { withDevTenant } from '../../context/TenantContext';
 import LedgerWaitingNotice from '../tax/LedgerWaitingNotice';
 import TaxStatusDialog from './TaxStatusDialog';
-import CivilDatePicker from '../DateTimePicker/CivilDatePicker';
-
-type PeriodMode = 'month' | 'range';
 
 function splitSettings(rows: TaxSettingRow[], today: string) {
   const applicable = rows.filter((row) => asCivilIsoDate(row.valid_from) <= today);
@@ -35,12 +28,6 @@ export default function TaxSettingsSection({ isOwner }: { isOwner: boolean }) {
   const [loadError, setLoadError] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [savedNote, setSavedNote] = useState('');
-  const [periodMode, setPeriodMode] = useState<PeriodMode>('month');
-  const [month, setMonth] = useState(() => berlinIsoDate(0).slice(0, 7));
-  const [fromDate, setFromDate] = useState(() => `${berlinIsoDate(0).slice(0, 7)}-01`);
-  const [toDate, setToDate] = useState(() => berlinIsoDate(0));
-  const [exportError, setExportError] = useState('');
-  const [exporting, setExporting] = useState(false);
 
   const reload = async () => {
     setLoadError('');
@@ -74,34 +61,6 @@ export default function TaxSettingsSection({ isOwner }: { isOwner: boolean }) {
   const today = berlinIsoDate(0);
   const { current, history, upcoming } = splitSettings(rows, today);
   const hasSetting = rows.length > 0;
-
-  const download = async () => {
-    if (exporting) return;
-    setExportError('');
-    const bounds =
-      periodMode === 'month'
-        ? monthBounds(month)
-        : { from: asCivilIsoDate(fromDate), to: asCivilIsoDate(toDate) };
-    if (!bounds || !bounds.from || !bounds.to) {
-      setExportError('Bitte wähle einen gültigen Zeitraum.');
-      return;
-    }
-    setExporting(true);
-    try {
-      const result = await fetchLedgerExport(bounds.from, bounds.to);
-      if (!result.ok) {
-        setExportError(result.message);
-        return;
-      }
-      const stem =
-        periodMode === 'month'
-          ? `omlify-hauptbuch-${month}`
-          : `omlify-hauptbuch-${bounds.from}_${bounds.to}`;
-      downloadLedgerCsv(stem, result.rows);
-    } finally {
-      setExporting(false);
-    }
-  };
 
   return (
     <section id="steuern" className="scroll-mt-24 rounded-md border border-border bg-surface p-3.5">
@@ -163,83 +122,16 @@ export default function TaxSettingsSection({ isOwner }: { isOwner: boolean }) {
 
       {savedNote ? <p className="mt-3 text-[15px] text-text">{savedNote}</p> : null}
 
-      <div className="mt-6 border-t border-border pt-4">
-        <h3 className="text-[17px] font-medium leading-snug text-text">Export</h3>
-        <div className="mt-3 inline-flex rounded-sm bg-surfaceSunken p-1">
-          <button
-            type="button"
-            onClick={() => setPeriodMode('month')}
-            className={`inline-flex min-h-11 items-center rounded-sm px-4 text-[15px] font-medium ${
-              periodMode === 'month' ? 'bg-surface text-text' : 'text-textMuted'
-            }`}
-          >
-            Monat
-          </button>
-          <button
-            type="button"
-            onClick={() => setPeriodMode('range')}
-            className={`inline-flex min-h-11 items-center rounded-sm px-4 text-[15px] font-medium ${
-              periodMode === 'range' ? 'bg-surface text-text' : 'text-textMuted'
-            }`}
-          >
-            Von–Bis
-          </button>
-        </div>
-
-        {periodMode === 'month' ? (
-          <label className="mt-3 block max-w-xs text-[13px] text-textMuted">
-            Monat
-            <input
-              type="month"
-              value={month}
-              onChange={(event) => setMonth(event.target.value)}
-              className="mt-1 w-full min-h-11 rounded-sm border border-border px-3 text-[15px] text-text focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand"
-            />
-          </label>
-        ) : (
-          <div className="mt-3 grid max-w-md grid-cols-1 gap-3 sm:grid-cols-2">
-            <div>
-              <label htmlFor="tax-export-from" className="text-[13px] text-textMuted">
-                Von
-              </label>
-              <div className="mt-1">
-                <CivilDatePicker
-                  id="tax-export-from"
-                  value={fromDate}
-                  onChange={(value) => setFromDate(asCivilIsoDate(value))}
-                />
-              </div>
-            </div>
-            <div>
-              <label htmlFor="tax-export-to" className="text-[13px] text-textMuted">
-                Bis
-              </label>
-              <div className="mt-1">
-                <CivilDatePicker
-                  id="tax-export-to"
-                  value={toDate}
-                  onChange={(value) => setToDate(asCivilIsoDate(value))}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        <button
-          type="button"
-          onClick={() => void download()}
-          disabled={exporting}
-          className="mt-4 inline-flex min-h-11 items-center rounded-full bg-brand px-5 text-[15px] font-medium text-onBrand active:bg-brandPressed disabled:opacity-50"
+      <p className="mt-6 border-t border-border pt-4 text-[15px] leading-6 text-textMuted">
+        Exporte findest du unter{' '}
+        <Link
+          to={withDevTenant('/payments?tab=alle')}
+          className="font-medium text-brand underline underline-offset-2"
         >
-          {exporting ? 'Wird erstellt…' : 'CSV herunterladen'}
-        </button>
-        {exportError ? (
-          <p role="alert" className="mt-3 text-[15px] text-text">
-            {exportError}
-          </p>
-        ) : null}
-        <p className="mt-3 text-[13px] leading-5 text-textMuted">{LEDGER_EXPORT_FOOTNOTE}</p>
-      </div>
+          Zahlungen
+        </Link>
+        .
+      </p>
 
       <TaxStatusDialog
         open={dialogOpen && isOwner}

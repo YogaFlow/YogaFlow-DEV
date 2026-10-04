@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { AlertTriangle, Check, ChevronRight, Clock, Minus } from 'lucide-react';
+import { AlertTriangle, Check, ChevronRight, Clock, Download, Minus, MoreHorizontal } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { isStudioAdmin } from '../lib/userRoles';
 import { berlinIsoFromInstant } from '../lib/courseDateTime';
@@ -25,6 +25,7 @@ import {
 } from '../lib/paymentOverview';
 import { fetchStudioPayments } from '../lib/studioPayments';
 import PaymentRefundSheet from '../components/payments/PaymentRefundSheet';
+import PaymentsExportSheet from '../components/payments/PaymentsExportSheet';
 
 const TONE_ICON: Record<StatusTone, typeof Check> = {
   neutral: Check,
@@ -71,6 +72,8 @@ const Payments: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const selectedId = params.get('payment');
   const selected = rows.find((row) => row.payment_id === selectedId) ?? null;
@@ -162,6 +165,46 @@ const Payments: React.FC = () => {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[13px] leading-5 text-textMuted sm:hidden">Filter und Export</p>
+        <div className="relative ml-auto">
+          <button
+            type="button"
+            className="inline-flex h-11 items-center gap-2 rounded-full px-3 text-[15px] font-medium text-textMuted active:bg-surfaceSunken md:hidden"
+            aria-label="Mehr"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((v) => !v)}
+            data-testid="payments-more"
+          >
+            <MoreHorizontal className="h-5 w-5" aria-hidden />
+          </button>
+          {menuOpen ? (
+            <div className="absolute right-0 z-10 mt-1 min-w-[10rem] rounded-md border border-border bg-surface py-1 shadow-lg md:hidden">
+              <button
+                type="button"
+                className="flex w-full items-center gap-2 px-4 py-3 text-left text-[15px] text-text"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setExportOpen(true);
+                }}
+              >
+                <Download className="h-4 w-4" aria-hidden />
+                Exportieren
+              </button>
+            </div>
+          ) : null}
+          <button
+            type="button"
+            className="hidden h-11 items-center gap-1.5 rounded-full px-3 text-[15px] font-medium text-textMuted active:bg-surfaceSunken md:inline-flex"
+            onClick={() => setExportOpen(true)}
+            data-testid="payments-export"
+          >
+            <Download className="h-4 w-4" aria-hidden />
+            Exportieren
+          </button>
+        </div>
+      </div>
+
       <section className="grid grid-cols-2 gap-2 md:grid-cols-4" aria-label="Filter">
         <label className="col-span-2 block md:col-span-1">
           <span className="sr-only">Monat</span>
@@ -345,6 +388,12 @@ const Payments: React.FC = () => {
         subtitle={selected ? `${paymentPersonName(selected)} · ${paymentPurpose(selected)}` : undefined}
         onClose={closeDetail}
         onChanged={() => setReloadKey((value) => value + 1)}
+      />
+
+      <PaymentsExportSheet
+        open={exportOpen}
+        filters={{ month, kind, status, search }}
+        onClose={() => setExportOpen(false)}
       />
     </div>
   );

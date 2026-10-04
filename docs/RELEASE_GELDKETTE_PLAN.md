@@ -86,6 +86,15 @@ davor und brauchen `--include-all` (zweite Bestätigung `INCLUDE-ALL`).
 grün war. Jede Datei hat einen Kopf „Rückweg“ und einen `DO $$`-Selbsttest, der bei Abweichung
 abbricht — ein Abbruch rollt nur diese Datei zurück, die vorherigen bleiben.
 
+### 0.1b UX-2 (04.10.2026, nur Frontend/Functions — keine neue Migration)
+
+| Schicht | Inhalt |
+|---|---|
+| Functions | `send-email` (multipart `text` + `attachments`), `dispatch-emails` / `ops-monitor` (gemeinsame Mail-Hülle, ICS) — DEV deployt mit UX-2 B1 |
+| Frontend | Checkout/Legal-Pop-up (Teil A); Export unter Zahlungen (B2); Desktop Kursdetail/Kasse (B3) |
+| Secrets | keine neuen Namen |
+| Migrationen | keine |
+
 ### 0.2 Edge Functions
 
 Stand gegen `origin/main` (Ordner `supabase/functions/`):

@@ -15,6 +15,8 @@ Stand: 2026-10-04 · Branch `Julius` · HEAD `2d77a75`
 
 ## Zuletzt abgeschlossen
 
+- **UX-2 Teil B2** Export unter Zahlungen — siehe Bericht
+  - Bericht: [docs/berichte/ux2_teil_b2.md](berichte/ux2_teil_b2.md)
 - **UX-2 Teil B1** einheitliche Mail-Vorlage, ICS, multipart — Commit `0256764`
   - Bericht: [docs/berichte/ux2_teil_b1.md](berichte/ux2_teil_b1.md)
 - **UX-2 Teil A** Checkout, Legal-Pop-up, FormField, ModalBackdrop — Commit `cd16a93`
@@ -27,14 +29,13 @@ Stand: 2026-10-04 · Branch `Julius` · HEAD `2d77a75`
 
 ## Nächste Schritte
 
-- UX-2 B2 Export (Zahlungen), B3 Desktop
-- Vor B3: Referenz-Screenshots Kursdetail + Kasse 360 px
-- Haltestelle 5: Mail-Ansicht DEV-Postfach + Screenshots Gmail/iPhone (hell/dunkel)
+- UX-2 B3 Desktop (vorab 360-Referenz Kursdetail + Kasse)
+- Haltestelle 5: Mail-Ansicht DEV-Postfach + Screenshots Gmail/iPhone; Klicktest UX-2
 - Klicktest Nachtrag / 3.2c / 3.1
 
 ## Haltestellen / wartet auf Julius
 
-- Klicktest UX-2 Teil A (siehe LAUF_UX2)
+- Klicktest UX-2 (siehe LAUF_UX2)
 - UX-2 B1: Test-Mail + Screenshots (Haltestelle 5)
 - Klicktests Nachtrag, 3.2c, 3.1
 - Optional: `OPS_HEARTBEAT_URL` (Haltestelle 3)
@@ -43,7 +44,7 @@ Stand: 2026-10-04 · Branch `Julius` · HEAD `2d77a75`
 
 ## hier weitermachen
 
-UX-2 B2 Export unter Zahlungen; vor B3 zwingend 360-Referenz-Screenshots Kursdetail + Kasse.
+UX-2 B3: zuerst Referenz-Screenshots 360 px Kursdetail + Kasse (`toHaveScreenshot`), dann Desktop-Layout ≥1024.
 
 ## Verweise
 
