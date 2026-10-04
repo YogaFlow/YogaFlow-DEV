@@ -76,6 +76,7 @@ export function settingsAttentionItems(input: {
   hasAccount: boolean;
   platformEnabled?: boolean;
   legalProfilePresent?: boolean;
+  avvAccepted?: boolean;
 }): SettingsAttention[] {
   const items: SettingsAttention[] = [];
   const onlineRelevant = input.onlineEnabled || input.platformEnabled === true;
@@ -90,6 +91,13 @@ export function settingsAttentionItems(input: {
     items.push({
       id: 'legal',
       title: 'Anbieterangaben fehlen – ohne sie ist keine Online-Zahlung möglich.',
+      to: '/settings/rechtliches',
+    });
+  }
+  if (input.avvAccepted === false) {
+    items.push({
+      id: 'avv',
+      title: 'Bitte bestätige den Vertrag zur Auftragsverarbeitung.',
       to: '/settings/rechtliches',
     });
   }

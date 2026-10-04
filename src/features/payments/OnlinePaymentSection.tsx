@@ -56,6 +56,7 @@ export default function OnlinePaymentSection({ isOwner }: Props) {
   const [switchError, setSwitchError] = useState<string | null>(null);
   const [taxLinkNeeded, setTaxLinkNeeded] = useState(false);
   const [legalLinkNeeded, setLegalLinkNeeded] = useState(false);
+  const [avvLinkNeeded, setAvvLinkNeeded] = useState(false);
   const [hideForPlatform, setHideForPlatform] = useState(false);
 
   useEffect(() => {
@@ -111,6 +112,7 @@ export default function OnlinePaymentSection({ isOwner }: Props) {
     setSwitchError(null);
     setTaxLinkNeeded(false);
     setLegalLinkNeeded(false);
+    setAvvLinkNeeded(false);
     const result = await setOnlineEnabled(next);
     if (!result.ok) {
       if (result.code === 'PLATFORM_DISABLED') {
@@ -121,6 +123,7 @@ export default function OnlinePaymentSection({ isOwner }: Props) {
       setSwitchError(result.message);
       setTaxLinkNeeded(result.code === 'TAX_SETTING_MISSING');
       setLegalLinkNeeded(result.code === 'LEGAL_PROFILE_MISSING');
+      setAvvLinkNeeded(result.code === 'AVV_MISSING');
     }
   };
 
@@ -128,6 +131,7 @@ export default function OnlinePaymentSection({ isOwner }: Props) {
     setSwitchError(null);
     setTaxLinkNeeded(false);
     setLegalLinkNeeded(false);
+    setAvvLinkNeeded(false);
     const result = await setOnsiteAllowed(next);
     if (!result.ok) {
       if (result.code === 'PLATFORM_DISABLED') {
@@ -281,6 +285,14 @@ export default function OnlinePaymentSection({ isOwner }: Props) {
                   {' '}
                   <a href="/settings/rechtliches" className="underline text-brand">
                     {copy.switchErrors.LEGAL_PROFILE_LINK}
+                  </a>
+                </>
+              ) : null}
+              {avvLinkNeeded ? (
+                <>
+                  {' '}
+                  <a href="/settings/rechtliches" className="underline text-brand">
+                    {copy.switchErrors.AVV_LINK}
                   </a>
                 </>
               ) : null}

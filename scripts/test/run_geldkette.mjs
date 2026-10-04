@@ -52,6 +52,7 @@ const SKRIPTE = [
   's3_1_payment_overview.mjs',
   'b1_legal_profiles.mjs',
   'b1_receipts.mjs',
+  'b2_legal_acceptances.mjs',
 ];
 
 /** Auf der Probe: braucht demoalpha und/oder Stripe-Sandbox — überspringen. */

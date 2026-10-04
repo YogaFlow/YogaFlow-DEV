@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import AvvOwnerBanner from '../AvvOwnerBanner';
 
 const Layout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -52,6 +53,7 @@ const Layout: React.FC = () => {
               isMessagesPage ? 'lg:flex-1 lg:min-h-0 lg:flex lg:flex-col lg:overflow-hidden lg:pb-6' : ''
             }`}
           >
+            {!isMessagesPage ? <AvvOwnerBanner /> : null}
             <Outlet />
           </div>
         </main>

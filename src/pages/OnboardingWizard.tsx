@@ -72,6 +72,7 @@ const OnboardingWizard: React.FC = () => {
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
 
   const [agbAccepted, setAgbAccepted] = useState(false);
+  const [avvAccepted, setAvvAccepted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -140,7 +141,7 @@ const OnboardingWizard: React.FC = () => {
           password.length >= 8 &&
           password === passwordConfirm
         );
-      case 5: return agbAccepted;
+      case 5: return agbAccepted && avvAccepted;
       default: return false;
     }
   };
@@ -219,6 +220,9 @@ const OnboardingWizard: React.FC = () => {
 
     try {
       sessionStorage.setItem('yogaflow_onboarding_slug', slug);
+      if (avvAccepted) {
+        sessionStorage.setItem('yogaflow_pending_avv_accept', '1');
+      }
     } catch {
       /* ignore */
     }
@@ -579,6 +583,27 @@ const OnboardingWizard: React.FC = () => {
                     Datenschutzerklärung
                   </a>
                   .
+                </span>
+              </label>
+              <label className="mt-4 flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={avvAccepted}
+                  onChange={(e) => setAvvAccepted(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 text-brand rounded-sm border-border focus:ring-brand"
+                  data-testid="onboarding-avv"
+                />
+                <span className="text-sm text-textMuted">
+                  Ich schließe den{' '}
+                  <a
+                    href="/legal/auftragsverarbeitung"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-brand hover:underline"
+                  >
+                    Vertrag zur Auftragsverarbeitung
+                  </a>{' '}
+                  ab.
                 </span>
               </label>
 

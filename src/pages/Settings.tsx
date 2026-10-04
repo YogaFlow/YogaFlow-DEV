@@ -18,6 +18,7 @@ import BookingSettingsSection from '../components/settings/BookingSettingsSectio
 import PassProductsSection from '../components/settings/PassProductsSection';
 import StudioDesignSection from '../components/settings/StudioDesignSection';
 import LegalProfileSection from '../components/settings/LegalProfileSection';
+import AvvAcceptanceSection from '../components/settings/AvvAcceptanceSection';
 import TaxSettingsSection from '../components/settings/TaxSettingsSection';
 import TeamSettingsSection from '../components/settings/TeamSettingsSection';
 import { fetchStaffCount } from '../lib/settingsStaff';
@@ -42,6 +43,7 @@ import {
   type SettingsCategoryId,
 } from '../lib/settingsOverview';
 import { choiceShortLabel, loadTaxSettings, choiceFromSetting } from '../lib/taxStatus';
+import { loadAvvStatus } from '../lib/legalAcceptances';
 import { toUiStatus, type PaymentSetupStatus } from '../features/payments/paymentSetupTypes';
 
 const ICONS: Record<SettingsCategoryId, typeof Building2> = {
@@ -82,11 +84,12 @@ async function loadOverview(input: {
   hasLogo: boolean;
   cancellationWindowHours: number;
 }): Promise<OverviewData> {
-  const [taxRows, products, staffCount, setup] = await Promise.all([
+  const [taxRows, products, staffCount, setup, avv] = await Promise.all([
     loadTaxSettings().catch(() => []),
     listPassProducts().catch(() => []),
     fetchStaffCount(),
     loadPaymentSetup(),
+    loadAvvStatus().catch(() => null),
   ]);
   const today = new Date();
   const todayIso = new Intl.DateTimeFormat('en-CA', {
@@ -113,6 +116,7 @@ async function loadOverview(input: {
     hasAccount: setup?.has_account === true,
     platformEnabled: setup?.platform_enabled === true,
     legalProfilePresent: setup ? legalPresent : undefined,
+    avvAccepted: avv ? avv.accepted : undefined,
   });
   return {
     lines: {
@@ -162,7 +166,14 @@ function CategoryContent({
     );
   }
   if (category === 'karten') return <PassProductsSection />;
-  if (category === 'rechtliches') return <LegalProfileSection isOwner={isOwner} />;
+  if (category === 'rechtliches') {
+    return (
+      <>
+        <LegalProfileSection isOwner={isOwner} />
+        <AvvAcceptanceSection isOwner={isOwner} />
+      </>
+    );
+  }
   return <TeamSettingsSection />;
 }
 

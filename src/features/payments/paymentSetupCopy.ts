@@ -89,6 +89,8 @@ export const copy = {
     TAX_SETTING_LINK: 'Zu den Steuern',
     LEGAL_PROFILE_MISSING: 'Bitte hinterlege zuerst die Anbieterangaben',
     LEGAL_PROFILE_LINK: 'Zu den Anbieterangaben',
+    AVV_MISSING: 'Bitte bestätige zuerst den Vertrag zur Auftragsverarbeitung.',
+    AVV_LINK: 'Zur AVV',
     PROVIDER_NOT_READY: 'Dein Stripe-Konto ist noch nicht bereit.',
     PLATFORM_DISABLED: 'Online-Zahlung ist auf der Plattform noch nicht freigeschaltet.',
   },
