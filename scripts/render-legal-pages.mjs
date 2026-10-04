@@ -76,6 +76,19 @@ export function stripImplementationNotes(markdown) {
   return markdown.slice(0, index).trimEnd();
 }
 
+/** UX-4 E: Hash über normalisierten Markdown-Text (nicht HTML-Layout). */
+export function normalizeLegalMarkdown(markdown) {
+  return String(markdown)
+    .replace(/\r\n/g, '\n')
+    .replace(/[ \t]+$/gm, '')
+    .replace(/\n+$/g, '')
+    .concat('\n');
+}
+
+export function hashLegalMarkdown(markdown) {
+  return createHash('sha256').update(normalizeLegalMarkdown(markdown), 'utf8').digest('hex');
+}
+
 function escapeHtml(text) {
   return text
     .replaceAll('&', '&amp;')
@@ -284,7 +297,8 @@ export function writeLegalHtmlPages() {
       throw new Error(`${page.slug}: Hinweise zur Umsetzung sind in die HTML-Datei geraten.`);
     }
     writeFileSync(join(outDir, `${page.slug}.html`), html, 'utf8');
-    const pageHash = createHash('sha256').update(html, 'utf8').digest('hex');
+    // UX-4 E: Fingerabdruck = normalisierter Markdown (Layout/HTML ändert Hash nicht).
+    const pageHash = hashLegalMarkdown(stripped);
     const standDate = standDateFromMarkdown(markdown);
     appDocs.push({
       slug: page.slug,
@@ -310,7 +324,7 @@ export type LegalDocument = {
   slug: LegalDocumentSlug;
   title: string;
   standDate: string | null;
-  /** SHA-256 der Apex-HTML-Seite (legal/<slug>.html), Quelle docs/legal/*.md */
+  /** SHA-256 des normalisierten Markdown-Texts (docs/legal/*.md), nicht HTML */
   pageHash: string;
   bodyHtml: string;
   apexUrl: string;
@@ -322,7 +336,7 @@ export const LEGAL_DOCUMENTS: Record<LegalDocumentSlug, LegalDocument> = ${JSON.
     2,
   )} as const;
 
-/** AVV: Version = Stand-Datum, Hash = pageHash der gerenderten Apex-Seite. */
+/** AVV: Version = Stand-Datum, Hash = normalisierter Markdown. */
 export const GENERATED_AVV_VERSION = ${JSON.stringify(avv?.standDate ?? null)};
 export const GENERATED_AVV_CONTENT_HASH = ${JSON.stringify(avv?.pageHash ?? null)};
 `;

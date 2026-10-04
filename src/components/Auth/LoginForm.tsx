@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTenant } from '../../context/TenantContext';
-import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
+import { Eye, EyeOff, Lock } from 'lucide-react';
+import { FieldError, FormField } from '../ui/FormField';
 
 const ONBOARDING_SLUG_KEY = 'yogaflow_onboarding_slug';
 const SLUG_BODY = /^[a-z0-9]{3,30}$/;
@@ -111,27 +112,19 @@ const LoginForm: React.FC<LoginFormProps> = ({ emailJustVerified = false }) => {
   return (
     <div className="w-full max-w-md">
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-textMuted mb-2">
-            E-Mail-Adresse
-          </label>
-          <div className="relative">
-            <Mail className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
-              placeholder="deine@email.de"
-              required
-            />
-          </div>
-        </div>
+        <FormField
+          id="email"
+          label="E-Mail-Adresse"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="deine@email.de"
+          required
+        />
 
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <label htmlFor="password" className="block text-sm font-medium text-textMuted">
+          <div className="mb-1 flex items-center justify-between">
+            <label htmlFor="password" className="block text-[13px] text-textMuted">
               Passwort
             </label>
             <button
@@ -143,13 +136,17 @@ const LoginForm: React.FC<LoginFormProps> = ({ emailJustVerified = false }) => {
             </button>
           </div>
           <div className="relative">
-            <Lock className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
+            <Lock className="absolute left-3 top-3 h-5 w-5 text-textSubtle" aria-hidden />
             <input
               id="password"
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-10 pr-12 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? 'login-form-error' : undefined}
+              className={`h-11 w-full rounded-md border bg-surface pl-10 pr-12 text-[15px] text-text focus:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+                error ? 'border-danger' : 'border-border'
+              }`}
               placeholder="••••••••"
               required
             />
@@ -157,11 +154,18 @@ const LoginForm: React.FC<LoginFormProps> = ({ emailJustVerified = false }) => {
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-3 text-textSubtle hover:text-textMuted"
+              aria-label={showPassword ? 'Passwort verbergen' : 'Passwort anzeigen'}
             >
               {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
             </button>
           </div>
-          <p className="text-sm text-textMuted mt-2">
+          {error ? <FieldError id="login-form-error" message={error} /> : null}
+          {error.includes('E-Mail oder Passwort ist falsch') ? (
+            <p className="mt-1 text-[13px] text-danger">
+              Hinweis: Stell sicher, dass du ein registriertes Konto hast.
+            </p>
+          ) : null}
+          <p className="mt-2 text-sm text-textMuted">
             Bestätigungsmail nicht erhalten?{' '}
             <button
               type="button"
@@ -174,16 +178,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ emailJustVerified = false }) => {
           </p>
         </div>
 
-        {error && (
-          <div className="p-3 bg-dangerSoft border border-danger rounded-sm">
-            <p className="text-sm text-danger">{error}</p>
-           {error.includes('E-Mail oder Passwort ist falsch') && (
-             <p className="text-xs text-danger mt-1">
-               Hinweis: Stell sicher, dass du ein registriertes Konto hast.
-             </p>
-           )}
-          </div>
-        )}
         {verificationEmailMessage && (
           <div className={`p-3 rounded-sm text-sm ${verificationEmailMessage.includes('gesendet') ? 'bg-successSoft border border-successSoft text-text' : 'bg-accentSoft border border-accent text-text'}`}>
             {verificationEmailMessage}

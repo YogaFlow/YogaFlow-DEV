@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTenant } from '../../context/TenantContext';
-import { Eye, EyeOff, User, Mail, Lock } from 'lucide-react';
+import { Eye, EyeOff, Lock } from 'lucide-react';
+import { FieldError, FormField } from '../ui/FormField';
 
 type RegisterFormProps = {
   onSwitchToLogin?: () => void;
@@ -138,120 +139,108 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
     );
   }
 
+  const passwordMismatch = error === 'Die Passwörter stimmen nicht überein.';
+  const passwordTooShort = error === 'Das Passwort muss mindestens 6 Zeichen lang sein.';
+  const formError = error && !passwordMismatch && !passwordTooShort ? error : '';
+
   return (
     <div className="w-full max-w-md">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="first_name" className="block text-sm font-medium text-textMuted mb-1">
-              Vorname *
-            </label>
+          <FormField
+            id="first_name"
+            name="first_name"
+            label="Vorname *"
+            type="text"
+            value={formData.first_name}
+            onChange={handleChange}
+            required
+          />
+          <FormField
+            id="last_name"
+            name="last_name"
+            label="Nachname *"
+            type="text"
+            value={formData.last_name}
+            onChange={handleChange}
+            required
+          />
+        </div>
+
+        <FormField
+          id="email"
+          name="email"
+          label="E-Mail-Adresse *"
+          type="email"
+          value={formData.email}
+          onChange={handleChange}
+          required
+        />
+
+        <div>
+          <label htmlFor="password" className="block">
+            <span className="mb-1 block text-[13px] text-textMuted">Passwort *</span>
             <div className="relative">
-              <User className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
+              <Lock className="absolute left-3 top-3 h-5 w-5 text-textSubtle" aria-hidden />
               <input
-                id="first_name"
-                name="first_name"
-                type="text"
-                value={formData.first_name}
+                id="password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                value={formData.password}
                 onChange={handleChange}
-                className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
+                placeholder="Mindestens 6 Zeichen"
+                aria-invalid={passwordTooShort || undefined}
+                aria-describedby={passwordTooShort ? 'password-error' : undefined}
+                className={`h-11 w-full rounded-md border bg-surface pl-10 pr-12 text-[15px] text-text focus:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+                  passwordTooShort ? 'border-danger' : 'border-border'
+                }`}
                 required
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-3 text-textSubtle hover:text-textMuted"
+                aria-label={showPassword ? 'Passwort verbergen' : 'Passwort anzeigen'}
+              >
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
             </div>
-          </div>
-          <div>
-            <label htmlFor="last_name" className="block text-sm font-medium text-textMuted mb-1">
-              Nachname *
-            </label>
+          </label>
+          {passwordTooShort ? <FieldError id="password-error" message={error} /> : null}
+        </div>
+
+        <div>
+          <label htmlFor="confirmPassword" className="block">
+            <span className="mb-1 block text-[13px] text-textMuted">Passwort bestätigen *</span>
             <div className="relative">
-              <User className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
+              <Lock className="absolute left-3 top-3 h-5 w-5 text-textSubtle" aria-hidden />
               <input
-                id="last_name"
-                name="last_name"
-                type="text"
-                value={formData.last_name}
+                id="confirmPassword"
+                name="confirmPassword"
+                type={showConfirmPassword ? 'text' : 'password'}
+                value={formData.confirmPassword}
                 onChange={handleChange}
-                className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
+                aria-invalid={passwordMismatch || undefined}
+                aria-describedby={passwordMismatch ? 'confirmPassword-error' : undefined}
+                className={`h-11 w-full rounded-md border bg-surface pl-10 pr-12 text-[15px] text-text focus:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+                  passwordMismatch ? 'border-danger' : 'border-border'
+                }`}
                 required
               />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-3 text-textSubtle hover:text-textMuted"
+                aria-label={showConfirmPassword ? 'Passwort verbergen' : 'Passwort anzeigen'}
+              >
+                {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
             </div>
-          </div>
-        </div>
-
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-textMuted mb-1">
-            E-Mail-Adresse *
           </label>
-          <div className="relative">
-            <Mail className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
-            <input
-              id="email"
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleChange}
-              className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
-              required
-            />
-          </div>
+          {passwordMismatch ? <FieldError id="confirmPassword-error" message={error} /> : null}
         </div>
 
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium text-textMuted mb-1">
-            Passwort *
-          </label>
-          <div className="relative">
-            <Lock className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
-            <input
-              id="password"
-              name="password"
-              type={showPassword ? 'text' : 'password'}
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="Mindestens 6 Zeichen"
-              className="w-full pl-10 pr-12 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
-              required
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-3 text-textSubtle hover:text-textMuted"
-            >
-              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-            </button>
-          </div>
-        </div>
-
-        <div>
-          <label htmlFor="confirmPassword" className="block text-sm font-medium text-textMuted mb-1">
-            Passwort bestätigen *
-          </label>
-          <div className="relative">
-            <Lock className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
-            <input
-              id="confirmPassword"
-              name="confirmPassword"
-              type={showConfirmPassword ? 'text' : 'password'}
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              className="w-full pl-10 pr-12 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
-              required
-            />
-            <button
-              type="button"
-              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute right-3 top-3 text-textSubtle hover:text-textMuted"
-            >
-              {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-            </button>
-          </div>
-        </div>
-
-        {error && (
-          <div className="p-3 bg-dangerSoft border border-danger rounded-sm">
-            <p className="text-sm text-danger">{error}</p>
-          </div>
-        )}
+        {formError ? <FieldError id="register-form-error" message={formError} /> : null}
 
         <button
           type="submit"

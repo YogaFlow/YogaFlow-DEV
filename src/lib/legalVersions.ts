@@ -6,7 +6,7 @@ import {
 
 export const AVV_VERSION = GENERATED_AVV_VERSION ?? '2026-10-04';
 
-/** SHA-256 von legal/auftragsverarbeitung.html (Stand AVV_VERSION). */
+/** SHA-256 des normalisierten AVV-Markdown (Stand AVV_VERSION). */
 export const AVV_CONTENT_HASH =
   GENERATED_AVV_CONTENT_HASH ??
   '081aa26d9251f364dd5594c4f3ddf5786c57bdb813ba1bcbf0f5c17208d639c5';

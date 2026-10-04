@@ -33,11 +33,10 @@ verantwortlich.
 
 ## § 2 Art, Zweck und Umfang der Verarbeitung
 
-**Zweck:** Betrieb einer Kurs- und Buchungsverwaltung für den Verantwortlichen.
-Abwicklung von Online-Zahlungen über das Stripe-Konto des Verantwortlichen (Zahlung auslösen, erstatten, Status abgleichen), Ausstellung von Belegen und Buchungsbestätigungen im Namen des Verantwortlichen, vorbereitende Buchhaltung.
+**Zweck:** Betrieb einer Kurs- und Buchungsverwaltung für den Verantwortlichen sowie die Abwicklung von Online-Zahlungen über das Stripe-Konto des Verantwortlichen (Zahlung auslösen, erstatten, Status abgleichen), Ausstellung von Belegen und Buchungsbestätigungen im Namen des Verantwortlichen, vorbereitende Buchhaltung.
 
 **Art der Verarbeitung:** Erheben, Speichern, Ordnen, Auslesen, Verwenden,
-Übermitteln an die betroffene Person, Einschränken, Löschen.
+Übermitteln an die betroffene Person und an den Zahlungsdienstleister des Verantwortlichen, Einschränken, Löschen.
 
 **Kategorien betroffener Personen**
 

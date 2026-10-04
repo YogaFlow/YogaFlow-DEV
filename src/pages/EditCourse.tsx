@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { MapPin, Users, FileText, Save, ArrowLeft, AlertCircle, User } from 'lucide-react';
+import { MapPin, Users, Save, ArrowLeft, AlertCircle, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { futureSeriesCourses, pastCourseEditLocks } from '../lib/courseDateTime';
@@ -8,6 +8,7 @@ import { countActivePassProducts } from '../lib/passProducts';
 import { Course } from '../types';
 import { DatePicker, TimePicker } from '../components/DateTimePicker';
 import PassEligibleToggle from '../components/courses/PassEligibleToggle';
+import { FormField, FormTextArea } from '../components/ui/FormField';
 import { isTeacherOnly, TEACHER_SELF_HINT } from '../lib/userRoles';
 import { PRICE_ABOVE_LIMIT_HINT } from '../lib/legalCheckoutTexts';
 
@@ -498,40 +499,37 @@ const EditCourse: React.FC = () => {
 
       <div className="bg-surface rounded-md border border-border">
         <form onSubmit={handleSubmit} className="p-3.5 space-y-6">
-          <div>
-            <label htmlFor="title" className="block text-sm font-medium text-textMuted mb-2">
-              Kurstitel *
-            </label>
-            <div className="relative">
-              <FileText className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
-              <input
-                id="title"
-                name="title"
-                type="text"
-                value={formData.title}
-                onChange={handleChange}
-                className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
-                placeholder="z.B. Hatha Yoga für Anfänger"
-                required
-              />
-            </div>
-          </div>
+          <FormField
+            id="title"
+            name="title"
+            label="Kurstitel *"
+            type="text"
+            value={formData.title}
+            onChange={handleChange}
+            placeholder="z.B. Hatha Yoga für Anfänger"
+            error={
+              error.includes('Kurstitel')
+                ? error
+                : null
+            }
+            required
+          />
 
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium text-textMuted mb-2">
-              Beschreibung *
-            </label>
-            <textarea
-              id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              rows={4}
-              className="w-full px-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
-              placeholder="Beschreibe den Kurs, Zielgruppe, Schwierigkeitsgrad..."
-              required
-            />
-          </div>
+          <FormTextArea
+            id="description"
+            name="description"
+            label="Beschreibung *"
+            value={formData.description}
+            onChange={handleChange}
+            rows={4}
+            placeholder="Beschreibe den Kurs, Zielgruppe, Schwierigkeitsgrad..."
+            error={
+              error.includes('Beschreibung')
+                ? error
+                : null
+            }
+            required
+          />
 
           <div>
             <label htmlFor="teacher_id" className="block text-sm font-medium text-textMuted mb-2">
@@ -777,11 +775,11 @@ const EditCourse: React.FC = () => {
             />
           ) : null}
 
-          {error && (
+          {error && !error.includes('Kurstitel') && !error.includes('Beschreibung') ? (
             <div className="p-3 bg-dangerSoft border border-danger rounded-sm">
               <p className="text-sm text-danger">{error}</p>
             </div>
-          )}
+          ) : null}
 
           <div className="flex items-center justify-end space-x-4 pt-6 border-t border-border">
             <button
