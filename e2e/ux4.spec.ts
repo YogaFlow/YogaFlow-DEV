@@ -41,6 +41,14 @@ test('UX4 — Abmelden (bar) → Tippen Rückgängig → wieder angemeldet', asy
   await expect(page.getByTestId('toast-success')).toBeVisible({ timeout: 15_000 });
   const undo = page.getByTestId('toast-undo');
   await expect(undo).toBeVisible();
+  const bar = page.getByTestId('toast-progress');
+  const fill = page.getByTestId('toast-progress-fill');
+  await expect(bar).toBeVisible();
+  const width1 = await fill.evaluate((el) => (el as HTMLElement).getBoundingClientRect().width);
+  await page.waitForTimeout(900);
+  const width2 = await fill.evaluate((el) => (el as HTMLElement).getBoundingClientRect().width);
+  expect(width1).toBeGreaterThan(0);
+  expect(width2).toBeLessThan(width1);
   await page.screenshot({
     path: 'docs/screenshots/ux4/toast-undo-360.png',
     fullPage: false,

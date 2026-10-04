@@ -3,7 +3,6 @@ import React, {
   useCallback,
   useContext,
   useMemo,
-  useRef,
   useState,
 } from 'react';
 import ToastViewport, { type ToastItem } from '../components/ui/Toast';
@@ -25,23 +24,10 @@ let toastSeq = 0;
 
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [items, setItems] = useState<ToastItem[]>([]);
-  const timers = useRef<Map<string, number>>(new Map());
 
-  const clearTimer = useCallback((id: string) => {
-    const handle = timers.current.get(id);
-    if (handle != null) {
-      window.clearTimeout(handle);
-      timers.current.delete(id);
-    }
+  const dismissToast = useCallback((id: string) => {
+    setItems((prev) => prev.filter((row) => row.id !== id));
   }, []);
-
-  const dismissToast = useCallback(
-    (id: string) => {
-      clearTimer(id);
-      setItems((prev) => prev.filter((row) => row.id !== id));
-    },
-    [clearTimer],
-  );
 
   const showToast = useCallback(
     (input: ToastInput) => {
@@ -68,16 +54,8 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       };
 
       setItems((prev) => [...prev, item].slice(-3));
-
-      if (durationMs != null) {
-        clearTimer(id);
-        timers.current.set(
-          id,
-          window.setTimeout(() => dismissToast(id), durationMs),
-        );
-      }
     },
-    [clearTimer, dismissToast],
+    [dismissToast],
   );
 
   const value = useMemo(() => ({ showToast, dismissToast }), [showToast, dismissToast]);

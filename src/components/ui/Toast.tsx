@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, Check, X } from 'lucide-react';
 import {
   TOAST_ENTER_MS,
-  toastAutoDismissMs,
   toastRole,
   type ToastTone,
 } from '../../lib/toastModel';
@@ -44,11 +43,16 @@ type ToastCardProps = {
 const ToastCard: React.FC<ToastCardProps> = ({ item, onDismiss, reducedMotion }) => {
   const isError = item.type === 'error';
   const hasUndo = Boolean(item.onUndo && item.undoLabel);
+  const showProgress = hasUndo && item.durationMs != null;
   const [entered, setEntered] = useState(reducedMotion);
   const [dragY, setDragY] = useState(0);
   const [exiting, setExiting] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const [progress, setProgress] = useState(showProgress ? 100 : 0);
   const touchStartY = useRef<number | null>(null);
-  const [progress, setProgress] = useState(hasUndo ? 100 : 0);
+  /** Cumulative ms spent paused (for progress + dismiss). */
+  const pausedMs = useRef(0);
+  const pauseStartedAt = useRef<number | null>(null);
 
   useEffect(() => {
     if (reducedMotion) {
@@ -60,18 +64,52 @@ const ToastCard: React.FC<ToastCardProps> = ({ item, onDismiss, reducedMotion })
   }, [reducedMotion]);
 
   useEffect(() => {
-    if (!hasUndo || item.durationMs == null) return;
-    const total = item.durationMs;
+    if (item.durationMs == null) return;
+    if (paused) return;
+    const elapsed = Date.now() - item.createdAt - pausedMs.current;
+    const left = Math.max(0, item.durationMs - elapsed);
+    const handle = window.setTimeout(() => {
+      if (exiting) return;
+      if (reducedMotion) {
+        onDismiss(item.id);
+        return;
+      }
+      setExiting(true);
+      window.setTimeout(() => onDismiss(item.id), TOAST_ENTER_MS);
+    }, left);
+    return () => window.clearTimeout(handle);
+  }, [paused, item.durationMs, item.createdAt, item.id, onDismiss, reducedMotion, exiting]);
+
+  useEffect(() => {
+    if (!showProgress || item.durationMs == null) return;
     let raf = 0;
     const tick = () => {
-      const elapsed = Date.now() - item.createdAt;
-      const left = Math.max(0, 100 * (1 - elapsed / total));
+      const pauseExtra =
+        paused && pauseStartedAt.current != null
+          ? Date.now() - pauseStartedAt.current
+          : 0;
+      const elapsed = Date.now() - item.createdAt - pausedMs.current - pauseExtra;
+      const left = Math.max(0, 100 * (1 - elapsed / item.durationMs));
       setProgress(left);
       if (left > 0) raf = window.requestAnimationFrame(tick);
     };
     raf = window.requestAnimationFrame(tick);
     return () => window.cancelAnimationFrame(raf);
-  }, [hasUndo, item.createdAt, item.durationMs]);
+  }, [showProgress, item.createdAt, item.durationMs, paused]);
+
+  const setPause = (next: boolean) => {
+    if (next === paused) return;
+    if (next) {
+      pauseStartedAt.current = Date.now();
+      setPaused(true);
+      return;
+    }
+    if (pauseStartedAt.current != null) {
+      pausedMs.current += Date.now() - pauseStartedAt.current;
+      pauseStartedAt.current = null;
+    }
+    setPaused(false);
+  };
 
   const dismiss = () => {
     if (exiting) return;
@@ -112,9 +150,18 @@ const ToastCard: React.FC<ToastCardProps> = ({ item, onDismiss, reducedMotion })
     <div
       role={toastRole(item.type)}
       data-testid={isError ? 'toast-error' : 'toast-success'}
+      data-paused={paused ? '1' : '0'}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
+      onMouseEnter={() => setPause(true)}
+      onMouseLeave={() => setPause(false)}
+      onFocusCapture={() => setPause(true)}
+      onBlurCapture={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+          setPause(false);
+        }
+      }}
       className="pointer-events-auto relative w-full max-w-[420px] overflow-hidden rounded-[14px] bg-text text-onBrand shadow-[0_8px_28px_rgba(31,27,22,0.28)]"
       style={{
         transform: translate,
@@ -136,7 +183,7 @@ const ToastCard: React.FC<ToastCardProps> = ({ item, onDismiss, reducedMotion })
           <button
             type="button"
             onClick={() => void item.onUndo?.()}
-            className="inline-flex h-11 shrink-0 items-center rounded-full px-3 text-[15px] font-semibold text-brandSoft active:text-onBrand"
+            className="inline-flex h-11 shrink-0 items-center whitespace-nowrap rounded-full px-3 text-[15px] font-semibold text-brandSoft active:text-onBrand"
             data-testid="toast-undo"
           >
             {item.undoLabel}
@@ -154,14 +201,15 @@ const ToastCard: React.FC<ToastCardProps> = ({ item, onDismiss, reducedMotion })
           </button>
         ) : null}
       </div>
-      {hasUndo && item.durationMs != null ? (
+      {showProgress ? (
         <div
-          className="h-0.5 w-full bg-white/15"
+          className="absolute inset-x-0 bottom-0 h-[3px] bg-white/20"
           aria-hidden
           data-testid="toast-progress"
         >
           <div
             className="h-full bg-brandSoft"
+            data-testid="toast-progress-fill"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -171,7 +219,7 @@ const ToastCard: React.FC<ToastCardProps> = ({ item, onDismiss, reducedMotion })
 };
 
 /**
- * Toast unten (mobil über der Navigation), dunkle Pille (UX-4 A2).
+ * Toast unten (mobil über der Navigation), dunkle Pille (UX-4 A2 / N2).
  * Erfolg: role=status. Fehler: role=alert, Schließen.
  */
 const ToastViewport: React.FC<ToastViewportProps> = ({ items, onDismiss }) => {
@@ -195,5 +243,4 @@ const ToastViewport: React.FC<ToastViewportProps> = ({ items, onDismiss }) => {
   );
 };
 
-export { toastAutoDismissMs };
 export default ToastViewport;

@@ -260,7 +260,9 @@ Für die spätere Expo-App bleibt die untere Leiste die Vorgabe — dort ist sie
   wegwischbar; `prefers-reduced-motion` → nur einblenden.
 - Links Icon im farbigen Kreis (Erfolg: Marke, Fehler: Gefahr). Eine kurze fette Zeile.
 - Erfolg ohne Rückgängig: 4 s, kein Zeitbalken, `role="status"`.
-- Mit „Rückgängig": 5 s und dünner Zeitbalken; Knopf in heller Markenfarbe, Tippfläche ≥ 44 px.
+- Mit „Rückgängig": 5 s und Zeitbalken 3 px am unteren Rand der Pille (`brandSoft`
+  auf dunklem Grund), von voll nach leer; bei Hover/Fokus pausieren. Knopf in heller
+  Markenfarbe, Tippfläche ≥ 44 px.
 - **Rückgängig nur bei vollständig umkehrbaren Aktionen.** Abmelden einer online
   bezahlten Buchung löst eine Erstattung aus → Toast ohne Rückgängig.
 - Fehler: bleibt bis zum Schließen, `role="alert"`.
