@@ -280,6 +280,10 @@ Deno.test("18. payment_succeeded: gueltig gesendet; erstattet skipped", async ()
   const amount = formatEurCents(2400);
   assertEquals(amount, "24,00 \u20AC");
   const regId = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
+  const calendarUrl =
+    "https://example.supabase.co/functions/v1/calendar-ics?t=test.token";
+  const googleUrl =
+    "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Yin";
   const { subject, html, text, attachments } = buildPaymentSucceededEmail({
     courseTitle: "Yin",
     courseDate: "05.10.2026",
@@ -290,6 +294,8 @@ Deno.test("18. payment_succeeded: gueltig gesendet; erstattet skipped", async ()
     receiptLink: "https://omstudio.omlify-dev.de/receipts/r1",
     receiptNumber: "2026-00001",
     registrationId: regId,
+    calendarIcsUrl: calendarUrl,
+    googleCalendarUrl: googleUrl,
     taxRegime: "small_business",
     vatRateBp: 0,
     courseDateRaw: "2026-10-05",
@@ -302,6 +308,10 @@ Deno.test("18. payment_succeeded: gueltig gesendet; erstattet skipped", async ()
   assert(html.includes(amount) && html.includes("Yin"), "Betrag und Kurs");
   assert(html.includes("2026-00001"), "Belegnummer");
   assert(html.includes("In Kalender eintragen"), "ICS-Knopf");
+  assert(html.includes(calendarUrl), "https Kalender-Link");
+  assert(html.includes("Google Kalender"), "Google-Link");
+  assert(html.includes("MO"), "Datumsblock Wochentag");
+  assert(!html.includes("Block 2"), "kein Entwickler-Hinweis");
   assert(html.includes("Buchung ansehen"), "Sekundär-Link");
   assert(html.includes("Gesendet über Omlify im Auftrag von"), "Fuß K6");
   assert(
@@ -391,7 +401,9 @@ Deno.test("19. payment_refunded: Texte je reason, Voll- und Teilerstattung", asy
   });
   assert(full.html.includes("Platz war leider inzwischen vergeben"), "late_payment");
   assert(full.html.includes("24,00"), "Vollbetrag");
-  assert(full.html.includes("Je nach Bank"), "Bank-Hinweis");
+  assert(full.html.includes("auf dem Weg zu dir"), "neue Überschrift");
+  assert(full.html.includes("zurück auf deine Karte"), "Karten-Hinweis");
+  assert(full.html.includes("je nach Bank"), "Bank-Hinweis");
 
   const course = buildPaymentRefundedEmail({
     courseTitle: "Yin",

@@ -65,3 +65,7 @@ verify_jwt = false
 # ops-monitor (B2): Authorization Bearer = OPS_MONITOR_SECRET (Vault ops_monitor_secret).
 [functions.ops-monitor]
 verify_jwt = false
+
+# UX-3: öffentliche ICS-Downloads per HMAC-Token (kein Nutzer-JWT).
+[functions.calendar-ics]
+verify_jwt = false

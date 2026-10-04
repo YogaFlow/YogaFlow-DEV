@@ -23,7 +23,12 @@ import {
   resolveBrandAccent,
   textLinkHtml,
 } from "../_shared/email_template.ts";
-import { buildIcs, icsDataUri } from "../_shared/ics.ts";
+import { buildIcs } from "../_shared/ics.ts";
+import {
+  buildCalendarIcsUrl,
+  signCalendarToken,
+} from "../_shared/calendar_token.ts";
+import { buildGoogleCalendarUrl } from "../_shared/google_calendar.ts";
 
 export const DISPATCH_LIMIT = 20;
 export const SECRET_HEADER = "X-Email-Dispatch-Secret";
@@ -80,7 +85,6 @@ export type DeliveryContext = {
   receiptNumber?: string | null;
   refundReceiptId?: string | null;
   refundReceiptNumber?: string | null;
-  /** AGB-Volltext kommt später als PDF-Anhang (Block 2); nicht als Textwand. */
   termsText?: string | null;
   brandColor?: string | null;
   logoUrl?: string | null;
@@ -198,18 +202,30 @@ function taxLineSmall(regime: string | null, vatRateBp: number | null): string {
   return RECEIPT_TAX_SMALL_BUSINESS_FULL;
 }
 
-function cancelLine(deadlineIso: string | null | undefined): string {
-  if (!deadlineIso) return "Eine kostenlose Abmeldung ist nicht mehr möglich.";
+/** UX-3: freundliche Abmeldezeile vor/nach Frist. */
+export function cancelLine(
+  deadlineIso: string | null | undefined,
+  now: Date = new Date(),
+): string {
+  if (!deadlineIso) return "Die kostenlose Abmeldefrist ist abgelaufen.";
   const ms = new Date(deadlineIso).getTime();
-  if (!Number.isFinite(ms) || ms <= Date.now()) {
-    return "Eine kostenlose Abmeldung ist nicht mehr möglich.";
+  if (!Number.isFinite(ms) || ms <= now.getTime()) {
+    return "Die kostenlose Abmeldefrist ist abgelaufen.";
   }
-  const parts = berlinParts(deadlineIso);
   const weekday = new Intl.DateTimeFormat("de-DE", {
     timeZone: "Europe/Berlin",
     weekday: "short",
   }).format(new Date(deadlineIso)).replace(/\.$/, "");
-  return `Kostenlos abmelden bis ${weekday}, ${parts.date.slice(0, 6)}, ${parts.time} – du bekommst den vollen Betrag zurück. Danach keine Erstattung.`;
+  const day = new Intl.DateTimeFormat("de-DE", {
+    timeZone: "Europe/Berlin",
+    day: "numeric",
+  }).format(new Date(deadlineIso));
+  const month = new Intl.DateTimeFormat("de-DE", {
+    timeZone: "Europe/Berlin",
+    month: "short",
+  }).format(new Date(deadlineIso)).replace(/\.$/, "");
+  const time = berlinParts(deadlineIso).time;
+  return `Kostenlos abmelden bis ${weekday}, ${day}. ${month}, ${time}`;
 }
 
 function placeOf(ctx: {
@@ -243,8 +259,7 @@ function providerFooterHtml(input: {
   ].filter(Boolean);
   return [
     `<p style="margin:0 0 8px 0;">${lines.join("<br />")}</p>`,
-    `<p style="margin:0 0 8px 0;">Für Kurse mit festem Termin besteht kein Widerrufsrecht (§ 312g Abs. 2 Nr. 9 BGB).</p>`,
-    `<p style="margin:0;">AGB als PDF folgen mit den Studio-Rechtstexten (Block 2).</p>`,
+    `<p style="margin:0;">Für Kurse mit festem Termin besteht kein Widerrufsrecht (§ 312g Abs. 2 Nr. 9 BGB).</p>`,
   ].join("");
 }
 
@@ -255,30 +270,40 @@ function termCardHtml(input: {
   courseTitle: string;
   place?: string | null;
   teacherName?: string | null;
+  /** Erstattungsmail: Karte ausgegraut */
+  muted?: boolean;
+  accent?: string;
 }): string {
   const parts = civilDateParts(input.courseDate);
+  const weekday = parts ? parts.weekday.toUpperCase() : "";
   const day = parts ? String(parts.d) : "–";
   const month = parts?.monthUpper ?? "";
   const start = formatTimeHm(input.courseTime);
   const end = formatTimeHm(input.courseEndTime ?? null);
   const timeLabel = start && end ? `${start}–${end}` : start;
   const place = input.place?.trim() || "";
+  const linkColor = input.accent ?? "#2F5A4E";
   const placeHtml = place
-    ? `<a href="${escapeHtml(mapsLink(place))}" style="color:#2F5A4E;text-decoration:underline;">${escapeHtml(place)}</a>`
+    ? `<a href="${escapeHtml(mapsLink(place))}" style="color:${linkColor};text-decoration:underline;">${escapeHtml(place)}</a>`
     : "";
   const meta = [timeLabel ? `${escapeHtml(timeLabel)} Uhr` : "", placeHtml, input.teacherName ? escapeHtml(input.teacherName) : ""]
     .filter(Boolean)
     .join(" · ");
+  const muted = Boolean(input.muted);
+  const titleColor = muted ? "#6F6558" : "#1F1B16";
+  const dayColor = muted ? "#6F6558" : "#1F1B16";
+  const opacity = muted ? "opacity:0.72;" : "";
 
   return `
-  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" class="omlify-border" style="margin:0 0 20px 0;border:1px solid #E5DFD4;border-radius:8px;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" class="omlify-border" style="margin:0 0 20px 0;border:1px solid #E5DFD4;border-radius:8px;${opacity}">
     <tr>
-      <td width="64" valign="top" align="center" style="padding:16px 8px;background:#F5F3EF;border-radius:8px 0 0 8px;">
-        <div style="font-size:28px;font-weight:700;line-height:1;color:#1F1B16;">${escapeHtml(day)}</div>
+      <td width="72" valign="top" align="center" style="padding:16px 8px;background:#F5F3EF;border-radius:8px 0 0 8px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;color:#6F6558;">${escapeHtml(weekday)}</div>
+        <div style="font-size:28px;font-weight:700;line-height:1;color:${dayColor};margin-top:4px;">${escapeHtml(day)}</div>
         <div style="font-size:12px;font-weight:600;letter-spacing:0.06em;color:#6F6558;margin-top:4px;">${escapeHtml(month)}</div>
       </td>
       <td valign="middle" style="padding:16px 16px 16px 12px;">
-        <div style="font-size:16px;font-weight:700;color:#1F1B16;margin:0 0 6px 0;">${escapeHtml(input.courseTitle)}</div>
+        <div style="font-size:16px;font-weight:700;color:${titleColor};margin:0 0 6px 0;">${escapeHtml(input.courseTitle)}</div>
         <div style="font-size:14px;color:#6F6558;line-height:1.4;">${meta}</div>
       </td>
     </tr>
@@ -366,6 +391,9 @@ export function buildPaymentSucceededEmail(input: {
   receiptLink: string;
   receiptNumber: string;
   registrationId: string;
+  /** https calendar-ics Link; fehlt → Knopf entfällt (Tests ohne Secret). */
+  calendarIcsUrl?: string | null;
+  googleCalendarUrl?: string | null;
   legalName?: string | null;
   legalStreet?: string | null;
   legalHouse?: string | null;
@@ -404,7 +432,6 @@ export function buildPaymentSucceededEmail(input: {
     description: `Buchung bei ${input.studioName}`,
     method: "REQUEST",
   });
-  const icsHref = icsDataUri(ics);
 
   const accent = resolveBrandAccent(input.brandColor);
 
@@ -414,6 +441,13 @@ export function buildPaymentSucceededEmail(input: {
     input.paidAtLabel ?? "",
   ].filter(Boolean).join(" · ");
 
+  const calendarPrimary = input.calendarIcsUrl
+    ? `<p style="margin:0 0 8px 0;">${primaryButtonHtml(input.calendarIcsUrl, "In Kalender eintragen", accent)}</p>`
+    : "";
+  const calendarSecondary = input.googleCalendarUrl
+    ? `<p style="margin:0 0 20px 0;font-size:13px;">${textLinkHtml(input.googleCalendarUrl, "Google Kalender", accent)}</p>`
+    : `<p style="margin:0 0 20px 0;"></p>`;
+
   const bodyHtml = `
     ${termCardHtml({
       courseDate: input.courseDateRaw ?? null,
@@ -422,10 +456,10 @@ export function buildPaymentSucceededEmail(input: {
       courseTitle: input.courseTitle,
       place: input.place,
       teacherName: input.teacherName,
+      accent,
     })}
-    <p style="margin:0 0 12px 0;">
-      ${primaryButtonHtml(icsHref, "In Kalender eintragen", accent)}
-    </p>
+    ${calendarPrimary}
+    ${calendarSecondary}
     <p style="margin:0 0 20px 0;">
       ${textLinkHtml(input.link, "Buchung ansehen", accent)}
     </p>
@@ -454,6 +488,8 @@ export function buildPaymentSucceededEmail(input: {
     "Für Kurse mit festem Termin besteht kein Widerrufsrecht (§ 312g Abs. 2 Nr. 9 BGB).",
     `Beleg ${input.receiptNumber}: ${input.receiptLink}`,
     `Buchung ansehen: ${input.link}`,
+    input.calendarIcsUrl ? `Kalender: ${input.calendarIcsUrl}` : "",
+    input.googleCalendarUrl ? `Google Kalender: ${input.googleCalendarUrl}` : "",
     "Kalenderdatei im Anhang (ICS).",
   ].filter(Boolean).join("\n");
 
@@ -499,37 +535,67 @@ export function buildPaymentRefundedEmail(input: {
   logoUrl?: string | null;
   courseDateRaw?: string | null;
   courseTime?: string | null;
+  courseEndTime?: string | null;
   place?: string | null;
+  teacherName?: string | null;
+  legalName?: string | null;
+  legalStreet?: string | null;
+  legalHouse?: string | null;
+  legalPostal?: string | null;
+  legalCity?: string | null;
+  contactEmail?: string | null;
+  legalPhone?: string | null;
 }): EmailPayload {
-  const subject = "Zahlung erstattet";
   const refundLabel = formatEurCents(input.refundAmountCents);
   const original = input.originalAmountCents;
   const isPartial = original != null && original > input.refundAmountCents;
-  const amountSentence = isPartial
-    ? `Wir haben dir ${refundLabel} von ${formatEurCents(original!)} erstattet.`
-    : `Wir haben dir ${refundLabel} für „${input.courseTitle}“ am ${input.courseDate} erstattet.`;
+  const title = `${refundLabel} sind auf dem Weg zu dir`;
+  const amountBoxLine = isPartial
+    ? `${refundLabel} von ${formatEurCents(original!)}`
+    : refundLabel;
 
   const reasonLine = refundReasonSentence(input.reason);
+  const accent = resolveBrandAccent(input.brandColor);
   const preheader = formatEmailPreheader({
     courseDate: input.courseDateRaw ?? null,
     courseTime: input.courseTime ?? null,
     courseTitle: input.courseTitle,
     place: input.place,
-  }) || "Zahlung erstattet";
+  }) || title;
 
   const bodyHtml = `
-    ${reasonLine ? `<p style="margin:0 0 12px 0;">${escapeHtml(reasonLine)}</p>` : ""}
-    <p style="margin:0 0 12px 0;">${escapeHtml(amountSentence)}</p>
-    <p style="margin:0 0 16px 0;">Je nach Bank dauert die Gutschrift einige Werktage.</p>
-    ${input.receiptLink && input.receiptNumber
-      ? `<p style="margin:0;">Erstattungsbeleg ${escapeHtml(input.receiptNumber)} —
-          <a href="${escapeHtml(input.receiptLink)}" style="color:#2F5A4E;text-decoration:underline;">Beleg ansehen</a></p>`
-      : ""}`;
+    ${termCardHtml({
+      courseDate: input.courseDateRaw ?? null,
+      courseTime: input.courseTime ?? null,
+      courseEndTime: input.courseEndTime,
+      courseTitle: input.courseTitle,
+      place: input.place,
+      teacherName: input.teacherName,
+      muted: true,
+      accent,
+    })}
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 16px 0;background:#F5F3EF;border-radius:8px;">
+      <tr>
+        <td style="padding:14px 16px;">
+          <p style="margin:0 0 6px 0;font-size:18px;font-weight:700;color:#1F1B16;">${escapeHtml(amountBoxLine)}</p>
+          <p style="margin:0 0 8px 0;font-size:14px;color:#6F6558;">zurück auf deine Karte</p>
+          ${reasonLine ? `<p style="margin:0 0 8px 0;font-size:14px;color:#1F1B16;">${escapeHtml(reasonLine)}</p>` : ""}
+          <p style="margin:0 0 10px 0;font-size:13px;color:#6F6558;">Gutschrift je nach Bank in einigen Werktagen</p>
+          ${input.receiptLink && input.receiptNumber
+            ? `<p style="margin:0;font-size:14px;"><a href="${escapeHtml(input.receiptLink)}" style="color:${accent};text-decoration:underline;">Erstattungsbeleg ${escapeHtml(input.receiptNumber)} ansehen →</a></p>`
+            : ""}
+        </td>
+      </tr>
+    </table>`;
 
   const textBody = [
+    title,
+    input.courseTitle,
+    `${input.courseDate}${input.courseTime ? ` ${formatTimeHm(input.courseTime)}` : ""}`,
+    amountBoxLine,
+    "zurück auf deine Karte",
     reasonLine ?? "",
-    amountSentence,
-    "Je nach Bank dauert die Gutschrift einige Werktage.",
+    "Gutschrift je nach Bank in einigen Werktagen",
     input.receiptLink && input.receiptNumber
       ? `Erstattungsbeleg ${input.receiptNumber}: ${input.receiptLink}`
       : "",
@@ -541,14 +607,20 @@ export function buildPaymentRefundedEmail(input: {
       studioName: input.studioName,
       logoUrl: input.logoUrl,
       brandColor: input.brandColor,
-      title: "Zahlung erstattet",
+      title,
       introHtml: `Eine Erstattung von ${escapeHtml(input.studioName)} ist unterwegs.`,
       bodyHtml,
+      footerHtml: providerFooterHtml(input),
     },
-    textBody,
+    textBody + "\n\n" + [
+      input.legalName || input.studioName,
+      `${input.legalStreet ?? ""} ${input.legalHouse ?? ""}`.trim(),
+      `${input.legalPostal ?? ""} ${input.legalCity ?? ""}`.trim(),
+      input.contactEmail ?? "",
+    ].filter(Boolean).join("\n"),
   );
 
-  return { subject, html, text };
+  return { subject: title, html, text };
 }
 
 /** E5: Grund-Satz je reason; manual/provider_dashboard ohne Satz. */
@@ -698,6 +770,21 @@ export async function runDispatch(deps: DispatchDeps): Promise<DispatchResult> {
       );
       const place = placeOf(ctx!) || null;
       const paidAtLabel = ctx!.paidAt ? berlinParts(ctx!.paidAt).date : null;
+      const calendarSecret = deps.env("CALENDAR_ICS_SECRET")?.trim() ?? "";
+      const supabaseUrl = deps.env("SUPABASE_URL")?.trim() ?? "";
+      let calendarIcsUrl: string | null = null;
+      if (calendarSecret && supabaseUrl) {
+        const token = await signCalendarToken(calendarSecret, row.registration_id);
+        calendarIcsUrl = buildCalendarIcsUrl(supabaseUrl, token);
+      }
+      const googleCalendarUrl = buildGoogleCalendarUrl({
+        title: ctx!.courseTitle ?? "Kurs",
+        date: ctx!.courseDate,
+        startTime: ctx!.courseTime,
+        endTime: ctx!.courseEndTime,
+        location: place,
+        details: `Buchung bei ${ctx!.studioName ?? "Studio"}`,
+      });
       const mail = buildPaymentSucceededEmail({
         courseTitle: ctx!.courseTitle ?? "Kurs",
         courseDate: courseDateText(ctx!.courseDate),
@@ -708,6 +795,8 @@ export async function runDispatch(deps: DispatchDeps): Promise<DispatchResult> {
         receiptLink,
         receiptNumber: ctx!.receiptNumber,
         registrationId: row.registration_id,
+        calendarIcsUrl,
+        googleCalendarUrl,
         legalName: ctx!.legalName,
         legalStreet: ctx!.legalStreet,
         legalHouse: ctx!.legalHouse,
@@ -767,7 +856,16 @@ export async function runDispatch(deps: DispatchDeps): Promise<DispatchResult> {
         logoUrl: ctx!.logoUrl,
         courseDateRaw: ctx!.courseDate,
         courseTime: ctx!.courseTime,
-        place: placeOf(ctx!) || null,
+        courseEndTime: ctx!.courseEndTime,
+        place: placeOf(ctx!),
+        teacherName: ctx!.teacherName,
+        legalName: ctx!.legalName,
+        legalStreet: ctx!.legalStreet,
+        legalHouse: ctx!.legalHouse,
+        legalPostal: ctx!.legalPostal,
+        legalCity: ctx!.legalCity,
+        contactEmail: ctx!.contactEmail,
+        legalPhone: ctx!.legalPhone,
       });
       const code = await sendBuilt(deps, row, ctx!, mail);
       results.push({ deliveryId: row.id, kind: row.kind, code });
