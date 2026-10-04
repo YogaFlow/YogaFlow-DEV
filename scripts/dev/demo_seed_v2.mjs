@@ -326,27 +326,50 @@ await admin
   .update({ last_booking_pay_method: 'online', online_pay_hint_seen_at: new Date().toISOString() })
   .eq('id', olaf.id);
 
-// Karla: 10er-Karte, noch 6
-{
+// K1: 5er 65 € und 10er 120 € online kaufbar, 12 Monate (Karla behält ihre Karte)
+async function ensureOnlinePassProduct(name, units, priceCents) {
   const { data: rows } = await admin
     .from('pass_products')
     .select('id, name, archived_at')
     .eq('tenant_id', tenantId)
-    .eq('name', '10er-Karte')
+    .eq('name', name)
     .is('archived_at', null)
     .limit(1);
   let productId = rows?.[0]?.id;
   if (!productId) {
     const prod = await asOwner.rpc('create_pass_product', {
-      p_name: '10er-Karte',
-      p_units: 10,
-      p_price_cents: 15000,
+      p_name: name,
+      p_units: units,
+      p_price_cents: priceCents,
       p_validity_rule: 'months',
-      p_validity_value: 6,
+      p_validity_value: 12,
+      p_description: null,
+      p_online_purchasable: true,
     });
     if (prod.error || !prod.data?.success) fail('pass product: ' + JSON.stringify(prod));
-    productId = prod.data.id;
+    return prod.data.id;
   }
+  const upd = await asOwner.rpc('update_pass_product', {
+    p_id: productId,
+    p_name: name,
+    p_units: units,
+    p_price_cents: priceCents,
+    p_validity_rule: 'months',
+    p_validity_value: 12,
+    p_description: null,
+    p_online_purchasable: true,
+  });
+  if (upd.error || !upd.data?.success) {
+    console.warn('pass product update warn:', JSON.stringify(upd.data || upd.error));
+  }
+  return productId;
+}
+
+await ensureOnlinePassProduct('5er-Karte', 5, 6500);
+
+// Karla: 10er-Karte, noch 6
+{
+  const productId = await ensureOnlinePassProduct('10er-Karte', 10, 12000);
 
   const { data: karlaPasses } = await admin
     .from('passes')
