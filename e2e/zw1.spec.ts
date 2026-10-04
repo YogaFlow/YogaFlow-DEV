@@ -1,5 +1,5 @@
 /**
- * ZW-1 — Ein-Tipp-Buchung / Zahlungswege (DEV, Studio e2eapp — nicht demoalpha).
+ * ZW-1 / Nachtrag N3 — Zahlungswege + Zahlart-Zeile (DEV, Studio e2eapp).
  */
 import { expect, test, type Page } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
@@ -38,10 +38,18 @@ async function alsAngemeldet(page: Page, session: unknown) {
 }
 
 function methodLine(page: Page) {
-  return page.getByTestId('book-method-line').or(page.getByTestId('book-method-line-mobile')).first();
+  // Desktop- und Mobil-Zeile existieren parallel; nur die sichtbare antasten.
+  return page
+    .getByTestId('book-method-line')
+    .or(page.getByTestId('book-method-line-mobile'))
+    .locator('visible=true')
+    .first();
 }
 
-test('ZW1 — Ein-Tipp, Anders bezahlen, nur Vor Ort, letzter Schalter', async ({ page, browser }) => {
+test('ZW1 N3 — Zahlungswege, Zahlart-Zeile, Neu-Hinweis, letzter Schalter', async ({
+  page,
+  browser,
+}) => {
   assertDevGuard();
   const env = ladeEnv();
   const { url, anon, service } = assertDevEnv(env);
@@ -86,6 +94,14 @@ test('ZW1 — Ein-Tipp, Anders bezahlen, nur Vor Ort, letzter Schalter', async (
       tenantId: tenant.id,
       password,
     });
+    const habitUser = await nutzerAnlegen(admin, {
+      email: `${EMAIL_PREFIX}.habit@example.com`,
+      vorname: 'Habit',
+      nachname: laufId,
+      rolle: 'user',
+      tenantId: tenant.id,
+      password,
+    });
 
     const asOwner = await login(url, anon, owner.email, password, SLUG);
     const acctRef = 'acct_e2e_' + randomUUID().replace(/-/g, '').slice(0, 16);
@@ -120,31 +136,40 @@ test('ZW1 — Ein-Tipp, Anders bezahlen, nur Vor Ort, letzter Schalter', async (
     const asUser = await login(url, anon, user.email, password, SLUG);
     const { data: sess } = await asUser.auth.getSession();
 
-    // (1) beide + ohne Karte → Standard Online, Anders bezahlen zeigt Vor Ort
+    // (1) beide + ohne Karte → Standard Online
+    // (5) Zahlart-Zeile + Knopftext Online
     await alsAngemeldet(page, sess.session);
     await page.setViewportSize({ width: 360, height: 780 });
     await page.goto(`/course/${kurs.id}?tenant=${SLUG}`);
     const mobileBar = page.getByTestId('course-booking-bar-mobile');
     await expect(methodLine(page)).toContainText('Online bezahlen', { timeout: 20_000 });
-    await expect(mobileBar.getByTestId('book-primary')).toBeVisible();
-    await mobileBar.getByTestId('book-alt-pay').click();
+    await expect(methodLine(page)).toContainText('Ändern');
+    await expect(mobileBar.getByTestId('book-primary')).toHaveText('Weiter zur Zahlung');
+
+    // Ändern › öffnet Sheet → Vor Ort
+    await methodLine(page).click();
     await expect(page.getByText('Vor Ort bezahlen')).toBeVisible();
     await page.getByText('Vor Ort bezahlen').click();
-    await expect(methodLine(page)).toContainText('Du bezahlst vor Ort');
+    await expect(methodLine(page)).toContainText('Vor Ort bezahlen');
+    await expect(methodLine(page)).toContainText('im Studio');
+    await expect(mobileBar.getByTestId('book-primary')).toHaveText('Weiter zur Buchung');
 
-    // (3) nur Vor Ort → Bestätigungs-Sheet
+    // (3) nur Vor Ort → Bestätigungs-Sheet mit Zahlungspflichtig buchen
     await asOwner.rpc('set_online_payments_enabled', { p_enabled: false });
     await asOwner.rpc('set_allow_onsite_payment', { p_allow: true });
     await page.reload();
-    await expect(methodLine(page)).toContainText('Du bezahlst vor Ort', { timeout: 20_000 });
-    await expect(mobileBar.getByTestId('book-alt-pay')).toHaveCount(0);
+    await expect(methodLine(page)).toContainText('Vor Ort bezahlen', { timeout: 20_000 });
+    await expect(methodLine(page)).not.toContainText('Ändern');
+    await expect(mobileBar.getByTestId('book-primary')).toHaveText('Weiter zur Buchung');
     await mobileBar.getByTestId('book-primary').click();
     await expect(page.getByTestId('onsite-book-confirm')).toBeVisible();
     await expect(page.getByTestId('onsite-binding-book')).toHaveText('Zahlungspflichtig buchen');
     await page.getByTestId('onsite-binding-book').click();
-    await expect(page.getByText('Angemeldet').first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId('toast-success')).toContainText('Du bist dabei', {
+      timeout: 15_000,
+    });
 
-    // (2) mit 10er-Karte → Ein-Tipp
+    // (2) mit 10er-Karte → Ein-Tipp + Toast
     const kurs2 = await kursAnlegen(admin, tenant.id, teacher.id, {
       title: `ZW1 Pass ${laufId}`,
       price: 16,
@@ -171,7 +196,68 @@ test('ZW1 — Ein-Tipp, Anders bezahlen, nur Vor Ort, letzter Schalter', async (
     await expect(methodLine(page)).toContainText('10er-Karte', { timeout: 20_000 });
     await expect(mobileBar.getByTestId('book-primary')).toContainText('Mit 10er-Karte buchen');
     await mobileBar.getByTestId('book-primary').click();
-    await expect(page.getByText(/mit Karte bezahlt/i).first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId('toast-success')).toContainText('Du bist dabei', {
+      timeout: 15_000,
+    });
+    await expect(page.getByTestId('toast-undo')).toBeVisible();
+
+    // (6) Neu-Hinweis einmal für Gewohnheits-Vor-Ort-Zahler
+    const histKurs = await kursAnlegen(admin, tenant.id, teacher.id, {
+      title: `ZW1 Hist ${laufId}`,
+      price: 16,
+      date: berlinDate(5),
+    });
+    const asHabitSeed = await login(url, anon, habitUser.email, password, SLUG);
+    const histBook = await asHabitSeed.rpc('register_for_course', {
+      p_course_id: histKurs.id,
+      p_use_pass: false,
+      p_method: 'onsite',
+    });
+    if (histBook.error || !histBook.data?.success) {
+      throw new Error(JSON.stringify(histBook));
+    }
+    // Trigger setzt seen_at — für den Hinweis wieder freigeben (wie Bestandskundin vor N1)
+    const { error: clearHint } = await admin
+      .from('users')
+      .update({ online_pay_hint_seen_at: null })
+      .eq('id', habitUser.id);
+    if (clearHint) throw new Error(clearHint.message);
+
+    const kursHint = await kursAnlegen(admin, tenant.id, teacher.id, {
+      title: `ZW1 Hint ${laufId}`,
+      price: 18,
+      date: berlinDate(10),
+    });
+    const asHabit = await login(url, anon, habitUser.email, password, SLUG);
+    const { data: habitSess } = await asHabit.auth.getSession();
+    const habitCtx = await browser.newContext();
+    const habitPage = await habitCtx.newPage();
+    await alsAngemeldet(habitPage, habitSess.session);
+    await habitPage.setViewportSize({ width: 360, height: 780 });
+    await habitPage.goto(`/course/${kursHint.id}?tenant=${SLUG}`);
+    await expect(methodLine(habitPage)).toContainText('Online bezahlen', { timeout: 20_000 });
+    await expect(methodLine(habitPage).getByTestId('book-online-pay-badge')).toHaveText('Neu');
+    await expect(methodLine(habitPage).getByTestId('book-online-pay-hint')).toContainText(
+      'Du kannst jetzt direkt online bezahlen',
+    );
+
+    // Nach einer Buchung (Vor Ort) kein Hinweis mehr
+    await methodLine(habitPage).click();
+    await habitPage.locator('label').filter({ hasText: 'Vor Ort bezahlen' }).click();
+    await habitPage.getByTestId('course-booking-bar-mobile').getByTestId('book-primary').click();
+    await habitPage.getByTestId('onsite-binding-book').click();
+    await expect(habitPage.getByTestId('toast-success')).toBeVisible({ timeout: 15_000 });
+
+    const kursHint2 = await kursAnlegen(admin, tenant.id, teacher.id, {
+      title: `ZW1 Hint2 ${laufId}`,
+      price: 18,
+      date: berlinDate(12),
+    });
+    await habitPage.goto(`/course/${kursHint2.id}?tenant=${SLUG}`);
+    await expect(methodLine(habitPage)).toContainText('Online bezahlen', { timeout: 20_000 });
+    await expect(methodLine(habitPage).getByTestId('book-online-pay-badge')).toHaveCount(0);
+    await expect(methodLine(habitPage).getByTestId('book-online-pay-hint')).toHaveCount(0);
+    await habitCtx.close();
 
     // (4) Einstellungen: letzter Schalter
     const ownerCtx = await browser.newContext();
