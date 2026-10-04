@@ -431,6 +431,8 @@ Deno.test("createPaymentIntent: Direct Charge, Metadaten, Idempotency, ohne conf
     attemptId: ATTEMPT,
     tenantId: TENANT_PAY,
     registrationId: REG,
+    subjectType: "registration",
+    subjectId: REG,
     idempotencyKey: ATTEMPT,
   });
   assert(ref.startsWith("pi_"), "pi_ ref");
@@ -449,7 +451,30 @@ Deno.test("createPaymentIntent: Direct Charge, Metadaten, Idempotency, ohne conf
   assertEquals(call.params.get("metadata[attempt_id]"), ATTEMPT);
   assertEquals(call.params.get("metadata[tenant_id]"), TENANT_PAY);
   assertEquals(call.params.get("metadata[registration_id]"), REG);
+  assertEquals(call.params.get("metadata[subject_type]"), "registration");
+  assertEquals(call.params.get("metadata[subject_id]"), REG);
   assertEquals(call.params.get("confirm"), null);
+});
+
+Deno.test("createPaymentIntent: Kartenkauf Beschreibung und Metadaten", async () => {
+  const { stub, provider } = setup();
+  const productId = "00000000-0000-4000-8000-00000000c799";
+  const { ref } = await provider.createPaymentIntent({
+    accountRef: ACCOUNT,
+    amountCents: 12000,
+    currency: "EUR",
+    attemptId: ATTEMPT,
+    tenantId: TENANT_PAY,
+    subjectType: "pass_product",
+    subjectId: productId,
+    idempotencyKey: `${ATTEMPT}-pass`,
+  });
+  assert(ref.startsWith("pi_"), "pi_ ref");
+  const call = stub.calls[0];
+  assertEquals(call.params.get("description"), "Omlify Kartenkauf");
+  assertEquals(call.params.get("metadata[subject_type]"), "pass_product");
+  assertEquals(call.params.get("metadata[subject_id]"), productId);
+  assertEquals(call.params.get("metadata[registration_id]"), null);
 });
 
 Deno.test("confirmPaymentIntent: stripeAccount, Ablehnung → failed ohne Wurf", async () => {
@@ -679,6 +704,8 @@ Deno.test("Zahlungsaufrufe setzen stripeAccount (Spion)", async () => {
     attemptId: ATTEMPT,
     tenantId: TENANT_PAY,
     registrationId: REG,
+    subjectType: "registration",
+    subjectId: REG,
     idempotencyKey: "idem-spy",
   });
   await provider.confirmPaymentIntent({

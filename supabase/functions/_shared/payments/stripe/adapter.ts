@@ -86,7 +86,8 @@ const ACCOUNT_INCLUDE = [
   "identity",
 ] as const satisfies ReadonlyArray<Stripe.V2.Core.AccountRetrieveParams.Include>;
 
-const PAYMENT_DESCRIPTION = "Omlify Kursbuchung";
+const PAYMENT_DESCRIPTION_COURSE = "Omlify Kursbuchung";
+const PAYMENT_DESCRIPTION_PASS = "Omlify Kartenkauf";
 
 const PAYMENT_EVENT_TYPES = new Set([
   "payment_intent.succeeded",
@@ -347,8 +348,18 @@ export class StripePaymentProvider implements PaymentProvider {
   }
 
   async createPaymentIntent(cmd: CreatePaymentIntentCommand): Promise<CreatePaymentIntentResult> {
-    if (!cmd.accountRef || !cmd.idempotencyKey || !cmd.attemptId) {
+    if (!cmd.accountRef || !cmd.idempotencyKey || !cmd.attemptId || !cmd.subjectType || !cmd.subjectId) {
       throw new ProviderError("INVALID_REQUEST", "missing_input");
+    }
+    const isPass = cmd.subjectType === "pass_product";
+    const metadata: Record<string, string> = {
+      attempt_id: cmd.attemptId,
+      tenant_id: cmd.tenantId,
+      subject_type: cmd.subjectType,
+      subject_id: cmd.subjectId,
+    };
+    if (!isPass) {
+      metadata.registration_id = cmd.registrationId ?? cmd.subjectId;
     }
     try {
       const pi = await this.client.paymentIntents.create(
@@ -356,12 +367,8 @@ export class StripePaymentProvider implements PaymentProvider {
           amount: cmd.amountCents,
           currency: "eur",
           payment_method_types: ["card"],
-          description: PAYMENT_DESCRIPTION,
-          metadata: {
-            attempt_id: cmd.attemptId,
-            tenant_id: cmd.tenantId,
-            registration_id: cmd.registrationId,
-          },
+          description: isPass ? PAYMENT_DESCRIPTION_PASS : PAYMENT_DESCRIPTION_COURSE,
+          metadata,
         },
         accountOpts(cmd.accountRef, cmd.idempotencyKey),
       );

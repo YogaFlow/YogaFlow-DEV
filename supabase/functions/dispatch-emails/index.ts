@@ -6,6 +6,7 @@ import {
   type DeliveryContext,
   type DeliveryRow,
   type DispatchDeps,
+  type PassDeliveryContext,
 } from "./handler.ts";
 import { buildStudioLogoUrl } from "../_shared/email_template.ts";
 
@@ -197,6 +198,169 @@ Deno.serve(async (req: Request) => {
         brandColor: typeof tenant?.brand_color === "string" ? tenant.brand_color : null,
         logoUrl: buildStudioLogoUrl(supabaseUrl, tenant?.logo_path ?? null),
         paidAt: original && typeof original.created_at === "string" ? original.created_at : null,
+      };
+      return ctx;
+    },
+    loadPassContext: async (passId) => {
+      const { data: pass, error: pe } = await supabase
+        .from("passes")
+        .select(
+          "id, name, units_total, valid_until, member_id, tenant_id, payment_id, status, created_at",
+        )
+        .eq("id", passId)
+        .maybeSingle();
+      if (pe || !pass) return null;
+
+      const [{ data: tenant }, { data: user }, { data: movements }] = await Promise.all([
+        supabase
+          .from("tenants")
+          .select("name, slug, brand_color, logo_path")
+          .eq("id", pass.tenant_id)
+          .maybeSingle(),
+        supabase
+          .from("users")
+          .select("email, anonymized_at, auth_user_id")
+          .eq("id", pass.member_id)
+          .maybeSingle(),
+        supabase
+          .from("pass_movements")
+          .select("delta, kind")
+          .eq("pass_id", passId),
+      ]);
+
+      const movs = Array.isArray(movements) ? movements : [];
+      const remaining = movs.reduce((sum, m) => sum + Number(m.delta ?? 0), 0);
+      const unitsUsed = movs
+        .filter((m) => m.kind === "redeem" || m.kind === "redeem_reversal")
+        .reduce((sum, m) => sum + (-Number(m.delta ?? 0)), 0);
+
+      let amountCents: number | null = null;
+      let refundAmountCents: number | null = null;
+      let wertersatzCents: number | null = null;
+      let purchasedAt: string | null = null;
+      let withdrawalAt: string | null = null;
+      let receiptId: string | null = null;
+      let receiptNumber: string | null = null;
+      let refundReceiptId: string | null = null;
+      let refundReceiptNumber: string | null = null;
+
+      if (pass.payment_id) {
+        const { data: pay } = await supabase
+          .from("payments")
+          .select("id, amount_cents, received_at, created_at")
+          .eq("id", pass.payment_id)
+          .maybeSingle();
+        if (pay) {
+          amountCents = Number(pay.amount_cents);
+          purchasedAt = typeof pay.received_at === "string"
+            ? pay.received_at
+            : typeof pay.created_at === "string"
+            ? pay.created_at
+            : null;
+        }
+        const { data: refunds } = await supabase
+          .from("payments")
+          .select("id, amount_cents, created_at")
+          .eq("reverses_payment_id", pass.payment_id)
+          .order("created_at", { ascending: false })
+          .limit(1);
+        const refund = Array.isArray(refunds) ? refunds[0] : null;
+        if (refund) {
+          refundAmountCents = Math.abs(Number(refund.amount_cents ?? 0)) || null;
+        }
+        if (amountCents != null && unitsUsed >= 0 && pass.units_total > 0) {
+          wertersatzCents = Math.round((amountCents * unitsUsed) / pass.units_total);
+          if (refundAmountCents == null) {
+            refundAmountCents = Math.max(amountCents - wertersatzCents, 0);
+          }
+        }
+        const { data: recs } = await supabase
+          .from("receipts")
+          .select("id, number, kind")
+          .eq("payment_id", pass.payment_id);
+        for (const rec of recs ?? []) {
+          if (rec.kind === "receipt") {
+            receiptId = rec.id;
+            receiptNumber = rec.number;
+          }
+          if (rec.kind === "refund_receipt") {
+            refundReceiptId = rec.id;
+            refundReceiptNumber = rec.number;
+          }
+        }
+        if (refund?.id) {
+          const { data: rrecs } = await supabase
+            .from("receipts")
+            .select("id, number, kind")
+            .eq("payment_id", refund.id);
+          for (const rec of rrecs ?? []) {
+            if (rec.kind === "refund_receipt") {
+              refundReceiptId = rec.id;
+              refundReceiptNumber = rec.number;
+            }
+          }
+        }
+      }
+
+      const { data: wdEvent } = await supabase
+        .from("events")
+        .select("created_at")
+        .eq("type", "pass.withdrawal_received")
+        .eq("subject_id", passId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (wdEvent && typeof wdEvent.created_at === "string") {
+        withdrawalAt = wdEvent.created_at;
+      }
+
+      const [{ data: legal }, { data: tax }] = await Promise.all([
+        supabase
+          .from("tenant_legal_profiles")
+          .select("legal_name, street, house_number, postal_code, city, contact_email, phone")
+          .eq("tenant_id", pass.tenant_id)
+          .maybeSingle(),
+        supabase
+          .from("tenant_tax_settings")
+          .select("regime, vat_rate_bp")
+          .eq("tenant_id", pass.tenant_id)
+          .order("valid_from", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
+
+      const ctx: PassDeliveryContext = {
+        passId: pass.id,
+        passName: pass.name ?? "Karte",
+        unitsTotal: Number(pass.units_total ?? 0),
+        remaining,
+        validUntil: typeof pass.valid_until === "string" ? pass.valid_until : null,
+        studioName: tenant?.name ?? null,
+        studioSlug: tenant?.slug ?? null,
+        recipientEmail: user?.email ?? null,
+        anonymizedAt: user?.anonymized_at ?? null,
+        authUserId: user?.auth_user_id ?? null,
+        amountCents,
+        refundAmountCents,
+        wertersatzCents,
+        unitsUsed,
+        purchasedAt,
+        withdrawalAt,
+        receiptId,
+        receiptNumber,
+        refundReceiptId,
+        refundReceiptNumber,
+        legalName: legal?.legal_name ?? null,
+        legalStreet: legal?.street ?? null,
+        legalHouse: legal?.house_number ?? null,
+        legalPostal: legal?.postal_code ?? null,
+        legalCity: legal?.city ?? null,
+        contactEmail: legal?.contact_email ?? null,
+        legalPhone: legal?.phone ?? null,
+        taxRegime: tax?.regime ?? null,
+        vatRateBp: typeof tax?.vat_rate_bp === "number" ? tax.vat_rate_bp : null,
+        brandColor: typeof tenant?.brand_color === "string" ? tenant.brand_color : null,
+        logoUrl: buildStudioLogoUrl(supabaseUrl, tenant?.logo_path ?? null),
       };
       return ctx;
     },

@@ -58,6 +58,8 @@ Deno.test("Fake: Zahlung succeed / decline / requires_action / provider_unavaila
     attemptId: "att",
     tenantId: "t",
     registrationId: "r",
+    subjectType: "registration" as const,
+    subjectId: "r",
     idempotencyKey: "idem-1",
   };
   const { ref } = await p.createPaymentIntent(base);
@@ -112,6 +114,8 @@ Deno.test("Fake: already_canceled und Domain idempotent", async () => {
     attemptId: "a",
     tenantId: "t",
     registrationId: "r",
+    subjectType: "registration",
+    subjectId: "r",
     idempotencyKey: "k-c",
   });
   p.setPaymentBehavior("already_canceled");

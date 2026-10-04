@@ -1,5 +1,5 @@
 /**
- * payments-checkout (Geldkette 2.2a-3). Reine Logik, Abhängigkeiten injiziert.
+ * payments-checkout (Geldkette 2.2a-3 / K1). Reine Logik, Abhängigkeiten injiziert.
  * Auth und Tenant kommen von außen (initService). Stripe nur über den Port.
  */
 import {
@@ -25,7 +25,9 @@ export type PrepareResult =
     providerRef: string | null;
     holdExpiresAt: string;
     livemode: boolean;
-    registrationId: string;
+    registrationId: string | null;
+    subjectType: "registration" | "pass_product";
+    subjectId: string;
   }
   | { ok: false; code: string };
 
@@ -36,10 +38,12 @@ export type MarkFailedResult = { ok: true } | { ok: false; code: string };
 
 export interface AttemptStatusView {
   attemptId: string;
-  registrationId: string;
+  registrationId: string | null;
+  subjectType: "registration" | "pass_product";
+  subjectId: string | null;
   providerRef: string | null;
   attemptStatus: string;
-  registrationStatus: string;
+  registrationStatus: string | null;
   amountCents: number;
   currency: string;
   livemode: boolean;
@@ -48,6 +52,12 @@ export interface AttemptStatusView {
 
 export interface CheckoutStore {
   prepareOnlinePayment(registrationId: string, userId: string): Promise<PrepareResult>;
+  preparePassOnlinePayment(
+    productId: string,
+    userId: string,
+    immediateUseHash: string,
+    withdrawalInfoHash: string,
+  ): Promise<PrepareResult>;
   attachPaymentRef(attemptId: string, providerRef: string): Promise<AttachResult>;
   checkBeforeConfirm(attemptId: string, userId: string): Promise<CheckResult>;
   completeOnlinePayment(input: {
@@ -91,6 +101,9 @@ const BROWSER_CODES = new Set([
   "PROVIDER_UNAVAILABLE",
   "FORBIDDEN",
   "INVALID_REQUEST",
+  "CONSENT_REQUIRED",
+  "NOT_PURCHASABLE",
+  "AMOUNT_ABOVE_RECEIPT_LIMIT",
 ]);
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -102,6 +115,9 @@ const ERROR_MESSAGES: Record<string, string> = {
   PROVIDER_UNAVAILABLE: "Zahlungsanbieter nicht erreichbar",
   FORBIDDEN: "Kein Zugriff",
   INVALID_REQUEST: "Ungültige Anfrage",
+  CONSENT_REQUIRED: "Bitte bestätige die Zustimmung zur sofortigen Nutzung",
+  NOT_PURCHASABLE: "Diese Karte ist online nicht kaufbar",
+  AMOUNT_ABOVE_RECEIPT_LIMIT: "Online-Kauf nur bis 250 €",
 };
 
 function jsonOk(body: Record<string, unknown>, corsHeaders: Record<string, string>): Response {
@@ -117,6 +133,16 @@ function mapRpcCode(code: string): string {
   if (code === "REF_ALREADY_SET" || code === "INVALID_REF" || code === "NOT_FOUND") {
     return "INVALID_REQUEST";
   }
+  if (
+    code === "ACTIVE_ATTEMPT_EXISTS" ||
+    code === "PROVIDER_NOT_READY" ||
+    code === "TAX_SETTING_MISSING" ||
+    code === "LEGAL_PROFILE_MISSING" ||
+    code === "AVV_MISSING" ||
+    code === "PLATFORM_DISABLED"
+  ) {
+    return "ONLINE_DISABLED";
+  }
   return "INVALID_REQUEST";
 }
 
@@ -131,7 +157,11 @@ function respondCode(
       ? 403
       : mapped === "PROVIDER_UNAVAILABLE"
       ? 503
-      : mapped === "HOLD_EXPIRED" || mapped === "NOT_PENDING" || mapped === "ONLINE_DISABLED"
+      : mapped === "HOLD_EXPIRED" ||
+          mapped === "NOT_PENDING" ||
+          mapped === "ONLINE_DISABLED" ||
+          mapped === "NOT_PURCHASABLE" ||
+          mapped === "AMOUNT_ABOVE_RECEIPT_LIMIT"
       ? 409
       : 400);
   return deps.errorResponse(
@@ -158,15 +188,19 @@ function mapProviderHttp(err: unknown, deps: CheckoutDeps): Response {
 }
 
 /** return_url serverseitig — nie aus dem Browser (F3). */
-export function buildPaymentReturnUrl(tenantSlug: string, appBaseDomain: string): string {
+export function buildPaymentReturnUrl(
+  tenantSlug: string,
+  appBaseDomain: string,
+  path: "my-registrations" | "my-passes" = "my-registrations",
+): string {
   const domain = appBaseDomain.trim().toLowerCase();
   const slug = tenantSlug.trim().toLowerCase();
   if (!domain || !slug) throw new ProviderError("CONFIG_ERROR", "APP_BASE_DOMAIN");
   if (domain.includes("localhost")) {
     const host = domain.includes(":") ? domain : `${domain}:5173`;
-    return `http://${slug}.${host}/my-registrations?payment=return&tenant=${encodeURIComponent(slug)}`;
+    return `http://${slug}.${host}/${path}?payment=return&tenant=${encodeURIComponent(slug)}`;
   }
-  return `https://${slug}.${domain}/my-registrations?payment=return`;
+  return `https://${slug}.${domain}/${path}?payment=return`;
 }
 
 function failureCodeForBrowser(raw: string | undefined): string {
@@ -241,11 +275,28 @@ async function handlePrepare(
 ): Promise<Response> {
   const { store, provider, log, corsHeaders } = deps;
   const registrationId = typeof body.registration_id === "string" ? body.registration_id : "";
-  if (!registrationId) return respondCode(deps, "INVALID_REQUEST");
+  const productId = typeof body.product_id === "string" ? body.product_id : "";
+  const immediateUseHash =
+    typeof body.immediate_use_hash === "string" ? body.immediate_use_hash : "";
+  const withdrawalInfoHash =
+    typeof body.withdrawal_info_hash === "string" ? body.withdrawal_info_hash : "";
+
+  if (productId && registrationId) return respondCode(deps, "INVALID_REQUEST");
+  if (!productId && !registrationId) return respondCode(deps, "INVALID_REQUEST");
+  if (productId && (!immediateUseHash || !withdrawalInfoHash)) {
+    return respondCode(deps, "CONSENT_REQUIRED");
+  }
 
   let prepared: PrepareResult;
   try {
-    prepared = await store.prepareOnlinePayment(registrationId, caller.memberId);
+    prepared = productId
+      ? await store.preparePassOnlinePayment(
+        productId,
+        caller.memberId,
+        immediateUseHash,
+        withdrawalInfoHash,
+      )
+      : await store.prepareOnlinePayment(registrationId, caller.memberId);
   } catch {
     log.error("payments-checkout", { action: "prepare", result: "DB_ERROR" });
     return deps.errorResponse(500, "DB_ERROR", "Ein Fehler ist aufgetreten");
@@ -255,8 +306,6 @@ async function handlePrepare(
     log.info("payments-checkout", { action: "prepare", result: prepared.code });
     return respondCode(deps, prepared.code);
   }
-
-  // F2-Abbruch entfällt (W2 / Trigger → provider_jobs → payments-jobs).
 
   let providerRef = prepared.providerRef;
   if (!providerRef) {
@@ -268,7 +317,9 @@ async function handlePrepare(
         currency: "EUR",
         attemptId: prepared.attemptId,
         tenantId: caller.tenantId,
-        registrationId,
+        registrationId: prepared.registrationId ?? undefined,
+        subjectType: prepared.subjectType,
+        subjectId: prepared.subjectId,
         idempotencyKey: prepared.attemptId,
       });
     } catch (err) {
@@ -317,6 +368,8 @@ async function handlePrepare(
     currency: prepared.currency,
     hold_expires_at: prepared.holdExpiresAt,
     account_ref: prepared.accountRef,
+    subject_type: prepared.subjectType,
+    subject_id: prepared.subjectId,
   }, corsHeaders);
 }
 
@@ -357,7 +410,8 @@ async function handleConfirm(
     return respondCode(deps, "FORBIDDEN");
   }
 
-  const returnUrl = buildPaymentReturnUrl(tenantSlug, appBaseDomain);
+  const returnPath = view.subjectType === "pass_product" ? "my-passes" : "my-registrations";
+  const returnUrl = buildPaymentReturnUrl(tenantSlug, appBaseDomain, returnPath);
 
   let confirmed;
   try {
@@ -477,6 +531,7 @@ async function handleConfirm(
       attempt_id: attemptId,
       attempt_status: after?.attemptStatus ?? null,
       registration_status: after?.registrationStatus ?? null,
+      subject_type: after?.subjectType ?? view.subjectType,
       code: completionCode,
     }, corsHeaders);
   }
@@ -591,6 +646,7 @@ async function handleStatus(
       attempt_id: attemptId,
       attempt_status: view.attemptStatus,
       registration_status: view.registrationStatus,
+      subject_type: view.subjectType,
       code: completionCode,
     }, corsHeaders);
   }
@@ -606,6 +662,7 @@ async function handleStatus(
     attempt_id: attemptId,
     attempt_status: view.attemptStatus,
     registration_status: view.registrationStatus,
+    subject_type: view.subjectType,
     code: null,
   }, corsHeaders);
 }

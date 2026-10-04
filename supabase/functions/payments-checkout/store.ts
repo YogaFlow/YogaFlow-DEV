@@ -1,5 +1,5 @@
 /**
- * Service-RPCs und Lesen für payments-checkout (2.2a-3).
+ * Service-RPCs und Lesen für payments-checkout (2.2a-3 / K1).
  * Alle Aufrufe mit service_role (RPCs nur dafür freigegeben).
  */
 import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
@@ -29,6 +29,23 @@ function asRpcObject(data: unknown, operation: string): Record<string, unknown> 
   return data;
 }
 
+async function loadAccountRef(
+  serviceClient: SupabaseClient,
+  tenantId: string,
+): Promise<string | null> {
+  const { data: account, error: accErr } = await serviceClient
+    .from("provider_accounts")
+    .select("provider_ref")
+    .eq("tenant_id", tenantId)
+    .eq("provider", "stripe")
+    .is("disconnected_at", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (accErr) throw new StoreError("get_provider_account");
+  return typeof account?.provider_ref === "string" ? account.provider_ref : null;
+}
+
 export function createCheckoutStore(serviceClient: SupabaseClient): CheckoutStore {
   return {
     async prepareOnlinePayment(registrationId, userId): Promise<PrepareResult> {
@@ -51,6 +68,47 @@ export function createCheckoutStore(serviceClient: SupabaseClient): CheckoutStor
         holdExpiresAt: typeof row.hold_expires_at === "string" ? row.hold_expires_at : "",
         livemode: row.livemode === true,
         registrationId,
+        subjectType: "registration",
+        subjectId: registrationId,
+      };
+    },
+
+    async preparePassOnlinePayment(
+      productId,
+      userId,
+      immediateUseHash,
+      withdrawalInfoHash,
+    ): Promise<PrepareResult> {
+      const { data, error } = await serviceClient.rpc("prepare_pass_online_payment", {
+        p_product_id: productId,
+        p_user_id: userId,
+        p_immediate_use_hash: immediateUseHash,
+        p_withdrawal_info_hash: withdrawalInfoHash,
+      });
+      if (error) throw new StoreError("prepare_pass_online_payment");
+      const row = asRpcObject(data, "prepare_pass_online_payment");
+      if (row.success !== true) {
+        return { ok: false, code: typeof row.error === "string" ? row.error : "INVALID_REQUEST" };
+      }
+      // UI reuses hold_expires_at; SQL returns expires_at for pass attempts.
+      const expiresAt =
+        typeof row.expires_at === "string"
+          ? row.expires_at
+          : typeof row.hold_expires_at === "string"
+          ? row.hold_expires_at
+          : "";
+      return {
+        ok: true,
+        attemptId: String(row.attempt_id),
+        amountCents: Number(row.amount_cents),
+        currency: String(row.currency ?? "EUR").toUpperCase() === "EUR" ? "EUR" : String(row.currency),
+        accountRef: typeof row.account_ref === "string" ? row.account_ref : "",
+        providerRef: typeof row.provider_ref === "string" ? row.provider_ref : null,
+        holdExpiresAt: expiresAt,
+        livemode: row.livemode === true,
+        registrationId: null,
+        subjectType: "pass_product",
+        subjectId: typeof row.subject_id === "string" ? row.subject_id : productId,
       };
     },
 
@@ -112,12 +170,36 @@ export function createCheckoutStore(serviceClient: SupabaseClient): CheckoutStor
     async getAttemptForMember(attemptId, memberId, tenantId): Promise<AttemptStatusView | null> {
       const { data: attempt, error: aErr } = await serviceClient
         .from("payment_attempts")
-        .select("id, provider_ref, status, amount_cents, currency, livemode, registration_id, tenant_id")
+        .select(
+          "id, provider_ref, status, amount_cents, currency, livemode, registration_id, subject_type, subject_id, member_id, tenant_id",
+        )
         .eq("id", attemptId)
         .maybeSingle();
       if (aErr) throw new StoreError("get_attempt");
       if (!isObject(attempt)) return null;
       if (attempt.tenant_id !== tenantId) return null;
+
+      const subjectType = attempt.subject_type === "pass_product" ? "pass_product" : "registration";
+      const accountRef = await loadAccountRef(serviceClient, tenantId);
+
+      if (subjectType === "pass_product") {
+        if (attempt.member_id !== memberId) return null;
+        return {
+          attemptId: String(attempt.id),
+          registrationId: null,
+          subjectType: "pass_product",
+          subjectId: typeof attempt.subject_id === "string" ? attempt.subject_id : null,
+          providerRef: typeof attempt.provider_ref === "string" ? attempt.provider_ref : null,
+          attemptStatus: String(attempt.status),
+          registrationStatus: null,
+          amountCents: Number(attempt.amount_cents),
+          currency: String(attempt.currency ?? "EUR").toUpperCase() === "EUR"
+            ? "EUR"
+            : String(attempt.currency),
+          livemode: attempt.livemode === true,
+          accountRef,
+        };
+      }
 
       const { data: reg, error: rErr } = await serviceClient
         .from("registrations")
@@ -128,27 +210,20 @@ export function createCheckoutStore(serviceClient: SupabaseClient): CheckoutStor
       if (!isObject(reg)) return null;
       if (reg.user_id !== memberId || reg.tenant_id !== tenantId) return null;
 
-      const { data: account, error: accErr } = await serviceClient
-        .from("provider_accounts")
-        .select("provider_ref")
-        .eq("tenant_id", tenantId)
-        .eq("provider", "stripe")
-        .is("disconnected_at", null)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (accErr) throw new StoreError("get_provider_account");
-
       return {
         attemptId: String(attempt.id),
         registrationId: String(reg.id),
+        subjectType: "registration",
+        subjectId: String(reg.id),
         providerRef: typeof attempt.provider_ref === "string" ? attempt.provider_ref : null,
         attemptStatus: String(attempt.status),
         registrationStatus: String(reg.status),
         amountCents: Number(attempt.amount_cents),
-        currency: String(attempt.currency ?? "EUR").toUpperCase() === "EUR" ? "EUR" : String(attempt.currency),
+        currency: String(attempt.currency ?? "EUR").toUpperCase() === "EUR"
+          ? "EUR"
+          : String(attempt.currency),
         livemode: attempt.livemode === true,
-        accountRef: typeof account?.provider_ref === "string" ? account.provider_ref : null,
+        accountRef,
       };
     },
   };

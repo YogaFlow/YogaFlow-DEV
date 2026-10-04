@@ -88,7 +88,9 @@ interface FakePaymentRecord {
   livemode: false;
   attemptId: string;
   tenantId: string;
-  registrationId: string;
+  registrationId: string | null;
+  subjectType: "registration" | "pass_product";
+  subjectId: string;
   status: PaymentIntentStatus;
   failureCode?: string;
   receivedAt?: string;
@@ -239,7 +241,7 @@ export class FakePaymentProvider implements PaymentProvider {
     if (this.behavior === "provider_unavailable") {
       return Promise.reject(new ProviderError("PROVIDER_UNAVAILABLE"));
     }
-    if (!cmd.accountRef || !cmd.idempotencyKey || !cmd.attemptId) {
+    if (!cmd.accountRef || !cmd.idempotencyKey || !cmd.attemptId || !cmd.subjectType || !cmd.subjectId) {
       return Promise.reject(new ProviderError("INVALID_REQUEST", "missing_input"));
     }
     const known = this.paymentByIdempotency.get(cmd.idempotencyKey);
@@ -254,7 +256,9 @@ export class FakePaymentProvider implements PaymentProvider {
       livemode: false,
       attemptId: cmd.attemptId,
       tenantId: cmd.tenantId,
-      registrationId: cmd.registrationId,
+      registrationId: cmd.registrationId ?? (cmd.subjectType === "registration" ? cmd.subjectId : null),
+      subjectType: cmd.subjectType,
+      subjectId: cmd.subjectId,
       status: "processing",
     });
     this.paymentByIdempotency.set(cmd.idempotencyKey, ref);

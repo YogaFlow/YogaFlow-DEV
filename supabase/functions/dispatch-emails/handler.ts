@@ -6,6 +6,8 @@
  * prüft je kind, baut HTML+Text(+ICS), sendet über send-email.
  *
  * kinds: waitlist_promoted_payment_required | payment_succeeded | payment_refunded
+ *      | pass_purchased | pass_expiring_30 | pass_expiring_7 | pass_units_low
+ *      | pass_withdrawal_received | pass_withdrawal_refunded
  *
  * Logs: delivery_id, kind, Ergebnis-Code — nie Adresse oder Inhalt.
  */
@@ -39,7 +41,8 @@ export type DeliveryRow = {
   tenant_id: string;
   event_id: string;
   kind: string;
-  registration_id: string;
+  registration_id: string | null;
+  pass_id?: string | null;
   status: string;
   attempts: number;
 };
@@ -93,11 +96,47 @@ export type DeliveryContext = {
   paidAt?: string | null;
 };
 
+/** K1: Kontext für Karten-Mails (subject = pass). */
+export type PassDeliveryContext = {
+  passId: string;
+  passName: string;
+  unitsTotal: number;
+  remaining: number;
+  validUntil: string | null;
+  studioName: string | null;
+  studioSlug: string | null;
+  recipientEmail: string | null;
+  anonymizedAt: string | null;
+  authUserId: string | null;
+  amountCents: number | null;
+  refundAmountCents: number | null;
+  wertersatzCents: number | null;
+  unitsUsed: number | null;
+  purchasedAt: string | null;
+  withdrawalAt: string | null;
+  receiptId: string | null;
+  receiptNumber: string | null;
+  refundReceiptId: string | null;
+  refundReceiptNumber: string | null;
+  legalName: string | null;
+  legalStreet: string | null;
+  legalHouse: string | null;
+  legalPostal: string | null;
+  legalCity: string | null;
+  contactEmail: string | null;
+  legalPhone: string | null;
+  taxRegime: string | null;
+  vatRateBp: number | null;
+  brandColor: string | null;
+  logoUrl: string | null;
+};
+
 export type DispatchDeps = {
   env: (key: string) => string | undefined;
   log: ServiceLogger;
   claimDeliveries: (limit: number) => Promise<DeliveryRow[]>;
   loadContext: (registrationId: string) => Promise<DeliveryContext | null>;
+  loadPassContext: (passId: string) => Promise<PassDeliveryContext | null>;
   markDelivery: (
     id: string,
     status: "sent" | "skipped" | "failed" | "released",
@@ -181,6 +220,337 @@ export function buildMyRegistrationsLink(
   if (s && domain) return `https://${s}.${domain}/my-registrations`;
   if (domain) return `https://${domain}/my-registrations`;
   return "/my-registrations";
+}
+
+export function buildMyPassesLink(
+  slug: string | null,
+  baseDomain: string | undefined,
+): string {
+  const domain = (baseDomain ?? "").trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
+  const s = (slug ?? "").trim().toLowerCase();
+  if (s && domain) return `https://${s}.${domain}/my-passes`;
+  if (domain) return `https://${domain}/my-passes`;
+  return "/my-passes";
+}
+
+export function buildCoursesLink(
+  slug: string | null,
+  baseDomain: string | undefined,
+): string {
+  const domain = (baseDomain ?? "").trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
+  const s = (slug ?? "").trim().toLowerCase();
+  if (s && domain) return `https://${s}.${domain}/courses`;
+  if (domain) return `https://${domain}/courses`;
+  return "/courses";
+}
+
+export function buildWiderrufLink(
+  slug: string | null,
+  baseDomain: string | undefined,
+): string {
+  const domain = (baseDomain ?? "").trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
+  const s = (slug ?? "").trim().toLowerCase();
+  if (s && domain) return `https://${s}.${domain}/widerruf`;
+  if (domain) return `https://${domain}/widerruf`;
+  return "/widerruf";
+}
+
+function civilDateLabel(isoDate: string | null): string {
+  if (!isoDate) return "";
+  const [y, m, d] = isoDate.split("-");
+  if (!y || !m || !d) return isoDate;
+  return `${Number(d)}.${m}.${y}`;
+}
+
+function passProviderFooterHtml(input: {
+  studioName: string;
+  legalName?: string | null;
+  legalStreet?: string | null;
+  legalHouse?: string | null;
+  legalPostal?: string | null;
+  legalCity?: string | null;
+  contactEmail?: string | null;
+  legalPhone?: string | null;
+  widerrufLink?: string | null;
+}): string {
+  const name = escapeHtml(input.legalName || input.studioName);
+  const street = `${input.legalStreet ?? ""} ${input.legalHouse ?? ""}`.trim();
+  const city = `${input.legalPostal ?? ""} ${input.legalCity ?? ""}`.trim();
+  const lines = [
+    name,
+    street ? escapeHtml(street) : "",
+    city ? escapeHtml(city) : "",
+    input.contactEmail ? escapeHtml(input.contactEmail) : "",
+    input.legalPhone ? escapeHtml(input.legalPhone) : "",
+  ].filter(Boolean);
+  const widerruf = input.widerrufLink
+    ? `<p style="margin:8px 0 0 0;">Du hast ein 14-tägiges Widerrufsrecht. ` +
+      `<a href="${escapeHtml(input.widerrufLink)}">Widerruf erklären</a>. ` +
+      `Du hast der sofortigen Nutzung ausdrücklich zugestimmt; bei Widerruf leistest du anteilig Wertersatz für genutzte Termine.</p>`
+    : "";
+  return [
+    `<p style="margin:0 0 8px 0;">${lines.join("<br />")}</p>`,
+    widerruf,
+  ].join("");
+}
+
+export function buildPassPurchasedEmail(input: {
+  passName: string;
+  unitsTotal: number;
+  validUntil: string | null;
+  studioName: string;
+  amountCents: number;
+  coursesLink: string;
+  receiptLink: string | null;
+  receiptNumber: string | null;
+  widerrufLink: string;
+  brandColor?: string | null;
+  logoUrl?: string | null;
+  legalName?: string | null;
+  legalStreet?: string | null;
+  legalHouse?: string | null;
+  legalPostal?: string | null;
+  legalCity?: string | null;
+  contactEmail?: string | null;
+  legalPhone?: string | null;
+  taxRegime?: string | null;
+  vatRateBp?: number | null;
+}): EmailPayload {
+  const title = `Deine ${input.passName} ist bereit`;
+  const until = civilDateLabel(input.validUntil);
+  const unitsLabel = input.unitsTotal === 1 ? "1 Termin" : `${input.unitsTotal} Termine`;
+  const price = priceLine(input.amountCents, input.taxRegime ?? null, input.vatRateBp ?? null);
+  const accent = resolveBrandAccent(input.brandColor);
+  const bodyHtml = [
+    `<p style="margin:0 0 12px 0;">${escapeHtml(unitsLabel)}${until ? ` · gültig bis ${escapeHtml(until)}` : ""}</p>`,
+    `<p style="margin:0 0 12px 0;">${escapeHtml(price)}</p>`,
+    input.receiptLink && input.receiptNumber
+      ? `<p style="margin:0 0 16px 0;">${textLinkHtml(`Beleg ${input.receiptNumber}`, input.receiptLink, accent)}</p>`
+      : "",
+    primaryButtonHtml("Kurs buchen", input.coursesLink, accent),
+  ].join("");
+  const textBody = [
+    title,
+    `${unitsLabel}${until ? ` · gültig bis ${until}` : ""}`,
+    price,
+    input.receiptLink && input.receiptNumber
+      ? `Beleg ${input.receiptNumber}: ${input.receiptLink}`
+      : "",
+    `Kurs buchen: ${input.coursesLink}`,
+    `Widerruf: ${input.widerrufLink}`,
+  ].filter(Boolean).join("\n");
+  const { html, text } = renderEmailShell(
+    {
+      preheader: `${unitsLabel}${until ? `, gültig bis ${until}` : ""}`,
+      studioName: input.studioName,
+      logoUrl: input.logoUrl,
+      brandColor: input.brandColor,
+      title,
+      introHtml: `Deine Karte bei ${escapeHtml(input.studioName)} ist sofort nutzbar.`,
+      bodyHtml,
+      footerHtml: passProviderFooterHtml({ ...input, widerrufLink: input.widerrufLink }),
+    },
+    textBody,
+  );
+  return { subject: title, html, text };
+}
+
+export function buildPassExpiringEmail(input: {
+  kind: "pass_expiring_30" | "pass_expiring_7";
+  passName: string;
+  remaining: number;
+  validUntil: string | null;
+  studioName: string;
+  coursesLink: string;
+  brandColor?: string | null;
+  logoUrl?: string | null;
+  legalName?: string | null;
+  legalStreet?: string | null;
+  legalHouse?: string | null;
+  legalPostal?: string | null;
+  legalCity?: string | null;
+  contactEmail?: string | null;
+  legalPhone?: string | null;
+}): EmailPayload {
+  const until = civilDateLabel(input.validUntil);
+  const days = input.kind === "pass_expiring_30" ? 30 : 7;
+  const title = `${input.passName}: noch ${days} Tage gültig`;
+  const rem = input.remaining === 1 ? "1 Termin" : `${input.remaining} Termine`;
+  const accent = resolveBrandAccent(input.brandColor);
+  const bodyHtml = [
+    `<p style="margin:0 0 12px 0;">Noch ${escapeHtml(rem)} offen${until ? ` · gültig bis ${escapeHtml(until)}` : ""}.</p>`,
+    primaryButtonHtml("Kurs buchen", input.coursesLink, accent),
+  ].join("");
+  const textBody = [
+    title,
+    `Noch ${rem} offen${until ? ` · gültig bis ${until}` : ""}.`,
+    `Kurs buchen: ${input.coursesLink}`,
+  ].join("\n");
+  const { html, text } = renderEmailShell(
+    {
+      preheader: until ? `Gültig bis ${until}` : title,
+      studioName: input.studioName,
+      logoUrl: input.logoUrl,
+      brandColor: input.brandColor,
+      title,
+      introHtml: `Deine Karte bei ${escapeHtml(input.studioName)} läuft bald ab.`,
+      bodyHtml,
+      footerHtml: passProviderFooterHtml(input),
+    },
+    textBody,
+  );
+  return { subject: title, html, text };
+}
+
+export function buildPassUnitsLowEmail(input: {
+  passName: string;
+  validUntil: string | null;
+  studioName: string;
+  coursesLink: string;
+  brandColor?: string | null;
+  logoUrl?: string | null;
+  legalName?: string | null;
+  legalStreet?: string | null;
+  legalHouse?: string | null;
+  legalPostal?: string | null;
+  legalCity?: string | null;
+  contactEmail?: string | null;
+  legalPhone?: string | null;
+}): EmailPayload {
+  const title = `Noch 1 Termin auf deiner ${input.passName}`;
+  const until = civilDateLabel(input.validUntil);
+  const accent = resolveBrandAccent(input.brandColor);
+  const bodyHtml = [
+    until
+      ? `<p style="margin:0 0 12px 0;">Gültig bis ${escapeHtml(until)}.</p>`
+      : "",
+    primaryButtonHtml("Kurs buchen", input.coursesLink, accent),
+  ].join("");
+  const textBody = [title, until ? `Gültig bis ${until}.` : "", `Kurs buchen: ${input.coursesLink}`]
+    .filter(Boolean)
+    .join("\n");
+  const { html, text } = renderEmailShell(
+    {
+      preheader: "Noch 1 Termin offen",
+      studioName: input.studioName,
+      logoUrl: input.logoUrl,
+      brandColor: input.brandColor,
+      title,
+      introHtml: `Auf deiner Karte bei ${escapeHtml(input.studioName)} ist noch ein Termin übrig.`,
+      bodyHtml,
+      footerHtml: passProviderFooterHtml(input),
+    },
+    textBody,
+  );
+  return { subject: title, html, text };
+}
+
+export function buildPassWithdrawalReceivedEmail(input: {
+  passName: string;
+  studioName: string;
+  withdrawalAt: string;
+  priceCents: number;
+  unitsUsed: number;
+  wertersatzCents: number;
+  refundCents: number;
+  brandColor?: string | null;
+  logoUrl?: string | null;
+  legalName?: string | null;
+  legalStreet?: string | null;
+  legalHouse?: string | null;
+  legalPostal?: string | null;
+  legalCity?: string | null;
+  contactEmail?: string | null;
+  legalPhone?: string | null;
+}): EmailPayload {
+  const when = berlinParts(input.withdrawalAt);
+  const title = `Widerruf eingegangen: ${input.passName}`;
+  // Anzeige: Preis ÷ Termine (wie Story); Wertersatz serverseitig auf die Summe gerundet.
+  const rechenweg =
+    input.unitsUsed === 0
+      ? `${formatEurCents(input.priceCents)} − 0 genutzte Termine = ${formatEurCents(input.refundCents)}`
+      : `${formatEurCents(input.priceCents)} − ${input.unitsUsed} genutzte Termine × ` +
+        `${formatEurCents(input.wertersatzCents > 0 ? Math.round(input.wertersatzCents / input.unitsUsed) : 0)}` +
+        ` = ${formatEurCents(input.refundCents)}`;
+  const bodyHtml = [
+    `<p style="margin:0 0 12px 0;">Eingang: ${escapeHtml(when.date)}, ${escapeHtml(when.time)} Uhr.</p>`,
+    `<p style="margin:0 0 12px 0;">Erstattung: ${escapeHtml(rechenweg)}</p>`,
+    `<p style="margin:0;">Die Erstattung folgt in den nächsten Tagen.</p>`,
+  ].join("");
+  const textBody = [
+    title,
+    `Eingang: ${when.date}, ${when.time} Uhr.`,
+    `Erstattung: ${rechenweg}`,
+    "Die Erstattung folgt in den nächsten Tagen.",
+  ].join("\n");
+  const { html, text } = renderEmailShell(
+    {
+      preheader: `Erstattung ${formatEurCents(input.refundCents)}`,
+      studioName: input.studioName,
+      logoUrl: input.logoUrl,
+      brandColor: input.brandColor,
+      title,
+      introHtml: `Dein Widerruf bei ${escapeHtml(input.studioName)} ist eingegangen.`,
+      bodyHtml,
+      footerHtml: passProviderFooterHtml(input),
+    },
+    textBody,
+  );
+  return { subject: title, html, text };
+}
+
+export function buildPassWithdrawalRefundedEmail(input: {
+  passName: string;
+  studioName: string;
+  refundCents: number;
+  receiptLink: string | null;
+  receiptNumber: string | null;
+  brandColor?: string | null;
+  logoUrl?: string | null;
+  legalName?: string | null;
+  legalStreet?: string | null;
+  legalHouse?: string | null;
+  legalPostal?: string | null;
+  legalCity?: string | null;
+  contactEmail?: string | null;
+  legalPhone?: string | null;
+}): EmailPayload {
+  const title = `Erstattung nach Widerruf: ${formatEurCents(input.refundCents)}`;
+  const accent = resolveBrandAccent(input.brandColor);
+  const bodyHtml = [
+    `<p style="margin:0 0 12px 0;">Deine ${escapeHtml(input.passName)} wurde entwertet. ${escapeHtml(formatEurCents(input.refundCents))} sind unterwegs.</p>`,
+    input.receiptLink && input.receiptNumber
+      ? `<p style="margin:0;">${textLinkHtml(`Erstattungsbeleg ${input.receiptNumber}`, input.receiptLink, accent)}</p>`
+      : "",
+  ].join("");
+  const textBody = [
+    title,
+    `Deine ${input.passName} wurde entwertet.`,
+    input.receiptLink && input.receiptNumber
+      ? `Erstattungsbeleg ${input.receiptNumber}: ${input.receiptLink}`
+      : "",
+  ].filter(Boolean).join("\n");
+  const { html, text } = renderEmailShell(
+    {
+      preheader: title,
+      studioName: input.studioName,
+      logoUrl: input.logoUrl,
+      brandColor: input.brandColor,
+      title,
+      introHtml: `Eine Erstattung von ${escapeHtml(input.studioName)} ist unterwegs.`,
+      bodyHtml,
+      footerHtml: passProviderFooterHtml(input),
+    },
+    textBody,
+  );
+  return { subject: title, html, text };
+}
+
+function recipientPassGone(ctx: PassDeliveryContext | null): boolean {
+  if (!ctx) return true;
+  if (ctx.anonymizedAt != null || ctx.authUserId == null) return true;
+  if (!ctx.recipientEmail || !ctx.recipientEmail.trim()) return true;
+  return false;
 }
 
 const RECEIPT_TAX_SMALL_BUSINESS_FULL =
@@ -618,6 +988,8 @@ export function refundReasonSentence(reason: string | null | undefined): string 
       return "Das Studio hat deine Anmeldung storniert.";
     case "late_payment":
       return "Dein Platz war leider inzwischen vergeben.";
+    case "withdrawal":
+      return "Du hast den Vertrag widerrufen.";
     default:
       return null;
   }
@@ -687,11 +1059,182 @@ async function sendBuilt(
   return "SENT";
 }
 
+const PASS_EMAIL_KINDS = new Set([
+  "pass_purchased",
+  "pass_expiring_30",
+  "pass_expiring_7",
+  "pass_units_low",
+  "pass_withdrawal_received",
+  "pass_withdrawal_refunded",
+]);
+
 export async function runDispatch(deps: DispatchDeps): Promise<DispatchResult> {
   const rows = await deps.claimDeliveries(DISPATCH_LIMIT);
   const results: DispatchResult["results"] = [];
 
   for (const row of rows) {
+    if (PASS_EMAIL_KINDS.has(row.kind)) {
+      const passId = row.pass_id ?? "";
+      if (!passId) {
+        await deps.markDelivery(row.id, "failed", "PASS_MISSING");
+        results.push({ deliveryId: row.id, kind: row.kind, code: "PASS_MISSING" });
+        continue;
+      }
+      const pctx = await deps.loadPassContext(passId);
+      if (recipientPassGone(pctx)) {
+        await deps.markDelivery(row.id, "skipped", "RECIPIENT_GONE");
+        deps.log.info("dispatch", { delivery_id: row.id, kind: row.kind, code: "RECIPIENT_GONE" });
+        results.push({ deliveryId: row.id, kind: row.kind, code: "RECIPIENT_GONE" });
+        continue;
+      }
+      const coursesLink = buildCoursesLink(pctx!.studioSlug, deps.env("APP_BASE_DOMAIN"));
+      const widerrufLink = buildWiderrufLink(pctx!.studioSlug, deps.env("APP_BASE_DOMAIN"));
+      let mail: EmailPayload;
+      if (row.kind === "pass_purchased") {
+        if (!pctx!.receiptId || !pctx!.receiptNumber) {
+          await deps.markDelivery(row.id, "released", "RECEIPT_PENDING");
+          results.push({ deliveryId: row.id, kind: row.kind, code: "RECEIPT_PENDING" });
+          continue;
+        }
+        if (pctx!.amountCents == null || pctx!.amountCents <= 0) {
+          await deps.markDelivery(row.id, "skipped", "AMOUNT_MISSING");
+          results.push({ deliveryId: row.id, kind: row.kind, code: "AMOUNT_MISSING" });
+          continue;
+        }
+        mail = buildPassPurchasedEmail({
+          passName: pctx!.passName,
+          unitsTotal: pctx!.unitsTotal,
+          validUntil: pctx!.validUntil,
+          studioName: pctx!.studioName ?? "Studio",
+          amountCents: pctx!.amountCents,
+          coursesLink,
+          receiptLink: buildReceiptLink(
+            pctx!.studioSlug,
+            deps.env("APP_BASE_DOMAIN"),
+            pctx!.receiptId,
+          ),
+          receiptNumber: pctx!.receiptNumber,
+          widerrufLink,
+          brandColor: pctx!.brandColor,
+          logoUrl: pctx!.logoUrl,
+          legalName: pctx!.legalName,
+          legalStreet: pctx!.legalStreet,
+          legalHouse: pctx!.legalHouse,
+          legalPostal: pctx!.legalPostal,
+          legalCity: pctx!.legalCity,
+          contactEmail: pctx!.contactEmail,
+          legalPhone: pctx!.legalPhone,
+          taxRegime: pctx!.taxRegime,
+          vatRateBp: pctx!.vatRateBp,
+        });
+      } else if (row.kind === "pass_expiring_30" || row.kind === "pass_expiring_7") {
+        mail = buildPassExpiringEmail({
+          kind: row.kind,
+          passName: pctx!.passName,
+          remaining: pctx!.remaining,
+          validUntil: pctx!.validUntil,
+          studioName: pctx!.studioName ?? "Studio",
+          coursesLink,
+          brandColor: pctx!.brandColor,
+          logoUrl: pctx!.logoUrl,
+          legalName: pctx!.legalName,
+          legalStreet: pctx!.legalStreet,
+          legalHouse: pctx!.legalHouse,
+          legalPostal: pctx!.legalPostal,
+          legalCity: pctx!.legalCity,
+          contactEmail: pctx!.contactEmail,
+          legalPhone: pctx!.legalPhone,
+        });
+      } else if (row.kind === "pass_units_low") {
+        mail = buildPassUnitsLowEmail({
+          passName: pctx!.passName,
+          validUntil: pctx!.validUntil,
+          studioName: pctx!.studioName ?? "Studio",
+          coursesLink,
+          brandColor: pctx!.brandColor,
+          logoUrl: pctx!.logoUrl,
+          legalName: pctx!.legalName,
+          legalStreet: pctx!.legalStreet,
+          legalHouse: pctx!.legalHouse,
+          legalPostal: pctx!.legalPostal,
+          legalCity: pctx!.legalCity,
+          contactEmail: pctx!.contactEmail,
+          legalPhone: pctx!.legalPhone,
+        });
+      } else if (row.kind === "pass_withdrawal_received") {
+        mail = buildPassWithdrawalReceivedEmail({
+          passName: pctx!.passName,
+          studioName: pctx!.studioName ?? "Studio",
+          withdrawalAt: pctx!.withdrawalAt ?? new Date().toISOString(),
+          priceCents: pctx!.amountCents ?? 0,
+          unitsUsed: pctx!.unitsUsed ?? 0,
+          wertersatzCents: pctx!.wertersatzCents ?? 0,
+          refundCents: pctx!.refundAmountCents ?? 0,
+          brandColor: pctx!.brandColor,
+          logoUrl: pctx!.logoUrl,
+          legalName: pctx!.legalName,
+          legalStreet: pctx!.legalStreet,
+          legalHouse: pctx!.legalHouse,
+          legalPostal: pctx!.legalPostal,
+          legalCity: pctx!.legalCity,
+          contactEmail: pctx!.contactEmail,
+          legalPhone: pctx!.legalPhone,
+        });
+      } else {
+        if (!pctx!.refundReceiptId || !pctx!.refundReceiptNumber) {
+          await deps.markDelivery(row.id, "released", "RECEIPT_PENDING");
+          results.push({ deliveryId: row.id, kind: row.kind, code: "RECEIPT_PENDING" });
+          continue;
+        }
+        mail = buildPassWithdrawalRefundedEmail({
+          passName: pctx!.passName,
+          studioName: pctx!.studioName ?? "Studio",
+          refundCents: pctx!.refundAmountCents ?? 0,
+          receiptLink: buildReceiptLink(
+            pctx!.studioSlug,
+            deps.env("APP_BASE_DOMAIN"),
+            pctx!.refundReceiptId,
+          ),
+          receiptNumber: pctx!.refundReceiptNumber,
+          brandColor: pctx!.brandColor,
+          logoUrl: pctx!.logoUrl,
+          legalName: pctx!.legalName,
+          legalStreet: pctx!.legalStreet,
+          legalHouse: pctx!.legalHouse,
+          legalPostal: pctx!.legalPostal,
+          legalCity: pctx!.legalCity,
+          contactEmail: pctx!.contactEmail,
+          legalPhone: pctx!.legalPhone,
+        });
+      }
+      const code = await sendBuilt(deps, row, {
+        registrationStatus: null,
+        holdExpiresAt: null,
+        courseTitle: null,
+        courseDate: null,
+        courseTime: null,
+        studioName: pctx!.studioName,
+        studioSlug: pctx!.studioSlug,
+        recipientEmail: pctx!.recipientEmail,
+        anonymizedAt: pctx!.anonymizedAt,
+        authUserId: pctx!.authUserId,
+        amountCents: pctx!.amountCents,
+        refundAmountCents: pctx!.refundAmountCents,
+        originalAmountCents: pctx!.amountCents,
+        refundReason: "withdrawal",
+        hasRefund: false,
+        refundRequired: false,
+        contactEmail: pctx!.contactEmail,
+      }, mail);
+      results.push({ deliveryId: row.id, kind: row.kind, code });
+      continue;
+    }
+
+    if (!row.registration_id) {
+      await deps.markDelivery(row.id, "failed", "REGISTRATION_MISSING");
+      results.push({ deliveryId: row.id, kind: row.kind, code: "REGISTRATION_MISSING" });
+      continue;
+    }
     const ctx = await deps.loadContext(row.registration_id);
 
     if (row.kind === "waitlist_promoted_payment_required") {

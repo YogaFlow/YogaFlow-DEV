@@ -123,6 +123,7 @@ function makeDeps(opts: {
     },
     claimDeliveries: () => Promise.resolve(opts.rows ?? []),
     loadContext: (id) => Promise.resolve(opts.ctxByReg?.[id] ?? null),
+    loadPassContext: () => Promise.resolve(null),
     markDelivery: (id, status, code) => {
       marks.push({ id, status, code });
       return Promise.resolve();

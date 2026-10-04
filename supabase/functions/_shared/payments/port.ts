@@ -39,9 +39,12 @@ export type PaymentIntentStatus =
   | "failed"
   | "canceled";
 
+/** Subject eines PaymentIntents (K1: auch Kartenprodukt). */
+export type PaymentIntentSubjectType = "registration" | "pass_product";
+
 /**
- * Beträge in Cent, immer vom Server (price_cents_at_booking), nie aus dem Request
- * des Clients.
+ * Beträge in Cent, immer vom Server (price_cents_at_booking / Produktpreis),
+ * nie aus dem Request des Clients.
  */
 export interface CreatePaymentIntentCommand {
   accountRef: string;
@@ -49,7 +52,10 @@ export interface CreatePaymentIntentCommand {
   currency: "EUR";
   attemptId: string;
   tenantId: string;
-  registrationId: string;
+  /** Bei registration optional redundant zu subjectId; bei pass_product weglassen. */
+  registrationId?: string;
+  subjectType: PaymentIntentSubjectType;
+  subjectId: string;
   idempotencyKey: string;
 }
 

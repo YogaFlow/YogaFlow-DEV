@@ -93,6 +93,8 @@ class SpyProvider extends FakePaymentProvider {
         attemptId: "att",
         tenantId: "t",
         registrationId: "r",
+        subjectType: "registration",
+        subjectId: "r",
         idempotencyKey: ref,
       }).then(async (created) => {
         void created;
@@ -219,6 +221,8 @@ Deno.test("cancel → canceled → done", async () => {
     attemptId: "a2",
     tenantId: "t",
     registrationId: "r",
+    subjectType: "registration",
+    subjectId: "r",
     idempotencyKey: "k2",
   });
   s.store.claimed = [cancelJob({ provider_ref: ref })];
@@ -320,6 +324,8 @@ Deno.test("Zeitbudget: nicht angefasste Aufträge → retry", async () => {
     attemptId: "a3",
     tenantId: "t",
     registrationId: "r",
+    subjectType: "registration",
+    subjectId: "r",
     idempotencyKey: "budget2",
   });
   s.store.claimed = [

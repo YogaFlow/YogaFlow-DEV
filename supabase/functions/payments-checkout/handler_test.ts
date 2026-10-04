@@ -20,10 +20,13 @@ const TENANT = "00000000-0000-4000-8000-00000000c701";
 const MEMBER = "00000000-0000-4000-8000-00000000c702";
 const OTHER = "00000000-0000-4000-8000-00000000c703";
 const REG = "00000000-0000-4000-8000-00000000c710";
+const PRODUCT = "00000000-0000-4000-8000-00000000c711";
 const ATTEMPT = "00000000-0000-4000-8000-00000000c720";
 const ACCOUNT = "acct_fake_checkout_1";
 const CORS = { "Access-Control-Allow-Origin": "*" };
 const CALLER = { tenantId: TENANT, memberId: MEMBER };
+const HASH_A = "a".repeat(64);
+const HASH_B = "b".repeat(64);
 
 class MemoryStore implements CheckoutStore {
   prepareResult: PrepareResult = {
@@ -36,14 +39,19 @@ class MemoryStore implements CheckoutStore {
     holdExpiresAt: "2026-10-01T12:00:00.000Z",
     livemode: false,
     registrationId: REG,
+    subjectType: "registration",
+    subjectId: REG,
   };
   attachCalls: { attemptId: string; providerRef: string }[] = [];
   checkCalls: string[] = [];
   completeCalls: unknown[] = [];
   markFailedCalls: { providerRef: string; failureCode: string }[] = [];
+  passPrepareCalls: { productId: string; hashes: [string, string] }[] = [];
   view: AttemptStatusView | null = {
     attemptId: ATTEMPT,
     registrationId: REG,
+    subjectType: "registration",
+    subjectId: REG,
     providerRef: null,
     attemptStatus: "initiated",
     registrationStatus: "pending_payment",
@@ -63,6 +71,51 @@ class MemoryStore implements CheckoutStore {
       return Promise.resolve({ ok: false, code: "FORBIDDEN" });
     }
     return Promise.resolve(structuredClone(this.prepareResult));
+  }
+
+  preparePassOnlinePayment(
+    productId: string,
+    userId: string,
+    immediateUseHash: string,
+    withdrawalInfoHash: string,
+  ): Promise<PrepareResult> {
+    this.sequence.push("prepare_pass");
+    this.passPrepareCalls.push({ productId, hashes: [immediateUseHash, withdrawalInfoHash] });
+    if (userId !== MEMBER) return Promise.resolve({ ok: false, code: "FORBIDDEN" });
+    if (productId !== PRODUCT && this.prepareResult.ok) {
+      return Promise.resolve({ ok: false, code: "NOT_PURCHASABLE" });
+    }
+    if (this.prepareResult.ok && this.prepareResult.subjectType === "pass_product") {
+      return Promise.resolve(structuredClone(this.prepareResult));
+    }
+    const passResult: PrepareResult = {
+      ok: true,
+      attemptId: ATTEMPT,
+      amountCents: 12000,
+      currency: "EUR",
+      accountRef: ACCOUNT,
+      providerRef: null,
+      holdExpiresAt: "2026-10-01T12:30:00.000Z",
+      livemode: false,
+      registrationId: null,
+      subjectType: "pass_product",
+      subjectId: productId,
+    };
+    this.prepareResult = passResult;
+    this.view = {
+      attemptId: ATTEMPT,
+      registrationId: null,
+      subjectType: "pass_product",
+      subjectId: productId,
+      providerRef: null,
+      attemptStatus: "initiated",
+      registrationStatus: null,
+      amountCents: 12000,
+      currency: "EUR",
+      livemode: false,
+      accountRef: ACCOUNT,
+    };
+    return Promise.resolve(structuredClone(passResult));
   }
 
   attachPaymentRef(attemptId: string, providerRef: string): Promise<AttachResult> {
@@ -97,7 +150,7 @@ class MemoryStore implements CheckoutStore {
       this.view = {
         ...this.view,
         attemptStatus: "succeeded",
-        registrationStatus: "registered",
+        registrationStatus: this.view.subjectType === "registration" ? "registered" : null,
       };
     }
     return Promise.resolve(structuredClone(this.completeResult));
@@ -282,6 +335,8 @@ Deno.test("Checkout confirm: HOLD_EXPIRED → kein Stripe", async () => {
   s.store.view = {
     attemptId: ATTEMPT,
     registrationId: REG,
+    subjectType: "registration",
+    subjectId: REG,
     providerRef: "pi_existing",
     attemptStatus: "initiated",
     registrationStatus: "pending_payment",
@@ -418,6 +473,49 @@ Deno.test("Checkout: unbekannte action → 400", async () => {
   const res = await handleCheckout(post({ action: "pay" }), CALLER, s.deps);
   assertEquals(res.status, 400);
   assertEquals((await readJson(res)).code, "INVALID_REQUEST");
+});
+
+Deno.test("Checkout prepare pass: product_id + Hashes → expires_at als hold_expires_at", async () => {
+  const s = setup();
+  const res = await handleCheckout(
+    post({
+      action: "prepare",
+      product_id: PRODUCT,
+      immediate_use_hash: HASH_A,
+      withdrawal_info_hash: HASH_B,
+    }),
+    CALLER,
+    s.deps,
+  );
+  assertEquals(res.status, 200);
+  const body = await readJson(res);
+  assertEquals(body.attempt_id, ATTEMPT);
+  assertEquals(body.amount_cents, 12000);
+  assertEquals(body.hold_expires_at, "2026-10-01T12:30:00.000Z");
+  assertEquals(body.subject_type, "pass_product");
+  assertEquals(body.subject_id, PRODUCT);
+  assertEquals(s.store.passPrepareCalls.length, 1);
+  assertEquals(s.provider.createCalls, 1);
+  assertEquals(s.store.attachCalls.length, 1);
+});
+
+Deno.test("Checkout prepare pass: ohne Consent-Hashes → CONSENT_REQUIRED", async () => {
+  const s = setup();
+  const res = await handleCheckout(
+    post({ action: "prepare", product_id: PRODUCT }),
+    CALLER,
+    s.deps,
+  );
+  assertEquals(res.status, 400);
+  assertEquals((await readJson(res)).code, "CONSENT_REQUIRED");
+  assertEquals(s.provider.createCalls, 0);
+});
+
+Deno.test("buildPaymentReturnUrl: my-passes für Kartenkauf", () => {
+  assertEquals(
+    buildPaymentReturnUrl("demoalpha", "omlify-dev.de", "my-passes"),
+    "https://demoalpha.omlify-dev.de/my-passes?payment=return",
+  );
 });
 
 Deno.test("16. confirm liefert code; REFUND_REQUIRED wird durchgereicht", async () => {
