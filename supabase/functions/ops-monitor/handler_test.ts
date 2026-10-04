@@ -45,6 +45,9 @@ Deno.test("buildAlertMail Entprellen-Inhalte", () => {
   assertEquals(mail?.subject, "[Omlify DEV] Überwachung: 2 Punkte");
   assertEquals(mail?.html.includes("a: provider_jobs"), true);
   assertEquals(mail?.html.includes("erledigt: b:y"), true);
+  assertEquals(mail?.html.includes("Überwachung"), true);
+  assertEquals(mail?.html.includes("Gesendet über Omlify"), true);
+  assertEquals(mail?.text?.includes("provider_jobs"), true);
 });
 
 Deno.test("runOpsMonitor: fehlendes Secret → NOT_CONFIGURED, kein Mail", async () => {

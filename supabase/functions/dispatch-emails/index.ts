@@ -7,6 +7,7 @@ import {
   type DeliveryRow,
   type DispatchDeps,
 } from "./handler.ts";
+import { buildStudioLogoUrl } from "../_shared/email_template.ts";
 
 Deno.serve(async (req: Request) => {
   const log = createDefaultLog();
@@ -45,7 +46,11 @@ Deno.serve(async (req: Request) => {
           .select("title, date, time, end_time, location, room, teacher_id")
           .eq("id", reg.course_id)
           .maybeSingle(),
-        supabase.from("tenants").select("name, slug").eq("id", reg.tenant_id).maybeSingle(),
+        supabase
+          .from("tenants")
+          .select("name, slug, brand_color, logo_path")
+          .eq("id", reg.tenant_id)
+          .maybeSingle(),
         supabase
           .from("users")
           .select("email, anonymized_at, auth_user_id")
@@ -55,7 +60,7 @@ Deno.serve(async (req: Request) => {
 
       const { data: payments } = await supabase
         .from("payments")
-        .select("id, amount_cents, reverses_payment_id, provider, status")
+        .select("id, amount_cents, reverses_payment_id, provider, status, created_at")
         .eq("registration_id", registrationId);
 
       const rows = Array.isArray(payments) ? payments : [];
@@ -189,6 +194,9 @@ Deno.serve(async (req: Request) => {
         refundReceiptId,
         refundReceiptNumber,
         termsText: null,
+        brandColor: typeof tenant?.brand_color === "string" ? tenant.brand_color : null,
+        logoUrl: buildStudioLogoUrl(supabaseUrl, tenant?.logo_path ?? null),
+        paidAt: original && typeof original.created_at === "string" ? original.created_at : null,
       };
       return ctx;
     },
@@ -203,7 +211,7 @@ Deno.serve(async (req: Request) => {
         throw error;
       }
     },
-    sendEmail: async ({ to, subject, html, fromName, replyTo }) => {
+    sendEmail: async ({ to, subject, html, text, fromName, replyTo, attachments }) => {
       const internal = Deno.env.get("INTERNAL_EMAIL_SECRET") ?? "";
       const res = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
         method: "POST",
@@ -211,7 +219,7 @@ Deno.serve(async (req: Request) => {
           "Content-Type": "application/json",
           "X-Internal-Secret": internal,
         },
-        body: JSON.stringify({ to, subject, html, fromName, replyTo }),
+        body: JSON.stringify({ to, subject, html, text, fromName, replyTo, attachments }),
       });
       if (!res.ok) {
         return { ok: false, errorCode: "SMTP_ERROR" };

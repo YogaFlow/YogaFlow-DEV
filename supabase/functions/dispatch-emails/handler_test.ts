@@ -27,18 +27,21 @@ Deno.test("buildMyRegistrationsLink mit Slug und Domain", () => {
 });
 
 Deno.test("buildPromotionEmail Betreff und Frist ohne Empfängeradresse", () => {
-  const { subject, html } = buildPromotionEmail({
+  const { subject, html, text } = buildPromotionEmail({
     courseTitle: "Yin",
     courseDate: "01.10.2026",
     courseTime: "10:00",
     studioName: "Studio Test",
     holdExpiresAt: "2026-10-01T12:00:00.000Z",
     link: "https://demo.omlify-dev.de/my-registrations",
+    courseDateRaw: "2026-10-01",
   });
   assert(subject.includes("Yin"), "Betreff enthält Kurs");
   assert(subject.includes("Platz reserviert bis"), "Betreff enthält Frist");
   assert(html.includes("Studio Test"), "HTML enthält Studio");
-  assert(!html.includes("@"), "HTML ohne E-Mail-Adresse");
+  assert(html.includes("Du bist nachgerückt"), "Neue Überschrift");
+  assert(text.includes("Yin"), "Text-Version");
+  assert(!/@[a-z0-9.-]+\.[a-z]{2,}/i.test(html), "HTML ohne Empfängeradresse");
 });
 
 Deno.test("classifyDelivery S6d", () => {
@@ -76,7 +79,13 @@ Deno.test("classifyDelivery S6d", () => {
   assertEquals(classifyDelivery(null), "RECIPIENT_GONE");
 });
 
-type FakeMail = { to: string; subject: string; html: string };
+type FakeMail = {
+  to: string;
+  subject: string;
+  html: string;
+  text?: string;
+  attachments?: { filename: string; content: string; contentType: string }[];
+};
 
 function makeDeps(opts: {
   secret?: string;
@@ -270,7 +279,8 @@ const paidCtx: DeliveryContext = {
 Deno.test("18. payment_succeeded: gueltig gesendet; erstattet skipped", async () => {
   const amount = formatEurCents(2400);
   assertEquals(amount, "24,00 \u20AC");
-  const { subject, html } = buildPaymentSucceededEmail({
+  const regId = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
+  const { subject, html, text, attachments } = buildPaymentSucceededEmail({
     courseTitle: "Yin",
     courseDate: "05.10.2026",
     courseTime: "18:00",
@@ -279,16 +289,31 @@ Deno.test("18. payment_succeeded: gueltig gesendet; erstattet skipped", async ()
     link: "https://omstudio.omlify-dev.de/my-registrations",
     receiptLink: "https://omstudio.omlify-dev.de/receipts/r1",
     receiptNumber: "2026-00001",
+    registrationId: regId,
     taxRegime: "small_business",
     vatRateBp: 0,
+    courseDateRaw: "2026-10-05",
+    courseEndTime: "19:00:00",
+    place: "Neuss",
+    paidAtLabel: "05.10.2026",
   });
   assert(subject.includes("Buchungsbestätigung"), "Betreff");
-  assert(html.includes(amount) && html.includes("Yin") && html.includes("05.10.2026"), "Text");
+  assert(html.includes("Du bist dabei"), "Überschrift UX-2");
+  assert(html.includes(amount) && html.includes("Yin"), "Betrag und Kurs");
   assert(html.includes("2026-00001"), "Belegnummer");
+  assert(html.includes("In Kalender eintragen"), "ICS-Knopf");
+  assert(html.includes("Buchung ansehen"), "Sekundär-Link");
+  assert(html.includes("Gesendet über Omlify im Auftrag von"), "Fuß K6");
   assert(
     html.includes("Gemäß § 19 UStG wird keine Umsatzsteuer berechnet."),
     "Steuer voller Satz",
   );
+  assert(text.includes("Yin") && text.includes(amount), "Text multipart");
+  assert(text.includes("Kalenderdatei im Anhang"), "Text erwähnt ICS");
+  assertEquals(attachments?.length, 1);
+  assertEquals(attachments?.[0]?.filename, "buchung.ics");
+  assert(attachments?.[0]?.content.includes(`UID:${regId}@omlify`), "ICS UID");
+  assert(attachments?.[0]?.content.includes("DTSTART;TZID=Europe/Berlin:20261005T180000"), "ICS Start Berlin");
 
   const { deps, mails, marks } = makeDeps({
     rows: [{
@@ -296,17 +321,28 @@ Deno.test("18. payment_succeeded: gueltig gesendet; erstattet skipped", async ()
       tenant_id: "t1",
       event_id: "e1",
       kind: "payment_succeeded",
-      registration_id: "r1",
+      registration_id: regId,
       status: "sending",
       attempts: 0,
     }],
-    ctxByReg: { r1: { ...paidCtx, receiptId: "rec-1", receiptNumber: "2026-00001" } },
+    ctxByReg: {
+      [regId]: {
+        ...paidCtx,
+        receiptId: "rec-1",
+        receiptNumber: "2026-00001",
+        courseDate: "2026-10-05",
+        courseTime: "18:00:00",
+        courseEndTime: "19:00:00",
+      },
+    },
   });
   const out = await runDispatch(deps);
   assertEquals(out.results[0]?.code, "SENT");
   assertEquals(mails.length, 1);
   assert(mails[0]!.html.includes(amount), "Betrag");
   assert(mails[0]!.html.includes("Flow"), "Kurs");
+  assert(mails[0]!.text?.includes("Flow"), "Text mitgeschickt");
+  assertEquals(mails[0]!.attachments?.length, 1);
   assertEquals(marks[0]?.status, "sent");
 
   const refunded = makeDeps({

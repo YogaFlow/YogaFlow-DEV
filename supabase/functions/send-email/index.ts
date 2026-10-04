@@ -10,6 +10,15 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, X-Internal-Secret, x-omlify-tenant",
 };
 
+interface EmailAttachment {
+  filename: string;
+  content: string;
+  contentType?: string;
+  encoding?: "utf-8" | "base64";
+  contentDisposition?: "attachment" | "inline";
+  cid?: string;
+}
+
 interface EmailRequest {
   to: string;
   subject: string;
@@ -17,6 +26,7 @@ interface EmailRequest {
   text?: string;
   fromName?: string;
   replyTo?: string;
+  attachments?: EmailAttachment[];
 }
 
 function sanitizeFromName(raw: string | undefined): string | null {
@@ -32,6 +42,31 @@ function validReplyTo(raw: string | undefined): string | null {
   if (value.length > 120) return null;
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value)) return null;
   return value;
+}
+
+function normalizeAttachments(raw: EmailAttachment[] | undefined) {
+  if (!Array.isArray(raw) || raw.length === 0) return undefined;
+  const out: {
+    filename: string;
+    content: string;
+    contentType: string;
+    encoding?: string;
+    contentDisposition?: "attachment" | "inline";
+    cid?: string;
+  }[] = [];
+  for (const a of raw.slice(0, 5)) {
+    if (!a?.filename || typeof a.content !== "string") continue;
+    if (a.filename.length > 120 || a.content.length > 400_000) continue;
+    out.push({
+      filename: a.filename.replace(/[\r\n]/g, ""),
+      content: a.content,
+      contentType: a.contentType || "application/octet-stream",
+      encoding: a.encoding === "base64" ? "base64" : undefined,
+      contentDisposition: a.contentDisposition === "inline" ? "inline" : "attachment",
+      cid: a.cid,
+    });
+  }
+  return out.length ? out : undefined;
 }
 
 Deno.serve(async (req: Request) => {
@@ -115,6 +150,10 @@ Deno.serve(async (req: Request) => {
   const displayName = sanitizeFromName(body.fromName) ?? "Omlify";
   const from = `"${displayName}" <${fromAddress}>`;
   const replyTo = validReplyTo(body.replyTo);
+  const attachments = normalizeAttachments(body.attachments);
+  const textContent = typeof body.text === "string" && body.text.trim()
+    ? body.text
+    : undefined;
 
   try {
     const info = await transport.sendMail({
@@ -122,7 +161,9 @@ Deno.serve(async (req: Request) => {
       to: recipient,
       subject: finalSubject,
       html: htmlContent,
+      ...(textContent ? { text: textContent } : {}),
       ...(replyTo ? { replyTo } : {}),
+      ...(attachments ? { attachments } : {}),
     });
 
     console.log("Email sent:", info.messageId);

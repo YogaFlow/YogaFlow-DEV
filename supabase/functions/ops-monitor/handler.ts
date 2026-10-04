@@ -2,8 +2,10 @@
  * ops-monitor — B2 Überwachung (U1–U7).
  * verify_jwt = false; Authorization: Bearer <OPS_MONITOR_SECRET>
  * Zählt nur; Mail nur über send-email (EMAIL_REDIRECT_TO).
+ * UX-2 B1: gemeinsame E-Mail-Hülle (kompakt).
  */
 import { createServiceLogger, type ServiceLogger } from "../_shared/service.ts";
+import { escapeHtml, renderEmailShell } from "../_shared/email_template.ts";
 
 export const SECRET_ENV = "OPS_MONITOR_SECRET";
 
@@ -25,7 +27,7 @@ export type OpsDeps = {
   env: (key: string) => string | undefined;
   log: ServiceLogger;
   store: OpsStore;
-  sendMail: (input: { to: string; subject: string; html: string }) => Promise<void>;
+  sendMail: (input: { to: string; subject: string; html: string; text?: string }) => Promise<void>;
   fetchHeartbeat?: (url: string) => Promise<void>;
   appEnv?: string;
 };
@@ -61,7 +63,7 @@ export function buildAlertMail(input: {
   notify: OpsFinding[];
   resolved: { key: string }[];
   isDev: boolean;
-}): { subject: string; html: string } | null {
+}): { subject: string; html: string; text: string } | null {
   const n = input.notify.length + input.resolved.length;
   if (n === 0) return null;
   const prefix = input.isDev ? "[Omlify DEV]" : "[Omlify]";
@@ -73,19 +75,27 @@ export function buildAlertMail(input: {
   for (const r of input.resolved) {
     lines.push(`• erledigt: ${r.key}`);
   }
-  const html = `<!DOCTYPE html><html lang="de"><body style="font-family:system-ui,sans-serif;color:#111">
-    <p>Überwachung — nur Zählwerte, keine Personen/Beträge.</p>
-    <ul>${lines.map((l) => `<li>${escapeHtml(l)}</li>`).join("")}</ul>
-  </body></html>`;
-  return { subject, html };
-}
-
-function escapeHtml(s: string): string {
-  return s
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
+  const bodyHtml = `
+    <p style="margin:0 0 12px 0;">Überwachung — nur Zählwerte, keine Personen/Beträge.</p>
+    <ul style="margin:0;padding-left:20px;">${
+      lines.map((l) => `<li style="margin:0 0 6px 0;">${escapeHtml(l)}</li>`).join("")
+    }</ul>`;
+  const textBody = [
+    "Überwachung — nur Zählwerte, keine Personen/Beträge.",
+    ...lines,
+  ].join("\n");
+  const { html, text } = renderEmailShell(
+    {
+      preheader: subject,
+      studioName: "Omlify",
+      brandColor: "#2F5A4E",
+      title: "Überwachung",
+      bodyHtml,
+      shorter: true,
+    },
+    textBody,
+  );
+  return { subject, html, text };
 }
 
 export async function runOpsMonitor(deps: OpsDeps): Promise<{
@@ -109,7 +119,12 @@ export async function runOpsMonitor(deps: OpsDeps): Promise<{
       isDev,
     });
     if (mail) {
-      await deps.sendMail({ to: alertEmail, subject: mail.subject, html: mail.html });
+      await deps.sendMail({
+        to: alertEmail,
+        subject: mail.subject,
+        html: mail.html,
+        text: mail.text,
+      });
       mailed = true;
       deps.log.info("ops-monitor mail", {
         notify: applied.notify.length,

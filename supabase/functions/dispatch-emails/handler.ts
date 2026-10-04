@@ -1,15 +1,29 @@
 /**
- * dispatch-emails — Outbox-Versand (2.1b-b B2 / S6e–S6d / 2.2a-4b J10).
+ * dispatch-emails — Outbox-Versand (2.1b-b B2 / S6e–S6d / 2.2a-4b J10 / UX-2 B1).
  *
  * verify_jwt = false; Aufruf nur mit Header X-Email-Dispatch-Secret
  * (= EMAIL_DISPATCH_SECRET). Holt claim_email_deliveries (max. 20),
- * prüft je kind, baut HTML, sendet über send-email.
+ * prüft je kind, baut HTML+Text(+ICS), sendet über send-email.
  *
  * kinds: waitlist_promoted_payment_required | payment_succeeded | payment_refunded
  *
  * Logs: delivery_id, kind, Ergebnis-Code — nie Adresse oder Inhalt.
  */
 import { createServiceLogger, type ServiceLogger } from "../_shared/service.ts";
+import {
+  type EmailAttachment,
+  type EmailPayload,
+  civilDateParts,
+  escapeHtml,
+  formatEmailPreheader,
+  formatTimeHm,
+  mapsLink,
+  primaryButtonHtml,
+  renderEmailShell,
+  resolveBrandAccent,
+  textLinkHtml,
+} from "../_shared/email_template.ts";
+import { buildIcs, icsDataUri } from "../_shared/ics.ts";
 
 export const DISPATCH_LIMIT = 20;
 export const SECRET_HEADER = "X-Email-Dispatch-Secret";
@@ -66,7 +80,12 @@ export type DeliveryContext = {
   receiptNumber?: string | null;
   refundReceiptId?: string | null;
   refundReceiptNumber?: string | null;
+  /** AGB-Volltext kommt später als PDF-Anhang (Block 2); nicht als Textwand. */
   termsText?: string | null;
+  brandColor?: string | null;
+  logoUrl?: string | null;
+  /** payments.created_at der Originalzahlung */
+  paidAt?: string | null;
 };
 
 export type DispatchDeps = {
@@ -83,8 +102,10 @@ export type DispatchDeps = {
     to: string;
     subject: string;
     html: string;
+    text?: string;
     fromName?: string;
     replyTo?: string;
+    attachments?: EmailAttachment[];
   }) => Promise<{ ok: true } | { ok: false; errorCode: string }>;
   now?: () => Date;
 };
@@ -120,8 +141,7 @@ function courseDateText(dateStr: string | null): string {
 }
 
 function courseTimeText(timeStr: string | null): string {
-  if (!timeStr) return "";
-  return timeStr.slice(0, 5);
+  return formatTimeHm(timeStr);
 }
 
 /** 2400 → „24,00 €“ */
@@ -158,53 +178,6 @@ export function buildMyRegistrationsLink(
   return "/my-registrations";
 }
 
-export function buildPromotionEmail(input: {
-  courseTitle: string;
-  courseDate: string;
-  courseTime: string;
-  studioName: string;
-  holdExpiresAt: string;
-  link: string;
-}): { subject: string; html: string } {
-  const hold = berlinParts(input.holdExpiresAt);
-  const subject =
-    `Du bist nachgerückt: ${input.courseTitle} am ${input.courseDate}` +
-    ` – Platz reserviert bis ${hold.date}, ${hold.time}`;
-
-  const html = `<!DOCTYPE html>
-<html lang="de">
-  <head><meta charset="utf-8" /></head>
-  <body style="margin:0;padding:0;background:#F5F3EF;font-family:system-ui,sans-serif;">
-    <div style="max-width:560px;margin:24px auto;padding:24px;background:#ffffff;border-radius:8px;">
-      <p style="margin:0 0 12px 0;color:#2F5A4E;font-size:14px;">${escapeHtml(input.studioName)}</p>
-      <h1 style="margin:0 0 16px 0;color:#111827;font-size:20px;line-height:1.3;">
-        Du bist nachgerückt
-      </h1>
-      <p style="margin:0 0 16px 0;color:#374151;font-size:16px;line-height:1.5;">
-        In <strong>${escapeHtml(input.courseTitle)}</strong> am
-        ${escapeHtml(input.courseDate)} um ${escapeHtml(input.courseTime)} Uhr
-        ist ein Platz für dich frei geworden.
-      </p>
-      <p style="margin:0 0 16px 0;color:#374151;font-size:16px;line-height:1.5;">
-        Dein Platz ist bis <strong>${escapeHtml(hold.date)}, ${escapeHtml(hold.time)} Uhr</strong>
-        reserviert. Bitte bezahle bis dahin online, sonst geht er an die nächste Person.
-      </p>
-      <p style="margin:0 0 24px 0;">
-        <a href="${escapeHtml(input.link)}"
-           style="display:inline-block;padding:12px 18px;background-color:#2F5A4E;color:#ffffff;text-decoration:none;border-radius:6px;font-size:15px;font-weight:600;">
-          Zu meinen Anmeldungen
-        </a>
-      </p>
-      <p style="margin:0;color:#6b7280;font-size:13px;line-height:1.5;">
-        Wenn du den Platz nicht mehr brauchst, kannst du dich dort wieder abmelden.
-      </p>
-    </div>
-  </body>
-</html>`;
-
-  return { subject, html };
-}
-
 const RECEIPT_TAX_SMALL_BUSINESS_FULL =
   "Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.";
 
@@ -214,8 +187,15 @@ function priceLine(amountCents: number, regime: string | null, vatRateBp: number
     const pct = Math.round((vatRateBp ?? 1900) / 100);
     return `${amount} inkl. ${pct} % USt`;
   }
-  // N5: Bestätigungsmail zeigt den vollen §-19-Satz, nicht die Checkout-Kurzform.
   return `${amount} · ${RECEIPT_TAX_SMALL_BUSINESS_FULL}`;
+}
+
+function taxLineSmall(regime: string | null, vatRateBp: number | null): string {
+  if (regime === "regular") {
+    const pct = Math.round((vatRateBp ?? 1900) / 100);
+    return `inkl. ${pct} % USt`;
+  }
+  return RECEIPT_TAX_SMALL_BUSINESS_FULL;
 }
 
 function cancelLine(deadlineIso: string | null | undefined): string {
@@ -232,6 +212,150 @@ function cancelLine(deadlineIso: string | null | undefined): string {
   return `Kostenlos abmelden bis ${weekday}, ${parts.date.slice(0, 6)}, ${parts.time} – du bekommst den vollen Betrag zurück. Danach keine Erstattung.`;
 }
 
+function placeOf(ctx: {
+  courseLocation?: string | null;
+  courseRoom?: string | null;
+  place?: string | null;
+}): string {
+  if (ctx.place) return ctx.place;
+  return [ctx.courseLocation, ctx.courseRoom].filter(Boolean).join(" · ");
+}
+
+function providerFooterHtml(input: {
+  studioName: string;
+  legalName?: string | null;
+  legalStreet?: string | null;
+  legalHouse?: string | null;
+  legalPostal?: string | null;
+  legalCity?: string | null;
+  contactEmail?: string | null;
+  legalPhone?: string | null;
+}): string {
+  const name = escapeHtml(input.legalName || input.studioName);
+  const street = `${input.legalStreet ?? ""} ${input.legalHouse ?? ""}`.trim();
+  const city = `${input.legalPostal ?? ""} ${input.legalCity ?? ""}`.trim();
+  const lines = [
+    name,
+    street ? escapeHtml(street) : "",
+    city ? escapeHtml(city) : "",
+    input.contactEmail ? escapeHtml(input.contactEmail) : "",
+    input.legalPhone ? escapeHtml(input.legalPhone) : "",
+  ].filter(Boolean);
+  return [
+    `<p style="margin:0 0 8px 0;">${lines.join("<br />")}</p>`,
+    `<p style="margin:0 0 8px 0;">Für Kurse mit festem Termin besteht kein Widerrufsrecht (§ 312g Abs. 2 Nr. 9 BGB).</p>`,
+    `<p style="margin:0;">AGB als PDF folgen mit den Studio-Rechtstexten (Block 2).</p>`,
+  ].join("");
+}
+
+function termCardHtml(input: {
+  courseDate: string | null;
+  courseTime: string | null;
+  courseEndTime?: string | null;
+  courseTitle: string;
+  place?: string | null;
+  teacherName?: string | null;
+}): string {
+  const parts = civilDateParts(input.courseDate);
+  const day = parts ? String(parts.d) : "–";
+  const month = parts?.monthUpper ?? "";
+  const start = formatTimeHm(input.courseTime);
+  const end = formatTimeHm(input.courseEndTime ?? null);
+  const timeLabel = start && end ? `${start}–${end}` : start;
+  const place = input.place?.trim() || "";
+  const placeHtml = place
+    ? `<a href="${escapeHtml(mapsLink(place))}" style="color:#2F5A4E;text-decoration:underline;">${escapeHtml(place)}</a>`
+    : "";
+  const meta = [timeLabel ? `${escapeHtml(timeLabel)} Uhr` : "", placeHtml, input.teacherName ? escapeHtml(input.teacherName) : ""]
+    .filter(Boolean)
+    .join(" · ");
+
+  return `
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" class="omlify-border" style="margin:0 0 20px 0;border:1px solid #E5DFD4;border-radius:8px;">
+    <tr>
+      <td width="64" valign="top" align="center" style="padding:16px 8px;background:#F5F3EF;border-radius:8px 0 0 8px;">
+        <div style="font-size:28px;font-weight:700;line-height:1;color:#1F1B16;">${escapeHtml(day)}</div>
+        <div style="font-size:12px;font-weight:600;letter-spacing:0.06em;color:#6F6558;margin-top:4px;">${escapeHtml(month)}</div>
+      </td>
+      <td valign="middle" style="padding:16px 16px 16px 12px;">
+        <div style="font-size:16px;font-weight:700;color:#1F1B16;margin:0 0 6px 0;">${escapeHtml(input.courseTitle)}</div>
+        <div style="font-size:14px;color:#6F6558;line-height:1.4;">${meta}</div>
+      </td>
+    </tr>
+  </table>`;
+}
+
+export function buildPromotionEmail(input: {
+  courseTitle: string;
+  courseDate: string;
+  courseTime: string;
+  studioName: string;
+  holdExpiresAt: string;
+  link: string;
+  brandColor?: string | null;
+  logoUrl?: string | null;
+  courseDateRaw?: string | null;
+  courseEndTime?: string | null;
+  place?: string | null;
+  teacherName?: string | null;
+}): EmailPayload {
+  const hold = berlinParts(input.holdExpiresAt);
+  const subject =
+    `Du bist nachgerückt: ${input.courseTitle} am ${input.courseDate}` +
+    ` – Platz reserviert bis ${hold.date}, ${hold.time}`;
+
+  const preheader = formatEmailPreheader({
+    courseDate: input.courseDateRaw ?? null,
+    courseTime: input.courseTime,
+    courseTitle: input.courseTitle,
+    place: input.place,
+  });
+
+  const accent = resolveBrandAccent(input.brandColor);
+
+  const bodyHtml = `
+    ${termCardHtml({
+      courseDate: input.courseDateRaw ?? null,
+      courseTime: input.courseTime,
+      courseEndTime: input.courseEndTime,
+      courseTitle: input.courseTitle,
+      place: input.place,
+      teacherName: input.teacherName,
+    })}
+    <p style="margin:0 0 16px 0;">
+      In <strong>${escapeHtml(input.courseTitle)}</strong> ist ein Platz für dich frei geworden.
+      Dein Platz ist bis <strong>${escapeHtml(hold.date)}, ${escapeHtml(hold.time)} Uhr</strong>
+      reserviert. Bitte bezahle bis dahin online, sonst geht er an die nächste Person.
+    </p>
+    <p style="margin:0 0 8px 0;">
+      ${primaryButtonHtml(input.link, "Zu meinen Anmeldungen", accent)}
+    </p>
+    <p style="margin:16px 0 0 0;color:#6F6558;font-size:13px;">
+      Wenn du den Platz nicht mehr brauchst, kannst du dich dort wieder abmelden.
+    </p>`;
+
+  const textBody = [
+    `In ${input.courseTitle} ist ein Platz für dich frei geworden.`,
+    `Dein Platz ist bis ${hold.date}, ${hold.time} Uhr reserviert.`,
+    `Bitte bezahle bis dahin online: ${input.link}`,
+  ].join("\n");
+
+  const { html, text } = renderEmailShell(
+    {
+      preheader,
+      studioName: input.studioName,
+      logoUrl: input.logoUrl,
+      brandColor: input.brandColor,
+      title: "Du bist nachgerückt",
+      introHtml: `Ein Platz bei ${escapeHtml(input.studioName)} wartet auf dich.`,
+      bodyHtml,
+    },
+    textBody,
+  );
+
+  return { subject, html, text };
+}
+
 export function buildPaymentSucceededEmail(input: {
   courseTitle: string;
   courseDate: string;
@@ -241,12 +365,14 @@ export function buildPaymentSucceededEmail(input: {
   link: string;
   receiptLink: string;
   receiptNumber: string;
+  registrationId: string;
   legalName?: string | null;
   legalStreet?: string | null;
   legalHouse?: string | null;
   legalPostal?: string | null;
   legalCity?: string | null;
   contactEmail?: string | null;
+  legalPhone?: string | null;
   durationMinutes?: number | null;
   place?: string | null;
   teacherName?: string | null;
@@ -255,63 +381,109 @@ export function buildPaymentSucceededEmail(input: {
   cancelDeadline?: string | null;
   termsText?: string | null;
   paidAtLabel?: string | null;
-}): { subject: string; html: string } {
+  brandColor?: string | null;
+  logoUrl?: string | null;
+  courseDateRaw?: string | null;
+  courseEndTime?: string | null;
+}): EmailPayload {
   const subject = `Buchungsbestätigung: ${input.courseTitle} am ${input.courseDate}`;
-  const seller = [
-    input.legalName || input.studioName,
-    `${input.legalStreet ?? ""} ${input.legalHouse ?? ""}`.trim(),
-    `${input.legalPostal ?? ""} ${input.legalCity ?? ""}`.trim(),
-    input.contactEmail ?? "",
-  ].filter(Boolean).map(escapeHtml).join("<br />");
-  const serviceBits = [
-    input.courseTitle,
-    `${input.courseDate} ${input.courseTime}`.trim(),
-    input.durationMinutes != null ? `${input.durationMinutes} Min` : "",
-    input.place ?? "",
-    input.teacherName ?? "",
-  ].filter(Boolean).map(escapeHtml).join(" · ");
-  const terms = input.termsText?.trim()
-    ? `<h2 style="margin:24px 0 8px 0;font-size:16px;">Allgemeine Geschäftsbedingungen</h2>
-      <pre style="white-space:pre-wrap;font-family:inherit;font-size:13px;color:#374151;">${escapeHtml(input.termsText)}</pre>`
-    : "";
-  const html = `<!DOCTYPE html>
-<html lang="de">
-  <head><meta charset="utf-8" /></head>
-  <body style="margin:0;padding:0;background:#F5F3EF;font-family:system-ui,sans-serif;">
-    <div style="max-width:560px;margin:24px auto;padding:24px;background:#ffffff;border-radius:8px;">
-      <p style="margin:0 0 12px 0;color:#2F5A4E;font-size:14px;">${escapeHtml(input.studioName)}</p>
-      <h1 style="margin:0 0 16px 0;color:#111827;font-size:20px;line-height:1.3;">
-        Buchungsbestätigung
-      </h1>
-      <p style="margin:0 0 12px 0;color:#374151;font-size:16px;line-height:1.5;">${seller}</p>
-      <p style="margin:0 0 12px 0;color:#374151;font-size:16px;line-height:1.5;">${serviceBits}</p>
-      <p style="margin:0 0 12px 0;color:#374151;font-size:16px;line-height:1.5;">
-        ${escapeHtml(priceLine(input.amountCents, input.taxRegime ?? null, input.vatRateBp ?? null))}
-      </p>
-      <p style="margin:0 0 12px 0;color:#374151;font-size:16px;line-height:1.5;">
-        Zahlungsart Karte (online)${input.paidAtLabel ? `, ${escapeHtml(input.paidAtLabel)}` : ""}
-      </p>
-      <p style="margin:0 0 12px 0;color:#374151;font-size:16px;line-height:1.5;">
-        ${escapeHtml(cancelLine(input.cancelDeadline))}
-      </p>
-      <p style="margin:0 0 12px 0;color:#374151;font-size:16px;line-height:1.5;">
-        Für Kurse mit festem Termin besteht kein Widerrufsrecht (§ 312g Abs. 2 Nr. 9 BGB).
-      </p>
-      <p style="margin:0 0 16px 0;color:#374151;font-size:16px;line-height:1.5;">
-        Beleg ${escapeHtml(input.receiptNumber)} —
-        <a href="${escapeHtml(input.receiptLink)}">Beleg ansehen</a>
-      </p>
-      <p style="margin:0 0 24px 0;">
-        <a href="${escapeHtml(input.link)}"
-           style="display:inline-block;padding:12px 18px;background-color:#2F5A4E;color:#ffffff;text-decoration:none;border-radius:6px;font-size:15px;font-weight:600;">
-          Meine Anmeldungen
-        </a>
-      </p>
-      ${terms}
-    </div>
-  </body>
-</html>`;
-  return { subject, html };
+  const preheader = formatEmailPreheader({
+    courseDate: input.courseDateRaw ?? null,
+    courseTime: input.courseTime,
+    courseTitle: input.courseTitle,
+    place: input.place,
+  });
+
+  const ics = buildIcs({
+    uid: input.registrationId,
+    summary: input.courseTitle,
+    date: input.courseDateRaw ?? "",
+    startTime: input.courseTime,
+    endTime: input.courseEndTime,
+    location: input.place ?? undefined,
+    description: `Buchung bei ${input.studioName}`,
+    method: "REQUEST",
+  });
+  const icsHref = icsDataUri(ics);
+
+  const accent = resolveBrandAccent(input.brandColor);
+
+  const paidBits = [
+    formatEurCents(input.amountCents),
+    "Karte",
+    input.paidAtLabel ?? "",
+  ].filter(Boolean).join(" · ");
+
+  const bodyHtml = `
+    ${termCardHtml({
+      courseDate: input.courseDateRaw ?? null,
+      courseTime: input.courseTime,
+      courseEndTime: input.courseEndTime,
+      courseTitle: input.courseTitle,
+      place: input.place,
+      teacherName: input.teacherName,
+    })}
+    <p style="margin:0 0 12px 0;">
+      ${primaryButtonHtml(icsHref, "In Kalender eintragen", accent)}
+    </p>
+    <p style="margin:0 0 20px 0;">
+      ${textLinkHtml(input.link, "Buchung ansehen", accent)}
+    </p>
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 16px 0;background:#F5F3EF;border-radius:8px;">
+      <tr>
+        <td style="padding:14px 16px;">
+          <p style="margin:0 0 6px 0;font-size:15px;font-weight:600;color:#1F1B16;">${escapeHtml(paidBits)}</p>
+          <p style="margin:0 0 8px 0;font-size:12px;color:#6F6558;">${escapeHtml(taxLineSmall(input.taxRegime ?? null, input.vatRateBp ?? null))}</p>
+          <p style="margin:0;font-size:14px;">
+            <a href="${escapeHtml(input.receiptLink)}" style="color:${accent};text-decoration:underline;">Beleg ${escapeHtml(input.receiptNumber)} ansehen →</a>
+          </p>
+        </td>
+      </tr>
+    </table>
+    <p style="margin:0;font-size:14px;color:#374151;">${escapeHtml(cancelLine(input.cancelDeadline))}</p>`;
+
+  // Preiszeile bewusst im Text (K6/N5), auch wenn HTML die Kurzform im Kasten zeigt.
+  const textBody = [
+    `Deine Buchung bei ${input.studioName} ist bestätigt.`,
+    `${input.courseTitle}`,
+    `${input.courseDate} ${input.courseTime}${input.place ? ` · ${input.place}` : ""}`,
+    input.teacherName ? `Lehrende: ${input.teacherName}` : "",
+    priceLine(input.amountCents, input.taxRegime ?? null, input.vatRateBp ?? null),
+    `Zahlungsart Karte (online)${input.paidAtLabel ? `, ${input.paidAtLabel}` : ""}`,
+    cancelLine(input.cancelDeadline),
+    "Für Kurse mit festem Termin besteht kein Widerrufsrecht (§ 312g Abs. 2 Nr. 9 BGB).",
+    `Beleg ${input.receiptNumber}: ${input.receiptLink}`,
+    `Buchung ansehen: ${input.link}`,
+    "Kalenderdatei im Anhang (ICS).",
+  ].filter(Boolean).join("\n");
+
+  const { html, text } = renderEmailShell(
+    {
+      preheader,
+      studioName: input.studioName,
+      logoUrl: input.logoUrl,
+      brandColor: input.brandColor,
+      title: "Du bist dabei",
+      introHtml: `Deine Buchung bei ${escapeHtml(input.studioName)} ist bestätigt.`,
+      bodyHtml,
+      footerHtml: providerFooterHtml(input),
+    },
+    textBody + "\n\n" + [
+      input.legalName || input.studioName,
+      `${input.legalStreet ?? ""} ${input.legalHouse ?? ""}`.trim(),
+      `${input.legalPostal ?? ""} ${input.legalCity ?? ""}`.trim(),
+      input.contactEmail ?? "",
+    ].filter(Boolean).join("\n"),
+  );
+
+  const attachments: EmailAttachment[] = [{
+    filename: "buchung.ics",
+    content: ics,
+    contentType: "text/calendar; charset=utf-8; method=REQUEST",
+    encoding: "utf-8",
+  }];
+
+  return { subject, html, text, attachments };
 }
 
 export function buildPaymentRefundedEmail(input: {
@@ -323,43 +495,60 @@ export function buildPaymentRefundedEmail(input: {
   reason: string | null;
   receiptLink?: string | null;
   receiptNumber?: string | null;
-}): { subject: string; html: string } {
+  brandColor?: string | null;
+  logoUrl?: string | null;
+  courseDateRaw?: string | null;
+  courseTime?: string | null;
+  place?: string | null;
+}): EmailPayload {
   const subject = "Zahlung erstattet";
   const refundLabel = formatEurCents(input.refundAmountCents);
   const original = input.originalAmountCents;
   const isPartial = original != null && original > input.refundAmountCents;
   const amountSentence = isPartial
-    ? `Wir haben dir ${escapeHtml(refundLabel)} von ${escapeHtml(formatEurCents(original!))} erstattet.`
-    : `Wir haben dir ${escapeHtml(refundLabel)} für „${escapeHtml(input.courseTitle)}“ am ${escapeHtml(input.courseDate)} erstattet.`;
+    ? `Wir haben dir ${refundLabel} von ${formatEurCents(original!)} erstattet.`
+    : `Wir haben dir ${refundLabel} für „${input.courseTitle}“ am ${input.courseDate} erstattet.`;
 
   const reasonLine = refundReasonSentence(input.reason);
-  const reasonHtml = reasonLine
-    ? `<p style="margin:0 0 16px 0;color:#374151;font-size:16px;line-height:1.5;">${escapeHtml(reasonLine)}</p>`
-    : "";
+  const preheader = formatEmailPreheader({
+    courseDate: input.courseDateRaw ?? null,
+    courseTime: input.courseTime ?? null,
+    courseTitle: input.courseTitle,
+    place: input.place,
+  }) || "Zahlung erstattet";
 
-  const html = `<!DOCTYPE html>
-<html lang="de">
-  <head><meta charset="utf-8" /></head>
-  <body style="margin:0;padding:0;background:#F5F3EF;font-family:system-ui,sans-serif;">
-    <div style="max-width:560px;margin:24px auto;padding:24px;background:#ffffff;border-radius:8px;">
-      <p style="margin:0 0 12px 0;color:#2F5A4E;font-size:14px;">${escapeHtml(input.studioName)}</p>
-      <h1 style="margin:0 0 16px 0;color:#111827;font-size:20px;line-height:1.3;">
-        Zahlung erstattet
-      </h1>
-      ${reasonHtml}
-      <p style="margin:0 0 16px 0;color:#374151;font-size:16px;line-height:1.5;">
-        ${amountSentence}
-      </p>
-      <p style="margin:0 0 16px 0;color:#374151;font-size:16px;line-height:1.5;">
-        Je nach Bank dauert die Gutschrift einige Werktage.
-      </p>
-      ${input.receiptLink && input.receiptNumber
-        ? `<p style="margin:0;color:#374151;font-size:16px;line-height:1.5;">Erstattungsbeleg ${escapeHtml(input.receiptNumber)} — <a href="${escapeHtml(input.receiptLink)}">Beleg ansehen</a></p>`
-        : ""}
-    </div>
-  </body>
-</html>`;
-  return { subject, html };
+  const bodyHtml = `
+    ${reasonLine ? `<p style="margin:0 0 12px 0;">${escapeHtml(reasonLine)}</p>` : ""}
+    <p style="margin:0 0 12px 0;">${escapeHtml(amountSentence)}</p>
+    <p style="margin:0 0 16px 0;">Je nach Bank dauert die Gutschrift einige Werktage.</p>
+    ${input.receiptLink && input.receiptNumber
+      ? `<p style="margin:0;">Erstattungsbeleg ${escapeHtml(input.receiptNumber)} —
+          <a href="${escapeHtml(input.receiptLink)}" style="color:#2F5A4E;text-decoration:underline;">Beleg ansehen</a></p>`
+      : ""}`;
+
+  const textBody = [
+    reasonLine ?? "",
+    amountSentence,
+    "Je nach Bank dauert die Gutschrift einige Werktage.",
+    input.receiptLink && input.receiptNumber
+      ? `Erstattungsbeleg ${input.receiptNumber}: ${input.receiptLink}`
+      : "",
+  ].filter(Boolean).join("\n");
+
+  const { html, text } = renderEmailShell(
+    {
+      preheader,
+      studioName: input.studioName,
+      logoUrl: input.logoUrl,
+      brandColor: input.brandColor,
+      title: "Zahlung erstattet",
+      introHtml: `Eine Erstattung von ${escapeHtml(input.studioName)} ist unterwegs.`,
+      bodyHtml,
+    },
+    textBody,
+  );
+
+  return { subject, html, text };
 }
 
 /** E5: Grund-Satz je reason; manual/provider_dashboard ohne Satz. */
@@ -377,14 +566,6 @@ export function refundReasonSentence(reason: string | null | undefined): string 
     default:
       return null;
   }
-}
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
 }
 
 function recipientGone(ctx: DeliveryContext | null): boolean {
@@ -426,6 +607,31 @@ export function classifyPaymentRefunded(
   return "ok";
 }
 
+async function sendBuilt(
+  deps: DispatchDeps,
+  row: DeliveryRow,
+  ctx: DeliveryContext,
+  mail: EmailPayload,
+): Promise<"SENT" | string> {
+  const sent = await deps.sendEmail({
+    to: ctx.recipientEmail!.trim(),
+    subject: mail.subject,
+    html: mail.html,
+    text: mail.text,
+    fromName: studioFromName(ctx.studioName ?? "Studio"),
+    replyTo: ctx.contactEmail ?? undefined,
+    attachments: mail.attachments,
+  });
+  if (!sent.ok) {
+    await deps.markDelivery(row.id, "failed", sent.errorCode);
+    deps.log.info("dispatch", { delivery_id: row.id, kind: row.kind, code: sent.errorCode });
+    return sent.errorCode;
+  }
+  await deps.markDelivery(row.id, "sent", null);
+  deps.log.info("dispatch", { delivery_id: row.id, kind: row.kind, code: "SENT" });
+  return "SENT";
+}
+
 export async function runDispatch(deps: DispatchDeps): Promise<DispatchResult> {
   const rows = await deps.claimDeliveries(DISPATCH_LIMIT);
   const results: DispatchResult["results"] = [];
@@ -445,30 +651,22 @@ export async function runDispatch(deps: DispatchDeps): Promise<DispatchResult> {
       const courseTime = courseTimeText(ctx!.courseTime);
       const holdIso = ctx!.holdExpiresAt ?? new Date().toISOString();
       const link = buildMyRegistrationsLink(ctx!.studioSlug, deps.env("APP_BASE_DOMAIN"));
-      const { subject, html } = buildPromotionEmail({
+      const mail = buildPromotionEmail({
         courseTitle: ctx!.courseTitle ?? "Kurs",
         courseDate,
         courseTime,
         studioName: ctx!.studioName ?? "Studio",
         holdExpiresAt: holdIso,
         link,
+        brandColor: ctx!.brandColor,
+        logoUrl: ctx!.logoUrl,
+        courseDateRaw: ctx!.courseDate,
+        courseEndTime: ctx!.courseEndTime,
+        place: placeOf(ctx!),
+        teacherName: ctx!.teacherName,
       });
-      const sent = await deps.sendEmail({
-        to: ctx!.recipientEmail!.trim(),
-        subject,
-        html,
-        fromName: studioFromName(ctx!.studioName ?? "Studio"),
-        replyTo: ctx!.contactEmail ?? undefined,
-      });
-      if (!sent.ok) {
-        await deps.markDelivery(row.id, "failed", sent.errorCode);
-        deps.log.info("dispatch", { delivery_id: row.id, kind: row.kind, code: sent.errorCode });
-        results.push({ deliveryId: row.id, kind: row.kind, code: sent.errorCode });
-        continue;
-      }
-      await deps.markDelivery(row.id, "sent", null);
-      deps.log.info("dispatch", { delivery_id: row.id, kind: row.kind, code: "SENT" });
-      results.push({ deliveryId: row.id, kind: row.kind, code: "SENT" });
+      const code = await sendBuilt(deps, row, ctx!, mail);
+      results.push({ deliveryId: row.id, kind: row.kind, code });
       continue;
     }
 
@@ -486,14 +684,21 @@ export async function runDispatch(deps: DispatchDeps): Promise<DispatchResult> {
         results.push({ deliveryId: row.id, kind: row.kind, code: "RECEIPT_PENDING" });
         continue;
       }
+      if (!ctx!.courseDate || !ctx!.courseTime) {
+        await deps.markDelivery(row.id, "failed", "COURSE_TIME_MISSING");
+        deps.log.info("dispatch", { delivery_id: row.id, kind: row.kind, code: "COURSE_TIME_MISSING" });
+        results.push({ deliveryId: row.id, kind: row.kind, code: "COURSE_TIME_MISSING" });
+        continue;
+      }
       const link = buildMyRegistrationsLink(ctx!.studioSlug, deps.env("APP_BASE_DOMAIN"));
       const receiptLink = buildReceiptLink(
         ctx!.studioSlug,
         deps.env("APP_BASE_DOMAIN"),
         ctx!.receiptId,
       );
-      const place = [ctx!.courseLocation, ctx!.courseRoom].filter(Boolean).join(" · ") || null;
-      const { subject, html } = buildPaymentSucceededEmail({
+      const place = placeOf(ctx!) || null;
+      const paidAtLabel = ctx!.paidAt ? berlinParts(ctx!.paidAt).date : null;
+      const mail = buildPaymentSucceededEmail({
         courseTitle: ctx!.courseTitle ?? "Kurs",
         courseDate: courseDateText(ctx!.courseDate),
         courseTime: courseTimeText(ctx!.courseTime),
@@ -502,12 +707,14 @@ export async function runDispatch(deps: DispatchDeps): Promise<DispatchResult> {
         link,
         receiptLink,
         receiptNumber: ctx!.receiptNumber,
+        registrationId: row.registration_id,
         legalName: ctx!.legalName,
         legalStreet: ctx!.legalStreet,
         legalHouse: ctx!.legalHouse,
         legalPostal: ctx!.legalPostal,
         legalCity: ctx!.legalCity,
         contactEmail: ctx!.contactEmail,
+        legalPhone: ctx!.legalPhone,
         durationMinutes: ctx!.durationMinutes,
         place,
         teacherName: ctx!.teacherName,
@@ -515,23 +722,14 @@ export async function runDispatch(deps: DispatchDeps): Promise<DispatchResult> {
         vatRateBp: ctx!.vatRateBp,
         cancelDeadline: ctx!.cancelDeadline,
         termsText: ctx!.termsText,
+        paidAtLabel,
+        brandColor: ctx!.brandColor,
+        logoUrl: ctx!.logoUrl,
+        courseDateRaw: ctx!.courseDate,
+        courseEndTime: ctx!.courseEndTime,
       });
-      const sent = await deps.sendEmail({
-        to: ctx!.recipientEmail!.trim(),
-        subject,
-        html,
-        fromName: studioFromName(ctx!.studioName ?? "Studio"),
-        replyTo: ctx!.contactEmail ?? undefined,
-      });
-      if (!sent.ok) {
-        await deps.markDelivery(row.id, "failed", sent.errorCode);
-        deps.log.info("dispatch", { delivery_id: row.id, kind: row.kind, code: sent.errorCode });
-        results.push({ deliveryId: row.id, kind: row.kind, code: sent.errorCode });
-        continue;
-      }
-      await deps.markDelivery(row.id, "sent", null);
-      deps.log.info("dispatch", { delivery_id: row.id, kind: row.kind, code: "SENT" });
-      results.push({ deliveryId: row.id, kind: row.kind, code: "SENT" });
+      const code = await sendBuilt(deps, row, ctx!, mail);
+      results.push({ deliveryId: row.id, kind: row.kind, code });
       continue;
     }
 
@@ -552,7 +750,7 @@ export async function runDispatch(deps: DispatchDeps): Promise<DispatchResult> {
       const refundCents = ctx!.refundAmountCents ?? ctx!.amountCents!;
       const reason = ctx!.refundReason ??
         (ctx!.refundRequired ? "late_payment" : null);
-      const { subject, html } = buildPaymentRefundedEmail({
+      const mail = buildPaymentRefundedEmail({
         courseTitle: ctx!.courseTitle ?? "Kurs",
         courseDate: courseDateText(ctx!.courseDate),
         studioName: ctx!.studioName ?? "Studio",
@@ -565,23 +763,14 @@ export async function runDispatch(deps: DispatchDeps): Promise<DispatchResult> {
           ctx!.refundReceiptId,
         ),
         receiptNumber: ctx!.refundReceiptNumber,
+        brandColor: ctx!.brandColor,
+        logoUrl: ctx!.logoUrl,
+        courseDateRaw: ctx!.courseDate,
+        courseTime: ctx!.courseTime,
+        place: placeOf(ctx!) || null,
       });
-      const sent = await deps.sendEmail({
-        to: ctx!.recipientEmail!.trim(),
-        subject,
-        html,
-        fromName: studioFromName(ctx!.studioName ?? "Studio"),
-        replyTo: ctx!.contactEmail ?? undefined,
-      });
-      if (!sent.ok) {
-        await deps.markDelivery(row.id, "failed", sent.errorCode);
-        deps.log.info("dispatch", { delivery_id: row.id, kind: row.kind, code: sent.errorCode });
-        results.push({ deliveryId: row.id, kind: row.kind, code: sent.errorCode });
-        continue;
-      }
-      await deps.markDelivery(row.id, "sent", null);
-      deps.log.info("dispatch", { delivery_id: row.id, kind: row.kind, code: "SENT" });
-      results.push({ deliveryId: row.id, kind: row.kind, code: "SENT" });
+      const code = await sendBuilt(deps, row, ctx!, mail);
+      results.push({ deliveryId: row.id, kind: row.kind, code });
       continue;
     }
 

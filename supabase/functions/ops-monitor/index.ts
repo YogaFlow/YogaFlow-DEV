@@ -20,7 +20,7 @@ Deno.serve(async (req: Request) => {
     log,
     store: createOpsStore(supabase),
     appEnv: Deno.env.get("APP_ENV") ?? "dev",
-    sendMail: async ({ to, subject, html }) => {
+    sendMail: async ({ to, subject, html, text }) => {
       const internal = Deno.env.get("INTERNAL_EMAIL_SECRET") ?? "";
       const res = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
         method: "POST",
@@ -28,7 +28,7 @@ Deno.serve(async (req: Request) => {
           "Content-Type": "application/json",
           "X-Internal-Secret": internal,
         },
-        body: JSON.stringify({ to, subject, html, fromName: "Omlify Überwachung" }),
+        body: JSON.stringify({ to, subject, html, text, fromName: "Omlify Überwachung" }),
       });
       if (!res.ok) {
         throw new Error(`send-email ${res.status}`);
