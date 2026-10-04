@@ -37,6 +37,8 @@ export interface User {
   auth_user_id: string | null;
   /** Gesetzt, wenn die Person eingeschränkt statt gelöscht wurde. */
   anonymized_at: string | null;
+  /** UX-5: aus Listen ausgeblendet (Prüfspur bleibt). */
+  archived_at?: string | null;
 }
 
 export type CourseStatus = 'active' | 'canceled' | 'not_planned';
@@ -238,6 +240,8 @@ export interface Course {
   series_id?: string;
   /** A6: mit Karte buchbar nur wenn true. DB-Default true. */
   pass_eligible?: boolean;
+  /** UX-5: aus Listen/Buchung ausgeblendet (Prüfspur bleibt). */
+  archived_at?: string | null;
   teacher?: User;
   registrations?: CourseRegistrationSummary[];
   created_at: string;
