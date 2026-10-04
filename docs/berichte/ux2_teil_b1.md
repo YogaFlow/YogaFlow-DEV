@@ -7,7 +7,7 @@ Vorgabe: [docs/stories/ux2_checkout_mail_export_desktop.md](../stories/ux2_check
 
 ## Commits
 
-- (dieser Lauf) `feat(geldkette): UX-2 B1 einheitliche Mail-Vorlage, ICS, multipart`
+- `0256764` feat(geldkette): UX-2 B1 einheitliche Mail-Vorlage, ICS, multipart
 
 ## Umsetzung
 

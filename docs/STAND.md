@@ -1,6 +1,6 @@
 # STAND — Omlify DEV
 
-Stand: 2026-10-04 · Branch `Julius` · HEAD `PLACEHOLDER`
+Stand: 2026-10-04 · Branch `Julius` · HEAD `0256764`
 
 ## DEV
 
@@ -15,7 +15,7 @@ Stand: 2026-10-04 · Branch `Julius` · HEAD `PLACEHOLDER`
 
 ## Zuletzt abgeschlossen
 
-- **UX-2 Teil B1** einheitliche Mail-Vorlage, ICS, multipart — siehe Commit
+- **UX-2 Teil B1** einheitliche Mail-Vorlage, ICS, multipart — Commit `0256764`
   - Bericht: [docs/berichte/ux2_teil_b1.md](berichte/ux2_teil_b1.md)
 - **UX-2 Teil A** Checkout, Legal-Pop-up, FormField, ModalBackdrop — Commit `cd16a93`
   - Bericht: [docs/berichte/ux2_teil_a.md](berichte/ux2_teil_a.md)
