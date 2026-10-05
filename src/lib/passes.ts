@@ -8,6 +8,12 @@ import type {
 import { formatCents, formatDate, formatDateTime, formatTime } from './format';
 import { methodWord, type ManualCheckoutMethod } from './courseCheckout';
 import { formatUnitsLabel } from './passProducts';
+import {
+  mergePassHistory,
+  type PassHistoryChange,
+  type PassHistoryEntry,
+} from './passHistory';
+import { resolveStaffNames } from './staffNames';
 import { supabase } from './supabase';
 
 const GENERIC_ERROR = 'Das hat nicht geklappt. Bitte versuche es noch einmal.';
@@ -580,11 +586,64 @@ export async function fetchPassMovementsForPasses(
   return byPass;
 }
 
+/** Bewegungen plus Verlängerungen, neueste zuerst. */
+export async function fetchPassHistoryForPasses(
+  passIds: string[],
+): Promise<{
+  movementsByPass: Record<string, PassMovementView[]>;
+  historyByPass: Record<string, PassHistoryEntry<PassMovementView>[]>;
+}> {
+  const unique = [...new Set(passIds.filter(Boolean))];
+  const movementsByPass = await fetchPassMovementsForPasses(unique);
+  const historyByPass: Record<string, PassHistoryEntry<PassMovementView>[]> = {};
+  if (unique.length === 0) return { movementsByPass, historyByPass };
+
+  const { data: changes, error } = await supabase
+    .from('pass_validity_changes')
+    .select('id, pass_id, new_valid_until, note, actor_member_id, created_at')
+    .in('pass_id', unique)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error(error);
+    throw error;
+  }
+
+  const names = await resolveStaffNames(
+    (changes ?? []).map((row) => row.actor_member_id as string),
+  );
+  const changesByPass: Record<string, PassHistoryChange[]> = {};
+  for (const id of unique) changesByPass[id] = [];
+  for (const row of changes ?? []) {
+    const passId = row.pass_id as string;
+    const staff = names.get(row.actor_member_id as string);
+    const actorName = staff
+      ? `${staff.first_name ?? ''} ${staff.last_name ?? ''}`.trim() || null
+      : null;
+    (changesByPass[passId] ??= []).push({
+      id: row.id as string,
+      created_at: row.created_at as string,
+      new_valid_until: row.new_valid_until as string,
+      note: row.note as string,
+      actor_name: actorName,
+    });
+  }
+
+  for (const id of unique) {
+    historyByPass[id] = mergePassHistory(
+      movementsByPass[id] ?? [],
+      changesByPass[id] ?? [],
+    );
+  }
+  return { movementsByPass, historyByPass };
+}
+
 /** Eigene Karten (RLS) inkl. Rest und Bewegungen — ein Select je Tabelle. */
 export async function fetchOwnPassesWithHistory(): Promise<{
   active: ManagedPass[];
   inactive: ManagedPass[];
   movementsByPass: Record<string, PassMovementView[]>;
+  historyByPass: Record<string, PassHistoryEntry<PassMovementView>[]>;
 }> {
   const { data: rows, error } = await supabase
     .from('passes')
@@ -616,8 +675,10 @@ export async function fetchOwnPassesWithHistory(): Promise<{
 
   const passIds = (rows ?? []).map((row) => row.id as string);
   const remainingByPass = new Map<string, number>();
-  const movementsByPass =
-    passIds.length > 0 ? await fetchPassMovementsForPasses(passIds) : {};
+  const { movementsByPass, historyByPass } =
+    passIds.length > 0
+      ? await fetchPassHistoryForPasses(passIds)
+      : { movementsByPass: {}, historyByPass: {} };
 
   for (const [passId, list] of Object.entries(movementsByPass)) {
     remainingByPass.set(
@@ -656,7 +717,7 @@ export async function fetchOwnPassesWithHistory(): Promise<{
       inactive.push(pass);
     }
   }
-  return { active, inactive, movementsByPass };
+  return { active, inactive, movementsByPass, historyByPass };
 }
 
 function formatMovementCourseStamp(course: PassMovementCourse): string {

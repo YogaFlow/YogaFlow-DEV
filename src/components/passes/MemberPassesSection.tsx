@@ -2,10 +2,11 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { formatCents } from '../../lib/format';
 import { methodWord } from '../../lib/courseCheckout';
+import type { PassHistoryEntry } from '../../lib/passHistory';
 import {
   fetchManagedPasses,
   fetchMemberPasses,
-  fetchPassMovementsForPasses,
+  fetchPassHistoryForPasses,
   fetchSellablePassProducts,
   formatPassUntil,
   passActiveDetail,
@@ -37,8 +38,8 @@ const MemberPassesSection: React.FC<Props> = ({
   const [active, setActive] = useState<ManagedPass[]>([]);
   const [inactive, setInactive] = useState<ManagedPass[]>([]);
   const [teacherPasses, setTeacherPasses] = useState<MemberPassSummary[]>([]);
-  const [movementsByPass, setMovementsByPass] = useState<
-    Record<string, PassMovementView[]>
+  const [historyByPass, setHistoryByPass] = useState<
+    Record<string, PassHistoryEntry<PassMovementView>[]>
   >({});
   const [hasProducts, setHasProducts] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -64,15 +65,15 @@ const MemberPassesSection: React.FC<Props> = ({
         setInactive(managed.inactive);
         setTeacherPasses([]);
         const allIds = [...managed.active, ...managed.inactive].map((p) => p.id);
-        setMovementsByPass(
-          allIds.length > 0 ? await fetchPassMovementsForPasses(allIds) : {},
-        );
+        const history =
+          allIds.length > 0 ? await fetchPassHistoryForPasses(allIds) : { historyByPass: {} };
+        setHistoryByPass(history.historyByPass);
       } else {
         const list = await fetchMemberPasses(memberId);
         setTeacherPasses(list);
         setActive([]);
         setInactive([]);
-        setMovementsByPass({});
+        setHistoryByPass({});
       }
     } catch (e) {
       console.error(e);
@@ -177,7 +178,7 @@ const MemberPassesSection: React.FC<Props> = ({
                       ) : null}
                     </div>
                     <PassHistoryList
-                      movements={movementsByPass[pass.id] ?? []}
+                      entries={historyByPass[pass.id] ?? []}
                       studioView
                       method={pass.method}
                     />
@@ -216,7 +217,7 @@ const MemberPassesSection: React.FC<Props> = ({
                           : ''}
                       </p>
                       <PassHistoryList
-                        movements={movementsByPass[pass.id] ?? []}
+                        entries={historyByPass[pass.id] ?? []}
                         studioView
                         method={pass.method}
                       />

@@ -363,3 +363,7 @@ Kurs- und Karten-Checkout nutzen dieselbe `StripePaymentForm`. Die Init-Werte st
 
 Registrierung lief bisher nur beim Onboarding-`refresh` (Konto aktiv). Neu: Schalter „Online-Zahlung“ an → `refresh` (Domain). Jeder Checkout-`prepare` registriert best-effort, Fehler stoppt die Kartenzahlung nicht. PROD: [Release-Plan 0.10](../RELEASE_GELDKETTE_PLAN.md) — Functions deployen, bereits aktive Studios einmalig nachziehen.
 
+### 2 — Verlängerung im Kartenverlauf
+
+`pass_validity_changes` wird in „Verlauf“ mit den Bewegungen gemischt, neueste zuerst: „Verlängert bis … · Notiz · von …“ (Name über `staff_names`, sonst „Studio“). Unit `scripts/test/k1_pass_history.mjs`. E2E `e2e/k1.spec.ts`: nach `extend_pass` steht die Notiz im Verlauf (1 passed).
+

@@ -297,8 +297,15 @@ test('K1 — kaufen, buchen, widerrufen, verlängern, >250', async ({ page }) =>
     });
     expect(extend.data?.success).toBe(true);
 
-    // (4) UI: >250 nicht online in Kauf-Liste; 10er schon
+    // (3b) Verlauf mischt die Verlängerung
     await page.goto(`/my-passes?tenant=${SLUG}`);
+    const tile = page.getByTestId(`pass-tile-${pass2}`);
+    await expect(tile).toBeVisible();
+    await tile.getByRole('button', { name: 'Verlauf' }).click();
+    await expect(tile.getByText(`E2E Verlängerung ${laufId}`)).toBeVisible();
+    await expect(tile.getByText(/Verlängert bis /)).toBeVisible();
+
+    // (4) UI: >250 nicht online in Kauf-Liste; 10er schon
     const buyList = page.getByTestId('pass-buy-list');
     await expect(buyList).toBeVisible();
     await expect(buyList.getByText(`Studio ${laufId}`)).toHaveCount(0);

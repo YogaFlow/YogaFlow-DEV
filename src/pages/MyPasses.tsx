@@ -18,6 +18,7 @@ import {
   passBuyListLine,
   passWithdrawalLinkHint,
 } from '../lib/passOnlineTexts';
+import type { PassHistoryEntry } from '../lib/passHistory';
 import {
   fetchOwnPassesWithHistory,
   formatPassUntil,
@@ -30,8 +31,8 @@ const MyPasses: React.FC = () => {
   const navigate = useNavigate();
   const [active, setActive] = useState<ManagedPass[]>([]);
   const [inactive, setInactive] = useState<ManagedPass[]>([]);
-  const [movementsByPass, setMovementsByPass] = useState<
-    Record<string, PassMovementView[]>
+  const [historyByPass, setHistoryByPass] = useState<
+    Record<string, PassHistoryEntry<PassMovementView>[]>
   >({});
   const [products, setProducts] = useState<OnlinePassProduct[]>([]);
   const [commonPrice, setCommonPrice] = useState<number | null>(null);
@@ -40,7 +41,6 @@ const MyPasses: React.FC = () => {
   const [inactiveOpen, setInactiveOpen] = useState(false);
   const [buyProduct, setBuyProduct] = useState<OnlinePassProduct | null>(null);
   const [withdrawPass, setWithdrawPass] = useState<ManagedPass | null>(null);
-  const [historyOpen, setHistoryOpen] = useState<Record<string, boolean>>({});
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -53,7 +53,7 @@ const MyPasses: React.FC = () => {
       ]);
       setActive(passes.active);
       setInactive(passes.inactive);
-      setMovementsByPass(passes.movementsByPass);
+      setHistoryByPass(passes.historyByPass);
       setProducts(online);
       setCommonPrice(common);
     } catch (e) {
@@ -105,7 +105,6 @@ const MyPasses: React.FC = () => {
               const deadline = new Date(purchased.getTime() + 14 * 24 * 60 * 60 * 1000);
               const withinWindow =
                 pass.status === 'active' && Date.now() <= deadline.getTime();
-              const histOpen = historyOpen[pass.id] === true;
               return (
                 <li
                   key={pass.id}
@@ -129,18 +128,6 @@ const MyPasses: React.FC = () => {
                     gültig bis {formatPassUntil(pass.valid_until)}
                   </p>
                   <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
-                    <button
-                      type="button"
-                      className="min-h-11 text-sm font-medium text-brand"
-                      onClick={() =>
-                        setHistoryOpen((prev) => ({
-                          ...prev,
-                          [pass.id]: !histOpen,
-                        }))
-                      }
-                    >
-                      Verlauf
-                    </button>
                     {withinWindow ? (
                       <button
                         type="button"
@@ -155,14 +142,10 @@ const MyPasses: React.FC = () => {
                       </button>
                     ) : null}
                   </div>
-                  {histOpen ? (
-                    <div className="mt-2">
-                      <PassHistoryList
-                        movements={movementsByPass[pass.id] ?? []}
-                        studioView={false}
-                      />
-                    </div>
-                  ) : null}
+                  <PassHistoryList
+                    entries={historyByPass[pass.id] ?? []}
+                    studioView={false}
+                  />
                 </li>
               );
             })}

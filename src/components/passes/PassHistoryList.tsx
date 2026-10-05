@@ -1,21 +1,25 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import {
+  formatPassExtensionLabel,
+  type PassHistoryEntry,
+} from '../../lib/passHistory';
+import {
   formatPassMovementLabel,
   type PassMovementView,
 } from '../../lib/passes';
 import type { PaymentMethod } from '../../types';
 
 type Props = {
-  movements: PassMovementView[];
+  entries: PassHistoryEntry<PassMovementView>[];
   studioView?: boolean;
   method?: PaymentMethod | null;
 };
 
-const PassHistoryList: React.FC<Props> = ({ movements, studioView, method }) => {
+const PassHistoryList: React.FC<Props> = ({ entries, studioView, method }) => {
   const [open, setOpen] = useState(false);
 
-  if (movements.length === 0) return null;
+  if (entries.length === 0) return null;
 
   return (
     <div className="mt-1">
@@ -34,9 +38,11 @@ const PassHistoryList: React.FC<Props> = ({ movements, studioView, method }) => 
       </button>
       {open ? (
         <ul className="mt-1 space-y-1.5 border-l border-border pl-3">
-          {movements.map((move) => (
-            <li key={move.id} className="text-[13px] leading-5 text-textMuted">
-              {formatPassMovementLabel(move, { studioView, method })}
+          {entries.map((entry) => (
+            <li key={entry.id} className="text-[13px] leading-5 text-textMuted">
+              {entry.kind === 'extension'
+                ? formatPassExtensionLabel(entry.change)
+                : formatPassMovementLabel(entry.movement, { studioView, method })}
             </li>
           ))}
         </ul>

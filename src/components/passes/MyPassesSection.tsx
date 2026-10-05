@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import type { PassHistoryEntry } from '../../lib/passHistory';
 import {
   fetchOwnPassesWithHistory,
   formatPassUntil,
@@ -13,8 +14,8 @@ import PassHistoryList from './PassHistoryList';
 const MyPassesSection: React.FC = () => {
   const [active, setActive] = useState<ManagedPass[]>([]);
   const [inactive, setInactive] = useState<ManagedPass[]>([]);
-  const [movementsByPass, setMovementsByPass] = useState<
-    Record<string, PassMovementView[]>
+  const [historyByPass, setHistoryByPass] = useState<
+    Record<string, PassHistoryEntry<PassMovementView>[]>
   >({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -27,7 +28,7 @@ const MyPassesSection: React.FC = () => {
       const data = await fetchOwnPassesWithHistory();
       setActive(data.active);
       setInactive(data.inactive);
-      setMovementsByPass(data.movementsByPass);
+      setHistoryByPass(data.historyByPass);
     } catch (e) {
       console.error(e);
       setError('Karten konnten nicht geladen werden.');
@@ -97,7 +98,7 @@ const MyPassesSection: React.FC = () => {
                   </p>
                 ) : null}
                 <PassHistoryList
-                  movements={movementsByPass[pass.id] ?? []}
+                  entries={historyByPass[pass.id] ?? []}
                   studioView={false}
                 />
               </li>
@@ -134,7 +135,7 @@ const MyPassesSection: React.FC = () => {
                     {formatPassUntil(pass.valid_until)}
                   </p>
                   <PassHistoryList
-                    movements={movementsByPass[pass.id] ?? []}
+                    entries={historyByPass[pass.id] ?? []}
                     studioView={false}
                   />
                 </li>
