@@ -24,7 +24,6 @@ Stand: 2026-10-05 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [rt1_stu
 ## Nächste Schritte
 
 - RT-1 Haltestelle 5 Klicktest (Liste im Bericht)
-- Nach Vault/Secrets: `node scripts/dev/legal_pdf_secret.mjs` → `npm run secrets:dev` → Functions
 - Klicktest Z8 (Vera / Nina) — parallel offen
 
 ## Haltestellen / wartet auf Julius
@@ -39,7 +38,7 @@ Stand: 2026-10-05 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [rt1_stu
 
 ## hier weitermachen
 
-Nach Klicktest RT-1: Bericht abschließen; ggf. PDF-Vault/Functions auf DEV bestätigen.
+Nach Klicktest RT-1: Bericht abschließen. DEV: `LEGAL_PDF_SECRET` + Vault + `legal-pdf`/`dispatch-emails` deployed (05.10.).
 
 ## Verweise
 
