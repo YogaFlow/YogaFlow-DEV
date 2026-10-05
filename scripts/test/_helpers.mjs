@@ -254,6 +254,13 @@ const LEGAL_DEFAULTS = {
   p_contact_email: 'studio@example.com',
   p_phone: null,
   p_tax_id: null,
+  p_legal_form: 'sole_trader',
+  p_representatives: null,
+  p_register_court: null,
+  p_register_number: null,
+  p_vat_id: null,
+  p_economic_id: null,
+  p_extra_rules: null,
 };
 
 /** B1: Anbieterangaben im Studio-Kontext des Clients (Owner). */
@@ -271,6 +278,31 @@ export const AVV_TEST_VERSION = '2026-10-04';
 export const AVV_TEST_HASH =
   'b90051caf84bc2deb99535bff2218eec4067d61209ba70d5294c04c20cd5e1d3';
 
+/** RT-1: AGB + Datenschutz freigeben (Minimaltext, Hash wie normalize_legal_text). */
+export async function studioLegalFreigeben(client) {
+  const { createHash } = await import('node:crypto');
+  const normalize = (t) =>
+    String(t)
+      .replace(/\r\n/g, '\n')
+      .replace(/[ \t]+$/gm, '')
+      .replace(/\n+$/g, '')
+      .concat('\n');
+  const hash = (t) => createHash('sha256').update(normalize(t), 'utf8').digest('hex');
+  for (const kind of ['terms', 'privacy']) {
+    const body = `# ${kind === 'terms' ? 'AGB' : 'Datenschutz'} Test\n\nStand: Test.\n`;
+    const { data, error } = await client.rpc('release_studio_legal', {
+      p_kind: kind,
+      p_template_version: '2026-10-05',
+      p_body_md: body,
+      p_values: {},
+      p_content_hash: hash(body),
+    });
+    if (error || !data?.success) {
+      abbruch(`release_studio_legal(${kind}): ` + (error?.message || JSON.stringify(data)));
+    }
+  }
+}
+
 export async function avvAkzeptieren(client, overrides = {}) {
   const { data, error } = await client.rpc('accept_legal_document', {
     p_document: 'avv',
@@ -279,6 +311,10 @@ export async function avvAkzeptieren(client, overrides = {}) {
   });
   if (error || !data?.success) {
     abbruch('accept_legal_document: ' + (error?.message || JSON.stringify(data)));
+  }
+  // RT-1: Online braucht zusätzlich freigegebene Studio-Texte (Impressum via legalProfileSetzen).
+  if (overrides.skipStudioLegal !== true) {
+    await studioLegalFreigeben(client);
   }
   return data;
 }

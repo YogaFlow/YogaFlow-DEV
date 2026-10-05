@@ -219,7 +219,11 @@ async function main() {
     ok('Owner liest Profil', saved.data?.present === true && saved.data?.legal_name === 'Yoga Test · Inhaberin');
 
     const adminRead = await asAdmin.rpc('get_studio_legal_profile');
-    ok('Admin liest Formular nicht', adminRead.data?.error === 'FORBIDDEN');
+    ok(
+      'Admin liest Formular (RT-1 Manager)',
+      adminRead.data?.present === true && adminRead.data?.legal_name === 'Yoga Test · Inhaberin',
+      JSON.stringify(adminRead.data),
+    );
 
     const info = await asMember.rpc('get_studio_provider_info');
     ok(
