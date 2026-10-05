@@ -48,8 +48,10 @@ const OpenPayments: React.FC<{ embedded?: boolean }> = ({ embedded = false }) =>
 
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<OpenRow[]>([]);
+  const [upcomingRows, setUpcomingRows] = useState<OpenRow[]>([]);
   const [batches, setBatches] = useState<BatchRow[]>([]);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [upcomingOpen, setUpcomingOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [success, setSuccess] = useState<{ batchId: string; count: number } | null>(null);
   const [revertBatch, setRevertBatch] = useState<BatchRow | null>(null);
@@ -61,8 +63,9 @@ const OpenPayments: React.FC<{ embedded?: boolean }> = ({ embedded = false }) =>
       setLoading(false);
       return;
     }
-    const [openRes, batchRes] = await Promise.all([
+    const [openRes, upcomingRes, batchRes] = await Promise.all([
       supabase.rpc('get_open_coverage'),
+      supabase.rpc('get_upcoming_open_coverage'),
       supabase.rpc('get_pre_omlify_batches'),
     ]);
     if (openRes.error) {
@@ -70,6 +73,12 @@ const OpenPayments: React.FC<{ embedded?: boolean }> = ({ embedded = false }) =>
       setRows([]);
     } else {
       setRows((openRes.data as OpenRow[]) ?? []);
+    }
+    if (upcomingRes.error) {
+      console.error(upcomingRes.error);
+      setUpcomingRows([]);
+    } else {
+      setUpcomingRows((upcomingRes.data as OpenRow[]) ?? []);
     }
     if (batchRes.error) {
       console.error(batchRes.error);
@@ -117,6 +126,36 @@ const OpenPayments: React.FC<{ embedded?: boolean }> = ({ embedded = false }) =>
     }
     return list;
   }, [rows]);
+
+  type UpcomingCourseGroup = {
+    courseId: string;
+    title: string;
+    date: string;
+    startsAt: string;
+    bookings: Array<{ registrationId: string; name: string }>;
+  };
+
+  const upcomingByCourse = useMemo((): UpcomingCourseGroup[] => {
+    const map = new Map<string, UpcomingCourseGroup>();
+    for (const row of upcomingRows) {
+      const existing = map.get(row.course_id);
+      const name = (row.display_name ?? '').trim() || 'Ohne Namen';
+      if (existing) {
+        existing.bookings.push({ registrationId: row.registration_id, name });
+      } else {
+        map.set(row.course_id, {
+          courseId: row.course_id,
+          title: row.course_title,
+          date: berlinIsoFromInstant(row.course_starts_at),
+          startsAt: row.course_starts_at,
+          bookings: [{ registrationId: row.registration_id, name }],
+        });
+      }
+    }
+    return [...map.values()].sort(
+      (a, b) => a.startsAt.localeCompare(b.startsAt) || a.title.localeCompare(b.title, 'de'),
+    );
+  }, [upcomingRows]);
 
   const confirmRevert = async () => {
     if (!revertBatch || busy) return;
@@ -213,17 +252,18 @@ const OpenPayments: React.FC<{ embedded?: boolean }> = ({ embedded = false }) =>
         />
       ) : null}
 
-      {people.length === 0 ? (
-        <p className="rounded-md border border-border bg-surface px-4 py-10 text-center text-[15px] leading-6 text-textMuted">
-          Alles erledigt. Aus vergangenen Kursen ist nichts mehr offen.
-        </p>
-      ) : (
-        <section className="overflow-hidden rounded-md border border-border bg-surface">
-          {embedded ? null : (
-            <div className="border-b border-border px-3.5 py-3">
-              <h2 className="text-[17px] font-medium text-text">Offene Zahlungen</h2>
-            </div>
-          )}
+      <section className="overflow-hidden rounded-md border border-border bg-surface">
+        <div className="border-b border-border px-3.5 py-3">
+          <h2 className="text-[17px] font-medium text-text">Überfällig</h2>
+          <p className="mt-0.5 text-[13px] text-textMuted">
+            Kurs hat begonnen · noch offen
+          </p>
+        </div>
+        {people.length === 0 ? (
+          <p className="px-3.5 py-8 text-center text-[15px] leading-6 text-textMuted">
+            Nichts überfällig.
+          </p>
+        ) : (
           <ul className="divide-y divide-border">
             {people.map((person) => {
               const open = !!expanded[person.userId];
@@ -260,7 +300,7 @@ const OpenPayments: React.FC<{ embedded?: boolean }> = ({ embedded = false }) =>
                       {person.courses.map((course) => (
                         <li key={course.registrationId}>
                           <Link
-                            to={`/course/${course.courseId}/kassieren`}
+                            to={`/course/${course.courseId}/participants`}
                             className="flex min-h-11 items-center justify-between gap-3 px-3.5 py-2.5 pl-12 text-[15px] text-text no-underline active:bg-surfaceSunken focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset"
                           >
                             <span className="min-w-0">
@@ -281,8 +321,62 @@ const OpenPayments: React.FC<{ embedded?: boolean }> = ({ embedded = false }) =>
               );
             })}
           </ul>
+        )}
+      </section>
+
+      {upcomingByCourse.length > 0 ? (
+        <section className="overflow-hidden rounded-md border border-border bg-surface">
+          <button
+            type="button"
+            onClick={() => setUpcomingOpen((value) => !value)}
+            className="flex min-h-11 w-full items-center gap-2 border-b border-border px-3.5 py-3 text-left active:bg-surfaceSunken focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset"
+            data-testid="upcoming-open-toggle"
+          >
+            {upcomingOpen ? (
+              <ChevronDown className="h-[18px] w-[18px] shrink-0 text-textSubtle" aria-hidden />
+            ) : (
+              <ChevronRight className="h-[18px] w-[18px] shrink-0 text-textSubtle" aria-hidden />
+            )}
+            <span className="min-w-0">
+              <span className="block text-[17px] font-medium text-text">
+                Kommt noch · zahlt vor Ort
+              </span>
+              <span className="mt-0.5 block text-[13px] text-textMuted tabular-nums">
+                {upcomingRows.length === 1
+                  ? '1 Buchung'
+                  : `${upcomingRows.length} Buchungen`}
+                {' in '}
+                {upcomingByCourse.length === 1
+                  ? '1 Kurs'
+                  : `${upcomingByCourse.length} Kursen`}
+              </span>
+            </span>
+          </button>
+          {upcomingOpen ? (
+            <ul className="divide-y divide-border">
+              {upcomingByCourse.map((group) => (
+                <li key={group.courseId}>
+                  <Link
+                    to={`/course/${group.courseId}/participants`}
+                    className="flex min-h-11 items-center justify-between gap-3 px-3.5 py-3 text-[15px] text-text no-underline active:bg-surfaceSunken focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset"
+                  >
+                    <span className="min-w-0">
+                      <span className="font-medium">{group.title}</span>
+                      <span className="mt-0.5 block text-[13px] text-textMuted tabular-nums">
+                        {formatDate(group.date)} ·{' '}
+                        {group.bookings.length === 1
+                          ? '1 zahlt vor Ort'
+                          : `${group.bookings.length} zahlen vor Ort`}
+                      </span>
+                    </span>
+                    <ChevronRight className="h-[18px] w-[18px] shrink-0 text-textSubtle" aria-hidden />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </section>
-      )}
+      ) : null}
 
       {batches.length > 0 ? (
         <section className="overflow-hidden rounded-md border border-border bg-surface">

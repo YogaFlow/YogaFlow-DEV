@@ -13,7 +13,7 @@ import {
   formatTimeRange,
 } from '../lib/format';
 import ConfirmDialog, { ConfirmDialogState } from '../components/ui/ConfirmDialog';
-import { isCourseCancelled, isCourseVisibleThroughBerlinToday } from '../lib/courseDateTime';
+import { isCourseCancelled, isCourseVisibleThroughBerlinToday, toCourseStart } from '../lib/courseDateTime';
 import { formatUserAddress } from '../lib/userAddress';
 import { groupParticipantsByCourse } from '../lib/participantGrouping';
 import {
@@ -21,6 +21,7 @@ import {
   labelRegistrationStatusShort,
 } from '../lib/registrationStatus';
 import { coverageLabel, latestUnreversedPayment } from '../lib/courseCheckout';
+import { coverageLabelTone } from '../lib/coverageLabel';
 import { staffUnregisterRefundLine } from '../lib/refundTexts';
 import { fetchRegistrationRefundStates } from '../lib/refunds';
 import {
@@ -60,10 +61,10 @@ const CourseGroupTitle = ({ course, count }: { course: Course; count: number }) 
   <div className="flex flex-wrap items-start gap-3">
     <div className="min-w-0">{courseGroupHeading(course, count)}</div>
     <Link
-      to={`/course/${course.id}/kassieren`}
+      to={`/course/${course.id}/participants`}
       className="inline-flex h-11 shrink-0 items-center rounded-full border border-border px-4 text-[15px] font-medium text-brand no-underline active:bg-surfaceSunken"
     >
-      {isCourseCancelled(course.status) ? 'Rückgaben' : 'Check-in'}
+      {isCourseCancelled(course.status) ? 'Rückgaben' : 'Teilnehmerliste'}
     </Link>
   </div>
 );
@@ -289,7 +290,7 @@ const Participants: React.FC = () => {
       const phrase = paymentPendingDeadlinePhrase(
         resolveHoldExpiresAt(participant.hold_expires_at),
       );
-      return phrase || 'Zahlung ausstehend';
+      return phrase || 'Zahlung läuft';
     }
     return coverageLabel(
       {
@@ -299,8 +300,25 @@ const Participants: React.FC = () => {
         coverage_waived_reason: participant.coverage_waived_reason,
         method: paymentMethodByReg[participant.id] ?? null,
       },
-      { audience: forCsv ? 'csv' : paymentAudience },
+      {
+        audience: forCsv ? 'csv' : paymentAudience,
+        courseStartsAt: forCsv ? null : toCourseStart(participant.course),
+      },
     );
+  };
+
+  const paymentToneClass = (participant: ParticipantWithDetails) => {
+    const tone = coverageLabelTone(
+      {
+        status: participant.status,
+        is_waitlist: participant.is_waitlist,
+        coverage_status: participant.coverage_status as CoverageStatus | undefined,
+      },
+      { courseStartsAt: toCourseStart(participant.course) },
+    );
+    if (tone === 'warn') return 'text-accentText';
+    if (tone === 'muted') return 'text-textSubtle';
+    return 'text-textMuted';
   };
 
   const statusBadge = (
@@ -565,11 +583,13 @@ const Participants: React.FC = () => {
                           <span>{formatDateTime(participant.registered_at)}</span>
                           {participant.cancel_reason !== 'course_cancelled' ? (
                             <span className="before:content-['·'] before:mx-1">
-                              {participant.id === mockPendingId
-                                ? paymentPendingDeadlinePhrase(
-                                    resolveHoldExpiresAt(participant.hold_expires_at),
-                                  ) || 'Zahlung ausstehend'
-                                : paymentText(participant)}
+                              <span className={paymentToneClass(participant)}>
+                                {participant.id === mockPendingId
+                                  ? paymentPendingDeadlinePhrase(
+                                      resolveHoldExpiresAt(participant.hold_expires_at),
+                                    ) || 'Zahlung läuft'
+                                  : paymentText(participant)}
+                              </span>
                             </span>
                           ) : null}
                         </div>
@@ -672,11 +692,11 @@ const Participants: React.FC = () => {
                             forcePending: participant.id === mockPendingId,
                           })}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-textMuted">
+                        <td className={`px-6 py-4 whitespace-nowrap text-sm ${paymentToneClass(participant)}`}>
                           {participant.id === mockPendingId
                             ? paymentPendingDeadlinePhrase(
                                 resolveHoldExpiresAt(participant.hold_expires_at),
-                              ) || 'Zahlung ausstehend'
+                              ) || 'Zahlung läuft'
                             : paymentText(participant)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-textMuted tabular-nums">

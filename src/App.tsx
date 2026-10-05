@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { TenantProvider, useTenant, buildApexHref, withDevTenant } from './context/TenantContext';
 import { ToastProvider } from './context/ToastContext';
@@ -62,6 +62,12 @@ const RedirectToApexMarketing: React.FC = () => {
     window.location.replace('/');
   }, []);
   return <Spinner />;
+};
+
+/** UX-6: Alt-Route /kassieren → Teilnehmerliste. */
+const KassierenRedirect: React.FC = () => {
+  const { courseId } = useParams<{ courseId: string }>();
+  return <Navigate to={`/course/${courseId ?? ''}/participants`} replace />;
 };
 
 /** Mandanten-App: Guard → Auth → Layout. Das Outlet steht in Layout. Pathloses Layout, damit RR6/7 `/dashboard` & Co. zuverlässig matched (nicht `path="*"` + Kinder). */
@@ -363,8 +369,11 @@ function App() {
               <Route path="courses" element={<Courses />} />
               <Route path="create-course" element={<CreateCourse />} />
               <Route path="course/:courseId/edit" element={<EditCourse />} />
-              <Route path="course/:courseId/participants" element={<Participants />} />
-              <Route path="course/:courseId/kassieren" element={<CourseCheckout />} />
+              <Route path="course/:courseId/participants" element={<CourseCheckout />} />
+              <Route
+                path="course/:courseId/kassieren"
+                element={<KassierenRedirect />}
+              />
               <Route path="course/:courseId" element={<CourseDetail />} />
               <Route path="my-courses" element={<MyCourses />} />
               <Route path="my-registrations" element={<MyRegistrations />} />

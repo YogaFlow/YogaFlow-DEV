@@ -148,7 +148,7 @@ const Payments: React.FC = () => {
   const rowAction = (row: StudioPaymentRow) => {
     if (row.kind === 'online') return { type: 'sheet' as const };
     if (row.subject_type === 'registration' && row.course_id) {
-      return { type: 'link' as const, to: `/course/${row.course_id}/kassieren` };
+      return { type: 'link' as const, to: `/course/${row.course_id}/participants` };
     }
     return null;
   };

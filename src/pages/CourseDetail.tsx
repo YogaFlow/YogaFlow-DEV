@@ -616,14 +616,8 @@ const CourseDetail: React.FC = () => {
         desktop ? (
           <div className="flex w-full flex-col gap-2">
             <Link
-              to={`/course/${course.id}/kassieren`}
-              className={`${buttonShape} w-full bg-brand text-onBrand active:bg-brandPressed`}
-            >
-              Check-in öffnen
-            </Link>
-            <Link
               to={`/course/${course.id}/participants`}
-              className={`${staffButtonShape} w-full border border-borderStrong bg-surface text-brand`}
+              className={`${buttonShape} w-full bg-brand text-onBrand active:bg-brandPressed`}
             >
               Teilnehmerliste
             </Link>
@@ -634,7 +628,7 @@ const CourseDetail: React.FC = () => {
               to={`/course/${course.id}/participants`}
               className={`${staffButtonShape} border border-borderStrong bg-surface text-brand`}
             >
-              Teilnehmer
+              Teilnehmerliste
             </Link>
             <Link
               to={`/course/${course.id}/edit`}

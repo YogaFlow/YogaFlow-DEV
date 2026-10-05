@@ -4,7 +4,12 @@ import { Calendar, Check, ChevronRight, Users, BookOpen, Settings } from 'lucide
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Course, Registration } from '../types';
-import { isCourseCancelled, isCourseRunning, isCourseUpcoming, isRegistrationVisible } from '../lib/courseDateTime';
+import {
+  isCourseCancelled,
+  isCourseRunning,
+  isCourseUpcoming,
+  isRegistrationVisible,
+} from '../lib/courseDateTime';
 import {
   formatDate,
   formatDayLabel,
@@ -653,7 +658,7 @@ const Dashboard: React.FC = () => {
             {refundLines.map((line) => (
               <Link
                 key={line.id}
-                to={`/course/${line.id}/kassieren`}
+                to={`/course/${line.id}/participants`}
                 className="flex min-h-11 items-center gap-3 px-3.5 py-3 text-[17px] font-medium text-text no-underline active:bg-surfaceSunken focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset"
               >
                 <span className="min-w-0 flex-1">
@@ -689,22 +694,33 @@ const Dashboard: React.FC = () => {
       {checkoutLines.length > 0 && !isParticipantOnly && (
         <section className="overflow-hidden rounded-md border border-border bg-surface">
           <div className="border-b border-border px-3.5 py-3">
-            <h2 className="text-[17px] font-medium text-text">Check-in</h2>
+            <h2 className="text-[17px] font-medium text-text">Heute zu erledigen</h2>
           </div>
           <div className="divide-y divide-border">
-            {checkoutLines.map((line) => (
-              <Link
-                key={line.id}
-                to={`/course/${line.id}/kassieren`}
-                aria-label={`Check-in: ${line.title}, ${line.open} offen`}
-                className="flex min-h-11 items-center gap-3 px-3.5 py-3 text-[17px] font-medium text-text no-underline active:bg-surfaceSunken focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset"
-              >
-                <span className="min-w-0 flex-1 tabular-nums">
-                  {`${line.title}, ${checkoutDayWord(line.date)} ${formatTime(line.time)} – ${line.open} offen`}
-                </span>
-                <ChevronRight className="h-[18px] w-[18px] shrink-0 text-textSubtle" aria-hidden />
-              </Link>
-            ))}
+            {checkoutLines.map((line) => {
+              const day =
+                checkoutDayWord(line.date) === 'heute'
+                  ? 'Heute'
+                  : checkoutDayWord(line.date) === 'gestern'
+                    ? 'Gestern'
+                    : formatDate(line.date);
+              const openWord = isCourseUpcoming({ date: line.date, time: line.time })
+                ? 'zahlen vor Ort'
+                : 'offen';
+              return (
+                <Link
+                  key={line.id}
+                  to={`/course/${line.id}/participants`}
+                  aria-label={`${line.title}, ${line.open} ${openWord}`}
+                  className="flex min-h-11 items-center gap-3 px-3.5 py-3 text-[17px] font-medium text-text no-underline active:bg-surfaceSunken focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset"
+                >
+                  <span className="min-w-0 flex-1 tabular-nums">
+                    {`${day} ${formatTime(line.time)} · ${line.title} · ${line.open} ${openWord} ›`}
+                  </span>
+                  <ChevronRight className="h-[18px] w-[18px] shrink-0 text-textSubtle" aria-hidden />
+                </Link>
+              );
+            })}
           </div>
         </section>
       )}

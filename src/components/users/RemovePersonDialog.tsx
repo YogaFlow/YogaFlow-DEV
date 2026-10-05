@@ -55,11 +55,9 @@ const RemovePersonDialog: React.FC<RemovePersonDialogProps> = ({
   const name = `${target.firstName} ${target.lastName}`.trim();
   const refundLine = memberRemovalRefundLine(target.onlinePaidCount, target.onlineRefundCents);
   const openHref = target.openBookings === 1 && target.openCourseId
-    ? `/course/${target.openCourseId}/kassieren`
+    ? `/course/${target.openCourseId}/participants`
     : '/participants';
-  const openLabel = target.openBookings === 1 && target.openCourseId
-    ? 'Zum Check-in'
-    : 'Zur Teilnehmerliste';
+  const openLabel = 'Zur Teilnehmerliste';
 
   return (
     <div

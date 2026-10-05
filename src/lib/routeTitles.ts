@@ -45,13 +45,13 @@ function courseSegmentTitle(pathname: string): string {
   const participantsSuffix = '/participants';
   if (rest.endsWith(participantsSuffix)) {
     const id = rest.slice(0, rest.length - participantsSuffix.length);
-    return id.length > 0 && !id.includes('/') ? 'Teilnehmer' : '';
+    return id.length > 0 && !id.includes('/') ? 'Teilnehmerliste' : '';
   }
 
   const checkoutSuffix = '/kassieren';
   if (rest.endsWith(checkoutSuffix)) {
     const id = rest.slice(0, rest.length - checkoutSuffix.length);
-    return id.length > 0 && !id.includes('/') ? 'Check-in' : '';
+    return id.length > 0 && !id.includes('/') ? 'Teilnehmerliste' : '';
   }
 
   if (rest.length > 0 && !rest.includes('/')) {

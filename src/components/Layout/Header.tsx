@@ -19,7 +19,9 @@ function labelForNotificationPath(path?: string | null): string {
     return 'Zu meinen Anmeldungen';
   }
   if (path?.includes('/users')) return 'Zur Personenverwaltung';
-  if (path?.endsWith('/kassieren')) return 'Zu den Rückgaben';
+  if (path?.endsWith('/kassieren') || /\/course\/[^/]+\/participants$/.test(path ?? '')) {
+    return 'Zur Teilnehmerliste';
+  }
   if (path?.startsWith('/payments')) return 'Zur Zahlung';
   if (path?.startsWith('/course/')) return 'Zum Kurs';
   return 'Öffnen';

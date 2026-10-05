@@ -4,22 +4,28 @@ import { Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { visibleCourses } from '../lib/visibleScope';
-import { isStudioAdmin, isTeacherOnly } from '../lib/userRoles';
-import { isCourseCancelled } from '../lib/courseDateTime';
-import { formatCents, formatDate, formatPrice, formatTime } from '../lib/format';
+import { isCourseManagerRole, isStudioAdmin, isTeacherOnly } from '../lib/userRoles';
+import { isCourseCancelled, isCourseUpcoming, toCourseStart } from '../lib/courseDateTime';
+import { formatCents, formatDate, formatPrice, formatTime, formatTodayOrTomorrow } from '../lib/format';
 import PaymentRefundSheet from '../components/payments/PaymentRefundSheet';
 import { fetchRegistrationRefundStates } from '../lib/refunds';
-import { checkoutPassLine, onlinePaidCheckoutLine } from '../lib/refundTexts';
+import {
+  checkoutPassLine,
+  onlinePaidCheckoutLine,
+  staffUnregisterRefundLine,
+} from '../lib/refundTexts';
 import type { CoverageStatus, PaymentMethod, WaivedReason } from '../types';
 import UndoBar from '../components/ui/UndoBar';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import SellPassDialog from '../components/passes/SellPassDialog';
+import { coverageLabelTone } from '../lib/coverageLabel';
 import {
   CASH_HINT,
   WAIVE_NOTE_HINT,
   WAIVE_REASONS,
   amountNoteRequired,
   centsToEuroInput,
+  checkoutAttendanceLine,
   checkoutErrorMessage,
   compareCheckoutRows,
   countCheckout,
@@ -29,6 +35,12 @@ import {
   methodWord,
   type ManualCheckoutMethod,
 } from '../lib/courseCheckout';
+import { staffUnregisteredToastLine } from '../lib/toastTexts';
+
+function shownMemberEmail(user: { email?: string | null; anonymized_at?: string | null } | null | undefined): string {
+  if (!user || user.anonymized_at) return '';
+  return user.email?.trim() || '';
+}
 import { paymentPendingLabel } from '../lib/pendingPaymentLabel';
 import {
   isDevPendingPaymentMock,
@@ -52,6 +64,8 @@ type Person = {
   userId: string;
   firstName: string;
   lastName: string;
+  email: string;
+  phone: string;
   coverage: CoverageStatus;
   waivedReason: WaivedReason | null;
   waivedNote: string | null;
@@ -61,6 +75,8 @@ type Person = {
   passRemaining: number | null;
   paymentPending: boolean;
   holdExpiresAt: string | null;
+  isWaitlist: boolean;
+  waitlistPosition: number | null;
   /** Stripe-Kartenzahlung (Original), auch wenn teilweise erstattet */
   onlinePaymentId: string | null;
   onlineAmountCents: number | null;
@@ -122,8 +138,8 @@ type RpcBody = {
 };
 
 const MENU_METHODS: { method: ManualCheckoutMethod; label: string }[] = [
-  { method: 'paypal_manual', label: 'PayPal' },
-  { method: 'bank_transfer', label: 'Überweisung' },
+  { method: 'paypal_manual', label: 'PayPal erhalten' },
+  { method: 'bank_transfer', label: 'Überweisung erhalten' },
 ];
 
 const AMOUNT_METHODS: { method: ManualCheckoutMethod; label: string }[] = [
@@ -160,30 +176,40 @@ function personName(person: Pick<Person, 'firstName' | 'lastName'>): string {
   return name || 'Teilnehmerin';
 }
 
-function statusLabel(person: Person, seesMethod: boolean): { text: string; detail: string } {
+function statusLabel(
+  person: Person,
+  seesMethod: boolean,
+  courseStartsAt: Date | null,
+): { text: string; detail: string; toneClass: string } {
   if (person.paymentPending) {
-    return { text: paymentPendingLabel(person.holdExpiresAt), detail: '' };
+    return {
+      text: paymentPendingLabel(person.holdExpiresAt),
+      detail: '',
+      toneClass: 'text-accentText',
+    };
   }
   const audience = seesMethod ? 'manager' : 'teacher';
-  const text = coverageLabel(
-    {
-      coverage_status: person.coverage,
-      coverage_waived_reason: person.waivedReason,
-      method: person.method,
-      pass_remaining: person.passRemaining,
-    },
-    { audience },
-  );
+  const input = {
+    coverage_status: person.coverage,
+    coverage_waived_reason: person.waivedReason,
+    method: person.method,
+    pass_remaining: person.passRemaining,
+    is_waitlist: person.isWaitlist,
+  };
+  const text = coverageLabel(input, { audience, courseStartsAt });
+  const tone = coverageLabelTone(input, { courseStartsAt });
+  const toneClass =
+    tone === 'warn' ? 'text-accentText' : tone === 'muted' ? 'text-textSubtle' : 'text-text';
   if (person.coverage === 'waived' && seesMethod) {
     const detail = [person.waivedNote].filter(Boolean).join('');
-    return { text, detail };
+    return { text, detail, toneClass };
   }
   if (person.coverage === 'open') {
     const price =
       person.priceCents != null ? formatPrice(person.priceCents / 100) : '';
-    return { text, detail: price };
+    return { text, detail: price, toneClass };
   }
-  return { text, detail: '' };
+  return { text, detail: '', toneClass };
 }
 
 const CourseCheckout: React.FC = () => {
@@ -216,6 +242,12 @@ const CourseCheckout: React.FC = () => {
   const [hasSellableProducts, setHasSellableProducts] = useState(false);
   const [sellTarget, setSellTarget] = useState<Person | null>(null);
   const [undoPassConfirm, setUndoPassConfirm] = useState<Person | null>(null);
+  const [unregisterDialog, setUnregisterDialog] = useState<{
+    person: Person;
+    message: string;
+  } | null>(null);
+  const [unregisterBusy, setUnregisterBusy] = useState(false);
+  const [successText, setSuccessText] = useState('');
   const busyIds = useRef(new Set<string>());
 
   const seesMethod = isStudioAdmin(userProfile);
@@ -349,17 +381,19 @@ const CourseCheckout: React.FC = () => {
         id,
         user_id,
         status,
+        is_waitlist,
+        waitlist_position,
         hold_expires_at,
         coverage_status,
         coverage_waived_reason,
         coverage_waived_note,
         price_cents_at_booking,
         pass_id,
-        user:users!registrations_user_id_fkey(first_name, last_name)
+        user:users!registrations_user_id_fkey(first_name, last_name, email, phone, anonymized_at)
       `
       )
       .eq('course_id', courseId)
-      .in('status', ['registered', 'pending_payment']);
+      .in('status', ['registered', 'pending_payment', 'waitlist']);
 
     if (regError) {
       setErrorText(checkoutErrorMessage(undefined));
@@ -403,14 +437,17 @@ const CourseCheckout: React.FC = () => {
     let mockAssigned = false;
     const next: Person[] = rows.map((row) => {
       const user = Array.isArray(row.user) ? row.user[0] : row.user;
+      const isWaitlist = Boolean(row.is_waitlist) || row.status === 'waitlist';
       const realPending = row.status === 'pending_payment';
-      const forcePending = mockPending && !mockAssigned && !realPending;
+      const forcePending = mockPending && !mockAssigned && !realPending && !isWaitlist;
       if (forcePending) mockAssigned = true;
       return {
         registrationId: row.id,
         userId: row.user_id as string,
         firstName: user?.first_name ?? '',
         lastName: user?.last_name ?? '',
+        email: shownMemberEmail(user),
+        phone: (user?.phone as string | null)?.trim() || '',
         coverage: (row.coverage_status ?? 'open') as CoverageStatus,
         waivedReason: (row.coverage_waived_reason ?? null) as WaivedReason | null,
         waivedNote: row.coverage_waived_note ?? null,
@@ -422,6 +459,8 @@ const CourseCheckout: React.FC = () => {
         holdExpiresAt: resolveHoldExpiresAt(
           (row.hold_expires_at as string | null) ?? null,
         ),
+        isWaitlist,
+        waitlistPosition: (row.waitlist_position as number | null) ?? null,
         onlinePaymentId: onlineByRegistration.get(row.id) ?? null,
         onlineAmountCents: null,
         onlineRefundedCents: 0,
@@ -465,15 +504,31 @@ const CourseCheckout: React.FC = () => {
 
   const sorted = useMemo(
     () =>
-      [...people].sort((a, b) =>
-        compareCheckoutRows(
-          { coverage: a.coverage, paymentPending: a.paymentPending, lastName: a.lastName, firstName: a.firstName },
-          { coverage: b.coverage, paymentPending: b.paymentPending, lastName: b.lastName, firstName: b.firstName }
-        )
-      ),
+      [...people]
+        .filter((person) => !person.isWaitlist)
+        .sort((a, b) =>
+          compareCheckoutRows(
+            { coverage: a.coverage, paymentPending: a.paymentPending, lastName: a.lastName, firstName: a.firstName },
+            { coverage: b.coverage, paymentPending: b.paymentPending, lastName: b.lastName, firstName: b.firstName }
+          )
+        ),
     [people]
   );
-  const counts = countCheckout(people);
+  const waitlist = useMemo(
+    () =>
+      [...people]
+        .filter((person) => person.isWaitlist)
+        .sort((a, b) => {
+          const pos = (a.waitlistPosition ?? 999) - (b.waitlistPosition ?? 999);
+          if (pos !== 0) return pos;
+          return personName(a).localeCompare(personName(b), 'de');
+        }),
+    [people],
+  );
+  const counts = countCheckout(sorted);
+  const courseStartsAt = course ? toCourseStart(course) : null;
+  const courseStarted = course ? !isCourseUpcoming(course) : false;
+  const attendanceLine = checkoutAttendanceLine(sorted.length, counts.open, courseStarted);
 
   const patchPerson = (registrationId: string, patch: Partial<Person>) => {
     setPeople((current) =>
@@ -543,7 +598,7 @@ const CourseCheckout: React.FC = () => {
       kind: 'payment',
       registrationId: person.registrationId,
       paymentId: body.payment_id,
-      text: `${personName(person)}: ${methodWord(method)} vermerkt`,
+      text: `${personName(person)} · ${methodWord(method)} vermerkt`,
     });
     return true;
   };
@@ -792,6 +847,92 @@ const CourseCheckout: React.FC = () => {
     await load();
   };
 
+  const exportCourseCsv = () => {
+    if (!course) return;
+    const escapeCell = (value: string) => `"${value.replace(/"/g, '""')}"`;
+    const rows = [
+      ['Kurs', 'Datum', 'Teilnehmer', 'E-Mail', 'Telefon', 'Bezahlung'],
+      ...sorted.map((person) => [
+        course.title,
+        formatDate(course.date),
+        personName(person),
+        person.email,
+        person.phone,
+        coverageLabel(
+          {
+            coverage_status: person.coverage,
+            coverage_waived_reason: person.waivedReason,
+            method: person.method,
+            pass_remaining: person.passRemaining,
+            status: person.paymentPending ? 'pending_payment' : 'registered',
+            is_waitlist: person.isWaitlist,
+          },
+          { audience: 'csv' },
+        ),
+      ]),
+      ...waitlist.map((person) => [
+        course.title,
+        formatDate(course.date),
+        personName(person),
+        person.email,
+        person.phone,
+        '—',
+      ]),
+    ];
+    const csvContent = rows.map((row) => row.map(escapeCell).join(';')).join('\n');
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `teilnehmer_${course.date}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const requestUnregister = async (person: Person) => {
+    if (!course || !isCourseManagerRole(userProfile)) return;
+    setMenuFor(null);
+    let onlineNote = '';
+    if (seesMethod && person.coverage === 'paid') {
+      const states = await fetchRegistrationRefundStates([person.registrationId]);
+      const line = staffUnregisterRefundLine(states[person.registrationId]?.refundable_cents ?? 0);
+      if (line) onlineNote = ` ${line}`;
+    }
+    const passNote = person.coverage === 'pass' ? ' Die Karteneinheit wird zurückgebucht.' : '';
+    setUnregisterDialog({
+      person,
+      message: `Möchtest du ${personName(person)} wirklich vom Kurs „${course.title}“ abmelden?${passNote}${onlineNote}`,
+    });
+  };
+
+  const executeUnregister = async () => {
+    if (!unregisterDialog || !course || unregisterBusy) return;
+    setUnregisterBusy(true);
+    const person = unregisterDialog.person;
+    const { data, error } = await supabase.rpc('admin_unregister_user_from_course', {
+      p_user_id: person.userId,
+      p_course_id: course.id,
+    });
+    setUnregisterBusy(false);
+    setUnregisterDialog(null);
+    type RpcResult = { success?: boolean; error?: string };
+    const result = (typeof data === 'string' ? JSON.parse(data) : data) as RpcResult | null;
+    if (error || !result?.success) {
+      setErrorText(
+        result?.error === 'not_registered'
+          ? 'Für diesen Kurs liegt keine aktive Anmeldung vor.'
+          : checkoutErrorMessage(result?.error),
+      );
+      await load();
+      return;
+    }
+    setPeople((current) => current.filter((row) => row.registrationId !== person.registrationId));
+    setSuccessText(staffUnregisteredToastLine(person.firstName, person.lastName));
+  };
+
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -949,26 +1090,32 @@ const CourseCheckout: React.FC = () => {
     );
   }
 
-  const attendanceLabel =
-    sorted.length === 1 ? '1 angemeldet' : `${sorted.length} angemeldet`;
-
   return (
     <div className="mx-auto max-w-lg space-y-4 overflow-x-hidden pb-24 lg:max-w-[1120px]">
       <header>
         <h2 className="text-[22px] font-medium text-text">{course.title}</h2>
-        <p className="mt-1 text-[15px] text-textMuted">Wer ist da, wer hat bezahlt.</p>
-        <p className="mt-1 text-[15px] tabular-nums text-textMuted">
-          {formatDate(course.date)} · {formatTime(course.time)}
-        </p>
-        <p className="mt-1 text-[15px] tabular-nums text-text lg:hidden">
-          {counts.open} offen · {counts.done} erledigt
-        </p>
-        <p
-          className="mt-1 hidden text-[15px] tabular-nums text-text lg:block"
-          data-testid="checkout-attendance"
-        >
-          {attendanceLabel}
-        </p>
+        <div className="mt-1 flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <p className="text-[15px] tabular-nums text-textMuted">
+              {formatTodayOrTomorrow(course.date)} · {formatTime(course.time)}
+            </p>
+            <p
+              className="mt-1 text-[15px] tabular-nums text-text"
+              data-testid="checkout-attendance"
+            >
+              {attendanceLine}
+            </p>
+          </div>
+          {isStudioAdmin(userProfile) ? (
+            <button
+              type="button"
+              onClick={() => exportCourseCsv()}
+              className="inline-flex h-11 items-center rounded-full border border-border px-4 text-[15px] font-medium text-brand active:bg-surfaceSunken"
+            >
+              CSV
+            </button>
+          ) : null}
+        </div>
       </header>
 
       {errorText ? (
@@ -986,7 +1133,7 @@ const CourseCheckout: React.FC = () => {
         <div className="divide-y divide-border overflow-hidden rounded-md border border-border bg-surface lg:hidden">
           {sorted.map((person) => {
             const name = personName(person);
-            const status = statusLabel(person, seesMethod);
+            const status = statusLabel(person, seesMethod, courseStartsAt);
             const open = person.coverage === 'open' && !person.paymentPending;
             const canRevertWaive = seesMethod && person.coverage === 'waived' && !person.paymentPending;
             const canUndoPass = seesMethod && person.coverage === 'pass' && !person.paymentPending;
@@ -1004,7 +1151,7 @@ const CourseCheckout: React.FC = () => {
               person.onlinePaymentId != null &&
               !person.paymentPending &&
               person.onlineRefundableCents > 0;
-            const showMenu = open || canRevertWaive || canSellPass || canUndoPass;
+            const showMenu = true;
             const menuOpen = menuFor === person.registrationId;
             const passLabel = passBadgeLabel(passesByUser[person.userId] ?? []);
             const passLine =
@@ -1062,7 +1209,7 @@ const CourseCheckout: React.FC = () => {
                           {person.coverage === 'paid' ? (
                             <Check className="h-4 w-4 shrink-0" aria-hidden />
                           ) : null}
-                          <span>{status.text}</span>
+                          <span className={status.toneClass}>{status.text}</span>
                           {status.detail ? (
                             <span className="text-textMuted tabular-nums">· {status.detail}</span>
                           ) : null}
@@ -1084,7 +1231,7 @@ const CourseCheckout: React.FC = () => {
                       <button
                         type="button"
                         aria-expanded={menuOpen}
-                        aria-label={`Mehr für ${name}`}
+                        aria-label={`Aktionen für ${name}`}
                         onClick={() =>
                           setMenuFor((current) =>
                             current === person.registrationId ? null : person.registrationId
@@ -1092,7 +1239,7 @@ const CourseCheckout: React.FC = () => {
                         }
                         className="inline-flex h-11 min-w-11 items-center justify-center rounded-full border border-border px-3 text-[15px] font-medium text-text"
                       >
-                        Mehr
+                        ⋯
                       </button>
                       {open && usablePass ? (
                         <button
@@ -1109,7 +1256,7 @@ const CourseCheckout: React.FC = () => {
                           onClick={() => void record(person, 'cash', null, null)}
                           className="inline-flex h-11 min-w-11 items-center justify-center rounded-full bg-brand px-4 text-[15px] font-medium text-onBrand active:bg-brandPressed"
                         >
-                          Einchecken
+                          Bar erhalten
                         </button>
                       ) : null}
                     </div>
@@ -1117,6 +1264,20 @@ const CourseCheckout: React.FC = () => {
                 </div>
                 {menuOpen ? (
                   <div className="border-t border-border bg-surfaceSunken px-3.5 py-1">
+                    {(person.email || person.phone) ? (
+                      <div className="flex min-h-11 flex-col justify-center py-1 text-[13px] text-textMuted">
+                        {person.email ? (
+                          <a href={`mailto:${person.email}`} className="text-text">
+                            {person.email}
+                          </a>
+                        ) : null}
+                        {person.phone ? (
+                          <a href={`tel:${person.phone}`} className="text-text">
+                            {person.phone}
+                          </a>
+                        ) : null}
+                      </div>
+                    ) : null}
                     {canSellPass ? (
                       <button
                         type="button"
@@ -1209,6 +1370,15 @@ const CourseCheckout: React.FC = () => {
                           : 'Erlass zurücknehmen'}
                       </button>
                     ) : null}
+                    {isCourseManagerRole(userProfile) && !person.paymentPending ? (
+                      <button
+                        type="button"
+                        onClick={() => void requestUnregister(person)}
+                        className="flex min-h-11 w-full items-center text-left text-[15px] text-danger"
+                      >
+                        Abmelden
+                      </button>
+                    ) : null}
                   </div>
                 ) : null}
               </div>
@@ -1232,7 +1402,7 @@ const CourseCheckout: React.FC = () => {
             <tbody className="divide-y divide-border">
               {sorted.map((person) => {
                 const name = personName(person);
-                const status = statusLabel(person, seesMethod);
+                const status = statusLabel(person, seesMethod, courseStartsAt);
                 const open = person.coverage === 'open' && !person.paymentPending;
                 const canRevertWaive =
                   seesMethod && person.coverage === 'waived' && !person.paymentPending;
@@ -1252,7 +1422,7 @@ const CourseCheckout: React.FC = () => {
                   person.onlinePaymentId != null &&
                   !person.paymentPending &&
                   person.onlineRefundableCents > 0;
-                const showMenu = open || canRevertWaive || canSellPass || canUndoPass;
+                const showMenu = true;
                 const menuOpen = menuFor === person.registrationId;
                 const passLabel = passBadgeLabel(passesByUser[person.userId] ?? []);
                 const passLine =
@@ -1311,7 +1481,7 @@ const CourseCheckout: React.FC = () => {
                             {person.coverage === 'paid' ? (
                               <Check className="h-4 w-4 shrink-0" aria-hidden />
                             ) : null}
-                            <span>{status.text}</span>
+                            <span className={status.toneClass}>{status.text}</span>
                             {status.detail ? (
                               <span className="text-textMuted tabular-nums">· {status.detail}</span>
                             ) : null}
@@ -1338,7 +1508,7 @@ const CourseCheckout: React.FC = () => {
                             <button
                               type="button"
                               aria-expanded={menuOpen}
-                              aria-label={`Mehr für ${name}`}
+                              aria-label={`Aktionen für ${name}`}
                               onClick={() =>
                                 setMenuFor((current) =>
                                   current === person.registrationId
@@ -1348,7 +1518,7 @@ const CourseCheckout: React.FC = () => {
                               }
                               className="inline-flex h-11 min-w-11 items-center justify-center rounded-full border border-border px-3 text-[15px] font-medium text-text"
                             >
-                              Mehr
+                              ⋯
                             </button>
                             {open && usablePass ? (
                               <button
@@ -1365,7 +1535,7 @@ const CourseCheckout: React.FC = () => {
                                 onClick={() => void record(person, 'cash', null, null)}
                                 className="inline-flex h-11 min-w-11 items-center justify-center rounded-full bg-brand px-4 text-[15px] font-medium text-onBrand active:bg-brandPressed"
                               >
-                                Einchecken
+                                Bar erhalten
                               </button>
                             ) : null}
                           </div>
@@ -1376,6 +1546,20 @@ const CourseCheckout: React.FC = () => {
                       <tr>
                         <td colSpan={4} className="bg-surfaceSunken px-3.5 py-1">
                           <div className="flex flex-wrap justify-end gap-x-4">
+                            {(person.email || person.phone) ? (
+                              <div className="flex min-h-11 flex-col justify-center text-[13px] text-textMuted">
+                                {person.email ? (
+                                  <a href={`mailto:${person.email}`} className="text-text">
+                                    {person.email}
+                                  </a>
+                                ) : null}
+                                {person.phone ? (
+                                  <a href={`tel:${person.phone}`} className="text-text">
+                                    {person.phone}
+                                  </a>
+                                ) : null}
+                              </div>
+                            ) : null}
                             {canSellPass ? (
                               <button
                                 type="button"
@@ -1468,6 +1652,15 @@ const CourseCheckout: React.FC = () => {
                                   : 'Erlass zurücknehmen'}
                               </button>
                             ) : null}
+                            {isCourseManagerRole(userProfile) && !person.paymentPending ? (
+                              <button
+                                type="button"
+                                onClick={() => void requestUnregister(person)}
+                                className="inline-flex min-h-11 items-center text-[15px] text-danger"
+                              >
+                                Abmelden
+                              </button>
+                            ) : null}
                           </div>
                         </td>
                       </tr>
@@ -1481,7 +1674,52 @@ const CourseCheckout: React.FC = () => {
         </>
       )}
 
+      {waitlist.length > 0 ? (
+        <details className="rounded-md border border-border bg-surface">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center px-3.5 text-[15px] font-medium text-text">
+            Warteliste ({waitlist.length})
+          </summary>
+          <ul className="divide-y divide-border border-t border-border">
+            {waitlist.map((person) => (
+              <li key={person.registrationId} className="px-3.5 py-3 text-[15px] text-text">
+                {personName(person)}
+                {person.waitlistPosition != null ? (
+                  <span className="ml-2 text-[13px] text-textMuted">
+                    Pos. {person.waitlistPosition}
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
+
         <p className="text-[13px] leading-5 text-textMuted">{CASH_HINT}</p>
+
+      {successText ? (
+        <p role="status" className="text-[15px] text-text">
+          {successText}
+        </p>
+      ) : null}
+
+      <ConfirmDialog
+        dialog={
+          unregisterDialog
+            ? {
+                title: 'Teilnehmer abmelden',
+                message: unregisterDialog.message,
+                confirmLabel: 'Abmelden',
+                cancelLabel: 'Abbrechen',
+                variant: 'danger',
+              }
+            : null
+        }
+        loading={unregisterBusy}
+        onConfirm={() => void executeUnregister()}
+        onCancel={() => {
+          if (!unregisterBusy) setUnregisterDialog(null);
+        }}
+      />
 
       {refundSheetElement}
 
