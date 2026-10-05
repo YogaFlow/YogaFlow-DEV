@@ -1130,11 +1130,13 @@ const CourseCheckout: React.FC = () => {
         </p>
       ) : (
         <>
-        <div className="divide-y divide-border overflow-hidden rounded-md border border-border bg-surface lg:hidden">
+        <div className="divide-y divide-border overflow-hidden rounded-md border border-border bg-surface sm:hidden">
           {sorted.map((person) => {
             const name = personName(person);
             const status = statusLabel(person, seesMethod, courseStartsAt);
             const open = person.coverage === 'open' && !person.paymentPending;
+            const doneCompact =
+              !open && !person.paymentPending && person.coverage !== 'open';
             const canRevertWaive = seesMethod && person.coverage === 'waived' && !person.paymentPending;
             const canUndoPass = seesMethod && person.coverage === 'pass' && !person.paymentPending;
             const canSellPass = hasSellableProducts && !person.paymentPending;
@@ -1151,43 +1153,87 @@ const CourseCheckout: React.FC = () => {
               person.onlinePaymentId != null &&
               !person.paymentPending &&
               person.onlineRefundableCents > 0;
-            const showMenu = true;
             const menuOpen = menuFor === person.registrationId;
-            const passLabel = passBadgeLabel(passesByUser[person.userId] ?? []);
-            const passLine =
-              person.coverage === 'pass'
+            const passHint = usablePass
+              ? `${usablePass.name.trim() || 'Karte'}, noch ${usablePass.remaining}`
+              : person.coverage === 'pass'
                 ? checkoutPassLine(
                     (passesByUser[person.userId] ?? []).find((pass) => pass.pass_id === person.passId)
                       ?.name ?? 'Karte',
                     person.passRemaining ?? 0,
-                  )
-                : passLabel
-                  ? checkoutPassLine(
-                      (passesByUser[person.userId] ?? [])[0]?.name ?? 'Karte',
-                      (passesByUser[person.userId] ?? [])[0]?.remaining ?? 0,
-                    )
-                  : null;
+                  ).replace(' · noch ', ', noch ')
+                : null;
             const onlineLine =
               person.onlinePaymentId && person.onlineAmountCents != null && person.onlineAmountCents > 0
                 ? onlinePaidCheckoutLine(person.onlineAmountCents, person.onlineRefundedCents)
                 : null;
+            const statusOneLine = person.paymentPending
+              ? paymentPendingLabel(person.holdExpiresAt)
+              : onlineLine
+                ? onlineLine
+                : person.coverage === 'pass'
+                  ? passHint ?? status.text
+                  : [status.text, passHint].filter(Boolean).join(' · ');
+            const showAmount = open && person.priceCents != null;
+            const dotClass =
+              status.toneClass === 'text-accentText'
+                ? 'bg-accent'
+                : status.toneClass === 'text-textSubtle'
+                  ? 'bg-textSubtle'
+                  : 'bg-textMuted';
+            const menuButton = (
+              <button
+                type="button"
+                aria-expanded={menuOpen}
+                aria-label={`Aktionen für ${name}`}
+                onClick={() =>
+                  setMenuFor((current) =>
+                    current === person.registrationId ? null : person.registrationId,
+                  )
+                }
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center text-[17px] font-medium text-text active:bg-surfaceSunken"
+              >
+                ⋯
+              </button>
+            );
             return (
               <div key={person.registrationId}>
-                <div className="flex items-center gap-2 px-3.5 py-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[17px] font-medium text-text">{name}</p>
-                    {person.paymentPending ? (
-                      <div className="mt-0.5">
+                {doneCompact ? (
+                  <div className="flex items-center gap-2 px-4 py-4">
+                    <p className="min-w-0 flex-1 truncate text-[16px] font-medium text-text">
+                      {name}
+                    </p>
+                    <p className="flex min-w-0 max-w-[55%] items-center gap-1 truncate text-[14px] text-text">
+                      {person.coverage === 'paid' || person.coverage === 'pass' ? (
+                        <Check className="h-4 w-4 shrink-0" aria-hidden />
+                      ) : null}
+                      <span className={`truncate ${status.toneClass}`}>{statusOneLine}</span>
+                    </p>
+                    {menuButton}
+                  </div>
+                ) : (
+                  <div className="px-4 py-4">
+                    <div className="flex items-center gap-2">
+                      <p className="min-w-0 flex-1 truncate text-[16px] font-medium text-text">
+                        {name}
+                      </p>
+                      {showAmount ? (
+                        <span className="shrink-0 text-[14px] tabular-nums text-textMuted">
+                          {formatPrice(person.priceCents! / 100)}
+                        </span>
+                      ) : null}
+                      {menuButton}
+                    </div>
+                    <p className="mt-1 flex min-w-0 items-center gap-1.5 text-[14px]">
+                      {person.paymentPending ? (
                         <PaymentPendingStatus holdExpiresAt={person.holdExpiresAt} />
-                      </div>
-                    ) : (
-                    <div className="mt-0.5 space-y-0.5">
-                      {onlineLine ? (
-                        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-text">
-                          {person.coverage === 'paid' ? (
-                            <Check className="h-4 w-4 shrink-0" aria-hidden />
-                          ) : null}
-                          <span className="tabular-nums">{onlineLine}</span>
+                      ) : (
+                        <>
+                          <span
+                            className={`inline-block h-2 w-2 shrink-0 rounded-full ${dotClass}`}
+                            aria-hidden
+                          />
+                          <span className={`truncate ${status.toneClass}`}>{statusOneLine}</span>
                           {canRefund ? (
                             <button
                               type="button"
@@ -1198,70 +1244,36 @@ const CourseCheckout: React.FC = () => {
                                   name,
                                 })
                               }
-                              className="inline-flex min-h-11 items-center rounded-full border border-border px-3 text-[13px] font-medium text-textMuted active:bg-surfaceSunken"
+                              className="ml-auto shrink-0 text-[13px] font-medium text-textMuted"
                             >
                               Erstatten
                             </button>
                           ) : null}
-                        </p>
-                      ) : person.coverage !== 'pass' ? (
-                        <p className="flex flex-wrap items-center gap-x-1 gap-y-0.5 text-[13px] text-text">
-                          {person.coverage === 'paid' ? (
-                            <Check className="h-4 w-4 shrink-0" aria-hidden />
-                          ) : null}
-                          <span className={status.toneClass}>{status.text}</span>
-                          {status.detail ? (
-                            <span className="text-textMuted tabular-nums">· {status.detail}</span>
-                          ) : null}
-                        </p>
-                      ) : null}
-                      {passLine ? (
-                        <p className="flex items-center gap-1 text-[13px] text-textMuted tabular-nums">
-                          {person.coverage === 'pass' ? (
-                            <Check className="h-4 w-4 shrink-0 text-text" aria-hidden />
-                          ) : null}
-                          {passLine}
-                        </p>
-                      ) : null}
-                    </div>
-                    )}
-                  </div>
-                  {showMenu ? (
-                    <div className="flex shrink-0 items-center gap-1">
-                      <button
-                        type="button"
-                        aria-expanded={menuOpen}
-                        aria-label={`Aktionen für ${name}`}
-                        onClick={() =>
-                          setMenuFor((current) =>
-                            current === person.registrationId ? null : person.registrationId
-                          )
-                        }
-                        className="inline-flex h-11 min-w-11 items-center justify-center rounded-full border border-border px-3 text-[15px] font-medium text-text"
-                      >
-                        ⋯
-                      </button>
-                      {open && usablePass ? (
-                        <button
-                          type="button"
-                          onClick={() => void applyPass(person)}
-                          className="inline-flex h-11 min-w-11 items-center justify-center rounded-full border border-borderStrong bg-surface px-4 text-[15px] font-medium text-brand active:bg-surfaceSunken"
-                        >
-                          Karte
-                        </button>
-                      ) : null}
-                      {open ? (
+                        </>
+                      )}
+                    </p>
+                    {open ? (
+                      <div className="mt-3 flex items-center gap-2">
                         <button
                           type="button"
                           onClick={() => void record(person, 'cash', null, null)}
-                          className="inline-flex h-11 min-w-11 items-center justify-center rounded-full bg-brand px-4 text-[15px] font-medium text-onBrand active:bg-brandPressed"
+                          className="inline-flex h-11 min-w-0 flex-1 items-center justify-center rounded-full bg-brand px-4 text-[15px] font-medium text-onBrand active:bg-brandPressed"
                         >
                           Bar erhalten
                         </button>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
+                        {usablePass ? (
+                          <button
+                            type="button"
+                            onClick={() => void applyPass(person)}
+                            className="inline-flex h-11 shrink-0 items-center justify-center rounded-full border border-borderStrong bg-surface px-4 text-[15px] font-medium text-brand active:bg-surfaceSunken"
+                          >
+                            Mit Karte
+                          </button>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                )}
                 {menuOpen ? (
                   <div className="border-t border-border bg-surfaceSunken px-3.5 py-1">
                     {(person.email || person.phone) ? (
@@ -1387,7 +1399,7 @@ const CourseCheckout: React.FC = () => {
         </div>
 
         <div
-          className="hidden overflow-hidden rounded-md border border-border bg-surface lg:block"
+          className="hidden overflow-hidden rounded-md border border-border bg-surface sm:block"
           data-testid="checkout-desktop-table"
         >
           <table className="w-full table-fixed text-left">
@@ -1526,7 +1538,7 @@ const CourseCheckout: React.FC = () => {
                                 onClick={() => void applyPass(person)}
                                 className="inline-flex h-11 min-w-11 items-center justify-center rounded-full border border-borderStrong bg-surface px-4 text-[15px] font-medium text-brand active:bg-surfaceSunken"
                               >
-                                Karte
+                                Mit Karte
                               </button>
                             ) : null}
                             {open ? (
