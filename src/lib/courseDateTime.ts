@@ -5,7 +5,8 @@ type CourseLike = {
   status?: string | null;
 };
 
-const toCourseStart = (course: CourseLike): Date | null => {
+/** Kursbeginn als lokales Date (date+time Strings, nie new Date(date) allein). */
+export const toCourseStart = (course: CourseLike): Date | null => {
   if (!course.date) return null;
 
   const [year, month, day] = course.date.split('-').map(Number);

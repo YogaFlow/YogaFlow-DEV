@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Check } from 'lucide-react';
 import type { Course, CoverageStatus, Registration } from '../../types';
-import { isCourseCancelled, isCourseUpcoming } from '../../lib/courseDateTime';
+import { isCourseCancelled, isCourseUpcoming, toCourseStart } from '../../lib/courseDateTime';
 import { coverageLabel } from '../../lib/courseCheckout';
 import {
   isDevPendingPaymentMock,
@@ -57,6 +57,7 @@ function isOwnCancellation(registration: Registration): boolean {
 
 function paymentLine(
   registration: Registration,
+  course: Course | undefined,
   courseCancelled: boolean,
   refundState: RegistrationRefundState | undefined,
 ): string | null {
@@ -84,7 +85,10 @@ function paymentLine(
       coverage_status: registration.coverage_status as CoverageStatus | undefined,
       coverage_waived_reason: registration.coverage_waived_reason,
     },
-    { audience: 'participant' },
+    {
+      audience: 'participant',
+      courseStartsAt: course ? toCourseStart(course) : null,
+    },
   ) || null;
 }
 
@@ -147,7 +151,7 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({
           registration.cancel_reason === 'course_cancelled' || isCourseCancelled(course.status);
         const ownCancelled = isOwnCancellation(registration);
         const refundState = refundStates[registration.id];
-        const pay = paymentLine(registration, courseCancelled, refundState);
+        const pay = paymentLine(registration, course, courseCancelled, refundState);
         const progress = refundProgress(refundState);
         const usable =
           !courseCancelled &&

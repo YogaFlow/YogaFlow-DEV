@@ -125,7 +125,7 @@ export function passRedeemErrorMessage(
     case 'NOT_OPEN':
       return 'Schon erledigt.';
     case 'WAITLIST_NO_PAYMENT':
-      return 'Der Kurs ist voll. Check-in geht erst, wenn die Person nachrückt.';
+      return 'Der Kurs ist voll. Zahlung vermerken geht erst, wenn die Person nachrückt.';
     case 'FORBIDDEN':
       return 'Dafür hast du keine Berechtigung.';
     case 'PASS_EMPTY':

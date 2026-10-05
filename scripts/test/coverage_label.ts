@@ -1,14 +1,18 @@
 /**
- * Unit-Test für einheitliche Deckungstexte (A8-2).
+ * Unit-Test für einheitliche Deckungstexte (A8-2 / UX-6 T3/T9).
  *
  * Verwendung:
  *   node --experimental-strip-types --test scripts/test/coverage_label.ts
  */
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { coverageLabel } from '../../src/lib/coverageLabel.ts';
+import { coverageLabel, coverageLabelTone } from '../../src/lib/coverageLabel.ts';
 
-test('open', () => {
+const beforeStart = new Date('2030-06-01T10:00:00');
+const afterStart = new Date('2030-06-01T12:00:00');
+const start = new Date('2030-06-01T11:00:00');
+
+test('open ohne Zeitbezug (CSV / Fallback)', () => {
   assert.equal(coverageLabel({ coverage_status: 'open' }, { audience: 'manager' }), 'offen');
   assert.equal(coverageLabel({ coverage_status: 'open' }, { audience: 'teacher' }), 'offen');
   assert.equal(
@@ -18,31 +22,69 @@ test('open', () => {
   assert.equal(coverageLabel({ coverage_status: 'open' }, { audience: 'csv' }), 'offen');
 });
 
+test('open vor Beginn', () => {
+  const opts = { courseStartsAt: start, now: beforeStart };
+  assert.equal(
+    coverageLabel({ coverage_status: 'open' }, { audience: 'manager', ...opts }),
+    'Zahlt vor Ort',
+  );
+  assert.equal(
+    coverageLabel({ coverage_status: 'open' }, { audience: 'teacher', ...opts }),
+    'Zahlt vor Ort',
+  );
+  assert.equal(
+    coverageLabel({ coverage_status: 'open' }, { audience: 'participant', ...opts }),
+    'Bezahlung vor Ort',
+  );
+  assert.equal(
+    coverageLabel({ coverage_status: 'open' }, { audience: 'csv', ...opts }),
+    'offen',
+  );
+  assert.equal(coverageLabelTone({ coverage_status: 'open' }, opts), 'neutral');
+});
+
+test('open ab Beginn', () => {
+  const opts = { courseStartsAt: start, now: afterStart };
+  assert.equal(
+    coverageLabel({ coverage_status: 'open' }, { audience: 'manager', ...opts }),
+    'Offen',
+  );
+  assert.equal(
+    coverageLabel({ coverage_status: 'open' }, { audience: 'teacher', ...opts }),
+    'Offen',
+  );
+  assert.equal(
+    coverageLabel({ coverage_status: 'open' }, { audience: 'participant', ...opts }),
+    'Offen · bitte vor Ort bezahlen',
+  );
+  assert.equal(coverageLabelTone({ coverage_status: 'open' }, opts), 'warn');
+});
+
 test('pending_payment', () => {
   assert.equal(
     coverageLabel(
       { status: 'pending_payment', coverage_status: 'open' },
       { audience: 'manager' },
     ),
-    'Zahlung ausstehend',
+    'Zahlung läuft',
   );
   assert.equal(
     coverageLabel(
       { status: 'pending_payment', coverage_status: 'open' },
       { audience: 'participant' },
     ),
-    'Zahlung ausstehend',
+    'Zahlung läuft',
   );
 });
 
-test('paid bar / PayPal / Überweisung / online', () => {
+test('paid bar / PayPal / Überweisung / online × Rolle', () => {
   assert.equal(
     coverageLabel({ coverage_status: 'paid', method: 'cash' }, { audience: 'manager' }),
-    'bar',
+    'Bezahlt · bar',
   );
   assert.equal(
     coverageLabel({ coverage_status: 'paid', method: 'paypal_manual' }, { audience: 'manager' }),
-    'PayPal',
+    'Bezahlt · PayPal',
   );
   assert.equal(
     coverageLabel({ coverage_status: 'paid', method: 'bank_transfer' }, { audience: 'csv' }),
@@ -50,15 +92,15 @@ test('paid bar / PayPal / Überweisung / online', () => {
   );
   assert.equal(
     coverageLabel({ coverage_status: 'paid', method: 'cash' }, { audience: 'teacher' }),
-    'bezahlt',
+    'Bezahlt',
   );
   assert.equal(
     coverageLabel({ coverage_status: 'paid', method: 'cash' }, { audience: 'participant' }),
-    'bezahlt',
+    'Bezahlt',
   );
   assert.equal(
     coverageLabel({ coverage_status: 'paid', method: 'card' }, { audience: 'manager' }),
-    'online',
+    'Bezahlt · online',
   );
   assert.equal(
     coverageLabel({ coverage_status: 'paid', method: 'card' }, { audience: 'participant' }),
@@ -100,13 +142,6 @@ test('waived + pre_omlify', () => {
   assert.equal(
     coverageLabel(
       { coverage_status: 'waived', coverage_waived_reason: 'pre_omlify' },
-      { audience: 'teacher' },
-    ),
-    'vor Omlify erledigt',
-  );
-  assert.equal(
-    coverageLabel(
-      { coverage_status: 'waived', coverage_waived_reason: 'pre_omlify' },
       { audience: 'participant' },
     ),
     'erledigt',
@@ -119,12 +154,12 @@ test('waived + goodwill / other', () => {
       { coverage_status: 'waived', coverage_waived_reason: 'goodwill' },
       { audience: 'manager' },
     ),
-    'erlassen',
+    'Erlassen',
   );
   assert.equal(
     coverageLabel(
       { coverage_status: 'waived', coverage_waived_reason: 'other' },
-      { audience: 'teacher' },
+      { audience: 'csv' },
     ),
     'erlassen',
   );
@@ -140,15 +175,15 @@ test('waived + goodwill / other', () => {
 test('not_required', () => {
   assert.equal(
     coverageLabel({ coverage_status: 'not_required' }, { audience: 'manager' }),
-    'kostenlos',
+    'Kostenlos',
   );
   assert.equal(
-    coverageLabel({ coverage_status: 'not_required' }, { audience: 'teacher' }),
+    coverageLabel({ coverage_status: 'not_required' }, { audience: 'csv' }),
     'kostenlos',
   );
   assert.equal(
     coverageLabel({ coverage_status: 'not_required' }, { audience: 'participant' }),
-    'kostenlos',
+    'Kostenlos',
   );
 });
 

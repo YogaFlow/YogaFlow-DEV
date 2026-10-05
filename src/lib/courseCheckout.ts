@@ -69,7 +69,7 @@ export function checkoutErrorMessage(code: string | undefined): string {
     case 'NO_VALID_PASS':
       return 'Keine gültige Karte für diesen Kurs.';
     case 'WAITLIST_NO_PAYMENT':
-      return 'Der Kurs ist voll. Check-in geht erst, wenn die Person nachrückt.';
+      return 'Der Kurs ist voll. Zahlung vermerken geht erst, wenn die Person nachrückt.';
     case 'PASS_EMPTY':
     case 'PASS_EXPIRED':
     case 'NOT_PASS_ELIGIBLE':
@@ -162,6 +162,21 @@ export function countCheckout(
     if ((row.coverage ?? 'open') === 'open') open += 1;
   }
   return { open, done: rows.length - open - pending };
+}
+
+/** Kopfzeile Teilnehmerliste: Zähler mit Zeitbezug (UX-6). */
+export function checkoutAttendanceLine(
+  registered: number,
+  open: number,
+  courseStarted: boolean,
+): string {
+  if (registered === 0) return 'Noch niemand angemeldet';
+  if (open === 0) return 'Alles erledigt ✓';
+  const people = registered === 1 ? '1 angemeldet' : `${registered} angemeldet`;
+  if (courseStarted) {
+    return `${people} · ${open} offen`;
+  }
+  return `${people} · ${open} zahlen vor Ort`;
 }
 
 /** Notiz nur, wenn der Betrag vom eingefrorenen Buchungspreis abweicht. */
