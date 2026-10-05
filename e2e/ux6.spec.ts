@@ -126,15 +126,17 @@ test('UX6 — Kommt noch, Zahlt vor Ort, Bar erhalten, kein Check-in', async ({ 
     await expect(page.getByText(`UX6 Zukunft ${laufId}`)).toBeVisible();
 
     await page.goto(`/course/${future.id}/participants?tenant=${SLUG}`);
-    await expect(page.getByText('Zahlt vor Ort')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Bar erhalten' })).toBeVisible();
+    const desk = page.getByTestId('checkout-desktop-table');
+    await expect(desk.getByText('Zahlt vor Ort')).toBeVisible();
+    const barBtn = desk.getByRole('button', { name: 'Bar erhalten' });
+    await expect(barBtn).toBeVisible();
 
-    await page.getByRole('button', { name: 'Bar erhalten' }).click();
+    await barBtn.click();
     await expect(page.getByText(/bar vermerkt/i)).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByText('Bezahlt · bar')).toBeVisible();
+    await expect(desk.getByText('Bezahlt · bar')).toBeVisible();
 
     await page.goto(`/course/${started.id}/participants?tenant=${SLUG}`);
-    await expect(page.getByText('Offen', { exact: true }).first()).toBeVisible();
+    await expect(page.getByTestId('checkout-desktop-table').getByText('Offen', { exact: true })).toBeVisible();
 
     await page.goto(`/payments?tab=offen&tenant=${SLUG}`);
     await expect(page.getByText('Vera Vorort')).toBeVisible();

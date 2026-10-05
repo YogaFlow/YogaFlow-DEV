@@ -42,7 +42,8 @@ Stand: 2026-10-05 · Branch `Julius` · Status: **Haltestelle 5 (Klicktest)**
 - `node scripts/test/ux6_upcoming_open_coverage.mjs` — grün (FORBIDDEN Lehrende, kein Fremd-Tenant)
 - `npm run dev:apply` — `20261005150000` auf DEV
 - Textsuche `Check-in|Einchecken` in `src/` — **0 Treffer**; `kassieren` nur Redirect/`routeTitles`/Header-Altpfad
-- E2E: `e2e/ux6.spec.ts` (e2eapp) — siehe CI-/Laufausgabe
+- E2E: `e2e/ux6.spec.ts` (e2eapp) — **grün** (`npx playwright test e2e/ux6.spec.ts`)
+- `npm run check:ci` — grün
 - Demo: `node scripts/dev/demo_ux6.mjs` — UX6 Heute Zahlstatus + UX6 Gestern Offen
 
 ## Haltestelle 5 — Klickliste (max. 8)
