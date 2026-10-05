@@ -42,7 +42,7 @@ type BatchRow = {
   still_waived_count: number;
 };
 
-const OpenPayments: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
+const OpenPayments: React.FC<{ embedded?: boolean }> = ({ embedded: _embedded = false }) => {
   const { userProfile } = useAuth();
   const allowed = isStudioAdmin(userProfile);
 
