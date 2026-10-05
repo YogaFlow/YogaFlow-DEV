@@ -2,7 +2,7 @@
  * Einzige Stelle in src/, die @stripe/stripe-js / @stripe/react-stripe-js importiert (Z9).
  * acct_… nur als stripeAccount an loadStripe — nie anzeigen, loggen oder speichern.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   loadStripe,
   type Stripe,
@@ -24,11 +24,11 @@ import {
   BookingCheckoutFooter,
   type BookingSummaryData,
 } from '../../components/payments/BookingSummaryBlock';
+import { stripePaymentAppearance } from './stripePaymentAppearance';
 import {
-  STRIPE_PAYMENT_ELEMENT_LAYOUT,
-  stripePaymentAppearance,
-} from './stripePaymentAppearance';
-import { STRIPE_PAYMENT_ELEMENT_WALLETS } from './stripePaymentWallets';
+  STRIPE_PAYMENT_ELEMENT_OPTIONS,
+  stripePaymentElementsOptions,
+} from './stripePaymentWallets';
 
 type FormProps = {
   amountCents: number;
@@ -38,6 +38,8 @@ type FormProps = {
   alertMessage?: string | null;
   submitLabel?: string;
   bookingSummary?: BookingSummaryData | null;
+  /** Direkt über dem Zahlungsknopf (K1: Consent). */
+  aboveSubmit?: ReactNode;
   /** L2: nach Ablehnung neuen prepare-Versuch starten (statt confirm). */
   onRetry?: () => Promise<void>;
   onSubmitToken: (confirmationTokenId: string) => Promise<void>;
@@ -49,6 +51,7 @@ function PaymentFormInner({
   alertMessage,
   submitLabel,
   bookingSummary,
+  aboveSubmit,
   onRetry,
   onSubmitToken,
 }: FormProps) {
@@ -138,8 +141,7 @@ function PaymentFormInner({
       <div className="min-h-[10rem]">
         <PaymentElement
           options={{
-            layout: STRIPE_PAYMENT_ELEMENT_LAYOUT,
-            wallets: STRIPE_PAYMENT_ELEMENT_WALLETS,
+            ...STRIPE_PAYMENT_ELEMENT_OPTIONS,
             fields: {
               billingDetails: {
                 address: {
@@ -154,6 +156,7 @@ function PaymentFormInner({
 
       {bookingSummary ? (
         <BookingCheckoutFooter data={bookingSummary} alertMessage={alertText}>
+          {aboveSubmit}
           {payButton}
         </BookingCheckoutFooter>
       ) : (
@@ -163,6 +166,7 @@ function PaymentFormInner({
               {alertText}
             </p>
           ) : null}
+          {aboveSubmit}
           {payButton}
         </div>
       )}
@@ -182,6 +186,7 @@ type Props = {
   alertMessage?: string | null;
   submitLabel?: string;
   bookingSummary?: BookingSummaryData | null;
+  aboveSubmit?: ReactNode;
   onRetry?: () => Promise<void>;
   onSubmitToken: (confirmationTokenId: string) => Promise<void>;
 };
@@ -197,6 +202,7 @@ export default function StripePaymentForm({
   alertMessage,
   submitLabel,
   bookingSummary = null,
+  aboveSubmit,
   onRetry,
   onSubmitToken,
 }: Props) {
@@ -220,11 +226,7 @@ export default function StripePaymentForm({
 
   const options = useMemo<StripeElementsOptions>(
     () => ({
-      mode: 'payment',
-      amount: amountCents,
-      currency: currency.toLowerCase(),
-      paymentMethodTypes: ['card'],
-      locale: 'de',
+      ...stripePaymentElementsOptions({ amountCents, currency }),
       appearance: stripePaymentAppearance(),
     }),
     [amountCents, currency],
@@ -259,6 +261,7 @@ export default function StripePaymentForm({
         alertMessage={alertMessage}
         submitLabel={submitLabel}
         bookingSummary={bookingSummary}
+        aboveSubmit={aboveSubmit}
         onRetry={onRetry}
         onSubmitToken={onSubmitToken}
       />

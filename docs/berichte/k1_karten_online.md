@@ -342,3 +342,24 @@ Nach echtem 4242-Kauf bitte notieren (nur IDs/Zähler, keine Secrets):
 | Hauptbuch-Zeilen zu `payment.recorded` (Anzahl) | |
 
 STOPP — wartet auf Julius’ Klicktest Nachtrag.
+
+---
+
+## Nachtrag K1-2 (Klicktest 05.10.2026)
+
+Klickpunkte 1–8, 10, 12 ok. Punkt 9 (Verlauf) korrekt als Lücke. Drei Fixes.
+
+### 1 — Apple Pay im Karten-Checkout
+
+Kurs- und Karten-Checkout nutzen dieselbe `StripePaymentForm`. Die Init-Werte standen bisher inline (`paymentMethodTypes: ['card']`, Wallets auto/auto/never, Betrag und Currency aus prepare). Sie liegen jetzt in `stripePaymentElementsOptions` und `STRIPE_PAYMENT_ELEMENT_OPTIONS` (Accordion ohne „Mehr“, Reihenfolge Apple Pay, Google Pay, Karte). Der Karten-Fuß zeigt das Payment Element oben; Zustimmung und Preis sitzen direkt über dem Knopf, damit die Wallet-Zeile beim Öffnen im sichtbaren Bereich liegt.
+
+**Payment Method Domains auf DEV** (Liste am Connected Account, 05.10.2026, ohne Kontorefs):
+
+| Subdomain | Konto | Domain | Apple Pay |
+|---|---|---|---|
+| demoalpha.omlify-dev.de | aktiv, charges | registriert, enabled | active |
+| demobeta.omlify-dev.de | in_progress | keine | — |
+| juliusteststudio, sonnengruss, testerstudio, teststudio, yomita | kein Stripe-Konto | — | — |
+
+Registrierung lief bisher nur beim Onboarding-`refresh` (Konto aktiv). Neu: Schalter „Online-Zahlung“ an → `refresh` (Domain). Jeder Checkout-`prepare` registriert best-effort, Fehler stoppt die Kartenzahlung nicht. PROD: [Release-Plan 0.10](../RELEASE_GELDKETTE_PLAN.md) — Functions deployen, bereits aktive Studios einmalig nachziehen.
+

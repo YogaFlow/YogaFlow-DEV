@@ -54,6 +54,3 @@ export function stripePaymentAppearance(): PaymentAppearanceConfig {
     },
   };
 }
-
-/** Payment Element Layout — accordion wirkt auf schmalen Displays ruhiger als Tabs. */
-export const STRIPE_PAYMENT_ELEMENT_LAYOUT = 'accordion' as const;

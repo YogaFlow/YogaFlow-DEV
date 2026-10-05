@@ -240,7 +240,10 @@ Die DEV-Rauchtests (`s1_4_…`, `s2_2a_3_…`, `s2_2a_4c_…`, `s3_2b_…`) brau
 - [ ] **PROD-Replay** nach Abschnitt 0.11 (eigenes Runbook; DEV-Skript unverändert).
 - [ ] PROD-Gegenstück zu `provider_jobs_secret.mjs` / `email_dispatch_secret.mjs` (Pause/Resume).
 - [ ] Stripe-Ziele 0.6 anlegen, Live-Secrets 0.3, Cloudflare-Variablen, Payment-Method-Domain je
-      Studio (`register_payment_domain` PROD-Analog).
+      Studio (`register_payment_domain` PROD-Analog). Ab K1-2 registriert die App die Domain
+      beim Onboarding-Refresh, beim Einschalten der Online-Zahlung und best-effort bei jedem
+      Checkout-prepare (`{slug}.{APP_BASE_DOMAIN}` am Connected Account, Direct Charges).
+      Studios, die vor dem Functions-Deploy schon aktiv waren, einmalig nachziehen.
 - [ ] Erstes Studio einzeln einschalten, kleine echte Zahlung, Erstattung, Hauptbuch prüfen.
 
 ### 0.11 PROD-Replay — Runbook (Webhook-Ereignisse mit finalem Fehler)
@@ -373,7 +376,7 @@ Detail je Story. Vollständige Reihenfolge: Abschnitt 0.1. PROD hat zuletzt `202
 
 **Release-Hinweis 2.2a-1:** Keine Edge Function / kein Stripe-Aufruf in dieser Migration. `dispatch-emails` kennt die neuen `kind`-Werte noch nicht (S6d-Anpassung in 2.2a-4). CSV-Export-Bezeichnung `psp_clearing` = „Verrechnung Stripe“ liegt im Frontend (`ledgerExport.ts`).
 
-**Release-Hinweis 2.2a-3:** Edge Function `payments-checkout` deployen (`verify_jwt = false`). Danach `payments-onboarding` erneut deployen (Domain-Registrierung beim `refresh`). Für jedes Studio mit aktivem Stripe-Konto die Payment-Method-Domain registrieren (`{slug}.{APP_BASE_DOMAIN}`; DEV-Skript `scripts/dev/register_payment_domain.mjs`). `APP_BASE_DOMAIN` muss als Function-Secret gesetzt sein (`omlify-dev.de` / `omlify.de`).
+**Release-Hinweis 2.2a-3:** Edge Function `payments-checkout` deployen (`verify_jwt = false`). Danach `payments-onboarding` erneut deployen (Domain-Registrierung beim `refresh`). Für jedes Studio mit aktivem Stripe-Konto die Payment-Method-Domain registrieren (`{slug}.{APP_BASE_DOMAIN}`; DEV-Skript `scripts/dev/register_payment_domain.mjs`). `APP_BASE_DOMAIN` muss als Function-Secret gesetzt sein (`omlify-dev.de` / `omlify.de`). **K1-2:** `payments-checkout` registriert die Domain zusätzlich best-effort bei `prepare`; der Schalter „Online-Zahlung“ ruft `refresh` auf. PROD: Functions deployen, bereits aktive Studios einmalig nachziehen (siehe 0.10).
 
 **Release-Hinweis 2.1b-a:** Zwei Migrationen in dieser Reihenfolge. Neuer Cron-Job `yogaflow_expire_payment_holds` jede Minute — Extension `pg_cron` nicht neu anlegen (bereits A6-3). Client-Typen für `pending_payment` gehören in denselben Release; UI-Zweige folgen in 2.1b-b. `succeeded` und Hauptbuch-`card` bleiben 2.2a.
 

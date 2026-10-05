@@ -147,14 +147,23 @@ export function usePaymentSetup(enabled: boolean) {
         const code = typeof row.error === 'string' ? row.error : null;
         return { ok: false, code, message: mapSwitchError(code, copy.genericError) };
       }
-      await reload();
+      // C11: Einschalten registriert die Studio-Domain am Connected Account (refresh).
+      if (enabledOnline) {
+        try {
+          apply(await refreshOnboardingStatus());
+        } catch {
+          await reload();
+        }
+      } else {
+        await reload();
+      }
       return { ok: true };
     } catch {
       return { ok: false, code: null, message: copy.genericError };
     } finally {
       setBusy(false);
     }
-  }, [reload]);
+  }, [apply, reload]);
 
   const setOnsiteAllowed = useCallback(async (allow: boolean): Promise<SwitchResult> => {
     setBusy(true);

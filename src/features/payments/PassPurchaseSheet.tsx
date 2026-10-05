@@ -128,6 +128,37 @@ const PassPurchaseSheet: React.FC<Props> = ({
       checkout.code === 'ALREADY_COMPLETED' ||
       checkout.code === 'RESTORED');
 
+  const showPayForm =
+    started &&
+    Boolean(checkout.prepare) &&
+    Boolean(config.publishableKey) &&
+    (checkout.phase === 'ready' ||
+      checkout.phase === 'submitting' ||
+      checkout.phase === 'action' ||
+      checkout.phase === 'retrying' ||
+      (checkout.phase === 'error' &&
+        (checkout.code === 'CARD_DECLINED' ||
+          checkout.code === 'AUTHENTICATION_REQUIRED' ||
+          checkout.code === 'PROVIDER_UNAVAILABLE')));
+
+  const consentBlock = (
+    <label className="mb-3 flex min-h-11 cursor-pointer items-start gap-3">
+      <input
+        type="checkbox"
+        className="mt-1 h-4 w-4 rounded border-border text-brand focus:ring-brand"
+        checked={consent}
+        disabled={started}
+        onChange={(ev) => {
+          const on = ev.target.checked;
+          setConsent(on);
+          if (on && hashes && !started) void startPrepare();
+        }}
+        data-testid="pass-immediate-consent"
+      />
+      <span className="text-[14px] leading-snug text-text">{PASS_IMMEDIATE_USE_TEXT}</span>
+    </label>
+  );
+
   const handleClose = () => {
     if (!canClose) return;
     if (successDone) onFinished();
@@ -182,42 +213,30 @@ const PassPurchaseSheet: React.FC<Props> = ({
           ) : (
             <>
               <p className="text-[15px] text-text">{summary}</p>
-              <p className="text-[22px] font-medium tabular-nums text-text">{priceLine}</p>
-              <p className="text-[13px] text-textMuted">
-                Du hast ein 14-tägiges Widerrufsrecht.{' '}
-                <button
-                  type="button"
-                  className="font-medium text-brand underline"
-                  onClick={() => setBelehrungOpen(true)}
-                >
-                  Widerrufsbelehrung ›
-                </button>
-              </p>
-              <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-md border border-border px-3 py-3">
-                <input
-                  type="checkbox"
-                  className="mt-1 h-4 w-4 rounded border-border text-brand focus:ring-brand"
-                  checked={consent}
-                  disabled={started}
-                  onChange={(ev) => {
-                    const on = ev.target.checked;
-                    setConsent(on);
-                    if (on && hashes && !started) void startPrepare();
-                  }}
-                  data-testid="pass-immediate-consent"
-                />
-                <span className="text-[14px] leading-snug text-text">
-                  {PASS_IMMEDIATE_USE_TEXT}
-                </span>
-              </label>
-
-              {!consent ? (
-                <p className="text-[13px] text-textMuted">
-                  Bitte bestätige die Zustimmung, um zahlungspflichtig zu kaufen.
-                </p>
-              ) : null}
+              {showPayForm ? null : (
+                <>
+                  <p className="text-[22px] font-medium tabular-nums text-text">{priceLine}</p>
+                  <p className="text-[13px] text-textMuted">
+                    Du hast ein 14-tägiges Widerrufsrecht.{' '}
+                    <button
+                      type="button"
+                      className="font-medium text-brand underline"
+                      onClick={() => setBelehrungOpen(true)}
+                    >
+                      Widerrufsbelehrung ›
+                    </button>
+                  </p>
+                  {consentBlock}
+                  {!consent ? (
+                    <p className="text-[13px] text-textMuted">
+                      Bitte bestätige die Zustimmung, um zahlungspflichtig zu kaufen.
+                    </p>
+                  ) : null}
+                </>
+              )}
 
               {started &&
+              !showPayForm &&
               (checkout.phase === 'preparing' || checkout.phase === 'idle') ? (
                 <PaymentFormPlaceholder label="Wird vorbereitet …" />
               ) : null}
@@ -235,17 +254,7 @@ const PassPurchaseSheet: React.FC<Props> = ({
                 </p>
               ) : null}
 
-              {started &&
-              checkout.prepare &&
-              config.publishableKey &&
-              (checkout.phase === 'ready' ||
-                checkout.phase === 'submitting' ||
-                checkout.phase === 'action' ||
-                checkout.phase === 'retrying' ||
-                (checkout.phase === 'error' &&
-                  (checkout.code === 'CARD_DECLINED' ||
-                    checkout.code === 'AUTHENTICATION_REQUIRED' ||
-                    checkout.code === 'PROVIDER_UNAVAILABLE'))) ? (
+              {showPayForm && checkout.prepare && config.publishableKey ? (
                 <StripePaymentForm
                   publishableKey={config.publishableKey}
                   amountCents={checkout.prepare.amountCents}
@@ -260,6 +269,24 @@ const PassPurchaseSheet: React.FC<Props> = ({
                   holdExpired={false}
                   studioName={studioName}
                   bookingSummary={null}
+                  aboveSubmit={
+                    <>
+                      <p className="mb-1 text-[15px] font-medium tabular-nums text-text">
+                        {priceLine}
+                      </p>
+                      <p className="mb-2 text-[13px] text-textMuted">
+                        Du hast ein 14-tägiges Widerrufsrecht.{' '}
+                        <button
+                          type="button"
+                          className="font-medium text-brand underline"
+                          onClick={() => setBelehrungOpen(true)}
+                        >
+                          Widerrufsbelehrung ›
+                        </button>
+                      </p>
+                      {consentBlock}
+                    </>
+                  }
                   onSubmitToken={async (tokenId: string) => {
                     if (!checkout.prepare || !config.publishableKey) return;
                     if (checkout.phase !== 'ready' && checkout.phase !== 'error') return;

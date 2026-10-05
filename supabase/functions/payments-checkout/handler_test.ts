@@ -2,6 +2,7 @@
  * Deno-Tests für payments-checkout (2.2a-3). Fake-Adapter + DB-Stub, kein Netz.
  */
 import { FakePaymentProvider } from "../_shared/payments/fake/adapter.ts";
+import { ProviderError } from "../_shared/payments/port.ts";
 import { assert, assertEquals } from "../_shared/payments/port_contract.ts";
 import {
   buildPaymentReturnUrl,
@@ -209,6 +210,13 @@ class SpyProvider extends FakePaymentProvider {
     this.sequence.push("retrievePayment");
     return super.retrievePayment(accountRef, ref);
   }
+
+  domainFails = false;
+
+  override registerPaymentDomain(accountRef: string, domain: string) {
+    if (this.domainFails) return Promise.reject(new ProviderError("PROVIDER_UNAVAILABLE"));
+    return super.registerPaymentDomain(accountRef, domain);
+  }
 }
 
 function setup() {
@@ -271,6 +279,20 @@ Deno.test("Checkout prepare: neuer Versuch → create + attach", async () => {
   assertEquals(s.store.attachCalls.length, 1);
   assertEquals(s.store.attachCalls[0].attemptId, ATTEMPT);
   assert(s.store.attachCalls[0].providerRef.startsWith("pi_"), "pi_");
+  const domains = s.provider.paymentCalls
+    .filter((c) => c.method === "registerPaymentDomain")
+    .map((c) => ("domain" in c ? c.domain : null));
+  assertEquals(domains, ["demoalpha.omlify-dev.de"]);
+  assert(!s.logLines.join("\n").includes("acct_"), "kein acct_");
+});
+
+Deno.test("Checkout prepare: Domain-Fehler bricht die Zahlung nicht ab", async () => {
+  const s = setup();
+  s.provider.domainFails = true;
+  const res = await handleCheckout(post({ action: "prepare", registration_id: REG }), CALLER, s.deps);
+  assertEquals(res.status, 200);
+  assertEquals((await readJson(res)).attempt_id, ATTEMPT);
+  assert(s.logLines.join("\n").includes("DOMAIN_FAILED"), "Domain-Fehler geloggt");
 });
 
 Deno.test("Checkout prepare: zweiter Aufruf → kein zweiter PaymentIntent", async () => {

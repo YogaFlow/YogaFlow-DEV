@@ -12,7 +12,11 @@ import {
   sheetRemainsOpenAfterRegistrationChange,
   shouldRefreshRegistrationsOnSheetClose,
 } from '../../src/lib/checkoutPhaseMachine.ts';
-import { STRIPE_PAYMENT_ELEMENT_WALLETS } from '../../src/features/payments/stripePaymentWallets.ts';
+import {
+  STRIPE_PAYMENT_ELEMENT_OPTIONS,
+  STRIPE_PAYMENT_ELEMENT_WALLETS,
+  stripePaymentElementsOptions,
+} from '../../src/features/payments/stripePaymentWallets.ts';
 import { resolvePaymentsClientConfig } from '../../src/lib/paymentsClientConfig.ts';
 import {
   PAYMENT_AUTH_FAILED,
@@ -192,6 +196,28 @@ test('Q2: Link aus, Apple Pay und Google Pay bleiben auto', () => {
   assert.equal(STRIPE_PAYMENT_ELEMENT_WALLETS.link, 'never');
   assert.equal(STRIPE_PAYMENT_ELEMENT_WALLETS.applePay, 'auto');
   assert.equal(STRIPE_PAYMENT_ELEMENT_WALLETS.googlePay, 'auto');
+});
+
+test('K1: Kurs- und Karten-Checkout teilen Elements-Init', () => {
+  const course = stripePaymentElementsOptions({ amountCents: 1800, currency: 'EUR' });
+  const pass = stripePaymentElementsOptions({ amountCents: 12000, currency: 'eur' });
+  assert.equal(course.mode, 'payment');
+  assert.equal(pass.mode, 'payment');
+  assert.deepEqual(course.paymentMethodTypes, ['card']);
+  assert.deepEqual(pass.paymentMethodTypes, ['card']);
+  assert.equal(course.currency, 'eur');
+  assert.equal(pass.currency, 'eur');
+  assert.equal(course.amount, 1800);
+  assert.equal(pass.amount, 12000);
+  assert.equal(course.locale, 'de');
+  assert.equal(STRIPE_PAYMENT_ELEMENT_OPTIONS.wallets, STRIPE_PAYMENT_ELEMENT_WALLETS);
+  assert.equal(STRIPE_PAYMENT_ELEMENT_OPTIONS.layout.type, 'accordion');
+  assert.equal(STRIPE_PAYMENT_ELEMENT_OPTIONS.layout.visibleAccordionItemsCount, 0);
+  assert.deepEqual(STRIPE_PAYMENT_ELEMENT_OPTIONS.paymentMethodOrder, [
+    'apple_pay',
+    'google_pay',
+    'card',
+  ]);
 });
 
 test('L1: Endzustand bleibt bei Statuswechsel sichtbar', () => {

@@ -3,6 +3,7 @@
  * Auth und Tenant kommen von außen (initService); die Rolle prüft
  * get_owner_payment_context über den Service-Store. Keine acct_… in Antworten.
  */
+import { studioPaymentDomain } from "../_shared/payments/paymentDomain.ts";
 import {
   connectedAccountIdempotencyKey,
   type PaymentProvider,
@@ -252,8 +253,8 @@ async function handleRefresh(
   }
 
   // F7 / C11: Domain beim aktiven Studio-Konto registrieren (idempotent, best effort).
-  if (refreshedState?.status === "active" && refreshedState.ref && appBaseDomain.trim()) {
-    const domain = `${caller.tenantSlug}.${appBaseDomain.trim().toLowerCase()}`;
+  const domain = studioPaymentDomain(caller.tenantSlug, appBaseDomain);
+  if (refreshedState?.status === "active" && refreshedState.ref && domain) {
     try {
       const reg = await provider.registerPaymentDomain(refreshedState.ref, domain);
       log.info("payments-onboarding", {

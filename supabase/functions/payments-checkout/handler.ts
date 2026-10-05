@@ -2,6 +2,7 @@
  * payments-checkout (Geldkette 2.2a-3 / K1). Reine Logik, Abhängigkeiten injiziert.
  * Auth und Tenant kommen von außen (initService). Stripe nur über den Port.
  */
+import { studioPaymentDomain } from "../_shared/payments/paymentDomain.ts";
 import {
   type PaymentProvider,
   ProviderError,
@@ -169,6 +170,26 @@ function respondCode(
     mapped,
     ERROR_MESSAGES[mapped] ?? ERROR_MESSAGES.INVALID_REQUEST,
   );
+}
+
+async function registerCheckoutPaymentDomain(
+  deps: CheckoutDeps,
+  accountRef: string,
+): Promise<void> {
+  const domain = studioPaymentDomain(deps.tenantSlug, deps.appBaseDomain);
+  if (!domain || !accountRef) return;
+  try {
+    const reg = await deps.provider.registerPaymentDomain(accountRef, domain);
+    deps.log.info("payments-checkout", {
+      action: "prepare",
+      result: reg.status === "already_registered" ? "DOMAIN_ALREADY" : "DOMAIN_REGISTERED",
+    });
+  } catch {
+    deps.log.warn("payments-checkout", {
+      action: "prepare",
+      result: "DOMAIN_FAILED",
+    });
+  }
 }
 
 function mapProviderHttp(err: unknown, deps: CheckoutDeps): Response {
@@ -361,6 +382,10 @@ async function handlePrepare(
     attempt_id: prepared.attemptId,
     ref: providerRef,
   });
+
+  // C11: Domain am Connected Account, bevor das Payment Element Apple Pay zeichnet.
+  // Fehler blockieren die Kartenzahlung nicht.
+  await registerCheckoutPaymentDomain(deps, prepared.accountRef);
 
   return jsonOk({
     attempt_id: prepared.attemptId,
