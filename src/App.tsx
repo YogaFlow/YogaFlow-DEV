@@ -377,6 +377,7 @@ function App() {
               <Route path="users" element={<Users />} />
               <Route path="settings" element={<Settings />} />
               <Route path="settings/:category" element={<Settings />} />
+              <Route path="settings/:category/:legalDoc" element={<Settings />} />
               <Route path="messages" element={<Messages />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Route>

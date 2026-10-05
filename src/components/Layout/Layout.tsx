@@ -3,7 +3,6 @@ import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import AvvOwnerBanner from '../AvvOwnerBanner';
-import StudioFooter from './StudioFooter';
 
 const Layout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -57,7 +56,6 @@ const Layout: React.FC = () => {
             {!isMessagesPage ? <AvvOwnerBanner /> : null}
             <Outlet />
           </div>
-          {!isMessagesPage ? <StudioFooter /> : null}
         </main>
       </div>
     </div>

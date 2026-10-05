@@ -39,7 +39,14 @@ const FIELD_LABELS: Record<string, string> = {
 
 type FieldKey = keyof Omit<StudioLegalProfile, 'present' | 'country' | 'legal_form' | 'imprint_complete' | 'extra_rules'>;
 
-export default function LegalProfileSection({ isOwner }: { isOwner: boolean }) {
+export default function LegalProfileSection({
+  isOwner,
+  collapsiblePreview = false,
+}: {
+  isOwner: boolean;
+  /** RT-1 Nachtrag: Vorschau als einklappbare Karte „So sieht es aus“ (mobil zu). */
+  collapsiblePreview?: boolean;
+}) {
   const { tenant } = useTenant();
   const [form, setForm] = useState<StudioLegalProfile>(emptyLegalProfile);
   const [loading, setLoading] = useState(true);
@@ -48,6 +55,11 @@ export default function LegalProfileSection({ isOwner }: { isOwner: boolean }) {
   const [savedNote, setSavedNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [previewHtml, setPreviewHtml] = useState('');
+  const [previewOpen, setPreviewOpen] = useState(() => {
+    if (!collapsiblePreview) return true;
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(min-width: 1024px)').matches;
+  });
 
   useEffect(() => {
     if (!isOwner) {
@@ -331,14 +343,43 @@ export default function LegalProfileSection({ isOwner }: { isOwner: boolean }) {
           </form>
 
           <div className="mt-6 lg:mt-0">
-            <h3 className="text-[15px] font-medium text-text">Vorschau Impressum</h3>
-            <div
-              className="legal-sheet-body mt-3 max-h-[28rem] overflow-y-auto rounded-md border border-border bg-sand px-4 py-3 text-[14px] leading-6 text-text [&_h1]:mb-2 [&_h1]:text-[18px] [&_h1]:font-medium [&_h2]:mb-2 [&_h2]:mt-4 [&_h2]:text-[15px] [&_h2]:font-medium [&_p]:mb-2 [&_ul]:mb-2 [&_ul]:list-disc [&_ul]:pl-5"
-              data-testid="imprint-preview"
-              dangerouslySetInnerHTML={{
-                __html: previewHtml || '<p class="text-textMuted">Fülle die Pflichtfelder für die Vorschau.</p>',
-              }}
-            />
+            {collapsiblePreview ? (
+              <div className="overflow-hidden rounded-md border border-border">
+                <button
+                  type="button"
+                  onClick={() => setPreviewOpen((v) => !v)}
+                  className="flex min-h-14 w-full items-center justify-between gap-3 px-3.5 text-left"
+                  aria-expanded={previewOpen}
+                >
+                  <span className="text-[15px] font-medium text-text">So sieht es aus</span>
+                  <span className="text-[13px] text-textMuted">{previewOpen ? '−' : '+'}</span>
+                </button>
+                {previewOpen ? (
+                  <div
+                    className="legal-sheet-body border-t border-border bg-sand px-4 py-3 text-[14px] leading-6 text-text [&_h1]:mb-2 [&_h1]:text-[18px] [&_h1]:font-medium [&_h2]:mb-2 [&_h2]:mt-4 [&_h2]:text-[15px] [&_h2]:font-medium [&_p]:mb-2 [&_ul]:mb-2 [&_ul]:list-disc [&_ul]:pl-5"
+                    data-testid="imprint-preview"
+                    dangerouslySetInnerHTML={{
+                      __html:
+                        previewHtml ||
+                        '<p class="text-textMuted">Fülle die Pflichtfelder für die Vorschau.</p>',
+                    }}
+                  />
+                ) : null}
+              </div>
+            ) : (
+              <>
+                <h3 className="text-[15px] font-medium text-text">Vorschau Impressum</h3>
+                <div
+                  className="legal-sheet-body mt-3 max-h-[28rem] overflow-y-auto rounded-md border border-border bg-sand px-4 py-3 text-[14px] leading-6 text-text [&_h1]:mb-2 [&_h1]:text-[18px] [&_h1]:font-medium [&_h2]:mb-2 [&_h2]:mt-4 [&_h2]:text-[15px] [&_h2]:font-medium [&_p]:mb-2 [&_ul]:mb-2 [&_ul]:list-disc [&_ul]:pl-5"
+                  data-testid="imprint-preview"
+                  dangerouslySetInnerHTML={{
+                    __html:
+                      previewHtml ||
+                      '<p class="text-textMuted">Fülle die Pflichtfelder für die Vorschau.</p>',
+                  }}
+                />
+              </>
+            )}
           </div>
         </div>
       ) : null}

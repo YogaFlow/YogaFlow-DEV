@@ -8,7 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTenant, buildApexHref, withDevTenant } from '../context/TenantContext';
 import { getStudioLogoUrl } from '../lib/studioBranding';
 import JoinStudio from './JoinStudio';
-import StudioFooter from '../components/Layout/StudioFooter';
+import StudioPublicLegalLine from '../components/Layout/StudioPublicLegalLine';
 
 type AccessNotice = 'wrong_studio' | 'profile_missing' | 'email_not_confirmed' | null;
 
@@ -373,7 +373,7 @@ const AuthPage: React.FC = () => {
         </div>
 
         <div className="mt-8">
-          <StudioFooter showWiderruf={false} />
+          <StudioPublicLegalLine showWiderruf={false} />
           <p className="mt-3 text-center text-sm text-textMuted">
             © {new Date().getFullYear()} Omlify · Kursverwaltung für Yogastudios
           </p>

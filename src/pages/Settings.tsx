@@ -17,10 +17,7 @@ import { withDevTenant } from '../context/TenantContext';
 import BookingSettingsSection from '../components/settings/BookingSettingsSection';
 import PassProductsSection from '../components/settings/PassProductsSection';
 import StudioDesignSection from '../components/settings/StudioDesignSection';
-import LegalProfileSection from '../components/settings/LegalProfileSection';
-import StudioLegalTextsSection from '../components/settings/StudioLegalTextsSection';
-import AvvAcceptanceSection from '../components/settings/AvvAcceptanceSection';
-import { loadStudioLegalStatus } from '../lib/studioLegal';
+import StudioLegalHub, { type LegalDocSlug } from '../components/settings/StudioLegalHub';
 import TaxSettingsSection from '../components/settings/TaxSettingsSection';
 import TeamSettingsSection from '../components/settings/TeamSettingsSection';
 import { fetchStaffCount } from '../lib/settingsStaff';
@@ -30,6 +27,7 @@ import { listPassProducts } from '../lib/passProducts';
 import { paymentsClientConfig } from '../lib/paymentsClientConfig';
 import { supabase } from '../lib/supabase';
 import { asCivilIsoDate } from '../lib/courseDateTime';
+import { loadStudioLegalStatus } from '../lib/studioLegal';
 import {
   bookingsStatusLine,
   cardsStatusLine,
@@ -145,9 +143,11 @@ async function loadOverview(input: {
 function CategoryContent({
   category,
   isOwner,
+  legalDoc,
 }: {
   category: SettingsCategoryId;
   isOwner: boolean;
+  legalDoc: LegalDocSlug | null;
 }) {
   if (category === 'studio') {
     return (
@@ -184,13 +184,7 @@ function CategoryContent({
   }
   if (category === 'karten') return <PassProductsSection />;
   if (category === 'rechtliches') {
-    return (
-      <div className="space-y-6">
-        <LegalProfileSection isOwner={isOwner} />
-        <StudioLegalTextsSection canManage />
-        <AvvAcceptanceSection isOwner={isOwner} />
-      </div>
-    );
+    return <StudioLegalHub canManage isOwner={isOwner} doc={legalDoc} />;
   }
   return <TeamSettingsSection />;
 }
@@ -259,9 +253,13 @@ function OverviewList({
 export default function Settings() {
   const { isAdmin, isOwner } = useAuth();
   const { tenant } = useTenant();
-  const { category: rawCategory } = useParams<{ category?: string }>();
+  const { category: rawCategory, legalDoc: rawLegalDoc } = useParams<{
+    category?: string;
+    legalDoc?: string;
+  }>();
   const location = useLocation();
   const category = parseSettingsCategory(rawCategory);
+  const legalDoc = parseLegalDoc(rawLegalDoc);
   const [overview, setOverview] = useState<OverviewData>({ lines: EMPTY_LINES, attention: [] });
 
   useEffect(() => {
@@ -291,6 +289,10 @@ export default function Settings() {
     return <Navigate to={withDevTenant('/settings')} replace />;
   }
 
+  if (category === 'rechtliches' && rawLegalDoc && !legalDoc) {
+    return <Navigate to={withDevTenant('/settings/rechtliches')} replace />;
+  }
+
   if (!rawCategory && (location.hash === '#steuern' || location.hash === '#online-zahlung')) {
     return <Navigate to={withDevTenant(`/settings/zahlungen${location.hash}`)} replace />;
   }
@@ -303,26 +305,42 @@ export default function Settings() {
     <OverviewList lines={overview.lines} attention={overview.attention} isOwner={isOwner} />
   );
 
+  const isLegalHub = category === 'rechtliches';
+  const hideSettingsListOnMobile = Boolean(category);
+  const hideSettingsListOnDesktopLegal = isLegalHub;
+
   return (
     <div className="lg:flex lg:items-start lg:gap-8">
-      <aside className={`${category ? 'hidden lg:block' : 'block'} lg:sticky lg:top-0 lg:w-80 lg:shrink-0`}>
+      <aside
+        className={`${hideSettingsListOnMobile ? 'hidden' : 'block'} ${
+          hideSettingsListOnDesktopLegal ? 'lg:hidden' : 'lg:block'
+        } lg:sticky lg:top-0 lg:w-80 lg:shrink-0`}
+      >
         <h1 className="mb-4 text-[22px] font-medium text-text lg:sr-only">Einstellungen</h1>
         {list}
       </aside>
       {category ? (
         <div className="min-w-0 flex-1">
-          <Link
-            to="/settings"
-            data-testid="settings-back"
-            className="mb-4 inline-flex min-h-11 items-center gap-2 text-[15px] font-medium text-text lg:hidden"
-          >
-            <ArrowLeft className="h-5 w-5" aria-hidden />
-            Einstellungen
-          </Link>
-          <h1 className="mb-4 hidden text-[22px] font-medium text-text lg:block">
-            {settingsCategoryTitle(category)}
-          </h1>
-          <CategoryContent category={category} isOwner={isOwner} />
+          {!isLegalHub || !legalDoc ? (
+            <Link
+              to={isLegalHub ? '/settings' : '/settings'}
+              data-testid="settings-back"
+              className={`mb-4 inline-flex min-h-11 items-center gap-2 text-[15px] font-medium text-text ${
+                isLegalHub ? '' : 'lg:hidden'
+              }`}
+            >
+              <ArrowLeft className="h-5 w-5" aria-hidden />
+              Einstellungen
+            </Link>
+          ) : null}
+          {!isLegalHub ? (
+            <h1 className="mb-4 hidden text-[22px] font-medium text-text lg:block">
+              {settingsCategoryTitle(category)}
+            </h1>
+          ) : !legalDoc ? (
+            <h1 className="mb-4 text-[22px] font-medium text-text">Rechtliches</h1>
+          ) : null}
+          <CategoryContent category={category} isOwner={isOwner} legalDoc={legalDoc} />
         </div>
       ) : (
         <div className="hidden min-w-0 flex-1 lg:block">
@@ -331,4 +349,9 @@ export default function Settings() {
       )}
     </div>
   );
+}
+
+function parseLegalDoc(raw: string | null | undefined): LegalDocSlug | null {
+  if (raw === 'impressum' || raw === 'agb' || raw === 'datenschutz') return raw;
+  return null;
 }

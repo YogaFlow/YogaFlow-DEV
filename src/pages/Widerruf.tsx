@@ -8,6 +8,7 @@ import {
   passWithdrawalUpcomingNotice,
 } from '../lib/passOnlineTexts';
 import { supabase } from '../lib/supabase';
+import StudioPublicLegalLine from '../components/Layout/StudioPublicLegalLine';
 
 type LookupHit = {
   found?: boolean;
@@ -206,6 +207,7 @@ const Widerruf: React.FC = () => {
           ) : null}
         </>
       )}
+      <StudioPublicLegalLine className="pt-4" />
     </div>
   );
 };

@@ -7,7 +7,7 @@ import {
   type PublicStudioLegal,
 } from '../lib/studioLegal';
 import type { StudioLegalKind } from '../lib/studioLegalRender';
-import StudioFooter from '../components/Layout/StudioFooter';
+import StudioPublicLegalLine from '../components/Layout/StudioPublicLegalLine';
 
 const KIND_BY_PATH: Record<string, StudioLegalKind> = {
   '/impressum': 'imprint',
@@ -114,7 +114,9 @@ export default function StudioLegalPage() {
           <p className="mt-6 text-[15px] text-textMuted">Dieser Text ist noch nicht freigegeben.</p>
         ) : null}
       </main>
-      <StudioFooter showWiderruf={false} />
+      <div className="px-4 py-6 sm:px-6">
+        <StudioPublicLegalLine showWiderruf={false} />
+      </div>
     </div>
   );
 }

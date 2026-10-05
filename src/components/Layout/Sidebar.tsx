@@ -23,6 +23,7 @@ import { useOpenPaymentsCount } from '../../lib/useOpenPaymentsCount';
 import { openPaymentsBadge } from '../../lib/paymentsTabs';
 import { canSelfEnrollInCourses } from '../../lib/userRoles';
 import { useMyPassesNav } from '../../lib/useMyPassesNav';
+import StudioAboutLegalMenu from '../legal/StudioAboutLegalMenu';
 
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
   owner:   { label: 'Inhaberin/Inhaber', color: 'bg-brand text-onBrand' },
@@ -185,7 +186,8 @@ const Sidebar: React.FC = () => {
         </ul>
       </nav>
 
-      <div className="p-4 border-t border-border">
+      <div className="p-4 border-t border-border space-y-1">
+        <StudioAboutLegalMenu variant="sidebar" />
         <button
           onClick={signOut}
           className="flex items-center w-full px-4 py-3 text-textMuted hover:bg-surfaceSunken rounded-sm transition-colors"

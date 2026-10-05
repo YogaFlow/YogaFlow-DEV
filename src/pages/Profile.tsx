@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { User, Mail, Phone, MapPin, Home, Save, Edit, Lock, Eye, EyeOff } from 'lucide-react';
+import StudioAboutLegalMenu from '../components/legal/StudioAboutLegalMenu';
 
 const Profile: React.FC = () => {
   const { userProfile, changePassword } = useAuth();
@@ -562,6 +563,8 @@ const Profile: React.FC = () => {
           </form>
         </div>
       )}
+
+      <StudioAboutLegalMenu className="mt-8" />
     </div>
   );
 };
