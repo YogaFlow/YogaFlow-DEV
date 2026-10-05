@@ -1,6 +1,6 @@
 # Bericht RT-1 — Studio-Rechtstexte
 
-Status: **in Arbeit** (A–D/F Schema+UI; PDF/E2E/Demodata offen).  
+Status: **angehalten — Haltestelle 5 (Klicktest)**.  
 Stand 05.10.2026 · Branch `Julius` · HEAD siehe `git log -1`  
 Vorgabe: [docs/stories/rt1_studio_rechtstexte.md](../stories/rt1_studio_rechtstexte.md) · [Freigabe Teil 0](../stories/rt1_freigabe_teil0.md) · [Freigabe 1b](../stories/rt1_freigabe_1b.md) · [Entscheidung 17](../entscheidungen/17_Studio_Rechtstexte.md)
 
@@ -211,17 +211,41 @@ Freigabe: [rt1_freigabe_1b.md](../stories/rt1_freigabe_1b.md). Software bleibt; 
 | A Schema/RPC | Migration `20261005120000_rt1_studio_legal.sql` auf DEV; Smoke `rt1_studio_legal.mjs` grün |
 | A/C UI | Einstellungen › Rechtliches (Impressum+AGB/Datenschutz), Fuß, `/impressum` `/agb` `/datenschutz`, Checkout/Register-Links |
 | F Sperre | `STUDIO_LEGAL_TEXTS_MISSING` in `online_method_block_reason` + Copy/Aufmerksamkeit |
-| B Auto-Fassung bei Settings-Änderung | nur manuell/publish; kein DB-Trigger für Stornofrist o. ä. |
-| D Fassungs-ID schreiben | Spalten da; Schreiben in register/checkout/pass RPCs **offen** |
-| E PDF | **offen** (Edge Function + Mail-Anhang) |
-| G Demodata | **offen** (demoalpha/demobeta) |
-| E2E e2eapp | **offen** |
-| check:ci | grün (lokal nach Apply) |
+| B Auto-Fassung bei Settings-Änderung | Client `resyncStudioLegalDocuments()` nach Buchungen/Zahlungen/Karten/Profil (kein SQL-Render) |
+| D Fassungs-ID schreiben | BEFORE INSERT Trigger → `terms_document_id` auf registrations / payment_attempts / passes |
+| E PDF | Migration `20261005130000` (+ `30100` Trigger-Fix); Edge `legal-pdf` + Noto Sans; Mail-Anhang bzw. TERMS_PDF_PENDING / Link+ops_alert |
+| G Demodata | `scripts/dev/demo_rt1_legal.mjs` (alpha ohne Freigabe, beta mit) |
+| E2E e2eapp | `e2e/rt1.spec.ts` (Fuß öffentlich, Freigabe) |
+| check:ci | nach Apply/Push |
 
 ### Migration / RPC (Kurz)
 
 - `tenant_legal_profiles`: `legal_form`, `representatives`, Register, `vat_id`, `economic_id`, `extra_rules`
 - `studio_legal_documents` append-only; `publish_studio_legal_document` / `release_studio_legal` / `get_studio_legal_status` / `get_public_studio_legal`
 - Vorlagen-Hashes in `legal_document_versions`: `studio_terms_tpl` / `studio_privacy_tpl` Version `2026-10-05`
-- `terms_document_id` auf `registrations`, `payment_attempts`, `passes` (noch ohne Schreibpfad)
+- `terms_document_id` via Trigger `set_terms_document_id_on_insert`
+- `studio_legal_pdf_jobs` + Bucket `studio-legal` + Cron `yogaflow_process_legal_pdf`
 - Bundled Templates: `src/generated/studioLegalTemplates.ts` via `scripts/generate_studio_legal_templates.mjs`
+- Font: `supabase/functions/_shared/fonts/NotoSans-Regular.ttf` (bei Fehlen Helvetica-Fallback, Umlaute eingeschränkt)
+
+### Hinweise Umsetzung PDF
+
+- Vault: `node scripts/dev/legal_pdf_secret.mjs` → `npm run secrets:dev` → Functions deployen
+- Auto-Fassung: Owner muss Rechtliches nicht öffnen, wenn Settings-Hooks greifen; sonst erneut freigeben/öffnen
+
+---
+
+## Haltestelle 5 — Klickliste (max. 10)
+
+Konten nur aus `supabase/.env.dev` / bekannte Demo-Logins — keine Passwörter hier.
+
+1. **demoalpha Owner** — Einstellungen › Rechtliches: Impressum „Aktuell“, AGB und Datenschutz „Freigeben“.
+2. **demoalpha Owner** — AGB prüfen und freigeben; danach Datenschutz freigeben → beide „Aktuell · Fassung …“.
+3. **demoalpha Owner** — Einstellungen › Zahlungen: Sperrgrund `STUDIO_LEGAL_TEXTS_MISSING` weg; Online einschaltbar (wenn sonst bereit).
+4. **demobeta** (öffentlich, ohne Login) — Fuß: Impressum / Datenschutz / AGB; `/agb` zeigt gerenderten Text mit Stand-Datum.
+5. **demobeta Teilnehmerin** — Kurs online buchen: Hinweiszeile mit Studio-AGB/Datenschutz (nicht Omlify); nach Zahlung Mail mit AGB-PDF-Anhang (oder kurz warten, dann Anhang).
+6. **demobeta Owner** — Stornofrist in Buchungen ändern → AGB-Seite zeigt neuen Stundenwert (neue Fassung); alte Buchung behält alte `terms_document_id` (DB/Belegpfad).
+7. **demoalpha Owner** — Kartenprodukt „online kaufbar“ umschalten → nach Reload Rechtliches: Fassung unverändert oder neu nur wenn Hash sich ändert.
+8. **e2eapp / lokal** — `npm run dev:e2e -- e2e/rt1.spec.ts` grün (Fuß + Freigabe).
+9. **demobeta** — Karte online kaufen: Bestätigungsmail mit AGB-PDF (+ Widerrufstext wie K1).
+10. **360/1280** — Screenshots optional: Rechtliches-Status, Freigabe-Dialog, AGB-Seite, Fuß, Checkout-Hinweis.
