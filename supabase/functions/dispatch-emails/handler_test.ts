@@ -308,6 +308,9 @@ Deno.test("18. payment_succeeded: gueltig gesendet; erstattet skipped", async ()
   assert(html.includes("Du bist dabei"), "Überschrift UX-2");
   assert(html.includes(amount) && html.includes("Yin"), "Betrag und Kurs");
   assert(html.includes("2026-00001"), "Belegnummer");
+  const ohneLink = html.replace(/<a\b[^>]*>[\s\S]*?<\/a>/gi, "");
+  assert(ohneLink.includes("Beleg 2026-00001"), "Belegnummer als Text");
+  assert(html.includes("Beleg ansehen"), "Link Beleg ansehen");
   assert(html.includes("In Kalender eintragen"), "ICS-Knopf");
   assert(html.includes(calendarUrl), "https Kalender-Link");
   assert(html.includes("Google Kalender"), "Google-Link");

@@ -9,6 +9,8 @@ import {
   type ManagedPass,
   type PassMovementView,
 } from '../../lib/passes';
+import ReceiptSeeLink from '../payments/ReceiptSeeLink';
+import { saleReceiptsByPayment } from '../../lib/receipts';
 import PassHistoryList from './PassHistoryList';
 
 const MyPassesSection: React.FC = () => {
@@ -16,6 +18,9 @@ const MyPassesSection: React.FC = () => {
   const [inactive, setInactive] = useState<ManagedPass[]>([]);
   const [historyByPass, setHistoryByPass] = useState<
     Record<string, PassHistoryEntry<PassMovementView>[]>
+  >({});
+  const [receiptByPayment, setReceiptByPayment] = useState<
+    Record<string, { id: string; number: string }>
   >({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -29,6 +34,11 @@ const MyPassesSection: React.FC = () => {
       setActive(data.active);
       setInactive(data.inactive);
       setHistoryByPass(data.historyByPass);
+      setReceiptByPayment(
+        await saleReceiptsByPayment(
+          [...data.active, ...data.inactive].map((pass) => pass.payment_id),
+        ),
+      );
     } catch (e) {
       console.error(e);
       setError('Karten konnten nicht geladen werden.');
@@ -97,6 +107,14 @@ const MyPassesSection: React.FC = () => {
                     läuft am {formatPassUntil(pass.valid_until)} ab
                   </p>
                 ) : null}
+                {receiptByPayment[pass.payment_id] ? (
+                  <div className="mt-2">
+                    <ReceiptSeeLink
+                      receiptId={receiptByPayment[pass.payment_id].id}
+                      number={receiptByPayment[pass.payment_id].number}
+                    />
+                  </div>
+                ) : null}
                 <PassHistoryList
                   entries={historyByPass[pass.id] ?? []}
                   studioView={false}
@@ -134,6 +152,14 @@ const MyPassesSection: React.FC = () => {
                     noch {pass.remaining} von {pass.units_total} · gültig bis{' '}
                     {formatPassUntil(pass.valid_until)}
                   </p>
+                  {receiptByPayment[pass.payment_id] ? (
+                    <div className="mt-2">
+                      <ReceiptSeeLink
+                        receiptId={receiptByPayment[pass.payment_id].id}
+                        number={receiptByPayment[pass.payment_id].number}
+                      />
+                    </div>
+                  ) : null}
                   <PassHistoryList
                     entries={historyByPass[pass.id] ?? []}
                     studioView={false}

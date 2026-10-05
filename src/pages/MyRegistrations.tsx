@@ -43,6 +43,7 @@ const MyRegistrations: React.FC = () => {
   const [ownPasses, setOwnPasses] = useState<MemberPassSummary[]>([]);
   const [refundStates, setRefundStates] = useState<Record<string, RegistrationRefundState>>({});
   const [receiptIds, setReceiptIds] = useState<Record<string, string>>({});
+  const [receiptNumbers, setReceiptNumbers] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [feedback, setFeedback] = useState<FeedbackDialogState | null>(null);
@@ -109,12 +110,17 @@ const MyRegistrations: React.FC = () => {
       );
       const receipts = await listReceiptsForPayments(Object.keys(paymentToReg));
       const nextReceipts: Record<string, string> = {};
+      const nextNumbers: Record<string, string> = {};
       for (const receipt of receipts) {
         if (receipt.kind !== 'receipt') continue;
         const registrationId = paymentToReg[receipt.payment_id];
-        if (registrationId) nextReceipts[registrationId] = receipt.id;
+        if (registrationId && !nextReceipts[registrationId]) {
+          nextReceipts[registrationId] = receipt.id;
+          nextNumbers[registrationId] = receipt.number;
+        }
       }
       setReceiptIds(nextReceipts);
+      setReceiptNumbers(nextNumbers);
 
       const visible = rows.filter((registration: Registration) => {
         if (
@@ -332,6 +338,7 @@ const MyRegistrations: React.FC = () => {
           registrations={registrations}
           refundStates={refundStates}
           receiptIds={receiptIds}
+          receiptNumbers={receiptNumbers}
           ownPasses={ownPasses}
           onCoverageChanged={() => void loadRegistrations()}
           onFeedback={(message, type) =>

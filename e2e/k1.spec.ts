@@ -304,6 +304,8 @@ test('K1 — kaufen, buchen, widerrufen, verlängern, >250', async ({ page }) =>
     await tile.getByRole('button', { name: 'Verlauf' }).click();
     await expect(tile.getByText(`E2E Verlängerung ${laufId}`)).toBeVisible();
     await expect(tile.getByText(/Verlängert bis /)).toBeVisible();
+    await expect(tile.getByTestId('receipt-link')).toHaveText('Beleg ansehen');
+    await expect(tile.getByTestId('receipt-number')).toHaveText(/^Beleg \d{4}-\d+$/);
 
     // (4) UI: >250 nicht online in Kauf-Liste; 10er schon
     const buyList = page.getByTestId('pass-buy-list');

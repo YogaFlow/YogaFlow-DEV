@@ -36,6 +36,27 @@ import { buildGoogleCalendarUrl } from "../_shared/google_calendar.ts";
 export const DISPATCH_LIMIT = 20;
 export const SECRET_HEADER = "X-Email-Dispatch-Secret";
 
+/** Nummer als eigener Text. Der Link trägt sie nicht allein. */
+export function receiptMentionHtml(
+  number: string,
+  link: string,
+  accent: string,
+  linkLabel = "Beleg ansehen",
+): string {
+  return [
+    `<p style="margin:0 0 4px 0;font-size:14px;color:#1F1B16;">Beleg ${escapeHtml(number)}</p>`,
+    `<p style="margin:0 0 16px 0;font-size:14px;">${textLinkHtml(link, linkLabel, accent)}</p>`,
+  ].join("");
+}
+
+export function receiptMentionText(
+  number: string,
+  link: string,
+  linkLabel = "Beleg ansehen",
+): string {
+  return `Beleg ${number}\n${linkLabel}: ${link}`;
+}
+
 export type DeliveryRow = {
   id: string;
   tenant_id: string;
@@ -325,7 +346,7 @@ export function buildPassPurchasedEmail(input: {
     `<p style="margin:0 0 12px 0;">${escapeHtml(unitsLabel)}${until ? ` · gültig bis ${escapeHtml(until)}` : ""}</p>`,
     `<p style="margin:0 0 12px 0;">${escapeHtml(price)}</p>`,
     input.receiptLink && input.receiptNumber
-      ? `<p style="margin:0 0 16px 0;">${textLinkHtml(`Beleg ${input.receiptNumber}`, input.receiptLink, accent)}</p>`
+      ? receiptMentionHtml(input.receiptNumber, input.receiptLink, accent)
       : "",
     primaryButtonHtml("Kurs buchen", input.coursesLink, accent),
   ].join("");
@@ -334,7 +355,7 @@ export function buildPassPurchasedEmail(input: {
     `${unitsLabel}${until ? ` · gültig bis ${until}` : ""}`,
     price,
     input.receiptLink && input.receiptNumber
-      ? `Beleg ${input.receiptNumber}: ${input.receiptLink}`
+      ? receiptMentionText(input.receiptNumber, input.receiptLink)
       : "",
     `Kurs buchen: ${input.coursesLink}`,
     `Widerruf: ${input.widerrufLink}`,
@@ -520,14 +541,23 @@ export function buildPassWithdrawalRefundedEmail(input: {
   const bodyHtml = [
     `<p style="margin:0 0 12px 0;">Deine ${escapeHtml(input.passName)} wurde entwertet. ${escapeHtml(formatEurCents(input.refundCents))} sind unterwegs.</p>`,
     input.receiptLink && input.receiptNumber
-      ? `<p style="margin:0;">${textLinkHtml(`Erstattungsbeleg ${input.receiptNumber}`, input.receiptLink, accent)}</p>`
+      ? receiptMentionHtml(
+        input.receiptNumber,
+        input.receiptLink,
+        accent,
+        "Erstattungsbeleg ansehen",
+      )
       : "",
   ].join("");
   const textBody = [
     title,
     `Deine ${input.passName} wurde entwertet.`,
     input.receiptLink && input.receiptNumber
-      ? `Erstattungsbeleg ${input.receiptNumber}: ${input.receiptLink}`
+      ? receiptMentionText(
+        input.receiptNumber,
+        input.receiptLink,
+        "Erstattungsbeleg ansehen",
+      )
       : "",
   ].filter(Boolean).join("\n");
   const { html, text } = renderEmailShell(
@@ -821,9 +851,7 @@ export function buildPaymentSucceededEmail(input: {
         <td style="padding:14px 16px;">
           <p style="margin:0 0 6px 0;font-size:15px;font-weight:600;color:#1F1B16;">${escapeHtml(paidBits)}</p>
           <p style="margin:0 0 8px 0;font-size:12px;color:#6F6558;">${escapeHtml(taxLineSmall(input.taxRegime ?? null, input.vatRateBp ?? null))}</p>
-          <p style="margin:0;font-size:14px;">
-            <a href="${escapeHtml(input.receiptLink)}" style="color:${accent};text-decoration:underline;">Beleg ${escapeHtml(input.receiptNumber)} ansehen →</a>
-          </p>
+          ${receiptMentionHtml(input.receiptNumber, input.receiptLink, accent)}
         </td>
       </tr>
     </table>
@@ -839,7 +867,7 @@ export function buildPaymentSucceededEmail(input: {
     `Zahlungsart Karte (online)${input.paidAtLabel ? `, ${input.paidAtLabel}` : ""}`,
     cancelLine(input.cancelDeadline),
     "Für Kurse mit festem Termin besteht kein Widerrufsrecht (§ 312g Abs. 2 Nr. 9 BGB).",
-    `Beleg ${input.receiptNumber}: ${input.receiptLink}`,
+    receiptMentionText(input.receiptNumber, input.receiptLink),
     `Buchung ansehen: ${input.link}`,
     input.calendarIcsUrl ? `Kalender: ${input.calendarIcsUrl}` : "",
     input.googleCalendarUrl ? `Google Kalender: ${input.googleCalendarUrl}` : "",
@@ -935,7 +963,12 @@ export function buildPaymentRefundedEmail(input: {
           ${reasonLine ? `<p style="margin:0 0 8px 0;font-size:14px;color:#1F1B16;">${escapeHtml(reasonLine)}</p>` : ""}
           <p style="margin:0 0 10px 0;font-size:13px;color:#6F6558;">Gutschrift je nach Bank in einigen Werktagen</p>
           ${input.receiptLink && input.receiptNumber
-            ? `<p style="margin:0;font-size:14px;"><a href="${escapeHtml(input.receiptLink)}" style="color:${accent};text-decoration:underline;">Erstattungsbeleg ${escapeHtml(input.receiptNumber)} ansehen →</a></p>`
+            ? receiptMentionHtml(
+              input.receiptNumber,
+              input.receiptLink,
+              accent,
+              "Erstattungsbeleg ansehen",
+            )
             : ""}
         </td>
       </tr>
@@ -950,7 +983,11 @@ export function buildPaymentRefundedEmail(input: {
     reasonLine ?? "",
     "Gutschrift je nach Bank in einigen Werktagen",
     input.receiptLink && input.receiptNumber
-      ? `Erstattungsbeleg ${input.receiptNumber}: ${input.receiptLink}`
+      ? receiptMentionText(
+        input.receiptNumber,
+        input.receiptLink,
+        "Erstattungsbeleg ansehen",
+      )
       : "",
   ].filter(Boolean).join("\n");
 

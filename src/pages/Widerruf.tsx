@@ -131,6 +131,9 @@ const Widerruf: React.FC = () => {
       <p className="text-sm text-textMuted">
         Gib Belegnummer und die E-Mail an, mit der du die Karte gekauft hast.
       </p>
+      <p className="text-sm text-textMuted">
+        Die Belegnummer findest du in deiner Bestätigungs-Mail oder unter Meine Karten.
+      </p>
 
       {done ? (
         <p className="rounded-md border border-border bg-surface px-4 py-3 text-[15px] text-text">

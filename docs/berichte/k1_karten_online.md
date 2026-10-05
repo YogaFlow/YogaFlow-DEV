@@ -367,3 +367,9 @@ Registrierung lief bisher nur beim Onboarding-`refresh` (Konto aktiv). Neu: Scha
 
 `pass_validity_changes` wird in „Verlauf“ mit den Bewegungen gemischt, neueste zuerst: „Verlängert bis … · Notiz · von …“ (Name über `staff_names`, sonst „Studio“). Unit `scripts/test/k1_pass_history.mjs`. E2E `e2e/k1.spec.ts`: nach `extend_pass` steht die Notiz im Verlauf (1 passed).
 
+### 3 — Belegnummer als Text
+
+Zahlungs-Mails (Buchung, Erstattung, Kartenkauf, Widerrufs-Erstattung) zeigen „Beleg 2026-00141“ als eigenen Absatz. Der Link heißt „Beleg ansehen“ bzw. „Erstattungsbeleg ansehen“ und trägt die Nummer nicht mehr allein. Meine Karten und Meine Anmeldungen: je Karte bzw. bezahlter Buchung „Beleg ansehen“ plus Nummer. `/widerruf`: „Die Belegnummer findest du in deiner Bestätigungs-Mail oder unter Meine Karten.“
+
+Die Beleg-Leseregel kannte nur Kursbuchungen. Kartenkäuferinnen sahen deshalb weder Nummer noch Seite. `get_receipt` und `receipts_select_own` lassen jetzt die Inhaberin der Karte lesen (Lehrende fremde Karten weiter nicht). Migration `20261005095000`.
+

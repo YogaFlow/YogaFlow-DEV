@@ -5,6 +5,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import PassHistoryList from '../components/passes/PassHistoryList';
+import ReceiptSeeLink from '../components/payments/ReceiptSeeLink';
 import PassPurchaseSheet from '../features/payments/PassPurchaseSheet';
 import PassWithdrawalDialog from '../components/passes/PassWithdrawalDialog';
 import { useTenant } from '../context/TenantContext';
@@ -25,6 +26,7 @@ import {
   type ManagedPass,
   type PassMovementView,
 } from '../lib/passes';
+import { saleReceiptsByPayment } from '../lib/receipts';
 
 const MyPasses: React.FC = () => {
   const { tenant } = useTenant();
@@ -33,6 +35,9 @@ const MyPasses: React.FC = () => {
   const [inactive, setInactive] = useState<ManagedPass[]>([]);
   const [historyByPass, setHistoryByPass] = useState<
     Record<string, PassHistoryEntry<PassMovementView>[]>
+  >({});
+  const [receiptByPayment, setReceiptByPayment] = useState<
+    Record<string, { id: string; number: string }>
   >({});
   const [products, setProducts] = useState<OnlinePassProduct[]>([]);
   const [commonPrice, setCommonPrice] = useState<number | null>(null);
@@ -54,6 +59,11 @@ const MyPasses: React.FC = () => {
       setActive(passes.active);
       setInactive(passes.inactive);
       setHistoryByPass(passes.historyByPass);
+      setReceiptByPayment(
+        await saleReceiptsByPayment(
+          [...passes.active, ...passes.inactive].map((pass) => pass.payment_id),
+        ),
+      );
       setProducts(online);
       setCommonPrice(common);
     } catch (e) {
@@ -142,6 +152,14 @@ const MyPasses: React.FC = () => {
                       </button>
                     ) : null}
                   </div>
+                  {receiptByPayment[pass.payment_id] ? (
+                    <div className="mt-2">
+                      <ReceiptSeeLink
+                        receiptId={receiptByPayment[pass.payment_id].id}
+                        number={receiptByPayment[pass.payment_id].number}
+                      />
+                    </div>
+                  ) : null}
                   <PassHistoryList
                     entries={historyByPass[pass.id] ?? []}
                     studioView={false}
@@ -180,6 +198,14 @@ const MyPasses: React.FC = () => {
                     noch {pass.remaining} von {pass.units_total} · gültig bis{' '}
                     {formatPassUntil(pass.valid_until)}
                   </p>
+                  {receiptByPayment[pass.payment_id] ? (
+                    <div className="mt-2">
+                      <ReceiptSeeLink
+                        receiptId={receiptByPayment[pass.payment_id].id}
+                        number={receiptByPayment[pass.payment_id].number}
+                      />
+                    </div>
+                  ) : null}
                 </li>
               ))}
             </ul>

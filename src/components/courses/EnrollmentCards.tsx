@@ -13,9 +13,8 @@ import {
   passRefundStatusLine,
 } from '../../lib/passRefundInfo';
 import { RELEASE_SEAT_LABEL } from '../../lib/pendingPaymentLabel';
-import { Link } from 'react-router-dom';
 import { PAY_NOW_LABEL } from '../../lib/paymentTexts';
-import { RECEIPT_LINK_LABEL } from '../../lib/legalCheckoutTexts';
+import ReceiptSeeLink from '../payments/ReceiptSeeLink';
 import { paymentsClientConfig } from '../../lib/paymentsClientConfig';
 import {
   applyPassToRegistration,
@@ -48,6 +47,8 @@ interface EnrollmentCardsProps {
   refundStates?: Record<string, RegistrationRefundState>;
   /** Beleg-ID je Anmeldung (K12) */
   receiptIds?: Record<string, string>;
+  /** Belegnummer je Anmeldung */
+  receiptNumbers?: Record<string, string>;
 }
 
 function isOwnCancellation(registration: Registration): boolean {
@@ -97,6 +98,7 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({
   releasingCourseId = null,
   refundStates = {},
   receiptIds = {},
+  receiptNumbers = {},
 }) => {
   const [busyId, setBusyId] = useState<string | null>(null);
   const forcePending = isDevPendingPaymentMock();
@@ -232,14 +234,11 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({
                     ) : null}
                   </div>
                 ) : null}
-                {receiptId ? (
-                  <Link
-                    to={`/receipts/${receiptId}`}
-                    data-testid="receipt-link"
-                    className="inline-flex h-11 items-center rounded-full border border-borderStrong bg-surface px-4 text-[13px] font-medium text-brand active:bg-surfaceSunken"
-                  >
-                    {RECEIPT_LINK_LABEL}
-                  </Link>
+                {receiptId && receiptNumbers[registration.id] ? (
+                  <ReceiptSeeLink
+                    receiptId={receiptId}
+                    number={receiptNumbers[registration.id]}
+                  />
                 ) : null}
                 {usable ? (
                   <button

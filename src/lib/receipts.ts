@@ -65,6 +65,18 @@ export async function loadReceiptByPayment(paymentId: string): Promise<ReceiptRe
   return parseReceipt(data as Record<string, unknown>);
 }
 
+export async function saleReceiptsByPayment(
+  paymentIds: string[],
+): Promise<Record<string, { id: string; number: string }>> {
+  const rows = await listReceiptsForPayments(paymentIds);
+  const out: Record<string, { id: string; number: string }> = {};
+  for (const row of rows) {
+    if (row.kind !== 'receipt' || out[row.payment_id]) continue;
+    out[row.payment_id] = { id: row.id, number: row.number };
+  }
+  return out;
+}
+
 export async function listReceiptsForPayments(
   paymentIds: string[],
 ): Promise<ReceiptRecord[]> {

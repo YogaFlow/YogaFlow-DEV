@@ -64,7 +64,9 @@ Deno.test("Mail-HTML ohne Entwickler-Hinweise; Erstattung voll/teil", () => {
   });
   assertNoDevHints(full.html);
   assertEquals(full.html.includes("12,00 € sind auf dem Weg zu dir"), true);
-  assertEquals(full.html.includes("Erstattungsbeleg 2026-00138 ansehen"), true);
+  const ohneLink = full.html.replace(/<a\b[^>]*>[\s\S]*?<\/a>/gi, "");
+  assertEquals(ohneLink.includes("Beleg 2026-00138"), true);
+  assertEquals(full.html.includes("Erstattungsbeleg ansehen"), true);
 
   const partial = buildPaymentRefundedEmail({
     courseTitle: "Yin",
