@@ -1,6 +1,6 @@
 # STAND — Omlify DEV
 
-Stand: 2026-10-05 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [ux6_teilnehmerliste_zahlstatus.md](berichte/ux6_teilnehmerliste_zahlstatus.md) (Haltestelle 5 Klicktest)
+Stand: 2026-10-05 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [nachtrag_ux6_zeilenlayout.md](berichte/nachtrag_ux6_zeilenlayout.md) (Haltestelle 5 Klicktest)
 
 ## DEV
 
@@ -13,19 +13,21 @@ Stand: 2026-10-05 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [ux6_tei
 
 ## Zuletzt abgeschlossen
 
+- **UX-6-2 Nachtrag** — Personenzeile mobil luftiger + Demo
+  - Bericht: [docs/berichte/nachtrag_ux6_zeilenlayout.md](berichte/nachtrag_ux6_zeilenlayout.md) — Haltestelle 5
 - **UX-6** — Teilnehmerliste mit Zahlstatus (A–D, Entscheidung 18)
-  - Bericht: [docs/berichte/ux6_teilnehmerliste_zahlstatus.md](berichte/ux6_teilnehmerliste_zahlstatus.md) — Haltestelle 5
-- **RT-1 Nachtrag A–C** — Rechtliches UX (change_release, Übersicht/Detail, kein App-Fuß)
+- **RT-1 Nachtrag A–C** — Rechtliches UX
 - **K1 / ZW-1 Z8 / UX-5 RLS** — wie zuvor
 
 ## Nächste Schritte
 
-- UX-6 Haltestelle 5 Klicktest (Liste im Bericht)
+- UX-6-2 Haltestelle 5 Klicktest (Liste im Bericht)
 - RT-1 Nachtrag Haltestelle 5 / Z8 — parallel offen, falls noch nicht abgehakt
 
 ## Haltestellen / wartet auf Julius
 
-- **UX-6 Haltestelle 5** — Klickliste in [ux6_teilnehmerliste_zahlstatus.md](berichte/ux6_teilnehmerliste_zahlstatus.md)
+- **UX-6-2 Haltestelle 5** — Klickliste in [nachtrag_ux6_zeilenlayout.md](berichte/nachtrag_ux6_zeilenlayout.md)
+- **UX-6 Haltestelle 5** — [ux6_teilnehmerliste_zahlstatus.md](berichte/ux6_teilnehmerliste_zahlstatus.md) (ggf. mit Nachtrag erledigt)
 - **RT-1 Nachtrag Haltestelle 5** — [nachtrag_rt1_rechtliches_ux.md](berichte/nachtrag_rt1_rechtliches_ux.md)
 - **Z8 Haltestelle** — [zw1_zahlungswege.md](berichte/zw1_zahlungswege.md)
 - Klicktest UX-4 Nachtrag N1–N3

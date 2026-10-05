@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 /**
- * UX-6 D: Demodaten Zahlstatus (nur DEV, demoalpha).
+ * UX-6 / Nachtrag UX-6-2: Demodaten Zahlstatus (nur DEV, demoalpha).
  *
  *   node scripts/dev/demo_ux6.mjs
  *
- * Heutiger Kurs (~2 h): Vera vor Ort offen, Karla Karte, Olaf online bezahlt.
- * Gestriger Kurs: Nina offen → Überfällig.
+ * Heutiger Kurs „Hatha am Nachmittag“ (~2 h): Vera vor Ort offen, Karla offen mit gültiger Karte,
+ * Olaf online bezahlt (prepare/complete Testzahlung). Gestern: Nina offen → Überfällig.
  */
+import { randomUUID } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -16,6 +17,9 @@ import { berlinDate, kursAnlegen, login, seedPasswort } from '../test/_helpers.m
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SLUG = 'demoalpha';
+const TODAY_TITLE = 'Hatha am Nachmittag';
+const TODAY_TITLE_LEGACY = 'UX6 Heute Zahlstatus';
+const YESTERDAY_TITLE = 'UX6 Gestern Offen';
 
 function ladeEnv(path) {
   if (!existsSync(path)) return {};
@@ -117,30 +121,59 @@ const asOwner = await login(url, anon, ownerRow.email, password, SLUG);
 
 const start = berlinParts(2 * 60 * 60 * 1000);
 const endTime = addMinutesToTime(start.time, 60);
-const todayTitle = 'UX6 Heute Zahlstatus';
 
 let { data: todayCourse } = await admin
   .from('courses')
-  .select('id')
+  .select('id, title')
   .eq('tenant_id', tenant.id)
-  .eq('title', todayTitle)
+  .in('title', [TODAY_TITLE, TODAY_TITLE_LEGACY])
   .eq('date', start.date)
   .maybeSingle();
 
 if (!todayCourse) {
+  // Fallback: Legacy-Kurs an anderem Datum umbenennen
+  const { data: legacy } = await admin
+    .from('courses')
+    .select('id')
+    .eq('tenant_id', tenant.id)
+    .eq('title', TODAY_TITLE_LEGACY)
+    .maybeSingle();
+  if (legacy) {
+    await admin
+      .from('courses')
+      .update({
+        title: TODAY_TITLE,
+        date: start.date,
+        time: start.time,
+        end_time: endTime,
+        price: 18,
+        pass_eligible: true,
+      })
+      .eq('id', legacy.id);
+    todayCourse = { id: legacy.id, title: TODAY_TITLE };
+  }
+}
+
+if (!todayCourse) {
   todayCourse = await kursAnlegen(admin, tenant.id, teacher.id, {
-    title: todayTitle,
+    title: TODAY_TITLE,
     date: start.date,
     time: start.time,
     end_time: endTime,
     price: 18,
     pass_eligible: true,
-    description: 'UX-6 Demo: Zahlt vor Ort / Bezahlt / Karte',
+    description: 'UX-6 Demo: Zahlt vor Ort / Bezahlt · online / Mit Karte',
   });
 } else {
   await admin
     .from('courses')
-    .update({ time: start.time, end_time: endTime })
+    .update({
+      title: TODAY_TITLE,
+      time: start.time,
+      end_time: endTime,
+      price: 18,
+      pass_eligible: true,
+    })
     .eq('id', todayCourse.id);
 }
 
@@ -166,6 +199,7 @@ async function ensureReg(userId, courseId, patch = {}) {
       status: 'registered',
       is_waitlist: false,
       coverage_status: 'open',
+      price_cents_at_booking: 1800,
       ...patch,
     })
     .select('id')
@@ -174,93 +208,190 @@ async function ensureReg(userId, courseId, patch = {}) {
   return inserted.id;
 }
 
-const veraReg = await ensureReg(vera.id, todayCourse.id, { coverage_status: 'open' });
-await ensureReg(karla.id, todayCourse.id); // pass below
-const olafReg = await ensureReg(olaf.id, todayCourse.id);
+/** Online-Testzahlung wie s3_1 (prepare/complete, Test-pi_). */
+async function payOnline(userId, registrationId, amountCents) {
+  const on = await asOwner.rpc('set_online_payments_enabled', { p_enabled: true });
+  if (on.error || !on.data?.success) {
+    console.warn('online enable:', on.error?.message || on.data);
+  }
+  await admin
+    .from('registrations')
+    .update({
+      status: 'pending_payment',
+      coverage_status: 'open',
+      pass_id: null,
+      hold_reason: 'checkout',
+      hold_expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+    })
+    .eq('id', registrationId);
 
-// Karla: Karte — vorhandene Pass-Einlösung oder open lassen wenn keine Karte
-{
-  const { data: passes } = await admin
-    .from('passes')
-    .select('id, remaining')
-    .eq('user_id', karla.id)
-    .eq('tenant_id', tenant.id)
-    .gt('remaining', 0)
-    .limit(1);
-  if (passes?.[0]) {
-    const apply = await asOwner.rpc('apply_pass_to_registration', {
-      p_registration_id: await ensureReg(karla.id, todayCourse.id),
-    });
-    if (apply.error) {
-      console.warn('Karla Pass:', apply.error.message);
-    }
-  } else {
-    console.warn('Karla hat keine Karte — bleibt offen (Seed v2 für Pass nutzen)');
+  const prep = await admin.rpc('prepare_online_payment', {
+    p_registration_id: registrationId,
+    p_user_id: userId,
+  });
+  if (prep.error || !prep.data?.success) {
+    fail('prepare_online_payment: ' + JSON.stringify(prep.data ?? prep.error));
+  }
+  const pi = 'pi_test_ux6_' + randomUUID().replace(/-/g, '').slice(0, 16);
+  const attach = await admin.rpc('attach_payment_ref', {
+    p_attempt_id: prep.data.attempt_id,
+    p_provider_ref: pi,
+  });
+  if (attach.error) fail('attach_payment_ref: ' + attach.error.message);
+  const done = await admin.rpc('complete_online_payment', {
+    p_provider_ref: pi,
+    p_amount_cents: amountCents,
+    p_currency: 'EUR',
+    p_received_at: new Date().toISOString(),
+    p_livemode: false,
+  });
+  if (done.error || !done.data?.success) {
+    fail('complete_online_payment: ' + JSON.stringify(done.data ?? done.error));
   }
 }
 
-// Olaf: online bezahlt vermerken (manuell card, falls noch open)
+await ensureReg(vera.id, todayCourse.id, { coverage_status: 'open', price_cents_at_booking: 1800 });
+const karlaReg = await ensureReg(karla.id, todayCourse.id, {
+  coverage_status: 'open',
+  price_cents_at_booking: 1800,
+});
+const olafReg = await ensureReg(olaf.id, todayCourse.id, { price_cents_at_booking: 1800 });
+
+// Karla: gültige Karte behalten, Buchung bleibt offen (zeigt „Mit Karte“)
+{
+  const { data: passes } = await admin
+    .from('passes')
+    .select('id, remaining, name')
+    .eq('member_id', karla.id)
+    .eq('tenant_id', tenant.id)
+    .gt('remaining', 0)
+    .limit(1);
+  if (!passes?.[0]) {
+    const { data: products } = await admin
+      .from('pass_products')
+      .select('id')
+      .eq('tenant_id', tenant.id)
+      .eq('name', '10er-Karte')
+      .limit(1);
+    let productId = products?.[0]?.id;
+    if (!productId) {
+      const created = await asOwner.rpc('create_pass_product', {
+        p_name: '10er-Karte',
+        p_units: 10,
+        p_price_cents: 12000,
+        p_validity_rule: 'months',
+        p_validity_value: 12,
+        p_description: null,
+        p_online_purchasable: true,
+      });
+      if (created.error || !created.data?.success) {
+        fail('create_pass_product: ' + JSON.stringify(created.data ?? created.error));
+      }
+      productId = created.data.id;
+    }
+    const sell = await asOwner.rpc('sell_pass', {
+      p_member_id: karla.id,
+      p_product_id: productId,
+      p_method: 'cash',
+    });
+    if (sell.error || !sell.data?.success) fail('sell_pass Karla: ' + JSON.stringify(sell.data ?? sell.error));
+  }
+  // Falls früher eingelöst: zurücksetzen auf open
+  const { data: karlaRow } = await admin
+    .from('registrations')
+    .select('coverage_status, pass_id')
+    .eq('id', karlaReg)
+    .single();
+  if (karlaRow?.coverage_status === 'pass') {
+    const undo = await asOwner.rpc('undo_pass_redemption', { p_registration_id: karlaReg });
+    if (undo.error || !undo.data?.success) {
+      console.warn('Karla Pass zurücknehmen:', undo.error?.message || undo.data);
+      await admin
+        .from('registrations')
+        .update({ coverage_status: 'open', pass_id: null })
+        .eq('id', karlaReg);
+    }
+  } else if (karlaRow?.coverage_status !== 'open') {
+    await admin.from('registrations').update({ coverage_status: 'open' }).eq('id', karlaReg);
+  }
+}
+
+// Olaf: online bezahlt (prepare/complete — Testzahlung wie s3_1)
 {
   const { data: reg } = await admin
     .from('registrations')
     .select('id, coverage_status')
     .eq('id', olafReg)
     .single();
-  if (reg?.coverage_status === 'open') {
-    const pay = await asOwner.rpc('record_manual_payment', {
-      p_registration_id: olafReg,
-      p_method: 'cash',
-      p_amount_cents: 1800,
-    });
-    // Demo: Methode online simulieren — card geht nicht über record_manual; cash dann UI „bar“.
-    // Für „Bezahlt · online“ braucht es Stripe-Payment. Stattdessen: Coverage paid via card payment insert? Skip — set method visually via paid cash then note.
-    if (pay.error || !pay.data?.success) {
-      console.warn('Olaf Zahlung:', pay.error?.message || pay.data);
-    } else {
-      // Update payment method to card for display (service role)
-      const { data: payment } = await admin
-        .from('payments')
-        .select('id')
-        .eq('registration_id', olafReg)
-        .order('received_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (payment) {
-        await admin.from('payments').update({ method: 'card' }).eq('id', payment.id);
+  if (reg?.coverage_status !== 'paid') {
+    if (reg?.coverage_status === 'pass') {
+      await asOwner.rpc('undo_pass_redemption', { p_registration_id: olafReg });
+    }
+    const { data: oldPays } = await admin
+      .from('payments')
+      .select('id')
+      .eq('registration_id', olafReg);
+    for (const pay of oldPays ?? []) {
+      await admin.from('payments').delete().eq('id', pay.id);
+    }
+    await admin
+      .from('registrations')
+      .update({ coverage_status: 'open', pass_id: null })
+      .eq('id', olafReg);
+    await payOnline(olaf.id, olafReg, 1800);
+  } else {
+    // Sicherstellen, dass Methode card/online ist (nicht bar aus altem Demo)
+    const { data: payment } = await admin
+      .from('payments')
+      .select('id, method')
+      .eq('registration_id', olafReg)
+      .is('reverses_payment_id', null)
+      .gt('amount_cents', 0)
+      .order('received_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (payment && payment.method !== 'card') {
+      for (const pay of (
+        await admin.from('payments').select('id').eq('registration_id', olafReg)
+      ).data ?? []) {
+        await admin.from('payments').delete().eq('id', pay.id);
       }
+      await admin
+        .from('registrations')
+        .update({ coverage_status: 'open', pass_id: null })
+        .eq('id', olafReg);
+      await payOnline(olaf.id, olafReg, 1800);
     }
   }
 }
 
-void veraReg;
-
 // Gestern: Nina offen
-const yesterdayTitle = 'UX6 Gestern Offen';
 const yesterday = berlinDate(-1);
 let { data: pastCourse } = await admin
   .from('courses')
   .select('id')
   .eq('tenant_id', tenant.id)
-  .eq('title', yesterdayTitle)
+  .eq('title', YESTERDAY_TITLE)
   .maybeSingle();
 
 if (!pastCourse) {
   pastCourse = await kursAnlegen(admin, tenant.id, teacher.id, {
-    title: yesterdayTitle,
+    title: YESTERDAY_TITLE,
     date: berlinDate(1),
     time: '10:00:00',
     end_time: '11:00:00',
     price: 16,
   });
-  await ensureReg(nina.id, pastCourse.id, { coverage_status: 'open' });
+  await ensureReg(nina.id, pastCourse.id, { coverage_status: 'open', price_cents_at_booking: 1600 });
   await admin.from('courses').update({ date: yesterday }).eq('id', pastCourse.id);
 } else {
   await admin.from('courses').update({ date: berlinDate(1) }).eq('id', pastCourse.id);
-  await ensureReg(nina.id, pastCourse.id, { coverage_status: 'open' });
+  await ensureReg(nina.id, pastCourse.id, { coverage_status: 'open', price_cents_at_booking: 1600 });
   await admin.from('courses').update({ date: yesterday }).eq('id', pastCourse.id);
 }
 
 console.log('\nUX-6 Demo fertig (demoalpha).');
-console.log(`Heute: ${todayTitle} ${start.date} ${start.time} — Vera offen, Karla Karte?, Olaf bezahlt`);
-console.log(`Gestern: ${yesterdayTitle} — Nina offen`);
+console.log(`Heute: ${TODAY_TITLE} ${start.date} ${start.time}`);
+console.log('  Vera: Zahlt vor Ort · Karla: Zahlt vor Ort + Mit Karte · Olaf: Bezahlt · online');
+console.log(`Gestern: ${YESTERDAY_TITLE} — Nina offen`);
 console.log('Konten: Julius Owner / Vera / Karla / Olaf / Nina (Passwort in supabase/.env.dev)');
