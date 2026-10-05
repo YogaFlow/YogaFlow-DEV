@@ -1,6 +1,6 @@
 # Bericht K1 — Karten online kaufen, „Meine Karten“, Widerruf
 
-Status: **angehalten** (Haltestelle 5 — Klicktest Nachtrag Widerruf).  
+Status: **angehalten** (Haltestelle 5 — Klicktest Nachtrag K1-2).  
 Stand 05.10.2026 · Branch `Julius` · HEAD siehe `git log -1`  
 Vorgabe: [docs/stories/k1_karten_online.md](../stories/k1_karten_online.md) · [Nachtrag Widerruf](../stories/nachtrag_k1_widerruf.md) · [Entscheidung 15](../entscheidungen/15_Karten_online.md) · Freigabe Teil 0: [k1_freigabe_teil0.md](../stories/k1_freigabe_teil0.md)
 
@@ -347,7 +347,7 @@ STOPP — wartet auf Julius’ Klicktest Nachtrag.
 
 ## Nachtrag K1-2 (Klicktest 05.10.2026)
 
-Klickpunkte 1–8, 10, 12 ok. Punkt 9 (Verlauf) korrekt als Lücke. Drei Fixes.
+Klickpunkte 1–8, 10, 12 ok. Punkt 9 (Verlauf) korrekt als Lücke. Drei Fixes, dann Klickliste.
 
 ### 1 — Apple Pay im Karten-Checkout
 
@@ -371,5 +371,15 @@ Registrierung lief bisher nur beim Onboarding-`refresh` (Konto aktiv). Neu: Scha
 
 Zahlungs-Mails (Buchung, Erstattung, Kartenkauf, Widerrufs-Erstattung) zeigen „Beleg 2026-00141“ als eigenen Absatz. Der Link heißt „Beleg ansehen“ bzw. „Erstattungsbeleg ansehen“ und trägt die Nummer nicht mehr allein. Meine Karten und Meine Anmeldungen: je Karte bzw. bezahlter Buchung „Beleg ansehen“ plus Nummer. `/widerruf`: „Die Belegnummer findest du in deiner Bestätigungs-Mail oder unter Meine Karten.“
 
-Die Beleg-Leseregel kannte nur Kursbuchungen. Kartenkäuferinnen sahen deshalb weder Nummer noch Seite. `get_receipt` und `receipts_select_own` lassen jetzt die Inhaberin der Karte lesen (Lehrende fremde Karten weiter nicht). Migration `20261005095000`.
+Die Beleg-Leseregel kannte nur Kursbuchungen. Kartenkäuferinnen sahen deshalb weder Nummer noch Seite. `get_receipt` und `receipts_select_own` lassen jetzt die Inhaberin der Karte lesen (Lehrende fremde Karten weiter nicht). Migration `20261005095000`. E2E: Kachel zeigt „Beleg ansehen“ und „Beleg JJJJ-NNNNN“ (1 passed). Öffentliche Seite lokal: Hinweis sichtbar.
+
+### 4 — Klickliste
+
+Auf `omlify-dev.de`, Studio **demoalpha**, iPhone Safari für Punkt 1. Vorher Cloudflare-Build aus `Julius` abwarten.
+
+1. **Apple Pay beim Kartenkauf** — Teilnehmerin, Meine Karten, 10er kaufen. Im Payment Element muss Apple Pay in der gleichen Zeile stehen wie beim Kurs-Checkout (nicht hinter „Mehr“). Nicht abschließen, wenn die Zeile nur geprüft wird.
+2. **Verlauf mit Verlängerung** — Owner verlängert Karlas Karte (neues Datum + Notiz). Karla öffnet Meine Karten → Verlauf: „Verlängert bis … · Notiz · von …“ zwischen den Bewegungen, neueste zuerst.
+3. **Belegnummer** — Nach einem Kartenkauf: Bestätigungs-Mail enthält „Beleg 2026-…“ als Text, nicht nur im Link. Meine Karten: an der Kachel „Beleg ansehen“ und dieselbe Nummer. Meine Anmeldungen: an einer bezahlten Buchung dasselbe.
+
+STOPP — wartet auf Julius’ Klicktest K1-2.
 
