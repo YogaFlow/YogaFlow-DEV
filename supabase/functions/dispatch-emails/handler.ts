@@ -115,6 +115,10 @@ export type DeliveryContext = {
   logoUrl?: string | null;
   /** payments.created_at der Originalzahlung */
   paidAt?: string | null;
+  /** RT-1: AGB-Fassung für PDF-Anhang */
+  termsDocumentId?: string | null;
+  termsPdfPath?: string | null;
+  termsCreatedAt?: string | null;
 };
 
 /** K1: Kontext für Karten-Mails (subject = pass). */
@@ -150,7 +154,17 @@ export type PassDeliveryContext = {
   vatRateBp: number | null;
   brandColor: string | null;
   logoUrl: string | null;
+  /** RT-1: AGB-Fassung für PDF-Anhang */
+  termsDocumentId?: string | null;
+  termsPdfPath?: string | null;
+  termsCreatedAt?: string | null;
 };
+
+export type TermsPdfResolution =
+  | { status: "none" }
+  | { status: "pending" }
+  | { status: "ready"; attachment: EmailAttachment }
+  | { status: "missing"; agbLink: string };
 
 export type DispatchDeps = {
   env: (key: string) => string | undefined;
@@ -172,6 +186,10 @@ export type DispatchDeps = {
     replyTo?: string;
     attachments?: EmailAttachment[];
   }) => Promise<{ ok: true } | { ok: false; errorCode: string }>;
+  /** RT-1: PDF aus Storage studio-legal als Bytes. */
+  downloadTermsPdf?: (path: string) => Promise<Uint8Array | null>;
+  /** RT-1: Ops-Alert wenn PDF nach 10 min fehlt. */
+  noteOpsAlert?: (key: string) => Promise<void>;
   now?: () => Date;
 };
 
@@ -274,6 +292,145 @@ export function buildWiderrufLink(
   if (s && domain) return `https://${s}.${domain}/widerruf`;
   if (domain) return `https://${domain}/widerruf`;
   return "/widerruf";
+}
+
+export function buildAgbLink(
+  slug: string | null,
+  baseDomain: string | undefined,
+): string {
+  const domain = (baseDomain ?? "").trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
+  const s = (slug ?? "").trim().toLowerCase();
+  if (s && domain) return `https://${s}.${domain}/agb`;
+  if (domain) return `https://${domain}/agb`;
+  return "/agb";
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
+
+function agbPdfFilename(studioName: string | null, createdAt: string | null): string {
+  const studio = (studioName ?? "Studio")
+    .replace(/[^\wÄÖÜäöüß\- ]+/g, "")
+    .trim()
+    .replace(/\s+/g, "_")
+    .slice(0, 40) || "Studio";
+  let datePart = "Stand";
+  if (createdAt) {
+    const d = new Date(createdAt);
+    if (!Number.isNaN(d.getTime())) {
+      datePart = new Intl.DateTimeFormat("de-DE", {
+        timeZone: "Europe/Berlin",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      }).format(d).replace(/\./g, "-");
+    }
+  }
+  return `AGB_${studio}_${datePart}.pdf`;
+}
+
+/** RT-1 L6: PDF anhängen, bis 10 min warten, sonst Link + ops_alert. */
+export async function resolveTermsPdfAttachment(
+  deps: DispatchDeps,
+  input: {
+    termsDocumentId: string | null | undefined;
+    termsPdfPath: string | null | undefined;
+    termsCreatedAt: string | null | undefined;
+    studioName: string | null | undefined;
+    studioSlug: string | null | undefined;
+  },
+): Promise<TermsPdfResolution> {
+  if (!input.termsDocumentId) return { status: "none" };
+
+  const agbLink = buildAgbLink(input.studioSlug ?? null, deps.env("APP_BASE_DOMAIN"));
+  const now = deps.now?.() ?? new Date();
+  const created = input.termsCreatedAt ? new Date(input.termsCreatedAt) : null;
+  const ageMs = created && !Number.isNaN(created.getTime())
+    ? now.getTime() - created.getTime()
+    : Number.POSITIVE_INFINITY;
+  const pendingWindow = ageMs < 10 * 60 * 1000;
+
+  if (input.termsPdfPath && deps.downloadTermsPdf) {
+    const bytes = await deps.downloadTermsPdf(input.termsPdfPath);
+    if (bytes && bytes.byteLength > 0) {
+      return {
+        status: "ready",
+        attachment: {
+          filename: agbPdfFilename(input.studioName ?? null, input.termsCreatedAt ?? null),
+          content: bytesToBase64(bytes),
+          contentType: "application/pdf",
+          encoding: "base64",
+        },
+      };
+    }
+  }
+
+  if (pendingWindow) return { status: "pending" };
+
+  if (deps.noteOpsAlert) {
+    await deps.noteOpsAlert(`terms_pdf_missing:${input.termsDocumentId}`);
+  }
+  return { status: "missing", agbLink };
+}
+
+function appendAgbLinkToMail(mail: EmailPayload, agbLink: string): EmailPayload {
+  const noteHtml =
+    `<p style="margin:16px 0 0 0;font-size:14px;color:#374151;">` +
+    `Die AGB findest du hier: <a href="${escapeHtml(agbLink)}" style="color:#2F5A4E;">${escapeHtml(agbLink)}</a></p>`;
+  const noteText = `\n\nDie AGB findest du hier: ${agbLink}`;
+  const html = /<\/body>/i.test(mail.html)
+    ? mail.html.replace(/<\/body>/i, `${noteHtml}</body>`)
+    : mail.html + noteHtml;
+  return {
+    ...mail,
+    html,
+    text: (mail.text ?? "") + noteText,
+  };
+}
+
+async function attachTermsPdfOrWait(
+  deps: DispatchDeps,
+  row: DeliveryRow,
+  mail: EmailPayload,
+  terms: {
+    termsDocumentId?: string | null;
+    termsPdfPath?: string | null;
+    termsCreatedAt?: string | null;
+    studioName?: string | null;
+    studioSlug?: string | null;
+  },
+): Promise<{ mail: EmailPayload; code: "TERMS_PDF_PENDING" | null }> {
+  const resolved = await resolveTermsPdfAttachment(deps, {
+    termsDocumentId: terms.termsDocumentId,
+    termsPdfPath: terms.termsPdfPath,
+    termsCreatedAt: terms.termsCreatedAt,
+    studioName: terms.studioName,
+    studioSlug: terms.studioSlug,
+  });
+  if (resolved.status === "pending") {
+    await deps.markDelivery(row.id, "released", "TERMS_PDF_PENDING");
+    deps.log.info("dispatch", { delivery_id: row.id, kind: row.kind, code: "TERMS_PDF_PENDING" });
+    return { mail, code: "TERMS_PDF_PENDING" };
+  }
+  if (resolved.status === "ready") {
+    return {
+      mail: {
+        ...mail,
+        attachments: [...(mail.attachments ?? []), resolved.attachment],
+      },
+      code: null,
+    };
+  }
+  if (resolved.status === "missing") {
+    return { mail: appendAgbLinkToMail(mail, resolved.agbLink), code: null };
+  }
+  return { mail, code: null };
 }
 
 function civilDateLabel(isoDate: string | null): string {
@@ -1164,6 +1321,18 @@ export async function runDispatch(deps: DispatchDeps): Promise<DispatchResult> {
           taxRegime: pctx!.taxRegime,
           vatRateBp: pctx!.vatRateBp,
         });
+        const termsPass = await attachTermsPdfOrWait(deps, row, mail, {
+          termsDocumentId: pctx!.termsDocumentId,
+          termsPdfPath: pctx!.termsPdfPath,
+          termsCreatedAt: pctx!.termsCreatedAt,
+          studioName: pctx!.studioName,
+          studioSlug: pctx!.studioSlug,
+        });
+        if (termsPass.code === "TERMS_PDF_PENDING") {
+          results.push({ deliveryId: row.id, kind: row.kind, code: "TERMS_PDF_PENDING" });
+          continue;
+        }
+        mail = termsPass.mail;
       } else if (row.kind === "pass_expiring_30" || row.kind === "pass_expiring_7") {
         mail = buildPassExpiringEmail({
           kind: row.kind,
@@ -1352,7 +1521,7 @@ export async function runDispatch(deps: DispatchDeps): Promise<DispatchResult> {
         location: place,
         details: `Buchung bei ${ctx!.studioName ?? "Studio"}`,
       });
-      const mail = buildPaymentSucceededEmail({
+      let mail = buildPaymentSucceededEmail({
         courseTitle: ctx!.courseTitle ?? "Kurs",
         courseDate: courseDateText(ctx!.courseDate),
         courseTime: courseTimeText(ctx!.courseTime),
@@ -1384,6 +1553,18 @@ export async function runDispatch(deps: DispatchDeps): Promise<DispatchResult> {
         courseDateRaw: ctx!.courseDate,
         courseEndTime: ctx!.courseEndTime,
       });
+      const termsPay = await attachTermsPdfOrWait(deps, row, mail, {
+        termsDocumentId: ctx!.termsDocumentId,
+        termsPdfPath: ctx!.termsPdfPath,
+        termsCreatedAt: ctx!.termsCreatedAt,
+        studioName: ctx!.studioName,
+        studioSlug: ctx!.studioSlug,
+      });
+      if (termsPay.code === "TERMS_PDF_PENDING") {
+        results.push({ deliveryId: row.id, kind: row.kind, code: "TERMS_PDF_PENDING" });
+        continue;
+      }
+      mail = termsPay.mail;
       const code = await sendBuilt(deps, row, ctx!, mail);
       results.push({ deliveryId: row.id, kind: row.kind, code });
       continue;

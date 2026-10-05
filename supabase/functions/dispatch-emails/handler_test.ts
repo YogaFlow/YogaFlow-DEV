@@ -13,6 +13,7 @@ import {
   classifyPaymentSucceeded,
   formatEurCents,
   handleDispatchRequest,
+  resolveTermsPdfAttachment,
   runDispatch,
   type DeliveryContext,
   type DeliveryRow,
@@ -480,4 +481,57 @@ Deno.test("19. payment_refunded: Texte je reason, Voll- und Teilerstattung", asy
   assertEquals(out.results[0]?.code, "SENT");
   assert(mails[0]!.html.includes("inzwischen vergeben"), "Mail mit Grund");
   assertEquals(classifyPaymentRefunded({ ...paidCtx, hasRefund: false }), "REFUND_MISSING");
+});
+
+Deno.test("RT-1 terms PDF: pending unter 10 min, sonst missing+alert", async () => {
+  const alerts: string[] = [];
+  const baseDeps: DispatchDeps = {
+    env: (k) => (k === "APP_BASE_DOMAIN" ? "omlify-dev.de" : undefined),
+    log: { info: () => {}, warn: () => {}, error: () => {} },
+    claimDeliveries: async () => [],
+    loadContext: async () => null,
+    loadPassContext: async () => null,
+    markDelivery: async () => {},
+    sendEmail: async () => ({ ok: true }),
+    downloadTermsPdf: async () => null,
+    noteOpsAlert: async (key) => {
+      alerts.push(key);
+    },
+    now: () => new Date("2026-10-05T12:05:00.000Z"),
+  };
+
+  const pending = await resolveTermsPdfAttachment(baseDeps, {
+    termsDocumentId: "doc-1",
+    termsPdfPath: null,
+    termsCreatedAt: "2026-10-05T12:00:00.000Z",
+    studioName: "Demo",
+    studioSlug: "demo",
+  });
+  assertEquals(pending.status, "pending");
+
+  const missing = await resolveTermsPdfAttachment(baseDeps, {
+    termsDocumentId: "doc-1",
+    termsPdfPath: null,
+    termsCreatedAt: "2026-10-05T11:00:00.000Z",
+    studioName: "Demo",
+    studioSlug: "demo",
+  });
+  assertEquals(missing.status, "missing");
+  assertEquals(alerts[0], "terms_pdf_missing:doc-1");
+
+  const ready = await resolveTermsPdfAttachment({
+    ...baseDeps,
+    downloadTermsPdf: async () => new Uint8Array([1, 2, 3]),
+  }, {
+    termsDocumentId: "doc-1",
+    termsPdfPath: "t/d.pdf",
+    termsCreatedAt: "2026-10-05T11:00:00.000Z",
+    studioName: "Demo Studio",
+    studioSlug: "demo",
+  });
+  assertEquals(ready.status, "ready");
+  if (ready.status === "ready") {
+    assertEquals(ready.attachment.contentType, "application/pdf");
+    assert(ready.attachment.filename.startsWith("AGB_"), "Dateiname AGB_");
+  }
 });

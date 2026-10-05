@@ -62,6 +62,11 @@ verify_jwt = false
 [functions.payments-jobs]
 verify_jwt = false
 
+# legal-pdf (RT-1): Aufruf nur mit Authorization Bearer = LEGAL_PDF_SECRET
+# (Vault legal_pdf_secret / Cron pg_net). Gateway-JWT wäre unsinnig.
+[functions.legal-pdf]
+verify_jwt = false
+
 # ops-monitor (B2): Authorization Bearer = OPS_MONITOR_SECRET (Vault ops_monitor_secret).
 [functions.ops-monitor]
 verify_jwt = false

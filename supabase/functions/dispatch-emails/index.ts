@@ -35,7 +35,7 @@ Deno.serve(async (req: Request) => {
       const { data: reg, error: re } = await supabase
         .from("registrations")
         .select(
-          "id, status, hold_expires_at, user_id, course_id, tenant_id, cancellation_deadline",
+          "id, status, hold_expires_at, user_id, course_id, tenant_id, cancellation_deadline, terms_document_id",
         )
         .eq("id", registrationId)
         .maybeSingle();
@@ -158,6 +158,22 @@ Deno.serve(async (req: Request) => {
         }
       }
 
+      let termsDocumentId: string | null = null;
+      let termsPdfPath: string | null = null;
+      let termsCreatedAt: string | null = null;
+      if (typeof reg.terms_document_id === "string" && reg.terms_document_id) {
+        termsDocumentId = reg.terms_document_id;
+        const { data: termsDoc } = await supabase
+          .from("studio_legal_documents")
+          .select("id, pdf_path, created_at")
+          .eq("id", reg.terms_document_id)
+          .maybeSingle();
+        if (termsDoc) {
+          termsPdfPath = typeof termsDoc.pdf_path === "string" ? termsDoc.pdf_path : null;
+          termsCreatedAt = typeof termsDoc.created_at === "string" ? termsDoc.created_at : null;
+        }
+      }
+
       const ctx: DeliveryContext = {
         registrationStatus: reg.status ?? null,
         holdExpiresAt: reg.hold_expires_at ?? null,
@@ -198,6 +214,9 @@ Deno.serve(async (req: Request) => {
         brandColor: typeof tenant?.brand_color === "string" ? tenant.brand_color : null,
         logoUrl: buildStudioLogoUrl(supabaseUrl, tenant?.logo_path ?? null),
         paidAt: original && typeof original.created_at === "string" ? original.created_at : null,
+        termsDocumentId,
+        termsPdfPath,
+        termsCreatedAt,
       };
       return ctx;
     },
@@ -205,7 +224,7 @@ Deno.serve(async (req: Request) => {
       const { data: pass, error: pe } = await supabase
         .from("passes")
         .select(
-          "id, name, units_total, valid_until, member_id, tenant_id, payment_id, status, created_at",
+          "id, name, units_total, valid_until, member_id, tenant_id, payment_id, status, created_at, terms_document_id",
         )
         .eq("id", passId)
         .maybeSingle();
@@ -329,6 +348,22 @@ Deno.serve(async (req: Request) => {
           .maybeSingle(),
       ]);
 
+      let termsDocumentId: string | null = null;
+      let termsPdfPath: string | null = null;
+      let termsCreatedAt: string | null = null;
+      if (typeof pass.terms_document_id === "string" && pass.terms_document_id) {
+        termsDocumentId = pass.terms_document_id;
+        const { data: termsDoc } = await supabase
+          .from("studio_legal_documents")
+          .select("id, pdf_path, created_at")
+          .eq("id", pass.terms_document_id)
+          .maybeSingle();
+        if (termsDoc) {
+          termsPdfPath = typeof termsDoc.pdf_path === "string" ? termsDoc.pdf_path : null;
+          termsCreatedAt = typeof termsDoc.created_at === "string" ? termsDoc.created_at : null;
+        }
+      }
+
       const ctx: PassDeliveryContext = {
         passId: pass.id,
         passName: pass.name ?? "Karte",
@@ -361,8 +396,22 @@ Deno.serve(async (req: Request) => {
         vatRateBp: typeof tax?.vat_rate_bp === "number" ? tax.vat_rate_bp : null,
         brandColor: typeof tenant?.brand_color === "string" ? tenant.brand_color : null,
         logoUrl: buildStudioLogoUrl(supabaseUrl, tenant?.logo_path ?? null),
+        termsDocumentId,
+        termsPdfPath,
+        termsCreatedAt,
       };
       return ctx;
+    },
+    downloadTermsPdf: async (path) => {
+      const { data, error } = await supabase.storage.from("studio-legal").download(path);
+      if (error || !data) return null;
+      return new Uint8Array(await data.arrayBuffer());
+    },
+    noteOpsAlert: async (key) => {
+      const { error } = await supabase.rpc("note_ops_alert", { p_key: key });
+      if (error) {
+        log.warn("note_ops_alert", { code: error.code ?? "OPS_ALERT_FAILED" });
+      }
     },
     markDelivery: async (id, status, errorCode) => {
       const { error } = await supabase.rpc("mark_email_delivery", {
