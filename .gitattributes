@@ -1,2 +1,3 @@
 supabase/migrations/*.sql text eol=lf
 supabase/functions/**    text eol=lf
+supabase/functions/_shared/fonts/** binary
