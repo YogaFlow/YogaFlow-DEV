@@ -14,8 +14,17 @@ import {
   STUDIO_LEGAL_TEMPLATE_VERSION,
   STUDIO_LEGAL_TEMPLATES,
 } from '../generated/studioLegalTemplates';
-import type { StudioLegalForm, StudioLegalProfile } from './studioLegalProfile';
+import {
+  loadStudioLegalProfile,
+  type StudioLegalForm,
+  type StudioLegalProfile,
+} from './studioLegalProfile';
 import { currentTenantSlug } from './tenantSlug';
+import { asCivilIsoDate } from './courseDateTime';
+import { listPassProducts } from './passProducts';
+import { choiceFromSetting, loadTaxSettings } from './taxStatus';
+
+const DEFAULT_CANCELLATION_HOURS = 24;
 
 export type StudioLegalPillStatus = 'missing' | 'release' | 'current' | 'new_template';
 
@@ -210,6 +219,96 @@ export async function publishStudioLegalDocument(input: {
     return { ok: false, message: publishErrorMessage(row.error) };
   }
   return { ok: true, id: String(row.id ?? ''), changed: row.changed === true };
+}
+
+/** Kontext für Render/Publish aus aktuellen Studio-Einstellungen. */
+export async function loadStudioLegalRenderContext(
+  profile: StudioLegalProfile,
+  tenant: { name?: string; cancellation_window_hours?: number },
+): Promise<StudioLegalValues> {
+  const [taxRows, products, setup] = await Promise.all([
+    loadTaxSettings().catch(() => []),
+    listPassProducts().catch(() => []),
+    supabase.rpc('get_payment_setup_status').then((r) => r.data as Record<string, unknown> | null),
+  ]);
+  const todayIso = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Berlin',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+  const current =
+    taxRows
+      .filter((row) => asCivilIsoDate(row.valid_from) <= todayIso)
+      .sort((a, b) => asCivilIsoDate(b.valid_from).localeCompare(asCivilIsoDate(a.valid_from)))[0] ??
+    null;
+  const choice = current ? choiceFromSetting(current) : null;
+  const active = products.filter((p) => p.archived_at == null);
+  return buildStudioLegalValues({
+    profile,
+    studioName: tenant.name ?? profile.legal_name,
+    studioSlug: currentTenantSlug(),
+    cancellationHours:
+      typeof tenant.cancellation_window_hours === 'number'
+        ? tenant.cancellation_window_hours
+        : DEFAULT_CANCELLATION_HOURS,
+    taxSmallBusiness: choice === 'small_business',
+    payOnline: setup?.online_payments_enabled === true,
+    payOnsite: setup?.allow_onsite_payment !== false,
+    passesAny: active.length > 0,
+    passesOnline: active.some((p) => p.online_purchasable === true),
+  });
+}
+
+/**
+ * Nach Settings-Änderung: alle bereits freigegebenen Arten neu rendern/publishen
+ * (nur wenn Hash sich ändert). Kein SQL-Auto-Render — Client-Hook.
+ */
+export async function resyncStudioLegalDocuments(tenant: {
+  name?: string;
+  cancellation_window_hours?: number;
+}): Promise<{ ok: true; published: StudioLegalKind[] } | { ok: false; message: string }> {
+  try {
+    const [status, profile] = await Promise.all([
+      loadStudioLegalStatus(),
+      loadStudioLegalProfile(),
+    ]);
+    if (!status || !profile.imprint_complete) {
+      return { ok: true, published: [] };
+    }
+    const values = await loadStudioLegalRenderContext(profile, tenant);
+    const kinds: StudioLegalKind[] = [];
+    if (status.imprint.status === 'current' || status.imprint.status === 'new_template') {
+      kinds.push('imprint');
+    }
+    if (status.terms.status === 'current' || status.terms.status === 'new_template') {
+      kinds.push('terms');
+    }
+    if (status.privacy.status === 'current' || status.privacy.status === 'new_template') {
+      kinds.push('privacy');
+    }
+    // Impressum ohne Fassung, aber vollständig → einmal publishen
+    if (kinds.length === 0 && profile.imprint_complete) {
+      kinds.push('imprint');
+    }
+    const published: StudioLegalKind[] = [];
+    for (const kind of kinds) {
+      const bodyMd = renderStudioLegalKind(kind, values);
+      const res = await publishStudioLegalDocument({
+        kind,
+        bodyMd,
+        values,
+        trigger: 'settings_change',
+      });
+      if (res.ok) published.push(kind);
+    }
+    return { ok: true, published };
+  } catch (e) {
+    return {
+      ok: false,
+      message: e instanceof Error ? e.message : 'Rechtstexte konnten nicht aktualisiert werden.',
+    };
+  }
 }
 
 export async function releaseStudioLegal(input: {

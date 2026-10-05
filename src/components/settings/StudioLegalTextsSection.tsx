@@ -1,11 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTenant } from '../../context/TenantContext';
-import { BOOKING_CANCELLATION_WINDOW_DEFAULT } from '../../lib/bookingSettings';
-import { asCivilIsoDate } from '../../lib/courseDateTime';
-import { listPassProducts } from '../../lib/passProducts';
 import {
-  buildStudioLegalValues,
+  loadStudioLegalRenderContext,
   loadStudioLegalStatus,
   pillLabel,
   releaseStudioLegal,
@@ -19,9 +16,6 @@ import {
   type StudioLegalProfile,
 } from '../../lib/studioLegalProfile';
 import { useAuth } from '../../context/AuthContext';
-import { choiceFromSetting, loadTaxSettings } from '../../lib/taxStatus';
-import { currentTenantSlug } from '../../lib/tenantSlug';
-import { supabase } from '../../lib/supabase';
 import AccentPill from '../ui/AccentPill';
 import ModalBackdrop from '../ui/ModalBackdrop';
 
@@ -82,7 +76,10 @@ export default function StudioLegalTextsSection({ canManage }: { canManage: bool
     let active = true;
     void (async () => {
       try {
-        const values = await collectValues({ ...profile, extra_rules: extraRules }, tenant);
+        const values = await loadStudioLegalRenderContext(
+          { ...profile, extra_rules: extraRules },
+          tenant,
+        );
         const terms = renderStudioLegalKind('terms', values);
         const privacy = renderStudioLegalKind('privacy', values);
         if (active) setPreview({ terms, privacy });
@@ -115,7 +112,7 @@ export default function StudioLegalTextsSection({ canManage }: { canManage: bool
           return;
         }
       }
-      const values = await collectValues(withExtra, tenant);
+      const values = await loadStudioLegalRenderContext(withExtra, tenant);
       const bodyMd = renderStudioLegalKind(releaseKind, values);
       const res = await releaseStudioLegal({ kind: releaseKind, bodyMd, values });
       setBusy(false);
@@ -322,40 +319,3 @@ function DocCard({
   );
 }
 
-async function collectValues(
-  profile: StudioLegalProfile,
-  tenant: { name?: string; cancellation_window_hours?: number },
-) {
-  const [taxRows, products, setup] = await Promise.all([
-    loadTaxSettings().catch(() => []),
-    listPassProducts().catch(() => []),
-    supabase.rpc('get_payment_setup_status').then((r) => r.data as Record<string, unknown> | null),
-  ]);
-  const todayIso = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Europe/Berlin',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date());
-  const current =
-    taxRows
-      .filter((row) => asCivilIsoDate(row.valid_from) <= todayIso)
-      .sort((a, b) => asCivilIsoDate(b.valid_from).localeCompare(asCivilIsoDate(a.valid_from)))[0] ??
-    null;
-  const choice = current ? choiceFromSetting(current) : null;
-  const active = products.filter((p) => p.archived_at == null);
-  return buildStudioLegalValues({
-    profile,
-    studioName: tenant.name ?? profile.legal_name,
-    studioSlug: currentTenantSlug(),
-    cancellationHours:
-      typeof tenant.cancellation_window_hours === 'number'
-        ? tenant.cancellation_window_hours
-        : BOOKING_CANCELLATION_WINDOW_DEFAULT,
-    taxSmallBusiness: choice === 'small_business',
-    payOnline: setup?.online_payments_enabled === true,
-    payOnsite: setup?.allow_onsite_payment !== false,
-    passesAny: active.length > 0,
-    passesOnline: active.some((p) => p.online_purchasable === true),
-  });
-}

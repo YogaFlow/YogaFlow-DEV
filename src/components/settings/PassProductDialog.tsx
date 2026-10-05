@@ -23,6 +23,7 @@ import {
   onlinePassSwitchBlockReason,
   passProductPreviewLine,
 } from '../../lib/passOnlineTexts';
+import { resyncStudioLegalDocuments } from '../../lib/studioLegal';
 import { supabase } from '../../lib/supabase';
 import { toUiStatus } from '../../features/payments/paymentSetupTypes';
 
@@ -191,6 +192,7 @@ const PassProductDialog: React.FC<Props> = ({ open, product, onClose, onSaved })
         setError(result.message);
         return;
       }
+      void resyncStudioLegalDocuments({});
       onSaved();
       onClose();
     } finally {

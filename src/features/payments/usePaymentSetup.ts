@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { readInvokeErrorBody } from '../../lib/removePerson';
+import { resyncStudioLegalDocuments } from '../../lib/studioLegal';
 import { copy } from './paymentSetupCopy';
 import {
   mockStatus,
@@ -158,6 +159,7 @@ export function usePaymentSetup(enabled: boolean) {
       } else {
         await reload();
       }
+      void resyncStudioLegalDocuments({});
       return { ok: true };
     } catch {
       return { ok: false, code: null, message: copy.genericError };
@@ -181,6 +183,7 @@ export function usePaymentSetup(enabled: boolean) {
         return { ok: false, code, message: mapSwitchError(code, copy.genericError) };
       }
       await reload();
+      void resyncStudioLegalDocuments({});
       return { ok: true };
     } catch {
       return { ok: false, code: null, message: copy.genericError };

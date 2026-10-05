@@ -5,7 +5,14 @@ import {
   saveStudioLegalProfile,
   type StudioLegalProfile,
 } from '../../lib/studioLegalProfile';
-import { LEGAL_FORM_OPTIONS, buildStudioLegalValues, publishStudioLegalDocument, renderStudioLegalKind, studioLegalMarkdownToHtml } from '../../lib/studioLegal';
+import {
+  LEGAL_FORM_OPTIONS,
+  buildStudioLegalValues,
+  publishStudioLegalDocument,
+  renderStudioLegalKind,
+  resyncStudioLegalDocuments,
+  studioLegalMarkdownToHtml,
+} from '../../lib/studioLegal';
 import { FormField } from '../ui/FormField';
 import { useTenant } from '../../context/TenantContext';
 import { BOOKING_CANCELLATION_WINDOW_DEFAULT } from '../../lib/bookingSettings';
@@ -116,6 +123,8 @@ export default function LegalProfileSection({ isOwner }: { isOwner: boolean }) {
           values,
           trigger: 'profile_change',
         });
+        // AGB/Datenschutz neu fassen wenn schon freigegeben (Platzhalter aus Profil).
+        await resyncStudioLegalDocuments(tenant);
       } catch {
         /* Speichern ok; Veröffentlichung kann später nachgeholt werden */
       }

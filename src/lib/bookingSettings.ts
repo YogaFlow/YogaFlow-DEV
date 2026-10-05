@@ -1,5 +1,6 @@
 import type { Tenant } from '../types';
 import { supabase } from './supabase';
+import { resyncStudioLegalDocuments } from './studioLegal';
 
 export const BOOKING_MAX_PARTICIPANTS_MIN = 1;
 export const BOOKING_MAX_PARTICIPANTS_MAX = 50;
@@ -40,5 +41,16 @@ export async function saveBookingSettings(opts: {
     return { ok: false, message: result.message ?? 'Speichern fehlgeschlagen. Bitte versuche es erneut.' };
   }
 
-  return { ok: true, patch: result.tenant ?? {} };
+  const patch = result.tenant ?? {};
+  if (opts.cancellationWindowHours != null) {
+    void resyncStudioLegalDocuments({
+      name: typeof patch.name === 'string' ? patch.name : undefined,
+      cancellation_window_hours:
+        typeof patch.cancellation_window_hours === 'number'
+          ? patch.cancellation_window_hours
+          : opts.cancellationWindowHours,
+    });
+  }
+
+  return { ok: true, patch };
 }
