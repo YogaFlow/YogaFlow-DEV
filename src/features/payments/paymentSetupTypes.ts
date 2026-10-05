@@ -22,6 +22,7 @@ export interface PaymentSetupStatus {
   tax_setting_present: boolean;
   legal_profile_present?: boolean;
   avv_accepted?: boolean;
+  studio_legal_texts_ready?: boolean;
   online_payments_enabled: boolean;
   allow_onsite_payment: boolean;
   requirements_pending: boolean;
@@ -67,6 +68,7 @@ export function mockStatus(ui: PaymentUiStatus): PaymentSetupStatus {
     tax_setting_present: true,
     legal_profile_present: true,
     avv_accepted: true,
+    studio_legal_texts_ready: true,
     online_payments_enabled: ui === 'active',
     allow_onsite_payment: true,
     requirements_pending: ui === 'active',

@@ -57,6 +57,7 @@ export default function OnlinePaymentSection({ isOwner }: Props) {
   const [taxLinkNeeded, setTaxLinkNeeded] = useState(false);
   const [legalLinkNeeded, setLegalLinkNeeded] = useState(false);
   const [avvLinkNeeded, setAvvLinkNeeded] = useState(false);
+  const [studioLegalLinkNeeded, setStudioLegalLinkNeeded] = useState(false);
   const [hideForPlatform, setHideForPlatform] = useState(false);
 
   useEffect(() => {
@@ -113,6 +114,7 @@ export default function OnlinePaymentSection({ isOwner }: Props) {
     setTaxLinkNeeded(false);
     setLegalLinkNeeded(false);
     setAvvLinkNeeded(false);
+    setStudioLegalLinkNeeded(false);
     const result = await setOnlineEnabled(next);
     if (!result.ok) {
       if (result.code === 'PLATFORM_DISABLED') {
@@ -124,6 +126,7 @@ export default function OnlinePaymentSection({ isOwner }: Props) {
       setTaxLinkNeeded(result.code === 'TAX_SETTING_MISSING');
       setLegalLinkNeeded(result.code === 'LEGAL_PROFILE_MISSING');
       setAvvLinkNeeded(result.code === 'AVV_MISSING');
+      setStudioLegalLinkNeeded(result.code === 'STUDIO_LEGAL_TEXTS_MISSING');
     }
   };
 
@@ -132,6 +135,7 @@ export default function OnlinePaymentSection({ isOwner }: Props) {
     setTaxLinkNeeded(false);
     setLegalLinkNeeded(false);
     setAvvLinkNeeded(false);
+    setStudioLegalLinkNeeded(false);
     const result = await setOnsiteAllowed(next);
     if (!result.ok) {
       if (result.code === 'PLATFORM_DISABLED') {
@@ -274,14 +278,17 @@ export default function OnlinePaymentSection({ isOwner }: Props) {
             {status.online_payments_enabled &&
             (!status.tax_setting_present ||
               status.legal_profile_present === false ||
-              status.avv_accepted === false) ? (
+              status.avv_accepted === false ||
+              status.studio_legal_texts_ready === false) ? (
               <p role="status" className="text-[15px] text-text" data-testid="online-not-ready">
                 {copy.active.onlineNotReady(
                   !status.tax_setting_present
                     ? copy.onlineReadyReasons.TAX_SETTING_MISSING
                     : status.legal_profile_present === false
                       ? copy.onlineReadyReasons.LEGAL_PROFILE_MISSING
-                      : copy.onlineReadyReasons.AVV_MISSING,
+                      : status.avv_accepted === false
+                        ? copy.onlineReadyReasons.AVV_MISSING
+                        : copy.onlineReadyReasons.STUDIO_LEGAL_TEXTS_MISSING,
                 )}{' '}
                 {!status.tax_setting_present ? (
                   <a href="#steuern" className="underline text-brand">
@@ -291,7 +298,9 @@ export default function OnlinePaymentSection({ isOwner }: Props) {
                   <a href="/settings/rechtliches" className="underline text-brand">
                     {status.legal_profile_present === false
                       ? copy.switchErrors.LEGAL_PROFILE_LINK
-                      : copy.switchErrors.AVV_LINK}
+                      : status.avv_accepted === false
+                        ? copy.switchErrors.AVV_LINK
+                        : copy.switchErrors.STUDIO_LEGAL_TEXTS_LINK}
                   </a>
                 )}
               </p>
@@ -322,6 +331,14 @@ export default function OnlinePaymentSection({ isOwner }: Props) {
                   {' '}
                   <a href="/settings/rechtliches" className="underline text-brand">
                     {copy.switchErrors.AVV_LINK}
+                  </a>
+                </>
+              ) : null}
+              {studioLegalLinkNeeded ? (
+                <>
+                  {' '}
+                  <a href="/settings/rechtliches" className="underline text-brand">
+                    {copy.switchErrors.STUDIO_LEGAL_TEXTS_LINK}
                   </a>
                 </>
               ) : null}

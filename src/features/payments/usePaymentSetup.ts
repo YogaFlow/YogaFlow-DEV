@@ -75,6 +75,7 @@ function mapSwitchError(code: string | null, fallback: string): string {
   if (code === 'TAX_SETTING_MISSING') return copy.switchErrors.TAX_SETTING_MISSING;
   if (code === 'LEGAL_PROFILE_MISSING') return copy.switchErrors.LEGAL_PROFILE_MISSING;
   if (code === 'AVV_MISSING') return copy.switchErrors.AVV_MISSING;
+  if (code === 'STUDIO_LEGAL_TEXTS_MISSING') return copy.switchErrors.STUDIO_LEGAL_TEXTS_MISSING;
   if (code === 'PROVIDER_NOT_READY') return copy.switchErrors.PROVIDER_NOT_READY;
   if (code === 'PLATFORM_DISABLED') return copy.switchErrors.PLATFORM_DISABLED;
   if (code === 'LAST_METHOD') return copy.switchErrors.LAST_METHOD;

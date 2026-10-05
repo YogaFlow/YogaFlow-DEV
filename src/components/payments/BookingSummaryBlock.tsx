@@ -1,4 +1,5 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import {
   cancelRuleLineCompact,
   checkoutTaxLineAlone,
@@ -8,8 +9,8 @@ import {
   WITHDRAWAL_NOTICE_COMPACT,
   type TaxRegime,
 } from '../../lib/legalCheckoutTexts';
-import LegalDocumentSheet, { LegalDocLink } from '../legal/LegalDocumentSheet';
-import type { LegalDocumentSlug } from '../../generated/legalDocuments';
+import { loadPublicStudioLegal } from '../../lib/studioLegal';
+import { useTenant } from '../../context/TenantContext';
 import ModalBackdrop from '../ui/ModalBackdrop';
 
 export type BookingSummaryData = {
@@ -65,9 +66,11 @@ export function BookingCheckoutFooter({
   alertMessage?: string | null;
   children: ReactNode;
 }) {
-  const [legalDoc, setLegalDoc] = useState<LegalDocumentSlug | null>(null);
+  const { tenant } = useTenant();
   const [providerOpen, setProviderOpen] = useState(false);
+  const [hasTerms, setHasTerms] = useState(false);
   const tax = checkoutTaxLineAlone(data.regime, data.vatRateBp);
+  const studioName = tenant?.name?.trim() || data.providerName;
   const address = providerAddressBlock({
     legalName: data.providerName,
     street: data.providerStreet,
@@ -77,6 +80,16 @@ export function BookingCheckoutFooter({
     contactEmail: data.providerContactEmail,
     phone: data.providerPhone,
   });
+
+  useEffect(() => {
+    let active = true;
+    void loadPublicStudioLegal('terms').then((doc) => {
+      if (active) setHasTerms(Boolean(doc?.body_md));
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <div
@@ -103,6 +116,21 @@ export function BookingCheckoutFooter({
       {children}
 
       <p className="mt-2 text-[12px] leading-snug text-textMuted">
+        {hasTerms ? (
+          <>
+            Es gelten die{' '}
+            <Link to="/agb" className="text-brand underline underline-offset-2">
+              AGB
+            </Link>{' '}
+            von {studioName}.{' '}
+          </>
+        ) : null}
+        Hinweise zum{' '}
+        <Link to="/datenschutz" className="text-brand underline underline-offset-2">
+          Datenschutz
+        </Link>
+        .
+        {' · '}
         {cancelRuleLineCompact(data.cancelDeadlineLabel)}
         {' · '}
         {WITHDRAWAL_NOTICE_COMPACT}
@@ -116,21 +144,8 @@ export function BookingCheckoutFooter({
         >
           {providerCityLine(data.providerName, data.providerCity)}
         </button>
-        {' · '}
-        <LegalDocLink slug="agb" onOpen={setLegalDoc} className="text-brand underline underline-offset-2">
-          AGB
-        </LegalDocLink>
-        {' · '}
-        <LegalDocLink
-          slug="datenschutz"
-          onOpen={setLegalDoc}
-          className="text-brand underline underline-offset-2"
-        >
-          Datenschutz
-        </LegalDocLink>
       </p>
 
-      <LegalDocumentSheet slug={legalDoc} onClose={() => setLegalDoc(null)} />
       <ModalBackdrop
         open={providerOpen}
         visible

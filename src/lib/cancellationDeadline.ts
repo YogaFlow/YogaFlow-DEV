@@ -2,8 +2,37 @@
  * Abmeldefrist-Texte — eine Quelle für Buchungskarte, Checkout und Mail-Spiegelung.
  * Datum: „Do, 8. Okt, 15:45“ (Europe/Berlin).
  */
-
 export const CANCEL_DEADLINE_EXPIRED = 'Die kostenlose Abmeldefrist ist abgelaufen.';
+
+function formatPriceCents(cents: number): string {
+  const abs = Math.abs(Math.round(cents));
+  const euros = Math.floor(abs / 100);
+  const rest = String(abs % 100).padStart(2, '0');
+  return `${euros},${rest} €`;
+}
+
+/**
+ * L12 — Hinweis im Abmelde-Dialog bei Vor-Ort-Buchung nach der Frist.
+ * Vor der Frist: null (kein Hinweis).
+ */
+export function onsiteLateCancelHint(input: {
+  studioName: string;
+  deadlineIso: string | null | undefined;
+  priceCents: number;
+  now?: Date;
+}): string | null {
+  const now = input.now ?? new Date();
+  if (!input.deadlineIso) return null;
+  const ms = new Date(input.deadlineIso).getTime();
+  if (!Number.isFinite(ms) || ms > now.getTime()) return null;
+  if (!Number.isFinite(input.priceCents) || input.priceCents < 0) return null;
+  const studio = input.studioName.trim() || 'Das Studio';
+  const when = formatFriendlyCancellationDeadline(input.deadlineIso);
+  return (
+    `Die kostenlose Abmeldefrist ist vorbei (bis ${when}). ` +
+    `${studio} kann den Kurspreis von ${formatPriceCents(input.priceCents)} trotzdem verlangen.`
+  );
+}
 
 /** Do, 8. Okt, 15:45 */
 export function formatFriendlyCancellationDeadline(iso: string): string {

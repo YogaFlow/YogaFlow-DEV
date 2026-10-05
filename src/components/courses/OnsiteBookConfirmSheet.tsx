@@ -1,6 +1,10 @@
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import ModalBackdrop from '../ui/ModalBackdrop';
 import { BINDING_BOOK_LABEL } from '../../lib/legalCheckoutTexts';
 import { formatPrice } from '../../lib/format';
+import { useTenant } from '../../context/TenantContext';
+import { loadPublicStudioLegal } from '../../lib/studioLegal';
 
 type Props = {
   open: boolean;
@@ -23,6 +27,21 @@ export default function OnsiteBookConfirmSheet({
   onConfirm,
   onClose,
 }: Props) {
+  const { tenant } = useTenant();
+  const studioName = tenant?.name?.trim() || 'dem Studio';
+  const [hasTerms, setHasTerms] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    let active = true;
+    void loadPublicStudioLegal('terms').then((doc) => {
+      if (active) setHasTerms(Boolean(doc?.body_md));
+    });
+    return () => {
+      active = false;
+    };
+  }, [open]);
+
   return (
     <ModalBackdrop
       open={open}
@@ -44,6 +63,22 @@ export default function OnsiteBookConfirmSheet({
             <p className="text-[13px] text-textMuted">{cancelDeadlineLine}</p>
           ) : null}
           <p className="text-[13px] text-textMuted">Du bezahlst vor Ort.</p>
+          <p className="text-[13px] text-textMuted">
+            {hasTerms ? (
+              <>
+                Es gelten die{' '}
+                <Link to="/agb" className="text-brand underline underline-offset-2">
+                  AGB
+                </Link>{' '}
+                von {studioName}.{' '}
+              </>
+            ) : null}
+            Hinweise zum{' '}
+            <Link to="/datenschutz" className="text-brand underline underline-offset-2">
+              Datenschutz
+            </Link>
+            .
+          </p>
         </div>
         <button
           type="button"

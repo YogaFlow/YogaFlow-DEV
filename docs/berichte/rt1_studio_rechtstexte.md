@@ -1,8 +1,8 @@
 # Bericht RT-1 — Studio-Rechtstexte
 
-Status: **angehalten** (Haltestelle 1b — Nachtrag 3 weicht ab).  
+Status: **in Arbeit** (A–D/F Schema+UI; PDF/E2E/Demodata offen).  
 Stand 05.10.2026 · Branch `Julius` · HEAD siehe `git log -1`  
-Vorgabe: [docs/stories/rt1_studio_rechtstexte.md](../stories/rt1_studio_rechtstexte.md) · [Freigabe Teil 0](../stories/rt1_freigabe_teil0.md) · [Entscheidung 17](../entscheidungen/17_Studio_Rechtstexte.md) · Vorlagen-Quelle [docs/legal/studio/vorlagen_v1_quelle.md](../legal/studio/vorlagen_v1_quelle.md)
+Vorgabe: [docs/stories/rt1_studio_rechtstexte.md](../stories/rt1_studio_rechtstexte.md) · [Freigabe Teil 0](../stories/rt1_freigabe_teil0.md) · [Freigabe 1b](../stories/rt1_freigabe_1b.md) · [Entscheidung 17](../entscheidungen/17_Studio_Rechtstexte.md)
 
 Rechtliche Einordnung der Vorlagen von Claude, nicht anwaltlich geprüft. Keine Secrets/E-Mails in diesem Bericht.
 
@@ -197,8 +197,31 @@ Erledigt (siehe Freigabe-Datei).
 
 ---
 
-## Haltestelle 1b — Nachtrag 3 (Abmeldung Vor Ort nach Frist)
+## Haltestelle 1b — erledigt (L12)
 
-**Frage an Julius/Claude:** Soll die AGB-Formulierung („Preis bleibt geschuldet“) bleiben, obwohl Spät-Abmeldung Vor Ort die Buchung aus `get_open_coverage` entfernt — oder soll die Software die offene Forderung nach Spät-Abmeldung behalten (z. B. `status`/`coverage` so lassen, dass Owner sie weiter sieht)?
+Freigabe: [rt1_freigabe_1b.md](../stories/rt1_freigabe_1b.md). Software bleibt; AGB 6.2 präzisiert; Abmelde-Dialog mit Hinweis.
 
-Bis zur Antwort: **kein** Vorlagen-Split, kein Umfang A–G.
+## Fortschritt Umsetzung
+
+| Teil | Stand |
+|---|---|
+| Vorlagen aufgeteilt | `impressum.v1.md` / `agb.v1.md` / `datenschutz.v1.md` (+ `docs/legal/subprocessors.json`) |
+| L12 Abmelde-Hinweis | `onsiteLateCancelHint` + `useCourseEnrollment`; Unit-Test |
+| Render-Matrix | `studioLegalRender.ts` + Unit-Test 54 Kombinationen |
+| A Schema/RPC | Migration `20261005120000_rt1_studio_legal.sql` auf DEV; Smoke `rt1_studio_legal.mjs` grün |
+| A/C UI | Einstellungen › Rechtliches (Impressum+AGB/Datenschutz), Fuß, `/impressum` `/agb` `/datenschutz`, Checkout/Register-Links |
+| F Sperre | `STUDIO_LEGAL_TEXTS_MISSING` in `online_method_block_reason` + Copy/Aufmerksamkeit |
+| B Auto-Fassung bei Settings-Änderung | nur manuell/publish; kein DB-Trigger für Stornofrist o. ä. |
+| D Fassungs-ID schreiben | Spalten da; Schreiben in register/checkout/pass RPCs **offen** |
+| E PDF | **offen** (Edge Function + Mail-Anhang) |
+| G Demodata | **offen** (demoalpha/demobeta) |
+| E2E e2eapp | **offen** |
+| check:ci | grün (lokal nach Apply) |
+
+### Migration / RPC (Kurz)
+
+- `tenant_legal_profiles`: `legal_form`, `representatives`, Register, `vat_id`, `economic_id`, `extra_rules`
+- `studio_legal_documents` append-only; `publish_studio_legal_document` / `release_studio_legal` / `get_studio_legal_status` / `get_public_studio_legal`
+- Vorlagen-Hashes in `legal_document_versions`: `studio_terms_tpl` / `studio_privacy_tpl` Version `2026-10-05`
+- `terms_document_id` auf `registrations`, `payment_attempts`, `passes` (noch ohne Schreibpfad)
+- Bundled Templates: `src/generated/studioLegalTemplates.ts` via `scripts/generate_studio_legal_templates.mjs`

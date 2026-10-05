@@ -77,6 +77,9 @@ export function settingsAttentionItems(input: {
   platformEnabled?: boolean;
   legalProfilePresent?: boolean;
   avvAccepted?: boolean;
+  imprintComplete?: boolean;
+  termsStatus?: 'missing' | 'release' | 'current' | 'new_template';
+  privacyStatus?: 'missing' | 'release' | 'current' | 'new_template';
 }): SettingsAttention[] {
   const items: SettingsAttention[] = [];
   const onlineRelevant = input.onlineEnabled || input.platformEnabled === true;
@@ -91,6 +94,41 @@ export function settingsAttentionItems(input: {
     items.push({
       id: 'legal',
       title: 'Anbieterangaben fehlen – ohne sie ist keine Online-Zahlung möglich.',
+      to: '/settings/rechtliches',
+    });
+  }
+  if (input.imprintComplete === false) {
+    items.push({
+      id: 'imprint',
+      title: 'Impressum unvollständig',
+      to: '/settings/rechtliches',
+    });
+  }
+  if (
+    input.termsStatus === 'missing' ||
+    input.termsStatus === 'release' ||
+    input.termsStatus === 'new_template'
+  ) {
+    items.push({
+      id: 'studio-terms',
+      title:
+        input.termsStatus === 'new_template'
+          ? 'Neue AGB-Vorlage verfügbar'
+          : 'AGB nicht freigegeben',
+      to: '/settings/rechtliches',
+    });
+  }
+  if (
+    input.privacyStatus === 'missing' ||
+    input.privacyStatus === 'release' ||
+    input.privacyStatus === 'new_template'
+  ) {
+    items.push({
+      id: 'studio-privacy',
+      title:
+        input.privacyStatus === 'new_template'
+          ? 'Neue Datenschutz-Vorlage verfügbar'
+          : 'Datenschutz nicht freigegeben',
       to: '/settings/rechtliches',
     });
   }

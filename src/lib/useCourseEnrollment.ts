@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import { ConfirmDialogState } from '../components/ui/ConfirmDialog';
 import type { FeedbackDialogState } from '../components/ui/FeedbackDialog';
 import { useAuth } from '../context/AuthContext';
+import { useTenant } from '../context/TenantContext';
 import { Course, RegisterForCourseResult, Registration } from '../types';
+import { onsiteLateCancelHint } from './cancellationDeadline';
 import {
   passRefundInfo,
   unregisterPassDialogMessage,
@@ -33,6 +35,7 @@ type OwnCourseRegistration = Pick<
   | 'coverage_status'
   | 'cancellation_deadline'
   | 'hold_expires_at'
+  | 'price_cents_at_booking'
 >;
 
 export function useCourseEnrollment(
@@ -45,6 +48,7 @@ export function useCourseEnrollment(
   },
 ) {
   const { userProfile } = useAuth();
+  const { tenant } = useTenant();
   const [registrations, setRegistrations] = useState<OwnCourseRegistration[]>([]);
   const [feedbackDialog, setFeedbackDialog] = useState<EnrollmentFeedbackDialog | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
@@ -109,7 +113,7 @@ export function useCourseEnrollment(
       const { data, error } = await supabase
         .from('registrations')
         .select(
-          'id, course_id, status, is_waitlist, waitlist_position, coverage_status, cancellation_deadline, hold_expires_at',
+          'id, course_id, status, is_waitlist, waitlist_position, coverage_status, cancellation_deadline, hold_expires_at, price_cents_at_booking',
         )
         .eq('user_id', userProfile.id)
         .is('cancellation_timestamp', null);
@@ -218,13 +222,26 @@ export function useCourseEnrollment(
     const paymentPending = reg?.status === 'pending_payment';
     const refund = reg && !paymentPending ? passRefundInfo(reg) : null;
     const online = reg && !paymentPending ? onlineRefundInfo(reg, refundStates[reg.id]) : null;
-    const message = paymentPending
+    let message = paymentPending
       ? `Möchtest du den Platz für „${course.title}“ freigeben? Die Zahlungsfrist entfällt dann.`
       : refund
         ? unregisterPassDialogMessage(refund)
         : online
           ? unregisterOnlineDialogMessage(online)
           : `Möchtest du dich vom Kurs „${course.title}“ abmelden? Der Platz wird wieder frei.`;
+    if (
+      !paymentPending &&
+      !refund &&
+      !online &&
+      reg?.coverage_status === 'open'
+    ) {
+      const late = onsiteLateCancelHint({
+        studioName: tenant?.name ?? 'Das Studio',
+        deadlineIso: reg.cancellation_deadline,
+        priceCents: reg.price_cents_at_booking ?? course.price ?? 0,
+      });
+      if (late) message = late;
+    }
     setPendingUnregisterCourseId(course.id);
     setConfirmDialog({
       title: paymentPending ? 'Platz freigeben?' : 'Vom Kurs abmelden?',

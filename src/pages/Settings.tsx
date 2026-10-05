@@ -18,7 +18,9 @@ import BookingSettingsSection from '../components/settings/BookingSettingsSectio
 import PassProductsSection from '../components/settings/PassProductsSection';
 import StudioDesignSection from '../components/settings/StudioDesignSection';
 import LegalProfileSection from '../components/settings/LegalProfileSection';
+import StudioLegalTextsSection from '../components/settings/StudioLegalTextsSection';
 import AvvAcceptanceSection from '../components/settings/AvvAcceptanceSection';
+import { loadStudioLegalStatus } from '../lib/studioLegal';
 import TaxSettingsSection from '../components/settings/TaxSettingsSection';
 import TeamSettingsSection from '../components/settings/TeamSettingsSection';
 import { fetchStaffCount } from '../lib/settingsStaff';
@@ -84,12 +86,13 @@ async function loadOverview(input: {
   hasLogo: boolean;
   cancellationWindowHours: number;
 }): Promise<OverviewData> {
-  const [taxRows, products, staffCount, setup, avv] = await Promise.all([
+  const [taxRows, products, staffCount, setup, avv, studioLegal] = await Promise.all([
     loadTaxSettings().catch(() => []),
     listPassProducts().catch(() => []),
     fetchStaffCount(),
     loadPaymentSetup(),
     loadAvvStatus().catch(() => null),
+    loadStudioLegalStatus().catch(() => null),
   ]);
   const today = new Date();
   const todayIso = new Intl.DateTimeFormat('en-CA', {
@@ -117,7 +120,15 @@ async function loadOverview(input: {
     platformEnabled: setup?.platform_enabled === true,
     legalProfilePresent: setup ? legalPresent : undefined,
     avvAccepted: avv ? avv.accepted : undefined,
+    imprintComplete: studioLegal ? studioLegal.imprint_complete : undefined,
+    termsStatus: studioLegal?.terms.status,
+    privacyStatus: studioLegal?.privacy.status,
   });
+  const legalLine = studioLegal?.texts_ready
+    ? 'Impressum · AGB · Datenschutz'
+    : studioLegal?.imprint_complete
+      ? 'Impressum ok · Texte freigeben'
+      : legalStatusLine(legalPresent);
   return {
     lines: {
       studio: studioStatusLine({ name: input.studioName, hasLogo: input.hasLogo }),
@@ -125,7 +136,7 @@ async function loadOverview(input: {
       zahlungen: paymentsStatusLine({ onlineEnabled, taxLabel }),
       karten: cardsStatusLine(activeCards),
       team: teamStatusLine(staffCount),
-      rechtliches: legalStatusLine(legalPresent),
+      rechtliches: legalLine,
     },
     attention,
   };
@@ -174,10 +185,11 @@ function CategoryContent({
   if (category === 'karten') return <PassProductsSection />;
   if (category === 'rechtliches') {
     return (
-      <>
+      <div className="space-y-6">
         <LegalProfileSection isOwner={isOwner} />
+        <StudioLegalTextsSection canManage />
         <AvvAcceptanceSection isOwner={isOwner} />
-      </>
+      </div>
     );
   }
   return <TeamSettingsSection />;

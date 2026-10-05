@@ -91,7 +91,7 @@ Für eine Buchung brauchst du ein Konto. Deine Zugangsdaten hältst du geheim. D
    - Online bezahlt: Du bekommst den vollen Betrag auf das ursprüngliche Zahlungsmittel zurück.
    {{#if passes_any}}- Mit Karte gebucht: Der Termin wird deiner Karte wieder gutgeschrieben.{{/if}}
    {{#if pay_onsite}}- Vor Ort zu zahlen: Es fällt nichts an.{{/if}}
-2. Bei einer späteren Abmeldung oder wenn du nicht erscheinst, behalten wir den Anspruch auf den Preis: Ein online gezahlter Betrag wird nicht erstattet{{#if passes_any}}, ein mit Karte gebuchter Termin gilt als genutzt{{/if}}{{#if pay_onsite}}, ein vor Ort zu zahlender Preis bleibt geschuldet{{/if}}. Dir bleibt der Nachweis offen, dass uns kein oder ein geringerer Schaden entstanden ist.
+2. Bei einer späteren Abmeldung oder wenn du nicht erscheinst, behalten wir den Anspruch auf den Preis: Ein online gezahlter Betrag wird nicht erstattet{{#if passes_any}}, ein mit Karte gebuchter Termin gilt als genutzt{{/if}}{{#if pay_onsite}}, und einen vor Ort zu zahlenden Preis dürfen wir weiterhin verlangen{{/if}}. Dir bleibt der Nachweis offen, dass uns kein oder ein geringerer Schaden entstanden ist.
 3. Das gesetzliche Recht zur Kündigung aus wichtigem Grund bleibt unberührt.
 
 ## 7. Absage und Änderungen durch uns

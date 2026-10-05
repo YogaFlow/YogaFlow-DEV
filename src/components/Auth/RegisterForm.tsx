@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTenant } from '../../context/TenantContext';
 import { Eye, EyeOff, Lock } from 'lucide-react';
@@ -241,6 +242,14 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
         </div>
 
         {formError ? <FieldError id="register-form-error" message={formError} /> : null}
+
+        <p className="text-[13px] leading-5 text-textMuted">
+          Mit der Registrierung gelten die{' '}
+          <Link to="/datenschutz" className="text-brand underline underline-offset-2">
+            Datenschutzerklärung
+          </Link>{' '}
+          des Studios.
+        </p>
 
         <button
           type="submit"

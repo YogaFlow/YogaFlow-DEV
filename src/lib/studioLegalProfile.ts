@@ -1,5 +1,7 @@
 import { supabase } from './supabase';
 
+export type StudioLegalForm = 'sole_trader' | 'gbr' | 'ug' | 'gmbh' | 'ev' | 'other';
+
 export type StudioLegalProfile = {
   present: boolean;
   legal_name: string;
@@ -11,6 +13,14 @@ export type StudioLegalProfile = {
   contact_email: string;
   phone: string;
   tax_id: string;
+  legal_form: StudioLegalForm | '';
+  representatives: string;
+  register_court: string;
+  register_number: string;
+  vat_id: string;
+  economic_id: string;
+  extra_rules: string;
+  imprint_complete?: boolean;
 };
 
 export type StudioProviderInfo = {
@@ -38,10 +48,32 @@ const EMPTY_PROFILE: StudioLegalProfile = {
   contact_email: '',
   phone: '',
   tax_id: '',
+  legal_form: '',
+  representatives: '',
+  register_court: '',
+  register_number: '',
+  vat_id: '',
+  economic_id: '',
+  extra_rules: '',
+  imprint_complete: false,
 };
 
 export function emptyLegalProfile(): StudioLegalProfile {
   return { ...EMPTY_PROFILE };
+}
+
+function asForm(raw: unknown): StudioLegalForm | '' {
+  if (
+    raw === 'sole_trader' ||
+    raw === 'gbr' ||
+    raw === 'ug' ||
+    raw === 'gmbh' ||
+    raw === 'ev' ||
+    raw === 'other'
+  ) {
+    return raw;
+  }
+  return '';
 }
 
 export async function loadStudioLegalProfile(): Promise<StudioLegalProfile> {
@@ -65,11 +97,19 @@ export async function loadStudioLegalProfile(): Promise<StudioLegalProfile> {
     contact_email: String(row.contact_email ?? ''),
     phone: String(row.phone ?? ''),
     tax_id: String(row.tax_id ?? ''),
+    legal_form: asForm(row.legal_form),
+    representatives: String(row.representatives ?? ''),
+    register_court: String(row.register_court ?? ''),
+    register_number: String(row.register_number ?? ''),
+    vat_id: String(row.vat_id ?? ''),
+    economic_id: String(row.economic_id ?? ''),
+    extra_rules: String(row.extra_rules ?? ''),
+    imprint_complete: row.imprint_complete === true,
   };
 }
 
-export async function saveStudioLegalProfile(input: Omit<StudioLegalProfile, 'present'>): Promise<
-  { ok: true } | { ok: false; field?: string; message: string }
+export async function saveStudioLegalProfile(input: Omit<StudioLegalProfile, 'present' | 'imprint_complete'>): Promise<
+  { ok: true; imprint_complete: boolean } | { ok: false; field?: string; message: string }
 > {
   const { data, error } = await supabase.rpc('upsert_studio_legal_profile', {
     p_legal_name: input.legal_name,
@@ -81,11 +121,23 @@ export async function saveStudioLegalProfile(input: Omit<StudioLegalProfile, 'pr
     p_contact_email: input.contact_email,
     p_phone: input.phone || null,
     p_tax_id: input.tax_id || null,
+    p_legal_form: input.legal_form || null,
+    p_representatives: input.representatives || null,
+    p_register_court: input.register_court || null,
+    p_register_number: input.register_number || null,
+    p_vat_id: input.vat_id || null,
+    p_economic_id: input.economic_id || null,
+    p_extra_rules: input.extra_rules || null,
   });
   if (error) {
     return { ok: false, message: 'Speichern fehlgeschlagen. Bitte versuche es noch einmal.' };
   }
-  const row = (data ?? {}) as { success?: boolean; error?: string; field?: string };
+  const row = (data ?? {}) as {
+    success?: boolean;
+    error?: string;
+    field?: string;
+    imprint_complete?: boolean;
+  };
   if (row.success === false) {
     if (row.error === 'FORBIDDEN') {
       return { ok: false, message: 'Nur die Inhaberin kann die Anbieterangaben ändern.' };
@@ -96,7 +148,7 @@ export async function saveStudioLegalProfile(input: Omit<StudioLegalProfile, 'pr
       message: validationMessage(row.field),
     };
   }
-  return { ok: true };
+  return { ok: true, imprint_complete: row.imprint_complete === true };
 }
 
 export async function loadStudioProviderInfo(): Promise<StudioProviderInfo | null> {
@@ -149,6 +201,16 @@ function validationMessage(field: string | undefined): string {
       return 'Bitte gib den Ort an.';
     case 'contact_email':
       return 'Bitte gib eine gültige Kontakt-E-Mail an.';
+    case 'legal_form':
+      return 'Bitte wähle die Rechtsform.';
+    case 'representatives':
+      return 'Bitte gib die vertretungsberechtigte Person an.';
+    case 'register_court':
+      return 'Bitte gib das Registergericht an.';
+    case 'register_number':
+      return 'Bitte gib die Registernummer an.';
+    case 'extra_rules':
+      return 'Weitere Regeln: höchstens 1.500 Zeichen.';
     default:
       return 'Bitte prüfe die Angaben.';
   }

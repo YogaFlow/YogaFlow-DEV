@@ -94,6 +94,9 @@ export const copy = {
     LEGAL_PROFILE_LINK: 'Zu den Anbieterangaben',
     AVV_MISSING: 'Bitte bestätige zuerst den Vertrag zur Auftragsverarbeitung.',
     AVV_LINK: 'Zur AVV',
+    STUDIO_LEGAL_TEXTS_MISSING:
+      'Bitte gib zuerst Impressum, AGB und Datenschutz unter Rechtliches frei.',
+    STUDIO_LEGAL_TEXTS_LINK: 'Zu den Rechtstexten',
     PROVIDER_NOT_READY: 'Dein Stripe-Konto ist noch nicht bereit.',
     PLATFORM_DISABLED: 'Online-Zahlung ist auf der Plattform noch nicht freigeschaltet.',
     LAST_METHOD: 'Mindestens ein Zahlungsweg muss an bleiben.',
@@ -103,6 +106,7 @@ export const copy = {
     TAX_SETTING_MISSING: 'Steuerstatus fehlt',
     LEGAL_PROFILE_MISSING: 'Anbieterangaben fehlen',
     AVV_MISSING: 'AVV fehlt',
+    STUDIO_LEGAL_TEXTS_MISSING: 'Studio-Rechtstexte fehlen',
     PROVIDER_NOT_READY: 'Stripe-Konto ist noch nicht bereit',
     PLATFORM_DISABLED: 'auf der Plattform noch nicht freigeschaltet',
     AMOUNT_ABOVE_RECEIPT_LIMIT: 'Preis über 250 €',

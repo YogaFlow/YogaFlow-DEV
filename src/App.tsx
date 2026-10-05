@@ -25,6 +25,7 @@ import Layout from './components/Layout/Layout';
 
 import OnboardingWizard from './pages/OnboardingWizard';
 import LegalPage from './pages/LegalPage';
+import StudioLegalPage from './pages/StudioLegalPage';
 import JoinStudio from './pages/JoinStudio';
 import CourseDetail from './pages/CourseDetail';
 import CourseCheckout from './pages/CourseCheckout';
@@ -303,6 +304,32 @@ function App() {
               element={
                 <TenantGuard>
                   <Widerruf />
+                </TenantGuard>
+              }
+            />
+
+            {/* RT-1: Studio-Rechtstexte öffentlich */}
+            <Route
+              path="/impressum"
+              element={
+                <TenantGuard>
+                  <StudioLegalPage />
+                </TenantGuard>
+              }
+            />
+            <Route
+              path="/datenschutz"
+              element={
+                <TenantGuard>
+                  <StudioLegalPage />
+                </TenantGuard>
+              }
+            />
+            <Route
+              path="/agb"
+              element={
+                <TenantGuard>
+                  <StudioLegalPage />
                 </TenantGuard>
               }
             />

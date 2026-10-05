@@ -17,5 +17,6 @@ Rechtliche Einordnung von Claude, nicht anwaltlich geprüft.
 | L9 | Sperre: Neuer Grund `STUDIO_LEGAL_TEXTS_MISSING` — Online-Zahlung (Kurse und Karten) erst, wenn Impressum vollständig und AGB + Datenschutz freigegeben. Zusätzlich zu den bestehenden Gründen, gleiche Anzeige („Online ist noch nicht bereit: …“ mit Sprung). Bestehende Online-Studios auf DEV: Grund greift sofort (gewollt, Klicktest). |
 | L10 | Keine OS-Plattform-Verlinkung (EU-Streitschlichtungsplattform ist seit 20.07.2025 abgeschaltet). Stattdessen VSBG-Satz in AGB/Impressum. |
 | L11 | Nur Owner/Admin pflegen und geben frei; Lehrende sehen nichts davon. RLS: Lesen der aktuellen Fassungen öffentlich je Tenant (nur Art + Markdown + Datum), alles andere nur Owner/Admin des Tenants. |
+| L12 | Spät-Abmeldung Vor Ort: Software behält `cancelled` (keine offene Forderung in Kasse/Übersicht). AGB 6.2 sagt „dürfen wir weiterhin verlangen“ (Recht des Studios, keine Aussage, dass Omlify die Forderung führt). Abmelde-Dialog zeigt vor der Bestätigung einen Hinweis mit Frist und Preis (analog R3 Online). Forderungsmanagement später nur bei Bedarf als eigene Story. |
 
 Bewusst nicht in RT-1: Omlifys eigene Nutzungsbedingungen (B2B) und Datenschutz/Impressum für omlify.de → RT-2, nachdem Teil 0 zeigt, was davon existiert.
