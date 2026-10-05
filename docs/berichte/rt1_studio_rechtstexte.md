@@ -1,8 +1,8 @@
 # Bericht RT-1 — Studio-Rechtstexte
 
-Status: **angehalten** (Haltestelle 1 — Freigabe Teil 0).  
+Status: **angehalten** (Haltestelle 1b — Nachtrag 3 weicht ab).  
 Stand 05.10.2026 · Branch `Julius` · HEAD siehe `git log -1`  
-Vorgabe: [docs/stories/rt1_studio_rechtstexte.md](../stories/rt1_studio_rechtstexte.md) · [Entscheidung 17](../entscheidungen/17_Studio_Rechtstexte.md) · Vorlagen-Quelle [docs/legal/studio/vorlagen_v1_quelle.md](../legal/studio/vorlagen_v1_quelle.md)
+Vorgabe: [docs/stories/rt1_studio_rechtstexte.md](../stories/rt1_studio_rechtstexte.md) · [Freigabe Teil 0](../stories/rt1_freigabe_teil0.md) · [Entscheidung 17](../entscheidungen/17_Studio_Rechtstexte.md) · Vorlagen-Quelle [docs/legal/studio/vorlagen_v1_quelle.md](../legal/studio/vorlagen_v1_quelle.md)
 
 Rechtliche Einordnung der Vorlagen von Claude, nicht anwaltlich geprüft. Keine Secrets/E-Mails in diesem Bericht.
 
@@ -160,24 +160,45 @@ Anzeige Client:
 
 ---
 
-### Hinweise für Umsetzung (kein STOPP außer Haltestelle 1)
+### Hinweise für Umsetzung (überholt durch Freigabe / Haltestelle 1b)
 
-1. Checkout zeigt heute Omlify-Texte — Teil D muss auf Studio-Fassungen umbiegen, sonst falsche Vertragspartner-Information.
-2. `{{> widerrufsbelehrung_karten}}` braucht eine kanonische Quelle (heute String in `passOnlineTexts.ts`); Vorlagen-Hinweis: eine Quelle, kein Duplikat.
-3. `tax_id` vs. neues `vat_id`: Migration muss klar trennen oder migrieren; Beleg-Snapshot heute nur `tax_id`.
-4. Unterauftrags-Liste: Parser/Snapshot aus AVV-Anlage 2 oder gemeinsame Datei — Abweichung AVV ↔ Datenschutz = Testfehler.
-5. PDF: Dependency-Wahl vor Teil E freigeben lassen.
+---
+
+## Freigabe Teil 0 (angenommen)
+
+Quelle: [rt1_freigabe_teil0.md](../stories/rt1_freigabe_teil0.md).
+
+| # | Entscheidung |
+|---|---|
+| F1 | Omlify-Links in allen Buchungs-/Kaufpfaden durch Studio-Texte ersetzen (L7). Ohne freigegebene AGB: Vor Ort keinen AGB-Link, Datenschutz-Link Studio-Seite (L8). Online gesperrt (L9). Omlify-Texte nur wo Omlify Vertragspartner ist → RT-2. |
+| F2 | AGB 6.2 = Software — Vorlage bleibt. |
+| F3 | PDF via Edge Function + `pdf-lib`, Schrift im Repo; Outbox-Auftrag `legal_pdf.render`; Mail wartet bis 10 min, sonst Link + `ops_alert` (L6). |
+| F4 | `health_notes`-Block entfernen — einzige erlaubte Wortlaut-Änderung. |
+
+L1–L11 unverändert. Demodaten nach G.
+
+---
+
+## Nachträge vor Umfang A (Datei:Zeile)
+
+| # | Satz | Ergebnis |
+|---|---|---|
+| N1 | `tax_id` ist heute **ein** Freitext „Steuernummer oder USt-IdNr.“ (`LegalProfileSection.tsx:18`, Spalte `tenant_legal_profiles.tax_id` in `20261004090000_b1_legal_profiles.sql:34`). Die Impressum-Vorlage zeigt nur `{{vat_id}}` / `{{economic_id}}` (`vorlagen_v1_quelle.md:48–51`) — **kein** Steuernummer-Platzhalter. → Neues Feld `vat_id` (und `economic_id`) fürs Impressum; `tax_id` bleibt getrennt (Beleg/optional). Passt zur Freigabe. |
+| N2 | Auf Studio-Subdomains: kein Analytics/Tracking/Sentry in `src/` (0 Treffer gtag/sentry/plausible/…); `index.html:1–26` ohne Fremd-Script/Fonts; App-Fonts lokal (`src/index.css` erbt, Marketing-`@font-face` nur Apex). Google-Fonts nur in `docs/landingpage-prototyp.html:38–40` (nicht Studio-SPA). → Vorlage Ziffer 4 („keine Analyse- oder Werbe-Cookies“) passt. |
+| N3 | **Abweichung.** Freigabe: „Software tut nichts → passt zu bleibt geschuldet“. Ist: `unregister_from_course` setzt immer `status = cancelled` (`20261002113000_s3_2a_refund_triggers.sql:137–144`), ohne Frist-Sperre und ohne Erlass/Zahlung. Für Vor-Ort/`open` gibt es **keine** Rückbuchung und **keine** Hinweiszeile „Preis bleibt geschuldet“. Gleichzeitig fällt die Zeile aus der Offenen-Liste: `get_open_coverage` filtert `status = 'registered'` und `coverage_status = 'open'` (`20261004240000_ux5_archived_rls.sql:93–94`). Nach Spät-Abmeldung Vor Ort ist die Forderung im Produkt **nicht mehr sichtbar** — das ist mehr als „tut nichts“ und schwächt „bleibt geschuldet“ operativ. → **STOPP**. |
+| N4 | Unterauftragsverarbeiter: nur Markdown-Tabelle AVV Anlage 2 (`docs/legal/AVV_Auftragsverarbeitung.md:258–269`). Kein `docs/legal/subprocessors.json`. → Neu anlegen; AVV und Datenschutz lesen daraus (laut Freigabe). |
+| N5 | Omlify-eigene Texte für RT-2 liegen im Repo: `docs/legal/Impressum.md`, `docs/legal/Datenschutzerklaerung.md`, `docs/legal/AGB.md` (Nutzungsbedingungen B2B), `docs/legal/AVV_Auftragsverarbeitung.md`; gerendert über `scripts/render-legal-pages.mjs` → `legal/*.html` + `src/generated/legalDocuments.ts`. |
 
 ---
 
 ## Haltestelle 1 — Freigabe Teil 0
 
-Bitte prüfen und freigeben:
+Erledigt (siehe Freigabe-Datei).
 
-1. Inventur oben (Bestand, Anbieter, Platzhalter, Datenschutz-Fakten, Mails, Buchungspfade, Sperre).
-2. AGB 6.2 ↔ Software: **übereinstimmend** (keine Textänderung nötig).
-3. `health_notes`: Abschnitt in Datenschutz-Vorlage **weglassen**.
-4. Vorlagen erst nach Freigabe in `impressum.v1.md` / `agb.v1.md` / `datenschutz.v1.md` aufteilen (Wortlaut unverändert aus `vorlagen_v1_quelle.md`).
-5. Danach Umsetzung A–G laut Story.
+---
 
-**Warte auf Freigabe.** Kein Schema-, Functions- oder UI-Code bis dahin.
+## Haltestelle 1b — Nachtrag 3 (Abmeldung Vor Ort nach Frist)
+
+**Frage an Julius/Claude:** Soll die AGB-Formulierung („Preis bleibt geschuldet“) bleiben, obwohl Spät-Abmeldung Vor Ort die Buchung aus `get_open_coverage` entfernt — oder soll die Software die offene Forderung nach Spät-Abmeldung behalten (z. B. `status`/`coverage` so lassen, dass Owner sie weiter sieht)?
+
+Bis zur Antwort: **kein** Vorlagen-Split, kein Umfang A–G.

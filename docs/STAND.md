@@ -1,6 +1,6 @@
 # STAND — Omlify DEV
 
-Stand: 2026-10-05 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [rt1_studio_rechtstexte.md](berichte/rt1_studio_rechtstexte.md) (Teil 0)
+Stand: 2026-10-05 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [rt1_studio_rechtstexte.md](berichte/rt1_studio_rechtstexte.md) (Haltestelle 1b)
 
 ## DEV
 
@@ -25,12 +25,13 @@ Stand: 2026-10-05 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [rt1_stu
 
 ## Nächste Schritte
 
-- RT-1 nach Freigabe Teil 0: Vorlagen aufteilen, dann A–G
+- RT-1 nach Klärung Haltestelle 1b: Vorlagen aufteilen, dann A–G
 - Klicktest Z8 (Vera Neu-Hinweis; Nina Rückgängig Vor Ort) — parallel offen
 
 ## Haltestellen / wartet auf Julius
 
-- **RT-1 Haltestelle 1** — Teil-0-Inventur freigeben: [rt1_studio_rechtstexte.md](berichte/rt1_studio_rechtstexte.md)
+- **RT-1 Haltestelle 1b** — Spät-Abmeldung Vor Ort vs. „bleibt geschuldet“ / `get_open_coverage`: [rt1_studio_rechtstexte.md](berichte/rt1_studio_rechtstexte.md)
+- Freigabe Teil 0 liegt vor: [rt1_freigabe_teil0.md](stories/rt1_freigabe_teil0.md)
 - **Z8 Haltestelle** — genau 2 Klickpunkte in [zw1_zahlungswege.md](berichte/zw1_zahlungswege.md)
 - Klicktest UX-4 Nachtrag N1–N3 (Toast-Balken mit neuem Kontrast erneut prüfen)
 - UX-2 B1: Test-Mail + Screenshots (falls noch offen)
@@ -40,7 +41,7 @@ Stand: 2026-10-05 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [rt1_stu
 
 ## hier weitermachen
 
-Nach Freigabe RT-1 Teil 0: Vorlagen in `impressum.v1.md` / `agb.v1.md` / `datenschutz.v1.md` aufteilen (Wortlaut unverändert), dann Umfang A.
+Nach Antwort zu Haltestelle 1b: Vorlagen aufteilen, dann A–G.
 
 ## Verweise
 
