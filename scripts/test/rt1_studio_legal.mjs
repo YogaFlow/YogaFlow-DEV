@@ -7,6 +7,7 @@ import {
   abbruch,
   assertDevEnv,
   clientMitTenant,
+  kursAnlegen,
   ladeEnv,
   legalProfileSetzen,
   login,
@@ -85,6 +86,56 @@ async function main() {
 
     const pubImp = await asAnon.rpc('get_public_studio_legal', { p_kind: 'imprint' });
     ok('Öffentlich Impressum Antwort', pubImp.data?.success === true, JSON.stringify(pubImp.data));
+
+    // terms_document_id: INSERT-Trigger (wie register_for_course / create_pending)
+    const teacher = await nutzerAnlegen(admin, {
+      email: EMAIL_PREFIX + 'teacher@example.com',
+      vorname: 'Tina',
+      nachname: 'Teach',
+      rolle: 'teacher',
+      tenantId: tenant.id,
+      password,
+    });
+    const course = await kursAnlegen(admin, tenant.id, teacher.id, {
+      title: 'RT1 Free',
+      date: '2099-06-01',
+      price: 0,
+    });
+    const user = await nutzerAnlegen(admin, {
+      email: EMAIL_PREFIX + 'user@example.com',
+      vorname: 'Una',
+      nachname: 'User',
+      rolle: 'user',
+      tenantId: tenant.id,
+      password,
+    });
+    const { data: regRow, error: re } = await admin
+      .from('registrations')
+      .insert({
+        user_id: user.id,
+        course_id: course.id,
+        tenant_id: tenant.id,
+        status: 'registered',
+        is_waitlist: false,
+      })
+      .select('id, terms_document_id')
+      .single();
+    if (re) abbruch('Registration insert: ' + re.message);
+    ok(
+      'terms_document_id gesetzt',
+      typeof regRow?.terms_document_id === 'string' && regRow.terms_document_id.length > 10,
+      JSON.stringify(regRow),
+    );
+
+    const { data: pdfJobs } = await admin
+      .from('studio_legal_pdf_jobs')
+      .select('id, status')
+      .eq('tenant_id', tenant.id);
+    ok(
+      'PDF-Jobs enqueued',
+      Array.isArray(pdfJobs) && pdfJobs.length >= 1,
+      String(pdfJobs?.length ?? 0),
+    );
 
     console.log('rt1_studio_legal: ok');
   } finally {
