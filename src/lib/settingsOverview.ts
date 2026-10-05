@@ -78,8 +78,8 @@ export function settingsAttentionItems(input: {
   legalProfilePresent?: boolean;
   avvAccepted?: boolean;
   imprintComplete?: boolean;
-  termsStatus?: 'missing' | 'release' | 'current' | 'new_template';
-  privacyStatus?: 'missing' | 'release' | 'current' | 'new_template';
+  termsStatus?: 'missing' | 'release' | 'current' | 'new_template' | 'change_release';
+  privacyStatus?: 'missing' | 'release' | 'current' | 'new_template' | 'change_release';
 }): SettingsAttention[] {
   const items: SettingsAttention[] = [];
   const onlineRelevant = input.onlineEnabled || input.platformEnabled === true;
@@ -101,21 +101,24 @@ export function settingsAttentionItems(input: {
     items.push({
       id: 'imprint',
       title: 'Impressum unvollständig',
-      to: '/settings/rechtliches',
+      to: '/settings/rechtliches/impressum',
     });
   }
   if (
     input.termsStatus === 'missing' ||
     input.termsStatus === 'release' ||
-    input.termsStatus === 'new_template'
+    input.termsStatus === 'new_template' ||
+    input.termsStatus === 'change_release'
   ) {
     items.push({
       id: 'studio-terms',
       title:
         input.termsStatus === 'new_template'
           ? 'Neue AGB-Vorlage verfügbar'
-          : 'AGB nicht freigegeben',
-      to: '/settings/rechtliches',
+          : input.termsStatus === 'change_release'
+            ? 'AGB-Änderung freigeben'
+            : 'AGB nicht freigegeben',
+      to: '/settings/rechtliches/agb',
     });
   }
   if (
@@ -129,7 +132,7 @@ export function settingsAttentionItems(input: {
         input.privacyStatus === 'new_template'
           ? 'Neue Datenschutz-Vorlage verfügbar'
           : 'Datenschutz nicht freigegeben',
-      to: '/settings/rechtliches',
+      to: '/settings/rechtliches/datenschutz',
     });
   }
   if (input.avvAccepted === false) {

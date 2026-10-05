@@ -76,6 +76,51 @@ async function main() {
 
     const statusOk = await asOwner.rpc('get_studio_legal_status');
     ok('texts_ready', statusOk.data?.texts_ready === true, JSON.stringify(statusOk.data));
+    ok('AGB aktuell', statusOk.data?.terms?.status === 'current', JSON.stringify(statusOk.data?.terms));
+
+    // Weitere Regeln → change_release; Stornofrist allein bleibt current
+    await legalProfileSetzen(asOwner, {
+      p_legal_name: 'Rita Recht Yoga',
+      p_legal_form: 'sole_trader',
+      p_extra_rules: 'Matte mitbringen.',
+    });
+    const statusExtra = await asOwner.rpc('get_studio_legal_status');
+    ok(
+      'Weitere Regeln → Änderung freigeben',
+      statusExtra.data?.terms?.status === 'change_release',
+      JSON.stringify(statusExtra.data?.terms),
+    );
+
+    await legalProfileSetzen(asOwner, {
+      p_legal_name: 'Rita Recht Yoga',
+      p_legal_form: 'sole_trader',
+      p_extra_rules: null,
+    });
+    await studioLegalFreigeben(asOwner);
+    const { createHash } = await import('node:crypto');
+    const normalize = (t) =>
+      String(t)
+        .replace(/\r\n/g, '\n')
+        .replace(/[ \t]+$/gm, '')
+        .replace(/\n+$/g, '')
+        .concat('\n');
+    const hash = (t) => createHash('sha256').update(normalize(t), 'utf8').digest('hex');
+    const bodySettings = '# AGB Test\n\nStand: Einstellungen.\n';
+    const pubSettings = await asOwner.rpc('publish_studio_legal_document', {
+      p_kind: 'terms',
+      p_template_version: '2026-10-05',
+      p_body_md: bodySettings,
+      p_values: { extra_rules: '', cancellation_hours: '12 Stunden' },
+      p_content_hash: hash(bodySettings),
+      p_trigger: 'settings_change',
+    });
+    ok('settings publish', pubSettings.data?.success === true, JSON.stringify(pubSettings.data));
+    const statusSettings = await asOwner.rpc('get_studio_legal_status');
+    ok(
+      'nur Einstellung → keine neue Freigabe',
+      statusSettings.data?.terms?.status === 'current',
+      JSON.stringify(statusSettings.data?.terms),
+    );
 
     const pubTerms = await asAnon.rpc('get_public_studio_legal', { p_kind: 'terms' });
     ok(

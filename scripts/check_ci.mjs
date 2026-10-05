@@ -57,6 +57,7 @@ run('Lint', npm, ['run', 'lint']);
 run('K1 Pass-Texte', 'node', ['scripts/test/k1_pass_texts.mjs']);
 run('K1 Kartenverlauf', 'node', ['--experimental-strip-types', '--test', 'scripts/test/k1_pass_history.mjs']);
 run('RT-1 Legal-Render', 'node', ['--experimental-strip-types', 'scripts/test/rt1_studio_legal_render.mjs']);
+run('RT-1 Freigabe-Status', 'node', ['--experimental-strip-types', 'scripts/test/rt1_legal_release_status.mjs']);
 run('RT-1 Abmelde-Hinweis', 'node', ['--experimental-strip-types', 'scripts/test/rt1_cancel_onsite_hint.ts']);
 run('Stripe nur im Adapter', npm, ['run', 'check:provider-boundary']);
 run('Edge-Function-Tests', npm, ['run', 'test:deno']);

@@ -16,6 +16,7 @@ import {
 } from '../generated/studioLegalTemplates';
 import {
   loadStudioLegalProfile,
+  saveStudioLegalProfile,
   type StudioLegalForm,
   type StudioLegalProfile,
 } from './studioLegalProfile';
@@ -23,10 +24,26 @@ import { currentTenantSlug } from './tenantSlug';
 import { asCivilIsoDate } from './courseDateTime';
 import { listPassProducts } from './passProducts';
 import { choiceFromSetting, loadTaxSettings } from './taxStatus';
+import {
+  computeTermsPillStatus,
+  legalVersionTriggerLabel,
+  pillLabel,
+  pillLabelShort,
+  statusCardLabel,
+  type StudioLegalPillStatus,
+  type StudioLegalVersionTrigger,
+} from './studioLegalStatus';
+
+export {
+  computeTermsPillStatus,
+  legalVersionTriggerLabel,
+  pillLabel,
+  pillLabelShort,
+  statusCardLabel,
+};
+export type { StudioLegalPillStatus };
 
 const DEFAULT_CANCELLATION_HOURS = 24;
-
-export type StudioLegalPillStatus = 'missing' | 'release' | 'current' | 'new_template';
 
 export type StudioLegalKindStatus = {
   status: StudioLegalPillStatus;
@@ -34,6 +51,14 @@ export type StudioLegalKindStatus = {
   template_version: string | null;
   current_template_version?: string | null;
   accepted_version?: string | null;
+};
+
+export type StudioLegalVersionRow = {
+  id: string;
+  created_at: string;
+  trigger: StudioLegalVersionTrigger;
+  pdf_path: string | null;
+  values: Record<string, unknown>;
 };
 
 export type StudioLegalStatus = {
@@ -66,31 +91,6 @@ export const LEGAL_FORM_OPTIONS: { value: StudioLegalForm; label: string }[] = [
 
 export function legalFormLabel(form: StudioLegalForm | ''): string {
   return LEGAL_FORM_OPTIONS.find((o) => o.value === form)?.label ?? '';
-}
-
-export function pillLabel(status: StudioLegalPillStatus, createdAt: string | null): string {
-  switch (status) {
-    case 'missing':
-      return 'Fehlt';
-    case 'release':
-      return 'Freigeben';
-    case 'new_template':
-      return 'Neue Vorlage verfügbar';
-    case 'current': {
-      if (!createdAt) return 'Aktuell';
-      const d = new Date(createdAt);
-      if (Number.isNaN(d.getTime())) return 'Aktuell';
-      const label = new Intl.DateTimeFormat('de-DE', {
-        timeZone: 'Europe/Berlin',
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      }).format(d);
-      return `Aktuell · Fassung vom ${label}`;
-    }
-    default:
-      return 'Fehlt';
-  }
 }
 
 function normalizeLegalText(text: string): string {
@@ -179,7 +179,11 @@ export async function loadStudioLegalStatus(): Promise<StudioLegalStatus | null>
     const status = o.status;
     return {
       status:
-        status === 'release' || status === 'current' || status === 'new_template' || status === 'missing'
+        status === 'release' ||
+        status === 'current' ||
+        status === 'new_template' ||
+        status === 'change_release' ||
+        status === 'missing'
           ? status
           : 'missing',
       created_at: o.created_at == null ? null : String(o.created_at),
@@ -334,6 +338,67 @@ export async function releaseStudioLegal(input: {
     return { ok: false, message: releaseErrorMessage(row.error) };
   }
   return { ok: true, id: String(row.document_id ?? '') };
+}
+
+/** Fassungen einer Art (neueste zuerst) — nur Owner/Admin via RLS. */
+export async function loadStudioLegalVersions(
+  kind: StudioLegalKind,
+): Promise<StudioLegalVersionRow[]> {
+  const { data, error } = await supabase
+    .from('studio_legal_documents')
+    .select('id, created_at, trigger, pdf_path, values')
+    .eq('kind', kind)
+    .order('created_at', { ascending: false })
+    .limit(40);
+  if (error || !Array.isArray(data)) return [];
+  return data.map((row) => {
+    const trigger = row.trigger;
+    return {
+      id: String(row.id),
+      created_at: String(row.created_at),
+      trigger:
+        trigger === 'release' || trigger === 'settings_change' || trigger === 'profile_change'
+          ? trigger
+          : 'settings_change',
+      pdf_path: row.pdf_path == null ? null : String(row.pdf_path),
+      values:
+        row.values && typeof row.values === 'object' && !Array.isArray(row.values)
+          ? (row.values as Record<string, unknown>)
+          : {},
+    };
+  });
+}
+
+/**
+ * Weitere Regeln speichern und AGB-Fassung neu veröffentlichen (wenn schon freigegeben).
+ * Löst change_release aus, bis erneut freigegeben wird.
+ */
+export async function saveExtraRulesAndResync(input: {
+  profile: StudioLegalProfile;
+  extraRules: string;
+  tenant: { name?: string; cancellation_window_hours?: number };
+}): Promise<{ ok: true } | { ok: false; message: string }> {
+  const withExtra = { ...input.profile, extra_rules: input.extraRules };
+  const saved = await saveStudioLegalProfile(withExtra);
+  if (!saved.ok) return { ok: false, message: saved.message };
+  const status = await loadStudioLegalStatus();
+  if (
+    status &&
+    (status.terms.status === 'current' ||
+      status.terms.status === 'change_release' ||
+      status.terms.status === 'new_template')
+  ) {
+    const values = await loadStudioLegalRenderContext(withExtra, input.tenant);
+    const bodyMd = renderStudioLegalKind('terms', values);
+    const pub = await publishStudioLegalDocument({
+      kind: 'terms',
+      bodyMd,
+      values,
+      trigger: 'profile_change',
+    });
+    if (!pub.ok) return { ok: false, message: pub.message };
+  }
+  return { ok: true };
 }
 
 export async function loadPublicStudioLegal(
