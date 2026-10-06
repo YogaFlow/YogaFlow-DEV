@@ -5,7 +5,7 @@
  *
  *   node scripts/dev/demo_v3.mjs
  */
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -97,7 +97,11 @@ const env = { ...ladeEnv(join(root, '.env')), ...ladeEnv(join(root, 'supabase', 
 const url = env.VITE_SUPABASE_URL;
 const anon = env.VITE_SUPABASE_ANON_KEY;
 const service = env.SUPABASE_SERVICE_ROLE_KEY;
+const stripeKey = env.STRIPE_SECRET_KEY ?? '';
+const jobsSecret = (env.PROVIDER_JOBS_SECRET ?? '').trim();
 if (!url?.includes(ERLAUBTE_DEV_REF) || !anon || !service) fail('DEV-Env unvollständig');
+if (!/^(sk|rk)_test_/.test(stripeKey)) fail('STRIPE_SECRET_KEY (test) fehlt');
+if ((env.PAYMENTS_MODE ?? '').trim() !== 'test') fail('Nur PAYMENTS_MODE=test');
 
 const password = env.DEMO_PASSWORT || seedPasswort();
 const admin = createClient(url, service, {
@@ -111,6 +115,85 @@ const { data: tenant, error: te } = await admin
   .single();
 if (te || !tenant) fail('demoalpha fehlt');
 const tenantId = tenant.id;
+
+const { data: accounts } = await admin
+  .from('provider_accounts')
+  .select('provider_ref, onboarding_status, disconnected_at')
+  .eq('tenant_id', tenantId)
+  .eq('provider', 'stripe');
+const stripeAccount = (accounts ?? []).find(
+  (a) => a.onboarding_status === 'active' && a.disconnected_at == null && a.provider_ref,
+);
+if (!stripeAccount?.provider_ref) fail('demoalpha braucht aktives Stripe-Testkonto');
+const accountRef = stripeAccount.provider_ref;
+
+// --- U0b: Fake-Zeilen (pi_test_…) — Kurse archivieren, Jobs erledigen, Alarme schließen ---
+{
+  const nowIso = new Date().toISOString();
+  const { data: fakePays } = await admin
+    .from('payments')
+    .select('id, provider_ref, registration_id')
+    .eq('tenant_id', tenantId)
+    .eq('method', 'card')
+    .gt('amount_cents', 0)
+    .is('reverses_payment_id', null);
+  const fake = (fakePays ?? []).filter(
+    (p) => !p.provider_ref || !/^pi_[A-Za-z0-9]{24}$/.test(p.provider_ref),
+  );
+  const regIds = fake.map((p) => p.registration_id).filter(Boolean);
+  const courseIds = new Set();
+  if (regIds.length > 0) {
+    const { data: regs } = await admin.from('registrations').select('course_id').in('id', regIds);
+    for (const r of regs ?? []) if (r.course_id) courseIds.add(r.course_id);
+  }
+  // Titel aus altem Seed explizit
+  const { data: titled } = await admin
+    .from('courses')
+    .select('id, title')
+    .eq('tenant_id', tenantId)
+    .is('archived_at', null)
+    .in('title', ['Abgesagt mit Erstattung', 'Olaf Teilerstattung Demo']);
+  for (const c of titled ?? []) courseIds.add(c.id);
+
+  const archiveIds = [...courseIds];
+  if (archiveIds.length > 0) {
+    const { data: archived } = await admin
+      .from('courses')
+      .update({ archived_at: nowIso })
+      .in('id', archiveIds)
+      .is('archived_at', null)
+      .select('id, title');
+    console.log(
+      'U0b archivierte Kurse:',
+      (archived ?? []).map((c) => c.title).join(', ') || '(keine neu)',
+    );
+  }
+
+  const { data: failedJobs } = await admin
+    .from('provider_jobs')
+    .select('id')
+    .eq('tenant_id', tenantId)
+    .eq('status', 'failed');
+  if (failedJobs?.length) {
+    await admin
+      .from('provider_jobs')
+      .update({ status: 'done', done_at: nowIso, updated_at: nowIso })
+      .in(
+        'id',
+        failedJobs.map((j) => j.id),
+      );
+    console.log('U0b provider_jobs → done:', failedJobs.length);
+  }
+
+  // Alarme schließen (bestehender Weg: collect → apply; Archiv-Filter in Migration)
+  const collect = await admin.rpc('ops_monitor_collect');
+  if (collect.error) console.warn('ops_monitor_collect', collect.error.message);
+  else {
+    const apply = await admin.rpc('ops_monitor_apply', { p_findings: collect.data ?? [] });
+    if (apply.error) console.warn('ops_monitor_apply', apply.error.message);
+    else console.log('U0b ops_monitor_apply', JSON.stringify(apply.data));
+  }
+}
 
 // Kartenhinweis Standard aus
 await admin
@@ -330,7 +413,26 @@ async function ensureReg(userId, courseId, patch = {}) {
   return inserted.id;
 }
 
-async function payOnline(userId, registrationId, amountCents, tag) {
+async function stripeJobsAnstossen() {
+  if (!jobsSecret) return;
+  await fetch(`${url}/functions/v1/payments-jobs`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${jobsSecret}`, 'Content-Type': 'application/json' },
+    body: '{}',
+  });
+}
+
+async function warteBis(pruef, maxMs, label) {
+  const start = Date.now();
+  while (Date.now() - start < maxMs) {
+    if (await pruef()) return;
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+  fail(`${label}: Timeout nach ${maxMs} ms`);
+}
+
+/** Echter Stripe-Testmodus (pm_card_visa = 4242…), wie e2e/_dev buchenUndBezahlen. */
+async function payOnline(memberClient, registrationId) {
   await asOwner.rpc('set_online_payments_enabled', { p_enabled: true });
   await admin
     .from('registrations')
@@ -343,30 +445,114 @@ async function payOnline(userId, registrationId, amountCents, tag) {
     })
     .eq('id', registrationId);
 
-  const prep = await admin.rpc('prepare_online_payment', {
-    p_registration_id: registrationId,
-    p_user_id: userId,
+  const { data: sess } = await memberClient.auth.getSession();
+  const token = sess.session?.access_token;
+  if (!token) fail('payOnline: keine Session');
+
+  const res = await fetch(`${url}/functions/v1/payments-checkout`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      apikey: anon,
+      'x-omlify-tenant': SLUG,
+    },
+    body: JSON.stringify({ action: 'prepare', registration_id: registrationId }),
   });
-  if (prep.error || !prep.data?.success) {
-    fail('prepare_online_payment: ' + JSON.stringify(prep.data ?? prep.error));
+  const prep = await res.json();
+  if (res.status !== 200) fail('payments-checkout prepare: ' + JSON.stringify(prep));
+
+  const { data: att } = await admin
+    .from('payment_attempts')
+    .select('provider_ref')
+    .eq('id', prep.attempt_id)
+    .single();
+  if (!att?.provider_ref) fail('prepare ohne provider_ref');
+  if (!/^pi_[A-Za-z0-9]{24}$/.test(att.provider_ref)) {
+    fail('provider_ref nicht echte Stripe-PI: ' + att.provider_ref);
   }
-  const pi = `pi_test_v3_${tag}_` + randomUUID().replace(/-/g, '').slice(0, 12);
-  const attach = await admin.rpc('attach_payment_ref', {
-    p_attempt_id: prep.data.attempt_id,
-    p_provider_ref: pi,
+
+  const conf = await fetch(
+    `https://api.stripe.com/v1/payment_intents/${encodeURIComponent(att.provider_ref)}/confirm`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${stripeKey}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Stripe-Account': accountRef,
+      },
+      body: new URLSearchParams({ payment_method: 'pm_card_visa' }),
+    },
+  );
+  const pi = await conf.json();
+  if (pi.status !== 'succeeded') fail('Stripe confirm: ' + (pi.status || JSON.stringify(pi)));
+
+  await warteBis(async () => {
+    const { data } = await admin
+      .from('registrations')
+      .select('status, coverage_status')
+      .eq('id', registrationId)
+      .single();
+    return data?.status === 'registered' && data?.coverage_status === 'paid';
+  }, 90_000, 'online bezahlt');
+}
+
+async function payPassOnline(memberClient, productId) {
+  await asOwner.rpc('set_online_payments_enabled', { p_enabled: true });
+  const { data: sess } = await memberClient.auth.getSession();
+  const token = sess.session?.access_token;
+  if (!token) fail('payPassOnline: keine Session');
+
+  const res = await fetch(`${url}/functions/v1/payments-checkout`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      apikey: anon,
+      'x-omlify-tenant': SLUG,
+    },
+    body: JSON.stringify({
+      action: 'prepare',
+      product_id: productId,
+      immediate_use_hash: HASH_IMMEDIATE,
+      withdrawal_info_hash: HASH_WITHDRAWAL,
+    }),
   });
-  if (attach.error) fail('attach_payment_ref: ' + attach.error.message);
-  const done = await admin.rpc('complete_online_payment', {
-    p_provider_ref: pi,
-    p_amount_cents: amountCents,
-    p_currency: 'EUR',
-    p_received_at: new Date().toISOString(),
-    p_livemode: false,
-  });
-  if (done.error || !done.data?.success) {
-    fail('complete_online_payment: ' + JSON.stringify(done.data ?? done.error));
+  const prep = await res.json();
+  if (res.status !== 200) fail('pass prepare: ' + JSON.stringify(prep));
+
+  const { data: att } = await admin
+    .from('payment_attempts')
+    .select('provider_ref')
+    .eq('id', prep.attempt_id)
+    .single();
+  if (!att?.provider_ref || !/^pi_[A-Za-z0-9]{24}$/.test(att.provider_ref)) {
+    fail('pass provider_ref ungültig: ' + att?.provider_ref);
   }
-  return done.data;
+
+  const conf = await fetch(
+    `https://api.stripe.com/v1/payment_intents/${encodeURIComponent(att.provider_ref)}/confirm`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${stripeKey}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Stripe-Account': accountRef,
+      },
+      body: new URLSearchParams({ payment_method: 'pm_card_visa' }),
+    },
+  );
+  const pi = await conf.json();
+  if (pi.status !== 'succeeded') fail('pass confirm: ' + (pi.status || JSON.stringify(pi)));
+
+  await warteBis(async () => {
+    const { data: pay } = await admin
+      .from('payments')
+      .select('id')
+      .eq('provider_ref', att.provider_ref)
+      .maybeSingle();
+    return Boolean(pay?.id);
+  }, 90_000, 'pass online bezahlt');
 }
 
 // --- Heute: Hatha am Nachmittag (~2 h) ---
@@ -509,8 +695,9 @@ const olafToday = await ensureReg(olaf.id, hatha.id, { price_cents_at_booking: 1
     .eq('id', karlaToday);
 }
 
-// Olaf heute online
+// Olaf heute online (echtes Stripe-Testkonto)
 {
+  const asOlaf = await login(url, anon, olaf.email, password, SLUG);
   const { data: reg } = await admin
     .from('registrations')
     .select('id, coverage_status')
@@ -520,15 +707,25 @@ const olafToday = await ensureReg(olaf.id, hatha.id, { price_cents_at_booking: 1
     if (reg?.coverage_status === 'pass') {
       await asOwner.rpc('undo_pass_redemption', { p_registration_id: olafToday });
     }
-    const { data: oldPays } = await admin.from('payments').select('id').eq('registration_id', olafToday);
-    for (const pay of oldPays ?? []) {
-      await admin.from('payments').delete().eq('id', pay.id);
-    }
     await admin
       .from('registrations')
       .update({ coverage_status: 'open', pass_id: null })
       .eq('id', olafToday);
-    await payOnline(olaf.id, olafToday, 1800, 'hatha');
+    await payOnline(asOlaf, olafToday);
+  } else {
+    // Bereits paid — prüfen ob echte PI; sonst Kurs neu (U0b archiviert Fake)
+    const { data: pay } = await admin
+      .from('payments')
+      .select('provider_ref')
+      .eq('registration_id', olafToday)
+      .is('reverses_payment_id', null)
+      .gt('amount_cents', 0)
+      .order('received_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (pay && !/^pi_[A-Za-z0-9]{24}$/.test(pay.provider_ref ?? '')) {
+      console.warn('Olaf Hatha: Fake-PI — Kurs sollte durch U0b archiviert sein; überspringe');
+    }
   }
 }
 
@@ -660,9 +857,9 @@ await ensureCourse({
   pass_eligible: true,
 });
 
-// --- Abgesagt mit Online-Zahlung → Erstattung ---
-const cancelCourse = await ensureCourse({
-  title: 'Abgesagt mit Erstattung',
+// --- U3: Abgesagt mit Online-Zahlung → echte Erstattung (nicht in Todo) ---
+const cancelOnline = await ensureCourse({
+  title: 'Yoga am Samstagmorgen',
   date: berlinDate(4),
   time: '09:00:00',
   end_time: '10:00:00',
@@ -673,69 +870,125 @@ const cancelCourse = await ensureCourse({
   const { data: courseRow } = await admin
     .from('courses')
     .select('status')
-    .eq('id', cancelCourse.id)
+    .eq('id', cancelOnline.id)
     .single();
   if (courseRow?.status !== 'canceled') {
-    const regId = await ensureReg(olaf.id, cancelCourse.id, { price_cents_at_booking: 1800 });
+    const asOlaf = await login(url, anon, olaf.email, password, SLUG);
+    const regId = await ensureReg(olaf.id, cancelOnline.id, { price_cents_at_booking: 1800 });
     const { data: reg } = await admin
       .from('registrations')
       .select('coverage_status')
       .eq('id', regId)
       .single();
     if (reg?.coverage_status !== 'paid') {
-      await payOnline(olaf.id, regId, 1800, 'cancel');
+      await payOnline(asOlaf, regId);
     }
     const cancel = await asOwner.rpc('cancel_course', {
-      p_course_id: cancelCourse.id,
+      p_course_id: cancelOnline.id,
       p_scope: 'single',
-      p_note: 'Demo Absage',
+      p_note: 'Demo Absage Online',
     });
     if (cancel.error || !cancel.data?.success) {
-      console.warn('cancel_course', JSON.stringify(cancel.data || cancel.error));
+      fail('cancel_course online: ' + JSON.stringify(cancel.data || cancel.error));
+    }
+    await warteBis(async () => {
+      await stripeJobsAnstossen();
+      const { data: pays } = await admin.from('payments').select('id').eq('registration_id', regId);
+      const ids = (pays ?? []).map((p) => p.id);
+      if (!ids.length) return false;
+      const { data: refunds } = await admin
+        .from('payment_refunds')
+        .select('status')
+        .in('payment_id', ids);
+      return (refunds ?? []).some((r) => r.status === 'succeeded');
+    }, 120_000, 'Online-Erstattung Absage');
+  }
+}
+
+// --- U3: Abgesagt mit Bar → Rückgabe in Todo ---
+const cancelCash = await ensureCourse({
+  title: 'Abend-Yoga mit Vera',
+  date: berlinDate(3),
+  time: '18:00:00',
+  end_time: '19:00:00',
+  price: 18,
+  teacher: teacherA.id,
+});
+{
+  const { data: courseRow } = await admin
+    .from('courses')
+    .select('status')
+    .eq('id', cancelCash.id)
+    .single();
+  if (courseRow?.status !== 'canceled') {
+    const regId = await ensureReg(vera.id, cancelCash.id, {
+      coverage_status: 'open',
+      price_cents_at_booking: 1800,
+    });
+    const { data: reg } = await admin
+      .from('registrations')
+      .select('coverage_status')
+      .eq('id', regId)
+      .single();
+    if (reg?.coverage_status !== 'paid') {
+      const pay = await asOwner.rpc('record_manual_payment', {
+        p_registration_id: regId,
+        p_method: 'cash',
+        p_amount_cents: 1800,
+      });
+      if (pay.error || pay.data?.success === false) {
+        fail('Vera bar: ' + JSON.stringify(pay.data || pay.error));
+      }
+    }
+    const cancel = await asOwner.rpc('cancel_course', {
+      p_course_id: cancelCash.id,
+      p_scope: 'single',
+      p_note: 'Demo Absage Bar',
+    });
+    if (cancel.error || !cancel.data?.success) {
+      fail('cancel_course bar: ' + JSON.stringify(cancel.data || cancel.error));
     }
   }
 }
 
 // --- Wiebke: 5er online heute (Widerruf sichtbar) ---
 {
+  const asWiebke = await login(url, anon, wiebke.email, password, SLUG);
   const { data: existing } = await admin
     .from('passes')
-    .select('id, status')
+    .select('id, status, payment_id')
     .eq('tenant_id', tenantId)
     .eq('member_id', wiebke.id)
-    .eq('status', 'active')
-    .limit(1);
-  if (!existing?.length) {
-    const prep = await admin.rpc('prepare_pass_online_payment', {
-      p_product_id: product5,
-      p_user_id: wiebke.id,
-      p_immediate_use_hash: HASH_IMMEDIATE,
-      p_withdrawal_info_hash: HASH_WITHDRAWAL,
-    });
-    if (prep.error || !prep.data?.success) {
-      fail('prepare_pass Wiebke: ' + JSON.stringify(prep.data ?? prep.error));
+    .eq('status', 'active');
+  let hasReal = false;
+  for (const pass of existing ?? []) {
+    if (!pass.payment_id) continue;
+    const { data: pay } = await admin
+      .from('payments')
+      .select('provider_ref')
+      .eq('id', pass.payment_id)
+      .maybeSingle();
+    const ref = pay?.provider_ref ?? '';
+    if (/^pi_[A-Za-z0-9]{24}$/.test(ref)) {
+      hasReal = true;
+    } else if (ref.startsWith('pi_test_') || ref.startsWith('pi_e2e')) {
+      const rev = await asOwner.rpc('revoke_pass', {
+        p_pass_id: pass.id,
+        p_note: 'U0 Fake-PI',
+      });
+      if (rev.error || rev.data?.success === false) {
+        console.warn('revoke_pass Wiebke Fake-PI', pass.id, JSON.stringify(rev.data || rev.error));
+      }
     }
-    const pi = 'pi_test_v3_wiebke_' + randomUUID().replace(/-/g, '').slice(0, 12);
-    await admin.rpc('attach_payment_ref', {
-      p_attempt_id: prep.data.attempt_id,
-      p_provider_ref: pi,
-    });
-    const done = await admin.rpc('complete_online_payment', {
-      p_provider_ref: pi,
-      p_amount_cents: prep.data.amount_cents,
-      p_currency: 'EUR',
-      p_received_at: new Date().toISOString(),
-      p_livemode: false,
-    });
-    if (done.error || !done.data?.success) {
-      fail('complete pass Wiebke: ' + JSON.stringify(done.data ?? done.error));
-    }
+  }
+  if (!hasReal) {
+    await payPassOnline(asWiebke, product5);
   }
 }
 
-// --- Olaf Teilerstattung 5 € von 18 € (eigener bezahlter Kurs) ---
+// --- Olaf Teilerstattung 5 € von 18 € (echter Erstattungsweg) ---
 {
-  const title = 'Olaf Teilerstattung Demo';
+  const title = 'Olaf Flow Teilerstattung';
   const kurs = await ensureCourse({
     title,
     date: berlinDate(5),
@@ -744,6 +997,7 @@ const cancelCourse = await ensureCourse({
     price: 18,
     teacher: teacherA.id,
   });
+  const asOlaf = await login(url, anon, olaf.email, password, SLUG);
   const regId = await ensureReg(olaf.id, kurs.id, { price_cents_at_booking: 1800 });
   const { data: reg } = await admin
     .from('registrations')
@@ -751,23 +1005,25 @@ const cancelCourse = await ensureCourse({
     .eq('id', regId)
     .single();
   if (reg?.coverage_status !== 'paid') {
-    await payOnline(olaf.id, regId, 1800, 'teil');
+    await payOnline(asOlaf, regId);
   }
   const { data: payment } = await admin
     .from('payments')
-    .select('id')
+    .select('id, provider_ref')
     .eq('registration_id', regId)
     .is('reverses_payment_id', null)
     .gt('amount_cents', 0)
     .order('received_at', { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (payment) {
+  if (payment && /^pi_[A-Za-z0-9]{24}$/.test(payment.provider_ref ?? '')) {
     const { data: existingRefunds } = await admin
       .from('payment_refunds')
       .select('id, amount_cents, status')
       .eq('payment_id', payment.id);
-    const hasPartial = (existingRefunds ?? []).some((r) => r.amount_cents === 500);
+    const hasPartial = (existingRefunds ?? []).some(
+      (r) => r.amount_cents === 500 && r.status === 'succeeded',
+    );
     if (!hasPartial) {
       const req = await asOwner.rpc('request_payment_refund', {
         p_payment_id: payment.id,
@@ -775,19 +1031,16 @@ const cancelCourse = await ensureCourse({
         p_note: 'Demo Teilerstattung',
       });
       if (req.error || req.data?.success === false) {
-        console.warn('request_payment_refund', JSON.stringify(req.data || req.error));
-      } else if (req.data.refund_id) {
-        const rec = await admin.rpc('record_online_refund', {
-          p_payment_id: payment.id,
-          p_refund_ref: 're_test_v3_' + randomUUID().replace(/-/g, '').slice(0, 10),
-          p_amount_cents: 500,
-          p_received_at: new Date().toISOString(),
-          p_refund_id: req.data.refund_id,
-        });
-        if (rec.error || (rec.data?.code && rec.data.code !== 'REFUNDED')) {
-          console.warn('record_online_refund', JSON.stringify(rec.data || rec.error));
-        }
+        fail('request_payment_refund: ' + JSON.stringify(req.data || req.error));
       }
+      await warteBis(async () => {
+        await stripeJobsAnstossen();
+        const { data: refunds } = await admin
+          .from('payment_refunds')
+          .select('status, amount_cents')
+          .eq('payment_id', payment.id);
+        return (refunds ?? []).some((r) => r.amount_cents === 500 && r.status === 'succeeded');
+      }, 120_000, 'Teilerstattung');
     }
   }
 }
@@ -858,10 +1111,12 @@ upsertEnvLine(envDev, 'DEMO_TEACHER_B_EMAIL', teacherB.email ?? '');
 
 console.log('\nDemo v3 fertig (demoalpha).');
 console.log(`Heute: Hatha am Nachmittag ${start.date} ${start.time}`);
-console.log('  Vera vor Ort · Karla Mit Karte · Olaf online');
+console.log('  Vera vor Ort · Karla Mit Karte · Olaf online (echte Stripe-PI)');
 console.log('Gestern: Yin Yoga — Nina offen, Olaf bar, eine Person erlassen');
 console.log('Morgen: Vinyasa Flow 8/8 + Warteliste (Nina pending_payment)');
 console.log('Woche: Yoga für den Rücken / Workshop Atem / Pilates');
-console.log('Absage: Abgesagt mit Erstattung · Wiebke 5er Widerruf · Olaf Teilerstattung');
+console.log('Absage Online: Yoga am Samstagmorgen (Erstattung succeeded)');
+console.log('Absage Bar: Abend-Yoga mit Vera → Rückgabe in Zu erledigen');
+console.log('Wiebke 5er Widerruf · Olaf Flow Teilerstattung');
 console.log('Kartenhinweis: aus (Standard)');
 console.log('Konten: Owner / Lena|Ben / Vera / Karla / Olaf / Nina / Wiebke (Passwort in supabase/.env.dev)');
