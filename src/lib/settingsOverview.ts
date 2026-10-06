@@ -152,8 +152,9 @@ export function settingsAttentionItems(input: {
   return items;
 }
 
-export function visibleSettingsCategories(isOwner: boolean): SettingsCategory[] {
-  return SETTINGS_CATEGORIES.filter((item) => item.id !== 'studio' || isOwner);
+/** Studio inkl. Kartenhinweis (UX-7) für Owner und Admin; Branding bleibt owner-only in der Sektion. */
+export function visibleSettingsCategories(_isOwner: boolean): SettingsCategory[] {
+  return SETTINGS_CATEGORIES;
 }
 
 export function settingsCategoryTitle(id: SettingsCategoryId): string {

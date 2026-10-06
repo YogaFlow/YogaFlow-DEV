@@ -68,6 +68,40 @@ export function formatFriendlyCancellationDeadline(iso: string): string {
   return `${weekday}, ${day}. ${month}, ${time}`;
 }
 
+export type CancellationDeadlineParts =
+  | { kind: 'expired'; text: string }
+  | {
+      kind: 'active';
+      /** „Kostenlos abmelden“ — Umbruch vor „bis“ erlaubt. */
+      prefix: string;
+      /** „bis Di, 6. Okt, 18:30“ als nicht umbrechende Einheit. */
+      untilDate: string;
+    };
+
+/**
+ * Struktur für Buchungsleiste: Datumsteil nicht mitten umbrechen;
+ * bei Platzmangel Umbruch vor „bis“.
+ */
+export function cancellationDeadlineParts(
+  deadlineIso: string | null | undefined,
+  now: Date = new Date(),
+): CancellationDeadlineParts {
+  if (!deadlineIso) return { kind: 'expired', text: CANCEL_DEADLINE_EXPIRED };
+  const ms = new Date(deadlineIso).getTime();
+  if (!Number.isFinite(ms) || ms <= now.getTime()) {
+    return { kind: 'expired', text: CANCEL_DEADLINE_EXPIRED };
+  }
+  const dateLabel = formatFriendlyCancellationDeadline(deadlineIso).replace(
+    / /g,
+    '\u00A0',
+  );
+  return {
+    kind: 'active',
+    prefix: 'Kostenlos abmelden',
+    untilDate: `bis\u00A0${dateLabel}`,
+  };
+}
+
 /**
  * Volle Zeile vor/nach Frist.
  * `deadlineIso` null/leer/ungültig/abgelaufen → abgelaufen-Text.
@@ -76,10 +110,9 @@ export function cancellationDeadlineLine(
   deadlineIso: string | null | undefined,
   now: Date = new Date(),
 ): string {
-  if (!deadlineIso) return CANCEL_DEADLINE_EXPIRED;
-  const ms = new Date(deadlineIso).getTime();
-  if (!Number.isFinite(ms) || ms <= now.getTime()) return CANCEL_DEADLINE_EXPIRED;
-  return `Kostenlos abmelden bis ${formatFriendlyCancellationDeadline(deadlineIso)}`;
+  const parts = cancellationDeadlineParts(deadlineIso, now);
+  if (parts.kind === 'expired') return parts.text;
+  return `${parts.prefix} ${parts.untilDate}`;
 }
 
 /**

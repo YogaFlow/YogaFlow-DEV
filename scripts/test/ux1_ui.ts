@@ -98,5 +98,6 @@ test('Aufmerksamkeit und sichtbare Kategorien', () => {
 
   assert.equal(visibleSettingsCategories(true).some((item) => item.id === 'studio'), true);
   assert.equal(visibleSettingsCategories(true).some((item) => item.id === 'rechtliches'), true);
-  assert.equal(visibleSettingsCategories(false).some((item) => item.id === 'studio'), false);
+  // UX-7: Studio inkl. Kartenhinweis auch für Admin
+  assert.equal(visibleSettingsCategories(false).some((item) => item.id === 'studio'), true);
 });

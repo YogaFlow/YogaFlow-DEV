@@ -15,6 +15,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTenant } from '../context/TenantContext';
 import { withDevTenant } from '../context/TenantContext';
 import BookingSettingsSection from '../components/settings/BookingSettingsSection';
+import PassHintSection from '../components/settings/PassHintSection';
 import PassProductsSection from '../components/settings/PassProductsSection';
 import StudioDesignSection from '../components/settings/StudioDesignSection';
 import StudioLegalHub, { type LegalDocSlug } from '../components/settings/StudioLegalHub';
@@ -155,6 +156,7 @@ function CategoryContent({
         {isOwner ? <StudioDesignSection /> : (
           <p className="text-[15px] text-textMuted">Name, Logo und Farben stellt die Inhaberin ein.</p>
         )}
+        <PassHintSection />
         <div className="rounded-md border border-border bg-surface p-3.5">
           <h2 className="mb-4 text-xl font-semibold text-text">Systeminformationen</h2>
           <div className="space-y-2 text-sm text-textMuted">
@@ -295,10 +297,6 @@ export default function Settings() {
 
   if (!rawCategory && (location.hash === '#steuern' || location.hash === '#online-zahlung')) {
     return <Navigate to={withDevTenant(`/settings/zahlungen${location.hash}`)} replace />;
-  }
-
-  if (category === 'studio' && !isOwner) {
-    return <Navigate to={withDevTenant('/settings')} replace />;
   }
 
   const list = (

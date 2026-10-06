@@ -54,7 +54,9 @@ import PaymentPendingStatus from '../components/ui/PaymentPendingStatus';
 import { PAY_NOW_LABEL } from '../lib/paymentTexts';
 import {
   cancellationDeadlineLine,
+  cancellationDeadlineParts,
   previewCancellationDeadlineIso,
+  type CancellationDeadlineParts,
 } from '../lib/cancellationDeadline';
 import { RELEASE_SEAT_LABEL } from '../lib/pendingPaymentLabel';
 import { paymentsClientConfig } from '../lib/paymentsClientConfig';
@@ -65,8 +67,32 @@ import { useCourseDeletion } from '../lib/useCourseDeletion';
 import { useCourseEnrollment } from '../lib/useCourseEnrollment';
 import { formatStaffName, withCourseTeachers } from '../lib/staffNames';
 import { listOnlinePassProducts, type OnlinePassProduct } from '../lib/passProducts';
-import { coursePassSavingsHint } from '../lib/passOnlineTexts';
+import { resolveCoursePassHint } from '../lib/passHint';
 import type { Course } from '../types';
+
+function CancelDeadlineLineView({
+  parts,
+  className,
+  testId = 'cancel-deadline-line',
+}: {
+  parts: CancellationDeadlineParts;
+  className?: string;
+  testId?: string;
+}) {
+  if (parts.kind === 'expired') {
+    return (
+      <p className={className} data-testid={testId}>
+        {parts.text}
+      </p>
+    );
+  }
+  return (
+    <p className={className} data-testid={testId}>
+      <span>{parts.prefix}</span>{' '}
+      <span className="whitespace-nowrap">{parts.untilDate}</span>
+    </p>
+  );
+}
 
 const CourseDetail: React.FC = () => {
   const { courseId } = useParams<{ courseId: string }>();
@@ -290,19 +316,14 @@ const CourseDetail: React.FC = () => {
   const passOption = payOptions?.methods.find((m) => m.method === 'pass') ?? null;
   const showAltPay = (payOptions?.methods.length ?? 0) > 1;
   const showOnlinePayHint = Boolean(payOptions?.showOnlinePayHint);
-  const passSavingsProduct =
-    course.pass_eligible !== false && !passOption && onlinePassProducts.length > 0
-      ? onlinePassProducts[0]
-      : null;
-  const passSavingsHint =
-    passSavingsProduct && course.price != null
-      ? coursePassSavingsHint({
-          passName: passSavingsProduct.name,
-          passPriceCents: passSavingsProduct.price_cents,
-          passUnits: passSavingsProduct.units,
-          coursePriceEuros: Number(course.price),
-        })
-      : null;
+  const passSavingsHint = resolveCoursePassHint({
+    enabled: tenant?.pass_hint_enabled === true,
+    template: tenant?.pass_hint_template,
+    passEligible: course.pass_eligible !== false,
+    hasPassOption: Boolean(passOption),
+    products: onlinePassProducts,
+    coursePriceEuros: course.price != null ? Number(course.price) : null,
+  });
 
   const reloadPayOptions = async () => {
     if (!courseId || !canSelfEnrollInCourses(userProfile)) return;
@@ -439,13 +460,19 @@ const CourseDetail: React.FC = () => {
     windowHours == null || !course.date
       ? null
       : previewCancellationDeadlineIso(course.date, course.time, windowHours);
-  const cancelDeadlineLineText = cancelled
+  const cancelDeadlineIso = cancelled
     ? null
     : isRegistered && registrationStatus === 'registered' && !showPendingPayment
-      ? cancellationDeadlineLine(bookedDeadlineIso)
-      : previewDeadlineIso
-        ? cancellationDeadlineLine(previewDeadlineIso)
-        : null;
+      ? bookedDeadlineIso
+      : previewDeadlineIso;
+  const cancelDeadlineParts =
+    cancelDeadlineIso != null ? cancellationDeadlineParts(cancelDeadlineIso) : null;
+  const cancelDeadlineLineText =
+    cancelDeadlineParts == null
+      ? null
+      : cancelDeadlineParts.kind === 'expired'
+        ? cancelDeadlineParts.text
+        : cancellationDeadlineLine(cancelDeadlineIso);
   const paymentStatusSuffix = refundInfo
     ? passRefundStatusLine()
     : onlineInfo
@@ -959,13 +986,11 @@ const CourseDetail: React.FC = () => {
                   </p>
                   {renderBookingStatus()}
                 </div>
-                {cancelDeadlineLineText ? (
-                  <p
-                    className="max-w-[11rem] text-right text-[12px] leading-snug text-textMuted line-clamp-2"
-                    data-testid="cancel-deadline-line"
-                  >
-                    {cancelDeadlineLineText}
-                  </p>
+                {cancelDeadlineParts ? (
+                  <CancelDeadlineLineView
+                    parts={cancelDeadlineParts}
+                    className="max-w-[11rem] text-right text-[12px] leading-snug text-textMuted"
+                  />
                 ) : null}
               </div>
               {occupancyLine ? (
@@ -1025,13 +1050,11 @@ const CourseDetail: React.FC = () => {
                   </span>
                   <span className="text-[13px] text-textMuted">pro Termin</span>
                 </p>
-                {cancelDeadlineLineText ? (
-                  <p
-                    className="max-w-[11rem] text-right text-[12px] leading-snug text-textMuted line-clamp-2"
-                    data-testid="cancel-deadline-line"
-                  >
-                    {cancelDeadlineLineText}
-                  </p>
+                {cancelDeadlineParts ? (
+                  <CancelDeadlineLineView
+                    parts={cancelDeadlineParts}
+                    className="max-w-[11rem] text-right text-[12px] leading-snug text-textMuted"
+                  />
                 ) : null}
               </div>
               <BookingPayMethodRow
@@ -1088,13 +1111,11 @@ const CourseDetail: React.FC = () => {
                 </div>
                 {renderBookingActions(false)}
               </div>
-              {cancelDeadlineLineText ? (
-                <p
+              {cancelDeadlineParts ? (
+                <CancelDeadlineLineView
+                  parts={cancelDeadlineParts}
                   className="mt-2 text-[12px] leading-snug text-textMuted"
-                  data-testid="cancel-deadline-line"
-                >
-                  {cancelDeadlineLineText}
-                </p>
+                />
               ) : null}
             </>
           )}

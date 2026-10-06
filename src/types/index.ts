@@ -15,6 +15,10 @@ export interface Tenant {
   default_max_participants: number;
   /** Stunden vor Kursbeginn für kostenlose Storno / Einheitenrückgabe (A6, W2). */
   cancellation_window_hours?: number;
+  /** UX-7: Hinweis auf Karten im Kursdetail (Standard aus). */
+  pass_hint_enabled?: boolean;
+  /** UX-7: Vorlage mit Platzhaltern; null/leer = Vorbelegung. */
+  pass_hint_template?: string | null;
 }
 
 export interface User {
