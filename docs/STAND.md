@@ -1,31 +1,33 @@
 # STAND — Omlify DEV
 
-Stand: 2026-10-06 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [ux7_kartenhinweis_demo_v3.md](berichte/ux7_kartenhinweis_demo_v3.md) (Haltestelle 5 Klicktest)
+Stand: 2026-10-06 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [ux8_uebersicht_zu_erledigen.md](berichte/ux8_uebersicht_zu_erledigen.md) (Haltestelle 5 Klicktest)
 
 ## DEV
 
-- Migrationen bis `20261006120000` (UX-7 pass_hint; zuvor UX-6 `20261005150000`, RT-1 `20261005140000`)
-- Functions: `legal-pdf`, `dispatch-emails`, `payments-*` (+ bestehende)
+- Migrationen bis `20261006180000` (UX-8 ops refunds archived; zuvor UX-7 `20261006120000`)
+- Functions: `legal-pdf`, `dispatch-emails`, `payments-*` (+ bestehende); `ops_monitor_collect` mit Archiv-Filter
 - Secrets (Namen): `LEGAL_PDF_SECRET` (Vault); `CALENDAR_ICS_SECRET`; `OPS_MONITOR_SECRET`, `OPS_ALERT_EMAIL`; `OPS_HEARTBEAT_URL` nicht gesetzt
 - Cron: `yogaflow_process_legal_pdf`, `yogaflow_expire_pass_payment_attempts`, `yogaflow_pass_expiry_reminders` (+ bestehende)
-- E2E: UX-7 `e2e/ux7.spec.ts`, UX-6 `e2e/ux6.spec.ts`, RT-1 `e2e/rt1.spec.ts`, K1 `e2e/k1.spec.ts` (e2eapp)
-- Demo: `node scripts/dev/demo_v3.mjs` / `npm run dev:demo:seed` — demoalpha v3
+- E2E: UX-8 `e2e/ux8.spec.ts`, UX-7 `e2e/ux7.spec.ts`, UX-6 `e2e/ux6.spec.ts`, RT-1 `e2e/rt1.spec.ts`, K1 `e2e/k1.spec.ts` (e2eapp)
+- Demo: `node scripts/dev/demo_v3.mjs` / `npm run dev:demo:seed` — demoalpha v3 (echte Stripe-PIs)
 
 ## Zuletzt abgeschlossen
 
+- **UX-8** — Übersicht „Zu erledigen“ (+ U0/U0b Seed/Fake-Cleanup)
+  - Bericht: [docs/berichte/ux8_uebersicht_zu_erledigen.md](berichte/ux8_uebersicht_zu_erledigen.md) — Haltestelle 5
 - **UX-7** — Kartenhinweis abschaltbar (A), Buchungsleiste Frist-Umbruch (B), Demo v3 (C)
-  - Bericht: [docs/berichte/ux7_kartenhinweis_demo_v3.md](berichte/ux7_kartenhinweis_demo_v3.md) — Haltestelle 5
 - **UX-6-2 Nachtrag** — Personenzeile mobil luftiger + Demo
 - **UX-6** — Teilnehmerliste mit Zahlstatus
 - **RT-1 Nachtrag A–C** — Rechtliches UX
 
 ## Nächste Schritte
 
-- UX-7 Haltestelle 5 Klicktest (Liste + Tabelle im Bericht)
+- UX-8 Haltestelle 5 Klicktest (Liste im Bericht)
 - Ältere Haltestellen parallel offen, falls noch nicht abgehakt
 
 ## Haltestellen / wartet auf Julius
 
+- **UX-8 Haltestelle 5** — Klickliste in [ux8_uebersicht_zu_erledigen.md](berichte/ux8_uebersicht_zu_erledigen.md)
 - **UX-7 Haltestelle 5** — Klickliste + Fall→Konto→Wo in [ux7_kartenhinweis_demo_v3.md](berichte/ux7_kartenhinweis_demo_v3.md)
 - **UX-6-2 Haltestelle 5** — [nachtrag_ux6_zeilenlayout.md](berichte/nachtrag_ux6_zeilenlayout.md)
 - **UX-6 Haltestelle 5** — [ux6_teilnehmerliste_zahlstatus.md](berichte/ux6_teilnehmerliste_zahlstatus.md)
@@ -39,11 +41,12 @@ Stand: 2026-10-06 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [ux7_kar
 
 ## hier weitermachen
 
-Nach UX-7 Klicktest: Bericht abschließen → nächste Story.
+Nach UX-8 Klicktest: Bericht abschließen → nächste Story.
 
 ## Verweise
 
 - Regeln: [.cursor/rules/omlify-autonom.mdc](../.cursor/rules/omlify-autonom.mdc), [.cursor/rules/rls-access-not-display.mdc](../.cursor/rules/rls-access-not-display.mdc)
-- Story: [docs/stories/ux7_kartenhinweis_demo_v3.md](stories/ux7_kartenhinweis_demo_v3.md)
+- Story: [docs/stories/ux8_uebersicht_zu_erledigen.md](stories/ux8_uebersicht_zu_erledigen.md)
+- Freigabe: [docs/stories/ux8_freigabe_teil0.md](stories/ux8_freigabe_teil0.md)
 - Entscheidungen: [18_Teilnehmerliste_Zahlstatus.md](entscheidungen/18_Teilnehmerliste_Zahlstatus.md) (UX-6), [17_Studio_Rechtstexte.md](entscheidungen/17_Studio_Rechtstexte.md) (RT-1)
 - Offene Punkte: [docs/OFFENE_PUNKTE.md](OFFENE_PUNKTE.md)
