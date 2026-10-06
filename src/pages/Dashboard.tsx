@@ -1,21 +1,34 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Calendar, Check, ChevronRight, Users, BookOpen, Settings } from 'lucide-react';
+import {
+  AlertTriangle,
+  Calendar,
+  Check,
+  ChevronRight,
+  Clock,
+  CornerDownLeft,
+  Euro,
+  Users,
+  BookOpen,
+  Settings,
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Course, Registration } from '../types';
+import { Course, PaymentMethod, Registration } from '../types';
 import {
+  berlinIsoDate,
+  berlinIsoFromInstant,
   isCourseCancelled,
   isCourseRunning,
   isCourseUpcoming,
   isRegistrationVisible,
 } from '../lib/courseDateTime';
 import {
-  formatDate,
   formatDayLabel,
   formatTime,
   formatTimeRange,
   formatTodayOrTomorrow,
+  monthStartIso,
 } from '../lib/format';
 import {
   isDevPendingPaymentMock,
@@ -25,7 +38,19 @@ import PaymentPendingStatus from '../components/ui/PaymentPendingStatus';
 import { fetchCourseParticipantCounts } from '../lib/courseParticipantCounts';
 import { isParticipantOnlyRole, isTeacherOnly } from '../lib/userRoles';
 import { formatStaffName, withCourseTeachers } from '../lib/staffNames';
-import { berlinIsoDate, checkoutDayWord, latestUnreversedPayment } from '../lib/courseCheckout';
+import { latestUnreversedPayment } from '../lib/courseCheckout';
+import {
+  buildTodoItems,
+  isOnsiteReturnMethod,
+  todoEmptyLabel,
+  todoItemCount,
+  type TodoFailedRefund,
+  type TodoItem,
+  type TodoOpenCourse,
+  type TodoReturnRow,
+  type TodoRole,
+} from '../lib/buildTodoItems';
+import { fetchStudioPayments } from '../lib/studioPayments';
 import { loadTaxSettings, studioHasPayment } from '../lib/taxStatus';
 import LedgerWaitingNotice from '../components/tax/LedgerWaitingNotice';
 import AccentPill from '../components/ui/AccentPill';
@@ -40,13 +65,32 @@ type StatCard = {
 
 type CourseWithCount = Course & { registrationCount?: number };
 
-type CheckoutLine = {
-  id: string;
-  title: string;
-  date: string;
-  time: string;
-  open: number;
-};
+function todoIcon(kind: TodoItem['kind']) {
+  switch (kind) {
+    case 'refund_failed':
+      return AlertTriangle;
+    case 'return_onsite':
+      return CornerDownLeft;
+    case 'payment_open':
+    case 'older_open':
+      return Euro;
+    case 'pay_onsite':
+      return Clock;
+    default:
+      return ChevronRight;
+  }
+}
+
+function berlinTimeFromInstant(value: string): string {
+  const fmt = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Berlin',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  });
+  const parts = Object.fromEntries(fmt.formatToParts(new Date(value)).map((p) => [p.type, p.value]));
+  return `${parts.hour ?? '00'}:${parts.minute ?? '00'}:00`;
+}
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -60,12 +104,9 @@ const Dashboard: React.FC = () => {
     myRegistrations: 0,
   });
   const [loading, setLoading] = useState(true);
-  const [checkoutLines, setCheckoutLines] = useState<CheckoutLine[]>([]);
-  const [refundLines, setRefundLines] = useState<CheckoutLine[]>([]);
+  const [todoItems, setTodoItems] = useState<TodoItem[]>([]);
+  const [todoReady, setTodoReady] = useState(false);
   const [ledgerWaiting, setLedgerWaiting] = useState(false);
-  const [openCoverage, setOpenCoverage] = useState<{ registrations: number; people: number } | null>(
-    null,
-  );
 
   useEffect(() => {
     let isMounted = true;
@@ -203,112 +244,200 @@ const Dashboard: React.FC = () => {
 
         if (userProfile.role === 'user') {
           if (isMounted) {
-            setCheckoutLines([]);
-            setRefundLines([]);
+            setTodoItems([]);
+            setTodoReady(true);
           }
         } else {
-          const yesterday = berlinIsoDate(-1);
-          const todayBerlin = berlinIsoDate(0);
-          let checkoutQuery = coursesVisible('id, title, date, time, status')
-            .in('date', [yesterday, todayBerlin])
-            .order('date', { ascending: true })
-            .order('time', { ascending: true });
+          const todoRole: TodoRole =
+            userProfile.role === 'teacher'
+              ? 'teacher'
+              : userProfile.role === 'admin'
+                ? 'admin'
+                : 'owner';
+          const isManager = todoRole === 'owner' || todoRole === 'admin';
 
-          if (userProfile.role === 'teacher') {
-            checkoutQuery = checkoutQuery.eq('teacher_id', userProfile.id);
-          }
-
-          const { data: checkoutCourses, error: checkoutError } = await checkoutQuery;
-          if (checkoutError) throw checkoutError;
-
-          const checkoutIds = ((checkoutCourses ?? []) as Array<{ id: string }>).map((row) => row.id);
-          const openByCourse = new Map<string, number>();
-          if (checkoutIds.length > 0) {
-            const { data: openRows, error: openError } = await supabase
-              .from('registrations')
-              .select('course_id')
-              .in('course_id', checkoutIds)
-              .eq('status', 'registered')
-              .eq('coverage_status', 'open');
-            if (openError) throw openError;
-            for (const row of openRows ?? []) {
-              openByCourse.set(row.course_id, (openByCourse.get(row.course_id) ?? 0) + 1);
-            }
-          }
-
-          if (userProfile.role === 'owner' || userProfile.role === 'admin') {
-            // Embed auf courses: RLS blendet archivierte aus (course null).
-            // Zusätzlich isArchivedRow — falls Embed-Filter fehlt.
+          const returns: TodoReturnRow[] = [];
+          if (isManager || todoRole === 'teacher') {
             const { data: paidRows, error: paidError } = await supabase
               .from('registrations')
-              .select('id, course:courses(id, title, date, time, status, archived_at)')
+              .select(
+                'id, course:courses(id, title, date, time, status, archived_at, teacher_id), user:users!registrations_user_id_fkey(first_name, last_name, archived_at)',
+              )
               .eq('cancel_reason', 'course_cancelled')
               .eq('coverage_status', 'paid');
             if (paidError) throw paidError;
-            const paidList = paidRows ?? [];
-            const openPayments = new Map<string, true>();
+            const paidList = (paidRows ?? []).filter((row) => {
+              const course = Array.isArray(row.course) ? row.course[0] : row.course;
+              const person = Array.isArray(row.user) ? row.user[0] : row.user;
+              if (!course || isArchivedRow(course) || !isCourseCancelled(course.status)) return false;
+              if (person?.archived_at) return false;
+              if (todoRole === 'teacher' && course.teacher_id !== userProfile.id) return false;
+              return true;
+            });
             if (paidList.length > 0) {
               const { data: paymentRows, error: paymentError } = await supabase
                 .from('payments')
-                .select('id, registration_id, method, amount_cents, reverses_payment_id, received_at')
+                .select(
+                  'id, registration_id, method, amount_cents, reverses_payment_id, received_at',
+                )
                 .in(
                   'registration_id',
                   paidList.map((row) => row.id),
                 );
               if (paymentError) throw paymentError;
-              for (const id of latestUnreversedPayment(paymentRows ?? []).keys()) {
-                openPayments.set(id, true);
-              }
-            }
-            const grouped = new Map<string, CheckoutLine>();
-            for (const row of paidList) {
-              if (!openPayments.has(row.id)) continue;
-              const course = Array.isArray(row.course) ? row.course[0] : row.course;
-              if (!course || isArchivedRow(course) || !isCourseCancelled(course.status)) continue;
-              const current = grouped.get(course.id);
-              if (current) {
-                current.open += 1;
-              } else {
-                grouped.set(course.id, {
-                  id: course.id,
-                  title: course.title,
-                  date: course.date,
-                  time: course.time,
-                  open: 1,
+              const openPayment = latestUnreversedPayment(paymentRows ?? []);
+              for (const row of paidList) {
+                const payment = openPayment.get(row.id);
+                if (!payment || !isOnsiteReturnMethod(payment.method as PaymentMethod)) continue;
+                const course = Array.isArray(row.course) ? row.course[0] : row.course;
+                const person = Array.isArray(row.user) ? row.user[0] : row.user;
+                if (!course) continue;
+                returns.push({
+                  registrationId: row.id,
+                  courseId: course.id,
+                  courseTitle: course.title,
+                  courseDate: course.date,
+                  courseTime: course.time,
+                  teacherId: course.teacher_id ?? null,
+                  courseArchived: Boolean(course.archived_at),
+                  firstName: person?.first_name ?? '',
+                  lastName: person?.last_name ?? '',
+                  method: payment.method as PaymentMethod,
+                  amountCents: payment.amount_cents,
                 });
               }
             }
-            if (!isMounted) return;
-            setRefundLines(
-              [...grouped.values()].sort(
-                (a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time),
-              ),
-            );
-          } else if (isMounted) {
-            setRefundLines([]);
           }
 
-          if (!isMounted) return;
-          setCheckoutLines(
-            ((checkoutCourses ?? []) as Array<{
+          const openCourses: TodoOpenCourse[] = [];
+          if (isManager) {
+            const { data: overdue, error: overdueErr } = await supabase.rpc('get_open_coverage');
+            if (overdueErr) throw overdueErr;
+            const { data: upcoming, error: upErr } = await supabase.rpc(
+              'get_upcoming_open_coverage',
+            );
+            if (upErr) throw upErr;
+            type CovRow = {
+              course_id: string;
+              course_title: string;
+              course_starts_at: string;
+            };
+            const openRows = [
+              ...((overdue ?? []) as CovRow[]),
+              ...((upcoming ?? []) as CovRow[]),
+            ];
+            const byCourse = new Map<string, TodoOpenCourse>();
+            for (const row of openRows) {
+              const date = berlinIsoFromInstant(row.course_starts_at);
+              const time = berlinTimeFromInstant(row.course_starts_at);
+              const existing = byCourse.get(row.course_id);
+              if (existing) {
+                existing.openCount += 1;
+              } else {
+                byCourse.set(row.course_id, {
+                  courseId: row.course_id,
+                  title: row.course_title,
+                  date,
+                  time,
+                  teacherId: null,
+                  openCount: 1,
+                  courseArchived: false,
+                });
+              }
+            }
+            openCourses.push(...byCourse.values());
+          } else {
+            const yesterday = berlinIsoDate(-1);
+            const todayBerlin = berlinIsoDate(0);
+            const { data: checkoutCourses, error: checkoutError } = await coursesVisible(
+              'id, title, date, time, teacher_id, status',
+            )
+              .in('date', [yesterday, todayBerlin])
+              .eq('teacher_id', userProfile.id)
+              .order('date', { ascending: true })
+              .order('time', { ascending: true });
+            if (checkoutError) throw checkoutError;
+            const list = (checkoutCourses ?? []) as Array<{
               id: string;
               title: string;
               date: string;
               time: string;
+              teacher_id: string;
               status: string | null;
-            }>)
-              .filter(
-                (row) =>
-                  !isCourseCancelled(row.status) && (openByCourse.get(row.id) ?? 0) > 0,
-              )
-              .map((row) => ({
-                id: row.id,
-                title: row.title,
-                date: row.date,
-                time: row.time,
-                open: openByCourse.get(row.id) ?? 0,
-              })),
+            }>;
+            const ids = list.filter((c) => !isCourseCancelled(c.status)).map((c) => c.id);
+            const openByCourse = new Map<string, number>();
+            if (ids.length > 0) {
+              const { data: openRows, error: openError } = await supabase
+                .from('registrations')
+                .select('course_id')
+                .in('course_id', ids)
+                .eq('status', 'registered')
+                .eq('coverage_status', 'open');
+              if (openError) throw openError;
+              for (const row of openRows ?? []) {
+                openByCourse.set(row.course_id, (openByCourse.get(row.course_id) ?? 0) + 1);
+              }
+            }
+            for (const course of list) {
+              if (isCourseCancelled(course.status)) continue;
+              const n = openByCourse.get(course.id) ?? 0;
+              if (n <= 0) continue;
+              openCourses.push({
+                courseId: course.id,
+                title: course.title,
+                date: course.date,
+                time: course.time,
+                teacherId: course.teacher_id,
+                openCount: n,
+                courseArchived: false,
+              });
+            }
+          }
+
+          const failedRefunds: TodoFailedRefund[] = [];
+          if (isManager) {
+            const todayBerlin = berlinIsoDate(0);
+            const months = [monthStartIso(todayBerlin, 0), monthStartIso(todayBerlin, 1)];
+            for (const month of months) {
+              try {
+                const page = await fetchStudioPayments({
+                  month,
+                  kind: '',
+                  status: 'refund_failed',
+                  search: '',
+                  page: 1,
+                  includeArchived: false,
+                });
+                for (const row of page.items) {
+                  if (failedRefunds.some((f) => f.paymentId === row.payment_id)) continue;
+                  failedRefunds.push({
+                    paymentId: row.payment_id,
+                    amountCents: row.amount_cents,
+                    firstName: row.first_name ?? '',
+                    lastName: row.last_name ?? '',
+                    courseTitle: row.course_title,
+                    courseDate: row.course_date,
+                    courseArchived: false,
+                    personArchived: false,
+                  });
+                }
+              } catch (err) {
+                console.error(err);
+              }
+            }
+          }
+
+          if (!isMounted) return;
+          setTodoItems(
+            buildTodoItems(
+              { failedRefunds, returns, openCourses },
+              new Date(),
+              todoRole,
+              { teacherId: userProfile.id },
+            ),
           );
+          setTodoReady(true);
         }
 
         await fetchStats(myRegistrationsFromList);
@@ -417,37 +546,10 @@ const Dashboard: React.FC = () => {
     };
   }, [isOwner, userProfile?.id]);
 
-  useEffect(() => {
-    if (!isAdmin) {
-      setOpenCoverage(null);
-      return;
-    }
-    let active = true;
-    void (async () => {
-      const { data, error } = await supabase.rpc('get_open_coverage');
-      if (!active) return;
-      if (error) {
-        console.error(error);
-        setOpenCoverage(null);
-        return;
-      }
-      const list = (data ?? []) as Array<{ user_id: string }>;
-      if (list.length === 0) {
-        setOpenCoverage(null);
-        return;
-      }
-      setOpenCoverage({
-        registrations: list.length,
-        people: new Set(list.map((row) => row.user_id)).size,
-      });
-    })();
-    return () => {
-      active = false;
-    };
-  }, [isAdmin, userProfile?.id]);
-
   const isParticipantOnly = isParticipantOnlyRole(userProfile);
   const isTeacher = isTeacherOnly(userProfile);
+  const showTodoCard = todoReady && !isParticipantOnly;
+  const todoCount = useMemo(() => todoItemCount(todoItems), [todoItems]);
 
 
   const getStatCards = (): StatCard[] => {
@@ -649,81 +751,49 @@ const Dashboard: React.FC = () => {
 
       {ledgerWaiting ? <LedgerWaitingNotice variant="dashboard" /> : null}
 
-      {refundLines.length > 0 && isAdmin && (
-        <section className="overflow-hidden rounded-md border border-border bg-surface">
-          <div className="border-b border-border px-3.5 py-3">
-            <h2 className="text-[17px] font-medium text-text">Rückgaben offen</h2>
+      {showTodoCard ? (
+        <section
+          className="overflow-hidden rounded-md border border-border bg-surface"
+          data-testid="todo-card"
+        >
+          <div className="flex items-baseline justify-between gap-3 border-b border-border px-3.5 py-3">
+            <h2 className="text-[17px] font-medium text-text">Zu erledigen</h2>
+            {todoItems.length > 0 ? (
+              <span className="tabular-nums text-[15px] text-textMuted">{todoCount}</span>
+            ) : null}
           </div>
-          <div className="divide-y divide-border">
-            {refundLines.map((line) => (
-              <Link
-                key={line.id}
-                to={`/course/${line.id}/participants`}
-                className="flex min-h-11 items-center gap-3 px-3.5 py-3 text-[17px] font-medium text-text no-underline active:bg-surfaceSunken focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset"
-              >
-                <span className="min-w-0 flex-1">
-                  {line.title}{' '}
-                  <span className="whitespace-nowrap">
-                    {formatDate(line.date)} – {line.open === 1 ? '1 Rückgabe' : `${line.open} Rückgaben`}
-                  </span>
-                </span>
-                <ChevronRight className="h-[18px] w-[18px] shrink-0 text-textSubtle" aria-hidden />
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {openCoverage && isAdmin ? (
-        <section className="overflow-hidden rounded-md border border-border bg-surface">
-          <Link
-            to="/payments?tab=offen"
-            className="flex min-h-11 items-center gap-3 px-3.5 py-3 text-[17px] font-medium text-text no-underline active:bg-surfaceSunken focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset"
-          >
-            <span className="min-w-0 flex-1">
-              Offene Zahlungen
-              <span className="mt-0.5 block text-[15px] font-normal text-textMuted tabular-nums">
-                {openCoverage.registrations} Anmeldungen bei {openCoverage.people} Personen
-              </span>
-            </span>
-            <ChevronRight className="h-[18px] w-[18px] shrink-0 text-textSubtle" aria-hidden />
-          </Link>
+          {todoItems.length === 0 ? (
+            <p className="px-3.5 py-4 text-[15px] text-textMuted" data-testid="todo-empty">
+              {todoEmptyLabel()}
+            </p>
+          ) : (
+            <div className="divide-y divide-border">
+              {todoItems.map((item) => {
+                const Icon = todoIcon(item.kind);
+                return (
+                  <Link
+                    key={`${item.kind}:${item.href}:${item.title}`}
+                    to={item.href}
+                    data-testid={`todo-${item.kind}`}
+                    className="flex min-h-14 items-center gap-3 px-3.5 py-3 text-text no-underline active:bg-surfaceSunken focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset"
+                  >
+                    <Icon className="h-5 w-5 shrink-0 text-textMuted" aria-hidden />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[17px] font-medium tabular-nums">{item.title}</span>
+                      {item.subtitle ? (
+                        <span className="mt-0.5 block text-[15px] font-normal text-textMuted tabular-nums">
+                          {item.subtitle}
+                        </span>
+                      ) : null}
+                    </span>
+                    <ChevronRight className="h-[18px] w-[18px] shrink-0 text-textSubtle" aria-hidden />
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </section>
       ) : null}
-
-      {checkoutLines.length > 0 && !isParticipantOnly && (
-        <section className="overflow-hidden rounded-md border border-border bg-surface">
-          <div className="border-b border-border px-3.5 py-3">
-            <h2 className="text-[17px] font-medium text-text">Heute zu erledigen</h2>
-          </div>
-          <div className="divide-y divide-border">
-            {checkoutLines.map((line) => {
-              const day =
-                checkoutDayWord(line.date) === 'heute'
-                  ? 'Heute'
-                  : checkoutDayWord(line.date) === 'gestern'
-                    ? 'Gestern'
-                    : formatDate(line.date);
-              const openWord = isCourseUpcoming({ date: line.date, time: line.time })
-                ? 'zahlen vor Ort'
-                : 'offen';
-              return (
-                <Link
-                  key={line.id}
-                  to={`/course/${line.id}/participants`}
-                  aria-label={`${line.title}, ${line.open} ${openWord}`}
-                  className="flex min-h-11 items-center gap-3 px-3.5 py-3 text-[17px] font-medium text-text no-underline active:bg-surfaceSunken focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset"
-                >
-                  <span className="min-w-0 flex-1 tabular-nums">
-                    {`${day} ${formatTime(line.time)} · ${line.title} · ${line.open} ${openWord} ›`}
-                  </span>
-                  <ChevronRight className="h-[18px] w-[18px] shrink-0 text-textSubtle" aria-hidden />
-                </Link>
-              );
-            })}
-          </div>
-        </section>
-      )}
 
       {isParticipantOnly && heroCourse && (
         <Link
