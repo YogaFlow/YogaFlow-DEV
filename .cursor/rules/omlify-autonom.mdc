@@ -57,6 +57,7 @@ An einer Haltestelle: Bericht nach `docs/berichte/<story>.md`, Status „angehal
 - Plattform-Schalter und Studio-Einstellungen sichern und im `finally` wiederherstellen
 - Läufe in `demoalpha` mit Lauf-ID in E-Mails/Titeln; Aufräumen nur über RPCs; Fehler beim Aufräumen nur warnen
 - **E2E mit append-only-Schreiben** (AVV-Zustimmung, Belege): eigenes Studio (Slug `e2eapp`), nie `demoalpha`/`demobeta` — die bleiben für Julius' Klicktests. Studio über Testskript anlegen/nutzen.
+- **Testdaten nur über RPCs/Testskripte:** Zahlungs-, Erstattungs-, Beleg- und Hauptbuchzeilen nie direkt INSERT/UPDATE/DELETE. Online-Zahlungen nur über den echten Testweg (Stripe-Testmodus, PaymentIntent am verbundenen Konto, 4242 / `pm_card_visa`). Erstattungen nur über `request_refund` / Kursabsage / Jobs — kein erfundenes `pi_…`/`re_…`.
 - Steuerstatus nur setzen, wenn er fehlt
 - Fremde Claims (`claim_*`) sofort zurückgeben
 - Zeiten mit `warteBis`, nie feste Wartezeiten
