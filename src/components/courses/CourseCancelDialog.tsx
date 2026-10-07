@@ -70,8 +70,8 @@ const CourseCancelDialog: React.FC<CourseCancelDialogProps> = ({
       ? null
       : `${peopleLine(
           dialog.withPass,
-          '1 Person hat mit Mehrfachkarte gebucht',
-          '%n haben mit Mehrfachkarte gebucht',
+          '1 Person hat mit Kurskarte gebucht',
+          '%n haben mit Kurskarte gebucht',
         )}. Die Einheiten werden automatisch zurückgebucht.`;
 
   return (

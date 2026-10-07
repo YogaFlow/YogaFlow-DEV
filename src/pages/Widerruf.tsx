@@ -130,10 +130,10 @@ const Widerruf: React.FC = () => {
     <div className="mx-auto max-w-lg space-y-6 p-4 sm:p-8" data-testid="widerruf-page">
       <h1 className="text-xl font-semibold text-text">Vertrag widerrufen</h1>
       <p className="text-sm text-textMuted">
-        Gib Belegnummer und die E-Mail an, mit der du die Mehrfachkarte gekauft hast.
+        Gib Belegnummer und die E-Mail an, mit der du die Kurskarte gekauft hast.
       </p>
       <p className="text-sm text-textMuted">
-        Die Belegnummer findest du in deiner Bestätigungs-Mail oder unter Mehrfachkarten.
+        Die Belegnummer findest du in deiner Bestätigungs-Mail oder unter Kurskarten.
       </p>
 
       {done ? (

@@ -67,13 +67,13 @@ export function checkoutErrorMessage(code: string | undefined): string {
     case 'NOT_WAIVED':
       return 'Das ist kein Erlass mehr. Die Liste wird neu geladen.';
     case 'NO_VALID_PASS':
-      return 'Keine gültige Mehrfachkarte für diesen Kurs.';
+      return 'Keine gültige Kurskarte für diesen Kurs.';
     case 'WAITLIST_NO_PAYMENT':
       return 'Der Kurs ist voll. Zahlung vermerken geht erst, wenn die Person nachrückt.';
     case 'PASS_EMPTY':
     case 'PASS_EXPIRED':
     case 'NOT_PASS_ELIGIBLE':
-      return 'Die Mehrfachkarte ist aufgebraucht bzw. gilt an diesem Tag nicht mehr.';
+      return 'Die Kurskarte ist aufgebraucht bzw. gilt an diesem Tag nicht mehr.';
     default:
       return 'Das hat nicht geklappt. Bitte versuche es noch einmal.';
   }

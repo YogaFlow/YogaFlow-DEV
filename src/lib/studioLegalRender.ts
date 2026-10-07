@@ -10,7 +10,7 @@ export const STUDIO_LEGAL_WIDERRUF_PARTIAL =
   'Du kannst den Vertrag innerhalb von 14 Tagen ohne Angabe von Gründen widerrufen. ' +
   'Die Frist beginnt mit dem Kauf. Weil du der sofortigen Nutzung zustimmst, leistest du bei Widerruf ' +
   'anteilig Wertersatz für bereits genutzte Termine (Preis ÷ Termine × genutzte Termine). ' +
-  'Ungenutzte Termine werden entwertet. Den Widerruf erklärst du über „Mehrfachkarten“ oder die Seite Widerruf.';
+  'Ungenutzte Termine werden entwertet. Den Widerruf erklärst du über „Kurskarten“ oder die Seite Widerruf.';
 
 export type StudioLegalKind = 'imprint' | 'terms' | 'privacy';
 

@@ -195,7 +195,7 @@ const Participants: React.FC = () => {
     const courseTitle = participant.course.title;
     const passNote =
       participant.coverage_status === 'pass'
-        ? ' Die Einheit geht zurück auf die Mehrfachkarte.'
+        ? ' Die Einheit geht zurück auf die Kurskarte.'
         : '';
     let onlineNote = '';
     if (isStudioAdmin(userProfile) && participant.coverage_status === 'paid') {

@@ -42,7 +42,7 @@ const LegalPage: React.FC = () => {
             ))}
           </ul>
           <p>
-            Online gekaufte Mehrfachkarten kannst du über{' '}
+            Online gekaufte Kurskarten kannst du über{' '}
             <Link
               to="/widerruf"
               className="font-medium text-brand underline underline-offset-4"

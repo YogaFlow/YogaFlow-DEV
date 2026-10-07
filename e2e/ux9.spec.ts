@@ -1,5 +1,5 @@
 /**
- * UX-9 — Kauf-Sheet Consent, neuer Hash, Navigation Mehrfachkarten (DEV, e2eapp).
+ * UX-9 — Kauf-Sheet Consent, neuer Hash, Navigation Kurskarten (DEV, e2eapp).
  */
 import { expect, test, type Page } from '@playwright/test';
 import { createHash, randomUUID } from 'node:crypto';
@@ -49,7 +49,7 @@ async function alsAngemeldet(page: Page, session: unknown) {
   );
 }
 
-test('UX9 — Consent-Fehler, Hash, Mehrfachkarten-Nav', async ({ page }) => {
+test('UX9 — Consent-Fehler, Hash, Kurskarten-Nav', async ({ page }) => {
   assertDevGuard();
   const env = ladeEnv();
   const { url, anon, service } = assertDevEnv(env);
@@ -165,11 +165,11 @@ test('UX9 — Consent-Fehler, Hash, Mehrfachkarten-Nav', async ({ page }) => {
     await page.setViewportSize({ width: 360, height: 740 });
     await page.goto(`/my-passes?tenant=${SLUG}`);
     await expect(page.getByTestId('my-passes-page')).toBeVisible();
-    await expect(page.getByText('Aktive Mehrfachkarten')).toBeVisible();
+    await expect(page.getByText('Aktive Kurskarten')).toBeVisible();
     await expect(page.getByText(productName).first()).toBeVisible();
 
     // Navigation: Seitentitel im Kopf (Menüpunkt mobil hinter Drawer)
-    await expect(page.getByRole('heading', { level: 1, name: 'Mehrfachkarten' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Kurskarten' })).toBeVisible();
 
     // Zweites Produkt für Sheet-UI (Consent ohne Häkchen).
     const buyName = `Kauf ${laufId}`;

@@ -50,9 +50,9 @@ test('Statuszeilen der Kategorien', () => {
   assert.equal(bookingsStatusLine({ cancellationWindowHours: 12 }), 'Stornofrist 12 h · Warteliste an');
   assert.equal(paymentsStatusLine({ onlineEnabled: true, taxLabel: 'Kleinunternehmer' }), 'Online aktiv · Kleinunternehmer');
   assert.equal(paymentsStatusLine({ onlineEnabled: false, taxLabel: null }), 'Online aus');
-  assert.equal(cardsStatusLine(2), '2 Mehrfachkarten im Angebot');
-  assert.equal(cardsStatusLine(1), '1 Mehrfachkarte im Angebot');
-  assert.equal(cardsStatusLine(0), 'Keine Mehrfachkarten im Angebot');
+  assert.equal(cardsStatusLine(2), '2 Kurskarten im Angebot');
+  assert.equal(cardsStatusLine(1), '1 Kurskarte im Angebot');
+  assert.equal(cardsStatusLine(0), 'Keine Kurskarten im Angebot');
   assert.equal(teamStatusLine(3), '3 Personen');
   assert.equal(teamStatusLine(1), '1 Person');
 });

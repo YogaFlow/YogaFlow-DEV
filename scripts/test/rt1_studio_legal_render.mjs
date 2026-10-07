@@ -76,7 +76,7 @@ for (const tax_small_business of regimes) {
         assert.ok(!out.includes('{{'), `${name} Platzhalter-Reste`);
         assert.ok(!out.includes('health_notes'), 'health_notes weg');
         if (name === 'terms' && pass.passes_any === false) {
-          assert.ok(!out.includes('Mehrfachkarten'), 'ohne Karten kein Abschnitt 8');
+          assert.ok(!out.includes('Kurskarten'), 'ohne Karten kein Abschnitt 8');
         }
         if (name === 'terms' && pay.pay_onsite) {
           assert.match(out, /dürfen wir weiterhin verlangen/);

@@ -84,7 +84,7 @@ const AdjustPassDialog: React.FC<Props> = ({
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <h3 id="adjust-pass-title" className="text-lg font-semibold text-text">
-              Mehrfachkarte korrigieren
+              Kurskarte korrigieren
             </h3>
             <p className="mt-1 text-sm text-textMuted">{passName}</p>
           </div>

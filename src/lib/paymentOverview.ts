@@ -104,7 +104,7 @@ export function paymentStatusTone(status: PaymentOverviewStatus): StatusTone {
 export function paymentPurpose(
   row: Pick<StudioPaymentRow, 'subject_type' | 'course_title' | 'course_date' | 'course_time' | 'pass_name'>,
 ): string {
-  if (row.subject_type === 'pass_purchase') return row.pass_name?.trim() || 'Mehrfachkarte';
+  if (row.subject_type === 'pass_purchase') return row.pass_name?.trim() || 'Kurskarte';
   const title = row.course_title?.trim() || 'Kurs';
   const when = [formatDate(row.course_date), formatTime(row.course_time)].filter(Boolean).join(', ');
   return when ? `${title} · ${when}` : title;

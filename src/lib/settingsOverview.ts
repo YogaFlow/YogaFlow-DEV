@@ -10,7 +10,7 @@ export const SETTINGS_CATEGORIES: SettingsCategory[] = [
   { id: 'studio', title: 'Studio', to: '/settings/studio' },
   { id: 'buchungen', title: 'Buchungen', to: '/settings/buchungen' },
   { id: 'zahlungen', title: 'Zahlungen', to: '/settings/zahlungen' },
-  { id: 'karten', title: 'Mehrfachkarten', to: '/settings/karten' },
+  { id: 'karten', title: 'Kurskarten', to: '/settings/karten' },
   { id: 'team', title: 'Team', to: '/settings/team' },
   { id: 'rechtliches', title: 'Rechtliches', to: '/settings/rechtliches' },
 ];
@@ -50,8 +50,8 @@ export function paymentsStatusLine(input: {
 }
 
 export function cardsStatusLine(count: number): string {
-  if (!Number.isFinite(count) || count <= 0) return 'Keine Mehrfachkarten im Angebot';
-  return count === 1 ? '1 Mehrfachkarte im Angebot' : `${count} Mehrfachkarten im Angebot`;
+  if (!Number.isFinite(count) || count <= 0) return 'Keine Kurskarten im Angebot';
+  return count === 1 ? '1 Kurskarte im Angebot' : `${count} Kurskarten im Angebot`;
 }
 
 export function teamStatusLine(count: number): string {

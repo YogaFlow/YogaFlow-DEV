@@ -53,7 +53,7 @@ const PassWithdrawalDialog: React.FC<Props> = ({ open, pass, onClose, onDone }) 
           setError(
             body.error === 'WINDOW_EXPIRED'
               ? 'Die Widerrufsfrist für diesen Kauf ist abgelaufen.'
-              : 'Widerruf ist für diese Mehrfachkarte nicht möglich.',
+              : 'Widerruf ist für diese Kurskarte nicht möglich.',
           );
           return;
         }

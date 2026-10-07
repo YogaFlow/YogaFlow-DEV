@@ -53,7 +53,7 @@ export function bookingMethodTitle(
   passOption?: { label?: string | null } | null,
 ): string {
   if (method === 'pass') {
-    const label = passOption?.label?.trim() || 'Mehrfachkarte';
+    const label = passOption?.label?.trim() || 'Kurskarte';
     // „10er-Karte · noch 7“ bleibt als Zeilentitel
     return label;
   }
@@ -94,7 +94,7 @@ export function bookingPrimaryLabel(
 export function passBookButtonLabel(passLabel?: string | null): string {
   const raw = passLabel?.trim() ?? '';
   // „10er-Karte · noch 7“ → „Mit 10er-Karte buchen“
-  const name = raw.split('·')[0]?.trim() || 'Mehrfachkarte';
+  const name = raw.split('·')[0]?.trim() || 'Kurskarte';
   if (/karte/i.test(name)) return `Mit ${name} buchen`;
   return `Mit ${name}-Karte buchen`;
 }
@@ -105,13 +105,13 @@ export function altPayLabel(): string {
 }
 
 export function methodChoiceTitle(method: BookingMethodKind): string {
-  if (method === 'pass') return 'Mit Mehrfachkarte';
+  if (method === 'pass') return 'Mit Kurskarte';
   if (method === 'online') return 'Online bezahlen';
   return 'Vor Ort bezahlen';
 }
 
 export function methodChoiceHint(method: BookingMethodKind): string {
-  if (method === 'pass') return 'Guthaben von deiner Mehrfachkarte';
+  if (method === 'pass') return 'Guthaben von deiner Kurskarte';
   if (method === 'online') return 'Kreditkarte, Apple Pay oder Google Pay';
   return 'Bar, PayPal oder Überweisung vor Ort';
 }

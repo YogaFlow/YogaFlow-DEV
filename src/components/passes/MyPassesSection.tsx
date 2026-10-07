@@ -41,7 +41,7 @@ const MyPassesSection: React.FC = () => {
       );
     } catch (e) {
       console.error(e);
-      setError('Mehrfachkarten konnten nicht geladen werden.');
+      setError('Kurskarten konnten nicht geladen werden.');
     } finally {
       setLoading(false);
     }
@@ -55,7 +55,7 @@ const MyPassesSection: React.FC = () => {
     return (
       <div className="flex items-center gap-2 text-sm text-textSubtle">
         <div className="h-3 w-3 animate-spin rounded-full border-b-2 border-brand" />
-        Lade Mehrfachkarten…
+        Lade Kurskarten…
       </div>
     );
   }
@@ -76,18 +76,18 @@ const MyPassesSection: React.FC = () => {
     <section className="space-y-3 border-b border-border pb-5">
       <div className="flex items-baseline justify-between gap-3">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-textMuted">
-          Mehrfachkarten
+          Kurskarten
         </h2>
         <Link
           to="/my-passes"
           className="text-[13px] font-medium text-brand underline"
         >
-          Alle Mehrfachkarten ›
+          Alle Kurskarten ›
         </Link>
       </div>
 
       {active.length === 0 ? (
-        <p className="text-sm text-textSubtle italic">Keine aktiven Mehrfachkarten.</p>
+        <p className="text-sm text-textSubtle italic">Keine aktiven Kurskarten.</p>
       ) : (
         <ul className="space-y-2">
           {active.map((pass) => {

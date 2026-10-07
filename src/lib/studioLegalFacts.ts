@@ -38,8 +38,8 @@ export function termsFactRows(values: StudioLegalValues): StudioLegalFactRow[] {
     rows.push({
       id: 'passes',
       label: values.passes_online
-        ? 'Mehrfachkarten online kaufbar'
-        : 'Mehrfachkarten nur vor Ort',
+        ? 'Kurskarten online kaufbar'
+        : 'Kurskarten nur vor Ort',
       to: '/settings/karten',
     });
   }
@@ -70,7 +70,7 @@ export function privacyFactRows(values: StudioLegalValues): {
     },
     {
       id: 'passes',
-      label: values.passes_any ? 'Mehrfachkarten: ja' : 'Mehrfachkarten: nein',
+      label: values.passes_any ? 'Kurskarten: ja' : 'Kurskarten: nein',
       to: '/settings/karten',
     },
   ];

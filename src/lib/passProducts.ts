@@ -103,9 +103,9 @@ export function passProductErrorMessage(code: string | null | undefined): string
     case 'INVALID_VALIDITY':
       return 'Diese Gültigkeit ist nicht möglich.';
     case 'DUPLICATE_NAME':
-      return 'Es gibt schon eine Mehrfachkarte mit diesem Namen.';
+      return 'Es gibt schon eine Kurskarte mit diesem Namen.';
     case 'ARCHIVED':
-      return 'Diese Mehrfachkarte ist archiviert. Hole sie zuerst zurück.';
+      return 'Diese Kurskarte ist archiviert. Hole sie zuerst zurück.';
     case 'INVALID_DESCRIPTION':
       return 'Die Beschreibung darf höchstens 140 Zeichen haben.';
     case 'ONLINE_NOT_AVAILABLE':

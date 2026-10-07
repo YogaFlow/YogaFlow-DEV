@@ -119,7 +119,7 @@ export function onlinePaidCheckoutLine(amountCents: number, refundedCents: numbe
 
 /** 10er-Karte als eigene Zeile. */
 export function checkoutPassLine(name: string, remaining: number): string {
-  const label = name.trim() || 'Mehrfachkarte';
+  const label = name.trim() || 'Kurskarte';
   return `${label} · noch ${remaining}`;
 }
 

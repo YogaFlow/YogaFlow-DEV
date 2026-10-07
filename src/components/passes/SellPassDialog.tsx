@@ -111,7 +111,7 @@ const SellPassDialog: React.FC<SellPassDialogProps> = ({
         }`}
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-lg font-semibold text-text">Mehrfachkarte für {personName}</h3>
+        <h3 className="text-lg font-semibold text-text">Kurskarte für {personName}</h3>
 
         {loading ? (
           <div className="flex justify-center py-10">
@@ -119,12 +119,12 @@ const SellPassDialog: React.FC<SellPassDialogProps> = ({
           </div>
         ) : products.length === 0 ? (
           <p className="mt-4 text-[15px] text-textMuted">
-            Gerade gibt es keine verkaufbaren Mehrfachkarten.
+            Gerade gibt es keine verkaufbaren Kurskarten.
           </p>
         ) : (
           <>
             <fieldset className="mt-4 space-y-2">
-              <legend className="sr-only">Mehrfachkarte wählen</legend>
+              <legend className="sr-only">Kurskarte wählen</legend>
               {products.map((product) => {
                 const active = selectedId === product.id;
                 return (

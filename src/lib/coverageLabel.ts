@@ -45,9 +45,9 @@ function isWaitlistOrCancelled(registration: CoverageLabelInput): boolean {
 }
 
 function passLabel(audience: CoverageLabelAudience, remaining: number | null | undefined): string {
-  if (audience === 'participant') return 'mit Mehrfachkarte bezahlt';
-  if (audience === 'csv' || remaining == null || !Number.isFinite(remaining)) return 'Mehrfachkarte';
-  return `Mehrfachkarte · noch ${remaining}`;
+  if (audience === 'participant') return 'mit Kurskarte bezahlt';
+  if (audience === 'csv' || remaining == null || !Number.isFinite(remaining)) return 'Kurskarte';
+  return `Kurskarte · noch ${remaining}`;
 }
 
 function paidLabel(

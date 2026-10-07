@@ -1,5 +1,5 @@
 /**
- * K1 / UX-9 — Texte für Online-Mehrfachkartenkauf, Ersparnis, Fristen, Wertersatz, Consent.
+ * K1 / UX-9 — Texte für Online-Kurskartenkauf, Ersparnis, Fristen, Wertersatz, Consent.
  */
 import { formatCents } from './format';
 
@@ -20,7 +20,7 @@ export const PASS_WITHDRAWAL_BELEHRUNG_BODY =
   'Du kannst den Vertrag innerhalb von 14 Tagen ohne Angabe von Gründen widerrufen. ' +
   'Die Frist beginnt mit dem Kauf. Weil du der sofortigen Nutzung zustimmst, leistest du bei Widerruf ' +
   'anteilig Wertersatz für bereits genutzte Termine (Preis ÷ Termine × genutzte Termine). ' +
-  'Ungenutzte Termine werden entwertet. Den Widerruf erklärst du über „Mehrfachkarten“ oder die Seite Widerruf.';
+  'Ungenutzte Termine werden entwertet. Den Widerruf erklärst du über „Kurskarten“ oder die Seite Widerruf.';
 
 export function passProductPreviewLine(input: {
   units: number;
@@ -175,7 +175,7 @@ export function passWithdrawalUpcomingNotice(upcomingDates: string[]): string | 
   const list = upcomingDates.map(passWithdrawalDateLabel).filter(Boolean).join(', ');
   const term = n === 1 ? '1 kommenden Termin' : `${n} kommende Termine`;
   return (
-    `Du hast ${term} mit dieser Mehrfachkarte gebucht (${list}). ` +
+    `Du hast ${term} mit dieser Kurskarte gebucht (${list}). ` +
     'Sie bleiben gebucht und werden als genutzt berechnet. ' +
     'Wenn du sie nicht wahrnehmen willst, melde dich vorher ab — dann bekommst du mehr zurück.'
   );

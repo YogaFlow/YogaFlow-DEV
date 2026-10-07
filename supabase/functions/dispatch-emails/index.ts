@@ -366,7 +366,7 @@ Deno.serve(async (req: Request) => {
 
       const ctx: PassDeliveryContext = {
         passId: pass.id,
-        passName: pass.name ?? "Mehrfachkarte",
+        passName: pass.name ?? "Kurskarte",
         unitsTotal: Number(pass.units_total ?? 0),
         remaining,
         validUntil: typeof pass.valid_until === "string" ? pass.valid_until : null,

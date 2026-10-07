@@ -30,7 +30,7 @@ export default function PassEligibleToggle({
             htmlFor={id}
             className={`block text-[15px] font-medium ${disabled ? 'text-textSubtle' : 'text-text'}`}
           >
-            Mit Mehrfachkarte buchbar
+            Mit Kurskarte buchbar
           </label>
           <p className="mt-1 text-sm text-textMuted">
             {hint ?? 'Z. B. für Workshops ausschalten.'}

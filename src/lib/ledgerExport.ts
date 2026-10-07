@@ -136,7 +136,7 @@ function accountLabel(account: string): string {
 
 function saleLabel(saleKind: string): string {
   if (saleKind === 'course') return 'Kurs';
-  if (saleKind === 'pass') return 'Mehrfachkarte';
+  if (saleKind === 'pass') return 'Kurskarte';
   return saleKind;
 }
 

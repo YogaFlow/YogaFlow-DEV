@@ -68,7 +68,7 @@ const MyPasses: React.FC = () => {
       setCommonPrice(common);
     } catch (e) {
       console.error(e);
-      setError('Mehrfachkarten konnten nicht geladen werden.');
+      setError('Kurskarten konnten nicht geladen werden.');
     } finally {
       setLoading(false);
     }
@@ -82,7 +82,7 @@ const MyPasses: React.FC = () => {
     return (
       <div className="flex items-center gap-2 p-4 text-sm text-textSubtle">
         <div className="h-3 w-3 animate-spin rounded-full border-b-2 border-brand" />
-        Lade Mehrfachkarten…
+        Lade Kurskarten…
       </div>
     );
   }
@@ -99,10 +99,10 @@ const MyPasses: React.FC = () => {
     <div className="mx-auto max-w-2xl space-y-8 p-4 sm:p-6" data-testid="my-passes-page">
       <section className="space-y-3">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-textMuted">
-          Aktive Mehrfachkarten
+          Aktive Kurskarten
         </h2>
         {active.length === 0 ? (
-          <p className="text-sm italic text-textSubtle">Keine aktiven Mehrfachkarten.</p>
+          <p className="text-sm italic text-textSubtle">Keine aktiven Kurskarten.</p>
         ) : (
           <ul className="space-y-3">
             {active.map((pass) => {
@@ -216,7 +216,7 @@ const MyPasses: React.FC = () => {
       {products.length > 0 ? (
         <section className="space-y-3" data-testid="pass-buy-list">
           <h2 className="text-xs font-semibold uppercase tracking-wide text-textMuted">
-            Mehrfachkarte kaufen
+            Kurskarte kaufen
           </h2>
           <ul className="space-y-2">
             {products.map((product) => {
@@ -255,7 +255,7 @@ const MyPasses: React.FC = () => {
 
       {active.length === 0 && products.length === 0 ? (
         <p className="text-sm text-textMuted">
-          In diesem Studio gibt es gerade keine online kaufbaren Mehrfachkarten.{' '}
+          In diesem Studio gibt es gerade keine online kaufbaren Kurskarten.{' '}
           <button
             type="button"
             className="font-medium text-brand"

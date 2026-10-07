@@ -105,7 +105,7 @@ export default function PassHintSection() {
         updateTenant(result.patch);
         setFeedbackDialog({
           title: 'Gespeichert',
-          message: 'Der Hinweis auf Mehrfachkarten ist gespeichert.',
+          message: 'Der Hinweis auf Kurskarten ist gespeichert.',
           type: 'success',
         });
       } else {
@@ -123,7 +123,7 @@ export default function PassHintSection() {
   return (
     <div className="rounded-md border border-border bg-surface p-3.5" data-testid="pass-hint-section">
       <FeedbackDialog dialog={feedbackDialog} onClose={() => setFeedbackDialog(null)} />
-      <h2 className="mb-1 text-xl font-semibold text-text">Hinweis auf Mehrfachkarten im Kurs</h2>
+      <h2 className="mb-1 text-xl font-semibold text-text">Hinweis auf Kurskarten im Kurs</h2>
       <p className="mb-4 text-[13px] leading-5 text-textMuted">
         Optional unter der Zahlart im Kursdetail. Standard aus. Preise kommen aus Platzhaltern —
         tippe keine Beträge.

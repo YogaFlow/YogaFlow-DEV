@@ -1118,7 +1118,7 @@ export function buildPaymentRefundedEmail(input: {
       <tr>
         <td style="padding:14px 16px;">
           <p style="margin:0 0 6px 0;font-size:18px;font-weight:700;color:#1F1B16;">${escapeHtml(amountBoxLine)}</p>
-          <p style="margin:0 0 8px 0;font-size:14px;color:#6F6558;">zurück auf deine Mehrfachkarte</p>
+          <p style="margin:0 0 8px 0;font-size:14px;color:#6F6558;">zurück auf deine Kurskarte</p>
           ${reasonLine ? `<p style="margin:0 0 8px 0;font-size:14px;color:#1F1B16;">${escapeHtml(reasonLine)}</p>` : ""}
           <p style="margin:0 0 10px 0;font-size:13px;color:#6F6558;">Gutschrift je nach Bank in einigen Werktagen</p>
           ${input.receiptLink && input.receiptNumber
@@ -1138,7 +1138,7 @@ export function buildPaymentRefundedEmail(input: {
     input.courseTitle,
     `${input.courseDate}${input.courseTime ? ` ${formatTimeHm(input.courseTime)}` : ""}`,
     amountBoxLine,
-    "zurück auf deine Mehrfachkarte",
+    "zurück auf deine Kurskarte",
     reasonLine ?? "",
     "Gutschrift je nach Bank in einigen Werktagen",
     input.receiptLink && input.receiptNumber
