@@ -40,7 +40,13 @@ Vollständige Diff-Liste: Commits auf `Julius` (feat ux9).
 
 ## Deploy-Nachweis (vor Haltestelle 5)
 
-_(nach Push ausfüllen: Commit, Workers Builds: omlify-dev, Bundle-Merkmal)_
+| Prüfung | Ergebnis |
+|---|---|
+| Commit | `41274b0` (`test(ux9): E2E Consent/Hash und Bericht Haltestelle 5`) |
+| Check-Run **Workers Builds: omlify-dev** | `success` (completed 2026-10-07T08:43:28Z) |
+| Live-Bundle | `https://demoalpha.omlify-dev.de/assets/index-CV9epxqA.js` |
+| Merkmal | String `Endpreis` bei Offset 625695; `sofort nutzen` bei 750093; `pass-consent-error` bei 758692 |
+| Edge Functions DEV | `npm run functions:dev` inkl. `dispatch-emails` (Consent-Zitat in Kauf-Mail) |
 
 ## Haltestelle 5 — Klickliste (max. 8)
 
