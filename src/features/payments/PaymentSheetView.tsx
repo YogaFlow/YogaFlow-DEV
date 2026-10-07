@@ -26,9 +26,12 @@ import {
   PAYMENT_TO_COURSE_LABEL,
   paymentHoldPill,
   paymentMessageForCode,
-  paymentSecureHint,
   paymentSuccessSummaryLine,
 } from '../../lib/paymentTexts';
+import {
+  PAYMENT_HOW_TO_PAY,
+  PAYMENT_SECURE_CARD_HINT,
+} from '../../lib/checkoutSummaryTexts';
 import { formatCents } from '../../lib/format';
 import {
   BookingSummaryCompact,
@@ -116,7 +119,7 @@ const PaymentSheetView: React.FC<PaymentSheetViewProps> = ({
   phase,
   code,
   message,
-  studioName,
+  studioName: _studioName,
   courseTitle,
   courseWhen,
   amountCents,
@@ -269,11 +272,16 @@ const PaymentSheetView: React.FC<PaymentSheetViewProps> = ({
 
         {showPreparing ? (
           <>
+            <div className="mb-3">
+              <p className="text-[15px] font-medium text-text" data-testid="payment-how-to-pay">
+                {PAYMENT_HOW_TO_PAY}
+              </p>
+              <p className="mt-1 inline-flex items-start gap-1.5 text-[12px] leading-snug text-textMuted">
+                <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+                <span>{PAYMENT_SECURE_CARD_HINT}</span>
+              </p>
+            </div>
             <PaymentFormPlaceholder label="Wird vorbereitet …" />
-            <p className="mt-3 inline-flex items-start gap-1.5 text-[13px] leading-snug text-textMuted">
-              <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-              <span>{paymentSecureHint(studioName)}</span>
-            </p>
           </>
         ) : null}
 

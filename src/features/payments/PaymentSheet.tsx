@@ -242,14 +242,15 @@ const PaymentSheet: React.FC<Props> = ({
           .maybeSingle(),
       ]);
       if (!active) return;
-      const amount = checkout.prepare?.amountCents;
-      if (!provider?.present || amount == null) {
+      if (!provider?.present) {
         setSummary(null);
         return;
       }
+      const amount = checkout.prepare?.amountCents ?? 0;
       const deadlineIso = reg.data?.cancellation_deadline ?? null;
       const deadlineMs = deadlineIso ? new Date(deadlineIso).getTime() : NaN;
-      const deadlineOk = deadlineIso && Number.isFinite(deadlineMs) && deadlineMs > Date.now();
+      const deadlineOk =
+        Boolean(deadlineIso) && Number.isFinite(deadlineMs) && deadlineMs > Date.now();
       setSummary({
         title: courseTitle ?? 'Kurs',
         whenLabel: courseWhen ?? '',
@@ -269,7 +270,7 @@ const PaymentSheet: React.FC<Props> = ({
         providerPostalCode: provider.postal_code,
         providerContactEmail: provider.contact_email,
         providerPhone: provider.phone,
-        cancelDeadlineLabel: deadlineOk ? formatCancellationDeadline(deadlineIso) : null,
+        cancelDeadlineLabel: deadlineOk ? formatCancellationDeadline(deadlineIso!) : null,
       });
     })();
     return () => {
