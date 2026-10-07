@@ -706,7 +706,7 @@ const CourseCheckout: React.FC = () => {
       paymentId: result.movement_id,
       userId: person.userId,
       remainingAfter: result.remaining,
-      text: `Karte eingelöst · noch ${result.remaining}`,
+      text: `Mehrfachkarte eingelöst · noch ${result.remaining}`,
     });
   };
 
@@ -901,7 +901,7 @@ const CourseCheckout: React.FC = () => {
       const line = staffUnregisterRefundLine(states[person.registrationId]?.refundable_cents ?? 0);
       if (line) onlineNote = ` ${line}`;
     }
-    const passNote = person.coverage === 'pass' ? ' Die Karteneinheit wird zurückgebucht.' : '';
+    const passNote = person.coverage === 'pass' ? ' Die Einheit geht zurück auf die Mehrfachkarte.' : '';
     setUnregisterDialog({
       person,
       message: `Möchtest du ${personName(person)} wirklich vom Kurs „${course.title}“ abmelden?${passNote}${onlineNote}`,
@@ -1155,11 +1155,11 @@ const CourseCheckout: React.FC = () => {
               person.onlineRefundableCents > 0;
             const menuOpen = menuFor === person.registrationId;
             const passHint = usablePass
-              ? `${usablePass.name.trim() || 'Karte'}, noch ${usablePass.remaining}`
+              ? `${usablePass.name.trim() || 'Mehrfachkarte'}, noch ${usablePass.remaining}`
               : person.coverage === 'pass'
                 ? checkoutPassLine(
                     (passesByUser[person.userId] ?? []).find((pass) => pass.pass_id === person.passId)
-                      ?.name ?? 'Karte',
+                      ?.name ?? 'Mehrfachkarte',
                     person.passRemaining ?? 0,
                   ).replace(' · noch ', ', noch ')
                 : null;
@@ -1267,7 +1267,7 @@ const CourseCheckout: React.FC = () => {
                             onClick={() => void applyPass(person)}
                             className="inline-flex h-11 shrink-0 items-center justify-center rounded-full border border-borderStrong bg-surface px-4 text-[15px] font-medium text-brand active:bg-surfaceSunken"
                           >
-                            Mit Karte
+                            Mit {usablePass.name.trim() || 'Mehrfachkarte'}
                           </button>
                         ) : null}
                       </div>
@@ -1299,7 +1299,7 @@ const CourseCheckout: React.FC = () => {
                         }}
                         className="flex min-h-11 w-full items-center text-left text-[15px] text-text"
                       >
-                        Karte verkaufen
+                        Mehrfachkarte verkaufen
                       </button>
                     ) : null}
                     {canUndoPass ? (
@@ -1311,7 +1311,7 @@ const CourseCheckout: React.FC = () => {
                         }}
                         className="flex min-h-11 w-full items-center text-left text-[15px] text-text"
                       >
-                        Karte zurücknehmen
+                        Mehrfachkarte zurücknehmen
                       </button>
                     ) : null}
                     {open
@@ -1407,7 +1407,7 @@ const CourseCheckout: React.FC = () => {
               <tr className="border-b border-border text-[13px] text-textMuted">
                 <th className="w-[28%] px-3.5 py-3 font-medium">Name</th>
                 <th className="w-[28%] px-3.5 py-3 font-medium">Zahlung</th>
-                <th className="w-[22%] px-3.5 py-3 font-medium">Karte</th>
+                <th className="w-[22%] px-3.5 py-3 font-medium">Mehrfachkarte</th>
                 <th className="w-[22%] px-3.5 py-3 text-right font-medium">Aktion</th>
               </tr>
             </thead>
@@ -1442,12 +1442,12 @@ const CourseCheckout: React.FC = () => {
                     ? checkoutPassLine(
                         (passesByUser[person.userId] ?? []).find(
                           (pass) => pass.pass_id === person.passId,
-                        )?.name ?? 'Karte',
+                        )?.name ?? 'Mehrfachkarte',
                         person.passRemaining ?? 0,
                       )
                     : passLabel
                       ? checkoutPassLine(
-                          (passesByUser[person.userId] ?? [])[0]?.name ?? 'Karte',
+                          (passesByUser[person.userId] ?? [])[0]?.name ?? 'Mehrfachkarte',
                           (passesByUser[person.userId] ?? [])[0]?.remaining ?? 0,
                         )
                       : null;
@@ -1538,7 +1538,7 @@ const CourseCheckout: React.FC = () => {
                                 onClick={() => void applyPass(person)}
                                 className="inline-flex h-11 min-w-11 items-center justify-center rounded-full border border-borderStrong bg-surface px-4 text-[15px] font-medium text-brand active:bg-surfaceSunken"
                               >
-                                Mit Karte
+                                Mit {usablePass.name.trim() || 'Mehrfachkarte'}
                               </button>
                             ) : null}
                             {open ? (
@@ -1581,7 +1581,7 @@ const CourseCheckout: React.FC = () => {
                                 }}
                                 className="inline-flex min-h-11 items-center text-[15px] text-text"
                               >
-                                Karte verkaufen
+                                Mehrfachkarte verkaufen
                               </button>
                             ) : null}
                             {canUndoPass ? (
@@ -1593,7 +1593,7 @@ const CourseCheckout: React.FC = () => {
                                 }}
                                 className="inline-flex min-h-11 items-center text-[15px] text-text"
                               >
-                                Karte zurücknehmen
+                                Mehrfachkarte zurücknehmen
                               </button>
                             ) : null}
                             {open
@@ -1946,8 +1946,8 @@ const CourseCheckout: React.FC = () => {
         dialog={
           undoPassConfirm
             ? {
-                title: 'Karte zurücknehmen',
-                message: `${personName(undoPassConfirm)} ist danach wieder offen. Die Einheit geht zurück auf die Karte.`,
+                title: 'Mehrfachkarte zurücknehmen',
+                message: `${personName(undoPassConfirm)} ist danach wieder offen. Die Einheit geht zurück auf die Mehrfachkarte.`,
                 confirmLabel: 'Zurücknehmen',
                 cancelLabel: 'Abbrechen',
                 variant: 'primary',

@@ -53,7 +53,7 @@ export function bookingMethodTitle(
   passOption?: { label?: string | null } | null,
 ): string {
   if (method === 'pass') {
-    const label = passOption?.label?.trim() || 'Karte';
+    const label = passOption?.label?.trim() || 'Mehrfachkarte';
     // „10er-Karte · noch 7“ bleibt als Zeilentitel
     return label;
   }
@@ -64,7 +64,7 @@ export function bookingMethodTitle(
 /** Kurzdetail hinter dem Titel (vor „Ändern“). */
 export function bookingMethodDetail(method: BookingMethodKind): string | null {
   if (method === 'pass') return null;
-  if (method === 'online') return 'Karte, Apple Pay';
+  if (method === 'online') return 'Kreditkarte, Apple Pay, Google Pay';
   return 'im Studio';
 }
 
@@ -94,7 +94,7 @@ export function bookingPrimaryLabel(
 export function passBookButtonLabel(passLabel?: string | null): string {
   const raw = passLabel?.trim() ?? '';
   // „10er-Karte · noch 7“ → „Mit 10er-Karte buchen“
-  const name = raw.split('·')[0]?.trim() || 'Karte';
+  const name = raw.split('·')[0]?.trim() || 'Mehrfachkarte';
   if (/karte/i.test(name)) return `Mit ${name} buchen`;
   return `Mit ${name}-Karte buchen`;
 }
@@ -105,13 +105,13 @@ export function altPayLabel(): string {
 }
 
 export function methodChoiceTitle(method: BookingMethodKind): string {
-  if (method === 'pass') return 'Mit Karte';
+  if (method === 'pass') return 'Mit Mehrfachkarte';
   if (method === 'online') return 'Online bezahlen';
   return 'Vor Ort bezahlen';
 }
 
 export function methodChoiceHint(method: BookingMethodKind): string {
-  if (method === 'pass') return 'Guthaben von deiner Karte';
-  if (method === 'online') return 'Karte, Apple Pay oder Google Pay';
+  if (method === 'pass') return 'Guthaben von deiner Mehrfachkarte';
+  if (method === 'online') return 'Kreditkarte, Apple Pay oder Google Pay';
   return 'Bar, PayPal oder Überweisung vor Ort';
 }

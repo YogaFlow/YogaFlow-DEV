@@ -524,7 +524,9 @@ export function buildPassPurchasedEmail(input: {
       logoUrl: input.logoUrl,
       brandColor: input.brandColor,
       title,
-      introHtml: `Deine Karte bei ${escapeHtml(input.studioName)} ist sofort nutzbar.`,
+      introHtml:
+        `Deine ${escapeHtml(input.passName)} bei ${escapeHtml(input.studioName)} ist sofort nutzbar. ` +
+        `Zustimmung: „Ich möchte die Karte sofort nutzen. Bei Widerruf zahle ich genutzte Termine anteilig; sind alle genutzt, endet das Widerrufsrecht.“`,
       bodyHtml,
       footerHtml: passProviderFooterHtml({ ...input, widerrufLink: input.widerrufLink }),
     },
@@ -571,7 +573,7 @@ export function buildPassExpiringEmail(input: {
       logoUrl: input.logoUrl,
       brandColor: input.brandColor,
       title,
-      introHtml: `Deine Karte bei ${escapeHtml(input.studioName)} läuft bald ab.`,
+      introHtml: `Deine ${escapeHtml(input.passName)} bei ${escapeHtml(input.studioName)} läuft bald ab.`,
       bodyHtml,
       footerHtml: passProviderFooterHtml(input),
     },
@@ -614,7 +616,7 @@ export function buildPassUnitsLowEmail(input: {
       logoUrl: input.logoUrl,
       brandColor: input.brandColor,
       title,
-      introHtml: `Auf deiner Karte bei ${escapeHtml(input.studioName)} ist noch ein Termin übrig.`,
+      introHtml: `Auf deiner ${escapeHtml(input.passName)} bei ${escapeHtml(input.studioName)} ist noch ein Termin übrig.`,
       bodyHtml,
       footerHtml: passProviderFooterHtml(input),
     },
@@ -977,7 +979,7 @@ export function buildPaymentSucceededEmail(input: {
 
   const paidBits = [
     formatEurCents(input.amountCents),
-    "Karte",
+    "Kreditkarte",
     input.paidAtLabel ?? "",
   ].filter(Boolean).join(" · ");
 
@@ -1021,7 +1023,7 @@ export function buildPaymentSucceededEmail(input: {
     `${input.courseDate} ${input.courseTime}${input.place ? ` · ${input.place}` : ""}`,
     input.teacherName ? `Lehrende: ${input.teacherName}` : "",
     priceLine(input.amountCents, input.taxRegime ?? null, input.vatRateBp ?? null),
-    `Zahlungsart Karte (online)${input.paidAtLabel ? `, ${input.paidAtLabel}` : ""}`,
+    `Zahlungsart Kreditkarte (online)${input.paidAtLabel ? `, ${input.paidAtLabel}` : ""}`,
     cancelLine(input.cancelDeadline),
     "Für Kurse mit festem Termin besteht kein Widerrufsrecht (§ 312g Abs. 2 Nr. 9 BGB).",
     receiptMentionText(input.receiptNumber, input.receiptLink),
@@ -1116,7 +1118,7 @@ export function buildPaymentRefundedEmail(input: {
       <tr>
         <td style="padding:14px 16px;">
           <p style="margin:0 0 6px 0;font-size:18px;font-weight:700;color:#1F1B16;">${escapeHtml(amountBoxLine)}</p>
-          <p style="margin:0 0 8px 0;font-size:14px;color:#6F6558;">zurück auf deine Karte</p>
+          <p style="margin:0 0 8px 0;font-size:14px;color:#6F6558;">zurück auf deine Mehrfachkarte</p>
           ${reasonLine ? `<p style="margin:0 0 8px 0;font-size:14px;color:#1F1B16;">${escapeHtml(reasonLine)}</p>` : ""}
           <p style="margin:0 0 10px 0;font-size:13px;color:#6F6558;">Gutschrift je nach Bank in einigen Werktagen</p>
           ${input.receiptLink && input.receiptNumber
@@ -1136,7 +1138,7 @@ export function buildPaymentRefundedEmail(input: {
     input.courseTitle,
     `${input.courseDate}${input.courseTime ? ` ${formatTimeHm(input.courseTime)}` : ""}`,
     amountBoxLine,
-    "zurück auf deine Karte",
+    "zurück auf deine Mehrfachkarte",
     reasonLine ?? "",
     "Gutschrift je nach Bank in einigen Werktagen",
     input.receiptLink && input.receiptNumber

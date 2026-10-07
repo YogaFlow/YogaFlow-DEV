@@ -77,7 +77,7 @@ const MemberPassesSection: React.FC<Props> = ({
       }
     } catch (e) {
       console.error(e);
-      setError('Karten konnten nicht geladen werden.');
+      setError('Mehrfachkarten konnten nicht geladen werden.');
     } finally {
       setLoading(false);
     }
@@ -105,14 +105,14 @@ const MemberPassesSection: React.FC<Props> = ({
   return (
     <div className="border-t border-border pt-4 space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-textMuted">Karten</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-textMuted">Mehrfachkarten</h3>
         {canSell && hasProducts ? (
           <button
             type="button"
             onClick={() => setSellOpen(true)}
             className="inline-flex min-h-11 items-center rounded-full border border-border px-3 text-[13px] font-medium text-text active:bg-surfaceSunken"
           >
-            Karte verkaufen
+            Mehrfachkarte verkaufen
           </button>
         ) : null}
       </div>
@@ -128,12 +128,12 @@ const MemberPassesSection: React.FC<Props> = ({
         </p>
       ) : !hasProducts && isStudioAdmin ? (
         <p className="text-sm text-textMuted">
-          Lege zuerst unter Einstellungen → Karten ein Produkt an.
+          Lege zuerst unter Einstellungen → Mehrfachkarten ein Produkt an.
         </p>
       ) : isStudioAdmin ? (
         <>
           {active.length === 0 ? (
-            <p className="text-sm text-textSubtle italic">Keine aktiven Karten.</p>
+            <p className="text-sm text-textSubtle italic">Keine aktiven Mehrfachkarten.</p>
           ) : (
             <ul className="space-y-2">
               {active.map((pass) => {
@@ -229,7 +229,7 @@ const MemberPassesSection: React.FC<Props> = ({
           ) : null}
         </>
       ) : teacherPasses.length === 0 ? (
-        <p className="text-sm text-textSubtle italic">Keine aktiven Karten.</p>
+        <p className="text-sm text-textSubtle italic">Keine aktiven Mehrfachkarten.</p>
       ) : (
         <ul className="space-y-2">
           {teacherPasses.map((pass) => (

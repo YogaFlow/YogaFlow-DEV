@@ -77,7 +77,7 @@ const Sidebar: React.FC = () => {
         items.push({
           to: '/my-passes',
           icon: Ticket,
-          label: 'Meine Karten',
+          label: 'Mehrfachkarten',
         });
       }
     }

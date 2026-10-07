@@ -37,8 +37,11 @@ describe('ZW-1 N1 bookingMethodTexts', () => {
 
   it('online / onsite Zeile und Knöpfe', () => {
     assert.equal(bookingMethodTitle('online'), 'Online bezahlen');
-    assert.equal(bookingMethodDetail('online'), 'Karte, Apple Pay');
-    assert.equal(bookingMethodLine('online'), 'Online bezahlen · Karte, Apple Pay');
+    assert.equal(bookingMethodDetail('online'), 'Kreditkarte, Apple Pay, Google Pay');
+    assert.equal(
+      bookingMethodLine('online'),
+      'Online bezahlen · Kreditkarte, Apple Pay, Google Pay',
+    );
     assert.equal(bookingMethodTitle('onsite'), 'Vor Ort bezahlen');
     assert.equal(bookingMethodDetail('onsite'), 'im Studio');
     assert.equal(bookingMethodLine('onsite'), 'Vor Ort bezahlen · im Studio');

@@ -92,8 +92,8 @@ const PassBookChoiceDialog: React.FC<PassBookChoiceDialogProps> = ({
               <span className="min-w-0">
                 <span className="block text-[15px] font-medium text-text">
                   {seatOnline
-                    ? `Mit deiner Karte „${pass.name}“`
-                    : 'Mit Karte bezahlen'}
+                    ? `Mit ${pass.name.trim() || 'Mehrfachkarte'}`
+                    : `Mit ${pass.name.trim() || 'Mehrfachkarte'}`}
                 </span>
                 <span className="mt-0.5 block text-[13px] text-textMuted tabular-nums">
                   {usablePassChoiceLabel(pass)}
@@ -136,7 +136,7 @@ const PassBookChoiceDialog: React.FC<PassBookChoiceDialogProps> = ({
               />
               <span className="min-w-0">
                 <span className="block text-[15px] font-medium text-text">
-                  Mit Karte bezahlen, falls ich nachrücke
+                  Mit Mehrfachkarte bezahlen, falls ich nachrücke
                 </span>
                 <span className="mt-0.5 block text-[13px] text-textMuted tabular-nums">
                   {usablePassChoiceLabel(pass)}

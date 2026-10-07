@@ -77,7 +77,7 @@ const ExtendPassDialog: React.FC<Props> = ({ open, pass, onClose, onSaved }) => 
         data-testid="extend-pass-dialog"
       >
         <h3 id="extend-pass-title" className="text-lg font-semibold text-text">
-          Karte verlängern
+          Mehrfachkarte verlängern
         </h3>
         <p className="mt-1 text-sm text-textMuted">
           {pass.name} · bisher gültig bis {formatPassUntil(pass.valid_until)}

@@ -167,7 +167,7 @@ test('B3 — Desktop Kasse ab 1280', async ({ page }) => {
     await expect(page.getByTestId('checkout-attendance')).toHaveText('1 angemeldet');
     await expect(page.getByRole('columnheader', { name: 'Name' })).toBeVisible();
     await expect(page.getByRole('columnheader', { name: 'Zahlung' })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: 'Karte' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Mehrfachkarte' })).toBeVisible();
     await expect(page.getByRole('columnheader', { name: 'Aktion' })).toBeVisible();
     await expect(
       page.getByTestId('checkout-desktop-table').getByText('Elena Beispiel'),

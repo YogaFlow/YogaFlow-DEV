@@ -407,7 +407,7 @@ Deno.test("19. payment_refunded: Texte je reason, Voll- und Teilerstattung", asy
   assert(full.html.includes("Platz war leider inzwischen vergeben"), "late_payment");
   assert(full.html.includes("24,00"), "Vollbetrag");
   assert(full.html.includes("auf dem Weg zu dir"), "neue Überschrift");
-  assert(full.html.includes("zurück auf deine Karte"), "Karten-Hinweis");
+  assert(full.html.includes("zurück auf deine Mehrfachkarte"), "Mehrfachkarten-Hinweis");
   assert(full.html.includes("je nach Bank"), "Bank-Hinweis");
 
   const course = buildPaymentRefundedEmail({

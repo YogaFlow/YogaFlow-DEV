@@ -108,26 +108,26 @@ test('paid bar / PayPal / Überweisung / online × Rolle', () => {
   );
   assert.equal(
     coverageLabel({ coverage_status: 'paid', method: 'card' }, { audience: 'csv' }),
-    'Karte',
+    'Kreditkarte',
   );
 });
 
 test('pass', () => {
   assert.equal(
     coverageLabel({ coverage_status: 'pass', pass_remaining: 6 }, { audience: 'manager' }),
-    'Karte · noch 6',
+    'Mehrfachkarte · noch 6',
   );
   assert.equal(
     coverageLabel({ coverage_status: 'pass', pass_remaining: 6 }, { audience: 'teacher' }),
-    'Karte · noch 6',
+    'Mehrfachkarte · noch 6',
   );
   assert.equal(
     coverageLabel({ coverage_status: 'pass', pass_remaining: 6 }, { audience: 'participant' }),
-    'mit Karte bezahlt',
+    'mit Mehrfachkarte bezahlt',
   );
   assert.equal(
     coverageLabel({ coverage_status: 'pass', pass_remaining: 6 }, { audience: 'csv' }),
-    'Karte',
+    'Mehrfachkarte',
   );
 });
 

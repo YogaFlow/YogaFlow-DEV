@@ -33,7 +33,7 @@ export function methodWord(method: PaymentMethod | ManualCheckoutMethod | null |
   if (method === 'cash') return 'bar';
   if (method === 'paypal_manual') return 'PayPal';
   if (method === 'bank_transfer') return 'Überweisung';
-  // Z12: Stripe-Zahlung — Anzeige „online“; CSV behält „Karte“ in paidLabel.
+  // Z12: Stripe-Zahlung — Anzeige „online“; CSV: card → „Kreditkarte“.
   if (method === 'card') return 'online';
   return 'bezahlt';
 }
@@ -45,9 +45,9 @@ function isWaitlistOrCancelled(registration: CoverageLabelInput): boolean {
 }
 
 function passLabel(audience: CoverageLabelAudience, remaining: number | null | undefined): string {
-  if (audience === 'participant') return 'mit Karte bezahlt';
-  if (audience === 'csv' || remaining == null || !Number.isFinite(remaining)) return 'Karte';
-  return `Karte · noch ${remaining}`;
+  if (audience === 'participant') return 'mit Mehrfachkarte bezahlt';
+  if (audience === 'csv' || remaining == null || !Number.isFinite(remaining)) return 'Mehrfachkarte';
+  return `Mehrfachkarte · noch ${remaining}`;
 }
 
 function paidLabel(
@@ -55,8 +55,7 @@ function paidLabel(
   method: PaymentMethod | ManualCheckoutMethod | null | undefined,
 ): string {
   if (audience === 'csv') {
-    // CSV unverändert: card → „Karte“
-    if (method === 'card') return 'Karte';
+    if (method === 'card') return 'Kreditkarte';
     return method ? methodWord(method) : 'bezahlt';
   }
   if (audience === 'manager') {

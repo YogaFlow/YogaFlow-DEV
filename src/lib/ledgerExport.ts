@@ -136,7 +136,7 @@ function accountLabel(account: string): string {
 
 function saleLabel(saleKind: string): string {
   if (saleKind === 'course') return 'Kurs';
-  if (saleKind === 'pass') return 'Karte';
+  if (saleKind === 'pass') return 'Mehrfachkarte';
   return saleKind;
 }
 
@@ -144,7 +144,7 @@ function methodLabel(method: string | null): string {
   if (method === 'cash') return 'Bar';
   if (method === 'bank_transfer') return 'Überweisung';
   if (method === 'paypal_manual') return 'PayPal';
-  if (method === 'card') return 'Karte';
+  if (method === 'card') return 'Kreditkarte';
   return method ?? '';
 }
 

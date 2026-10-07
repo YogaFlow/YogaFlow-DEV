@@ -48,7 +48,7 @@ export const copy = {
     feesTitle: 'Kosten',
     feesBody: () =>
       [
-        `Kartenzahlung (Standardkarte EWR): 1,5 % + ${formatPrice(FEE_FIXED_EUR)} je Zahlung.`,
+        `Kreditkartenzahlung (Standardkarte EWR): 1,5 % + ${formatPrice(FEE_FIXED_EUR)} je Zahlung.`,
         `Beispiel ${formatPrice(FEE_EXAMPLE_EUR)}: 1,5 % × ${formatPrice(FEE_EXAMPLE_EUR)} = 0,225 € + ${formatPrice(FEE_FIXED_EUR)} = 0,475 €, also rund ${formatPrice(FEE_EXAMPLE_CARD_EUR)}.`,
         `Premium- und Firmenkarten: 2,8 % + ${formatPrice(FEE_FIXED_EUR)}, bei ${formatPrice(FEE_EXAMPLE_EUR)} also ${formatPrice(FEE_EXAMPLE_PREMIUM_EUR)}.`,
         'Die Gebühr zahlt dein Studio direkt an Stripe. Omlify verlangt nichts zusätzlich.',
@@ -72,7 +72,7 @@ export const copy = {
   active: {
     lead: 'Online-Zahlung ist bereit.',
     methodsTitle: 'Wie können Teilnehmende bezahlen?',
-    onlineLabel: 'Online (Karte, Apple Pay, Google Pay)',
+    onlineLabel: 'Online (Kreditkarte, Apple Pay, Google Pay)',
     onsiteLabel: 'Vor Ort (bar, PayPal, Überweisung)',
     lastMethodHint: 'Mindestens ein Zahlungsweg muss an bleiben.',
     onlineNotReady: (reason: string) => `Online ist noch nicht bereit: ${reason}`,

@@ -130,7 +130,7 @@ function cancelFeedback(body: CancelBody, showPaid: boolean): string {
       : '';
   const e17Line =
     passInactive > 0
-      ? ` ${passInactive} Einheiten wurden auf abgelaufene Karten zurückgebucht. Prüfe, ob du sie auf eine gültige Karte übertragen willst.`
+      ? ` ${passInactive} Einheiten wurden auf abgelaufene Mehrfachkarten zurückgebucht. Prüfe, ob du sie auf eine gültige Mehrfachkarte übertragen willst.`
       : '';
   const refundDone = showPaid ? courseCancelRefundDone(body.refund_cents) : '';
   const refundLine = refundDone ? ` ${refundDone}` : '';

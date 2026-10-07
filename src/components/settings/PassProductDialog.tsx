@@ -218,11 +218,11 @@ const PassProductDialog: React.FC<Props> = ({ open, product, onClose, onSaved })
       >
         <div className="shrink-0 border-b border-border px-5 py-4">
           <h3 id="pass-product-dialog-title" className="text-lg font-semibold text-text">
-            {editing ? 'Karte bearbeiten' : 'Karte anlegen'}
+            {editing ? 'Mehrfachkarte bearbeiten' : 'Mehrfachkarte anlegen'}
           </h3>
           {editing ? (
             <p className="mt-1 text-sm text-textMuted">
-              Änderungen gelten nur für Karten, die du ab jetzt verkaufst.
+              Änderungen gelten nur für Mehrfachkarten, die du ab jetzt verkaufst.
             </p>
           ) : null}
         </div>

@@ -83,7 +83,7 @@ export const PAYMENT_HOLD_EXPIRED =
   'Die Reservierung ist abgelaufen. Der Platz ist wieder frei – melde dich neu an, falls noch Plätze da sind.';
 
 export const PAYMENT_CARD_DECLINED =
-  'Die Zahlung wurde abgelehnt. Bitte prüfe die Angaben oder nimm eine andere Karte.';
+  'Die Zahlung wurde abgelehnt. Bitte prüfe die Angaben oder nimm eine andere Kreditkarte.';
 
 export const PAYMENT_AUTH_FAILED =
   'Die Bestätigung bei deiner Bank hat nicht geklappt. Bitte versuch es noch einmal.';

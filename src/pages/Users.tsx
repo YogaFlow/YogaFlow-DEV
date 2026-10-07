@@ -583,7 +583,7 @@ export default function Users() {
         const onWaitlist = !!result.on_waitlist;
         const coverageNote =
           result.coverage === 'pass' && result.pass_remaining != null
-            ? ` Mit Karte (noch ${result.pass_remaining}).`
+            ? ` Mit Mehrfachkarte (noch ${result.pass_remaining}).`
             : result.coverage === 'paid'
               ? ' Bezahlt vermerkt.'
               : '';
@@ -1026,13 +1026,13 @@ export default function Users() {
                             ? [
                                 { value: 'open', label: 'Offen' },
                                 ...(usable
-                                  ? [{ value: 'pass' as const, label: `Mit Karte beim Nachrücken (${usablePassChoiceLabel(usable)})` }]
+                                  ? [{ value: 'pass' as const, label: `Mit Mehrfachkarte beim Nachrücken (${usablePassChoiceLabel(usable)})` }]
                                   : []),
                               ]
                             : [
                                 { value: 'open', label: 'Offen' },
                                 ...(usable
-                                  ? [{ value: 'pass' as const, label: `Karte (noch ${usable.remaining})` }]
+                                  ? [{ value: 'pass' as const, label: `${usable.name.trim() || 'Mehrfachkarte'} (noch ${usable.remaining})` }]
                                   : []),
                                 { value: 'cash', label: 'Bar' },
                                 { value: 'paypal_manual', label: 'PayPal' },
@@ -1407,13 +1407,13 @@ export default function Users() {
                                       ? [
                                           { value: 'open', label: 'Offen' },
                                           ...(usable
-                                            ? [{ value: 'pass' as const, label: `Mit Karte beim Nachrücken (${usablePassChoiceLabel(usable)})` }]
+                                            ? [{ value: 'pass' as const, label: `Mit Mehrfachkarte beim Nachrücken (${usablePassChoiceLabel(usable)})` }]
                                             : []),
                                         ]
                                       : [
                                           { value: 'open', label: 'Offen' },
                                           ...(usable
-                                            ? [{ value: 'pass' as const, label: `Karte (noch ${usable.remaining})` }]
+                                            ? [{ value: 'pass' as const, label: `${usable.name.trim() || 'Mehrfachkarte'} (noch ${usable.remaining})` }]
                                             : []),
                                           { value: 'cash', label: 'Bar' },
                                           { value: 'paypal_manual', label: 'PayPal' },

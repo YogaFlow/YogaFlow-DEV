@@ -6,7 +6,7 @@ const TITLES: Record<string, string | undefined> = {
   '/courses': 'Kurse',
   '/my-courses': 'Kurse verwalten',
   '/my-registrations': 'Meine Anmeldungen',
-  '/my-passes': 'Meine Karten',
+  '/my-passes': 'Mehrfachkarten',
   '/widerruf': 'Widerruf',
   '/participants': 'Teilnehmer',
   '/open-payments': 'Zahlungen',
@@ -18,7 +18,7 @@ const TITLES: Record<string, string | undefined> = {
   '/settings/studio': 'Studio',
   '/settings/buchungen': 'Buchungen',
   '/settings/zahlungen': 'Zahlungen',
-  '/settings/karten': 'Karten',
+  '/settings/karten': 'Mehrfachkarten',
   '/settings/team': 'Team',
   '/create-course': 'Neuer Kurs',
 };

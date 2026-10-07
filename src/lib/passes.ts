@@ -67,7 +67,7 @@ export function passBadgeLabel(passes: MemberPassSummary[]): string | null {
     return a.name.localeCompare(b.name, 'de');
   });
   const first = sorted[0];
-  const base = `Karte · noch ${first.remaining}`;
+  const base = `${first.name} · noch ${first.remaining}`;
   if (sorted.length === 1) return base;
   const extra = sorted.length - 1;
   return `${base} · +${extra} weitere`;
@@ -120,8 +120,8 @@ export function passRedeemErrorMessage(
   switch (code) {
     case 'NO_VALID_PASS':
       return name
-        ? `${name} hat keine gültige Karte für diesen Kurs.`
-        : 'Du hast keine gültige Karte für diesen Kurs.';
+        ? `${name} hat keine gültige Mehrfachkarte für diesen Kurs.`
+        : 'Du hast keine gültige Mehrfachkarte für diesen Kurs.';
     case 'NOT_OPEN':
       return 'Schon erledigt.';
     case 'WAITLIST_NO_PAYMENT':
@@ -131,7 +131,7 @@ export function passRedeemErrorMessage(
     case 'PASS_EMPTY':
     case 'PASS_EXPIRED':
     case 'NOT_PASS_ELIGIBLE':
-      return 'Die Karte ist aufgebraucht bzw. gilt an diesem Tag nicht mehr.';
+      return 'Die Mehrfachkarte ist aufgebraucht bzw. gilt an diesem Tag nicht mehr.';
     case 'NOT_FOUND':
       return 'Nicht gefunden. Bitte neu laden.';
     default:
@@ -197,7 +197,7 @@ export function sellPassErrorMessage(code: string | null | undefined): string {
     case 'MEMBER_REMOVED':
       return 'Diese Person wurde entfernt.';
     case 'PRODUCT_ARCHIVED':
-      return 'Diese Karte wird nicht mehr verkauft.';
+      return 'Diese Mehrfachkarte wird nicht mehr verkauft.';
     case 'INVALID_METHOD':
       return GENERIC_ERROR;
     default:
@@ -208,9 +208,9 @@ export function sellPassErrorMessage(code: string | null | undefined): string {
 export function revokePassErrorMessage(code: string | null | undefined): string {
   switch (code) {
     case 'ALREADY_USED':
-      return 'Die Karte wurde schon benutzt und kann nicht storniert werden.';
+      return 'Die Mehrfachkarte wurde schon benutzt und kann nicht storniert werden.';
     case 'NOT_ACTIVE':
-      return 'Die Karte ist nicht mehr aktiv.';
+      return 'Die Mehrfachkarte ist nicht mehr aktiv.';
     case 'FORBIDDEN':
       return 'Stornieren kann nur die Studioleitung.';
     case 'NOT_FOUND':
@@ -798,11 +798,11 @@ export function adjustPassErrorMessage(code: string | null | undefined): string 
     case 'REASON_REQUIRED':
       return 'Bitte gib einen Grund an.';
     case 'NEGATIVE_BALANCE':
-      return 'So viele Einheiten hat die Karte nicht.';
+      return 'So viele Einheiten hat die Mehrfachkarte nicht.';
     case 'PASS_EXPIRED':
-      return 'Die Karte ist abgelaufen. Korrigiere auf einer gültigen Karte.';
+      return 'Die Mehrfachkarte ist abgelaufen. Korrigiere auf einer gültigen Mehrfachkarte.';
     case 'NOT_ACTIVE':
-      return 'Die Karte ist nicht mehr aktiv.';
+      return 'Die Mehrfachkarte ist nicht mehr aktiv.';
     case 'INVALID_DELTA':
     case 'FORBIDDEN':
     case 'NOT_FOUND':

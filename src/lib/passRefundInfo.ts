@@ -36,12 +36,12 @@ export const formatCancellationDeadline = formatFriendlyCancellationDeadline;
 export function unregisterPassDialogMessage(info: PassRefundInfo): string {
   const when = formatCancellationDeadline(info.deadline);
   if (info.refundable) {
-    return `Du bekommst die Einheit auf deine Karte zurück. Kostenlos abmelden bis ${when}.`;
+    return `Du bekommst die Einheit auf deine Mehrfachkarte zurück. Kostenlos abmelden bis ${when}.`;
   }
   return `Die Abmeldefrist ist seit ${when} vorbei. Die Einheit bleibt verbraucht.`;
 }
 
 /** Zahlstatus ohne Abmeldefrist (Frist ist eigene Zeile, UX-4 B1). */
 export function passRefundStatusLine(): string {
-  return 'mit Karte bezahlt';
+  return 'mit Mehrfachkarte bezahlt';
 }

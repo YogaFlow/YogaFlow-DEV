@@ -32,7 +32,7 @@ export default function PassProductsSection() {
       const rows = await listPassProducts();
       setProducts(rows);
     } catch {
-      setLoadError('Karten konnten nicht geladen werden.');
+      setLoadError('Mehrfachkarten konnten nicht geladen werden.');
     } finally {
       setLoading(false);
     }
@@ -58,9 +58,9 @@ export default function PassProductsSection() {
   const requestArchive = (product: PassProduct) => {
     setArchiveTargetId(product.id);
     setArchiveConfirm({
-      title: 'Karte archivieren?',
+      title: 'Mehrfachkarte archivieren?',
       message:
-        'Die Karte kann danach nicht mehr verkauft werden. Bereits verkaufte Karten bleiben gültig.',
+        'Die Mehrfachkarte kann danach nicht mehr verkauft werden. Bereits verkaufte Mehrfachkarten bleiben gültig.',
       confirmLabel: 'Archivieren',
       cancelLabel: 'Abbrechen',
       variant: 'danger',
@@ -119,14 +119,14 @@ export default function PassProductsSection() {
       />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold text-text">Karten</h2>
+        <h2 className="text-xl font-semibold text-text">Mehrfachkarten</h2>
         {active.length > 0 || archived.length > 0 ? (
           <button
             type="button"
             onClick={openCreate}
             className="inline-flex min-h-11 items-center rounded-full bg-brand px-5 text-[15px] font-medium text-onBrand transition-colors active:bg-brandPressed"
           >
-            Karte anlegen
+            Mehrfachkarte anlegen
           </button>
         ) : null}
       </div>
@@ -145,7 +145,7 @@ export default function PassProductsSection() {
             onClick={openCreate}
             className="mt-4 inline-flex min-h-11 items-center rounded-full bg-brand px-5 text-[15px] font-medium text-onBrand transition-colors active:bg-brandPressed"
           >
-            Karte anlegen
+            Mehrfachkarte anlegen
           </button>
         </div>
       ) : (

@@ -63,7 +63,7 @@ function paymentLine(
 ): string | null {
   if (courseCancelled || registration.is_waitlist || isOwnCancellation(registration)) {
     if (registration.is_waitlist && registration.coverage_intent === 'pass') {
-      return 'Mit Karte beim Nachrücken';
+      return 'Mit Mehrfachkarte beim Nachrücken';
     }
     return null;
   }
@@ -121,7 +121,7 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({
       return;
     }
     onFeedback?.(
-      `Mit Karte bezahlt (noch ${result.remaining})`,
+      `Mehrfachkarte eingelöst · noch ${result.remaining}`,
       'success',
     );
     onCoverageChanged?.();
@@ -253,7 +253,7 @@ const EnrollmentCards: React.FC<EnrollmentCardsProps> = ({
                   >
                     {busyId === registration.id
                       ? '…'
-                      : `Mit Karte bezahlen (noch ${usable.remaining})`}
+                      : `Mit ${usable.name.trim() || 'Mehrfachkarte'} (noch ${usable.remaining})`}
                   </button>
                 ) : null}
               </div>

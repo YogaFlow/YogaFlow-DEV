@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { listOnlinePassProducts } from './passProducts';
 import { supabase } from './supabase';
 
-/** Menüpunkt „Meine Karten“: Studio hat Online-Produkte oder Person besitzt eine Karte. */
+/** Menüpunkt „Mehrfachkarten“: Studio hat Online-Produkte oder Person besitzt eine Mehrfachkarte. */
 export function useMyPassesNav(enabled: boolean): boolean {
   const [visible, setVisible] = useState(false);
 
