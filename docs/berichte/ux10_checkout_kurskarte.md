@@ -27,10 +27,10 @@ Grundlage: [ux10_checkout_kurskarte.md](../stories/ux10_checkout_kurskarte.md), 
 
 | Prüfung | Ergebnis |
 |---|---|
-| HEAD | *(nach Push — unten ergänzen)* |
-| Check-Run **Workers Builds: omlify-dev** | *(ergänzen)* |
-| Live-Bundle | `https://demoalpha.omlify-dev.de/assets/index-*.js` |
-| Merkmal | `Wie möchtest du bezahlen?` / `mit Kurskarte buchbar` |
+| HEAD | `c267655` |
+| Check-Run **Workers Builds: omlify-dev** | `success` für `c267655` (2026-10-07T12:27:25Z) |
+| Live-Bundle | `https://demoalpha.omlify-dev.de/assets/index-DeomH7bC.js` |
+| Merkmal | `chtest du bezahlen` @700601; `mit Kurskarte buchbar` @700564; `Kartendaten sehen wir nicht` @700662; `Abmeldefrist ist vorbei` @592881; `Mehrfachkarte` = −1 |
 
 ## Haltestelle 5 — Klickliste (max. 8)
 
