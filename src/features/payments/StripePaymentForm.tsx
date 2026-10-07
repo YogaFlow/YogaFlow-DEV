@@ -38,8 +38,16 @@ type FormProps = {
   alertMessage?: string | null;
   submitLabel?: string;
   bookingSummary?: BookingSummaryData | null;
-  /** Direkt über dem Zahlungsknopf (K1: Consent). */
+  /** Zwischen Payment Element und sticky Fuß (UX-9: Consent). */
+  midSlot?: ReactNode;
+  /** Direkt über dem Zahlungsknopf (UX-9: Preis). */
   aboveSubmit?: ReactNode;
+  /** Unter dem Zahlungsknopf (UX-9: Rechtszeile). */
+  afterSubmit?: ReactNode;
+  /** false: kein Schloss-Hinweis (Pass-Kauf). */
+  hideSecureHint?: boolean;
+  /** UX-9: vor confirmPayment / Token — false bricht ab. */
+  beforeSubmit?: () => boolean;
   /** L2: nach Ablehnung neuen prepare-Versuch starten (statt confirm). */
   onRetry?: () => Promise<void>;
   onSubmitToken: (confirmationTokenId: string) => Promise<void>;
@@ -51,7 +59,11 @@ function PaymentFormInner({
   alertMessage,
   submitLabel,
   bookingSummary,
+  midSlot,
   aboveSubmit,
+  afterSubmit,
+  hideSecureHint = false,
+  beforeSubmit,
   onRetry,
   onSubmitToken,
 }: FormProps) {
@@ -81,6 +93,7 @@ function PaymentFormInner({
       return;
     }
     if (!stripe || !elements || locked) return;
+    if (beforeSubmit && !beforeSubmit()) return;
     setLocalError(null);
     setSubmitting(true);
     try {
@@ -129,10 +142,13 @@ function PaymentFormInner({
           buttonLabel
         )}
       </button>
-      <p className="mt-2 inline-flex items-start gap-1.5 text-[12px] leading-snug text-textMuted">
-        <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-        <span>{PAYMENT_SECURE_SHORT}</span>
-      </p>
+      {hideSecureHint ? null : (
+        <p className="mt-2 inline-flex items-start gap-1.5 text-[12px] leading-snug text-textMuted">
+          <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+          <span>{PAYMENT_SECURE_SHORT}</span>
+        </p>
+      )}
+      {afterSubmit}
     </>
   );
 
@@ -154,13 +170,18 @@ function PaymentFormInner({
         />
       </div>
 
+      {midSlot}
+
       {bookingSummary ? (
         <BookingCheckoutFooter data={bookingSummary} alertMessage={alertText}>
           {aboveSubmit}
           {payButton}
         </BookingCheckoutFooter>
       ) : (
-        <div className="sticky bottom-0 z-10 -mx-5 mt-4 border-t border-border bg-surface px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div
+          className="sticky bottom-0 z-10 -mx-5 mt-4 border-t border-border bg-surface px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:static sm:mx-0 sm:border-t-0 sm:px-0 sm:pb-0"
+          data-testid="pass-sticky-footer"
+        >
           {alertText ? (
             <p role="alert" className="mb-3 text-[13px] leading-snug text-danger">
               {alertText}
@@ -186,7 +207,11 @@ type Props = {
   alertMessage?: string | null;
   submitLabel?: string;
   bookingSummary?: BookingSummaryData | null;
+  midSlot?: ReactNode;
   aboveSubmit?: ReactNode;
+  afterSubmit?: ReactNode;
+  hideSecureHint?: boolean;
+  beforeSubmit?: () => boolean;
   onRetry?: () => Promise<void>;
   onSubmitToken: (confirmationTokenId: string) => Promise<void>;
 };
@@ -202,7 +227,11 @@ export default function StripePaymentForm({
   alertMessage,
   submitLabel,
   bookingSummary = null,
+  midSlot,
   aboveSubmit,
+  afterSubmit,
+  hideSecureHint = false,
+  beforeSubmit,
   onRetry,
   onSubmitToken,
 }: Props) {
@@ -261,7 +290,11 @@ export default function StripePaymentForm({
         alertMessage={alertMessage}
         submitLabel={submitLabel}
         bookingSummary={bookingSummary}
+        midSlot={midSlot}
         aboveSubmit={aboveSubmit}
+        afterSubmit={afterSubmit}
+        hideSecureHint={hideSecureHint}
+        beforeSubmit={beforeSubmit}
         onRetry={onRetry}
         onSubmitToken={onSubmitToken}
       />

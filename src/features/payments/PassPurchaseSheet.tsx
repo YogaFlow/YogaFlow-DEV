@@ -1,20 +1,28 @@
 /**
- * K1 — Online-Kartenkauf: Payment Element + Pflicht-Consent + Widerrufsbelehrung.
+ * UX-9 — Online-Mehrfachkartenkauf: Produktname, Payment Element, Consent, sticky Fuß.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ModalBackdrop from '../../components/ui/ModalBackdrop';
+import StudioPublicLegalSheet, {
+  type StudioLegalSheetKind,
+} from '../../components/legal/StudioPublicLegalSheet';
 import { paymentsClientConfig } from '../../lib/paymentsClientConfig';
 import { paymentMessageForCode, PAYMENT_RETRY_LABEL } from '../../lib/paymentTexts';
-import { checkoutPriceLine, type TaxRegime } from '../../lib/legalCheckoutTexts';
+import {
+  checkoutTaxLineAlone,
+  formatLegalCents,
+  type TaxRegime,
+} from '../../lib/legalCheckoutTexts';
 import {
   BINDING_BUY_PASS_LABEL,
+  PASS_CONSENT_REQUIRED_HINT,
   PASS_IMMEDIATE_USE_TEXT,
-  PASS_WITHDRAWAL_BELEHRUNG_BODY,
   PASS_WITHDRAWAL_INFO_TEXT,
   passCheckoutSummary,
   passSuccessHeadline,
+  passWithdrawalExampleBody,
 } from '../../lib/passOnlineTexts';
 import { hashLegalText } from '../../lib/passLegalHash';
 import type { OnlinePassProduct } from '../../lib/passProducts';
@@ -45,16 +53,18 @@ const PassPurchaseSheet: React.FC<Props> = ({
   const navigate = useNavigate();
   const config = useMemo(() => paymentsClientConfig(), []);
   const checkout = usePaymentCheckout();
+  const consentRef = useRef<HTMLLabelElement | null>(null);
   const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(false);
   const [consent, setConsent] = useState(false);
-  const [belehrungOpen, setBelehrungOpen] = useState(false);
+  const [consentError, setConsentError] = useState(false);
+  const [mehrOpen, setMehrOpen] = useState(false);
+  const [legalKind, setLegalKind] = useState<StudioLegalSheetKind | null>(null);
   const [taxRegime, setTaxRegime] = useState<TaxRegime>('small_business');
   const [vatBp, setVatBp] = useState(0);
   const [hashes, setHashes] = useState<{ immediate: string; withdrawal: string } | null>(
     null,
   );
-  const [started, setStarted] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -70,8 +80,9 @@ const PassPurchaseSheet: React.FC<Props> = ({
   useEffect(() => {
     if (!open) return;
     setConsent(false);
-    setStarted(false);
-    setBelehrungOpen(false);
+    setConsentError(false);
+    setMehrOpen(false);
+    setLegalKind(null);
     checkout.reset();
     void Promise.all([
       hashLegalText(PASS_IMMEDIATE_USE_TEXT),
@@ -98,7 +109,6 @@ const PassPurchaseSheet: React.FC<Props> = ({
       checkout.fail('ONLINE_DISABLED');
       return;
     }
-    setStarted(true);
     const prep = await checkout.runPreparePass(
       product.id,
       hashes.immediate,
@@ -107,16 +117,28 @@ const PassPurchaseSheet: React.FC<Props> = ({
     if (prep) storePaymentAttempt(`pass:${product.id}`, prep.attemptId);
   }, [checkout, config, hashes, product]);
 
+  useEffect(() => {
+    if (!open || !product || !hashes) return;
+    if (checkout.phase !== 'idle') return;
+    void startPrepare();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, product?.id, hashes]);
+
   if (!mounted || !open || !product) return null;
 
   const summary = passCheckoutSummary({
-    name: product.name,
     units: product.units,
     validityRule: product.validity_rule,
     validityValue: product.validity_value,
+    priceCents: product.price_cents,
   });
   const amount = checkout.prepare?.amountCents ?? product.price_cents;
-  const priceLine = checkoutPriceLine(amount, taxRegime, vatBp);
+  const taxLine = checkoutTaxLineAlone(taxRegime, vatBp);
+  const mehrBody = passWithdrawalExampleBody({
+    priceCents: product.price_cents,
+    units: product.units,
+    usedExample: 1,
+  });
   const canClose =
     checkout.phase !== 'submitting' &&
     checkout.phase !== 'action' &&
@@ -129,7 +151,6 @@ const PassPurchaseSheet: React.FC<Props> = ({
       checkout.code === 'RESTORED');
 
   const showPayForm =
-    started &&
     Boolean(checkout.prepare) &&
     Boolean(config.publishableKey) &&
     (checkout.phase === 'ready' ||
@@ -141,23 +162,16 @@ const PassPurchaseSheet: React.FC<Props> = ({
           checkout.code === 'AUTHENTICATION_REQUIRED' ||
           checkout.code === 'PROVIDER_UNAVAILABLE')));
 
-  const consentBlock = (
-    <label className="mb-3 flex min-h-11 cursor-pointer items-start gap-3">
-      <input
-        type="checkbox"
-        className="mt-1 h-4 w-4 rounded border-border text-brand focus:ring-brand"
-        checked={consent}
-        disabled={started}
-        onChange={(ev) => {
-          const on = ev.target.checked;
-          setConsent(on);
-          if (on && hashes && !started) void startPrepare();
-        }}
-        data-testid="pass-immediate-consent"
-      />
-      <span className="text-[14px] leading-snug text-text">{PASS_IMMEDIATE_USE_TEXT}</span>
-    </label>
-  );
+  const ensureConsent = (): boolean => {
+    if (consent) {
+      setConsentError(false);
+      return true;
+    }
+    setConsentError(true);
+    consentRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    consentRef.current?.querySelector('input')?.focus();
+    return false;
+  };
 
   const handleClose = () => {
     if (!canClose) return;
@@ -166,6 +180,96 @@ const PassPurchaseSheet: React.FC<Props> = ({
     checkout.reset();
     onClose();
   };
+
+  const consentBlock = (
+    <div className="mb-3">
+      {consentError ? (
+        <p
+          role="alert"
+          className="mb-2 text-[13px] leading-snug text-danger"
+          data-testid="pass-consent-error"
+        >
+          {PASS_CONSENT_REQUIRED_HINT}
+        </p>
+      ) : null}
+      <label
+        ref={consentRef}
+        className={`flex min-h-11 cursor-pointer items-start gap-3 rounded-md px-1 py-1 ${
+          consentError ? 'ring-2 ring-danger' : ''
+        }`}
+        data-testid="pass-consent-row"
+      >
+        <input
+          type="checkbox"
+          className="mt-0.5 h-[15px] w-[15px] shrink-0 rounded border-border text-brand focus:ring-brand"
+          checked={consent}
+          onChange={(ev) => {
+            setConsent(ev.target.checked);
+            if (ev.target.checked) setConsentError(false);
+          }}
+          data-testid="pass-immediate-consent"
+        />
+        <span className="text-[14px] leading-snug text-text">
+          {PASS_IMMEDIATE_USE_TEXT}{' '}
+          <button
+            type="button"
+            className="font-medium text-brand underline underline-offset-2"
+            onClick={(ev) => {
+              ev.preventDefault();
+              ev.stopPropagation();
+              setMehrOpen(true);
+            }}
+            data-testid="pass-consent-mehr"
+          >
+            Mehr ›
+          </button>
+        </span>
+      </label>
+    </div>
+  );
+
+  const priceRow = (
+    <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      <span
+        className="text-[22px] font-medium tabular-nums text-text"
+        data-testid="pass-checkout-price"
+      >
+        {formatLegalCents(amount)}
+      </span>
+      <span className="text-[12px] leading-snug text-textMuted" data-testid="pass-checkout-tax">
+        {taxLine}
+      </span>
+    </div>
+  );
+
+  const legalRow = (
+    <p className="mt-2 text-center text-[12px] leading-snug text-textMuted">
+      <button
+        type="button"
+        className="text-brand underline underline-offset-2"
+        onClick={() => setLegalKind('terms')}
+      >
+        AGB
+      </button>
+      {' · '}
+      <button
+        type="button"
+        className="text-brand underline underline-offset-2"
+        onClick={() => setLegalKind('privacy')}
+      >
+        Datenschutz
+      </button>
+      {' · '}
+      <button
+        type="button"
+        className="text-brand underline underline-offset-2"
+        onClick={() => setLegalKind('widerruf')}
+        data-testid="pass-legal-widerruf"
+      >
+        Widerrufsbelehrung
+      </button>
+    </p>
+  );
 
   return (
     <>
@@ -180,7 +284,7 @@ const PassPurchaseSheet: React.FC<Props> = ({
       >
         <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border px-5 pb-3 pt-5">
           <h3 id="pass-purchase-title" className="text-[17px] font-medium text-text">
-            {successDone ? passSuccessHeadline(product.name) : 'Karte kaufen'}
+            {successDone ? passSuccessHeadline(product.name) : product.name}
           </h3>
           <button
             type="button"
@@ -212,43 +316,21 @@ const PassPurchaseSheet: React.FC<Props> = ({
             </div>
           ) : (
             <>
-              <p className="text-[15px] text-text">{summary}</p>
-              {showPayForm ? null : (
-                <>
-                  <p className="text-[22px] font-medium tabular-nums text-text">{priceLine}</p>
-                  <p className="text-[13px] text-textMuted">
-                    Du hast ein 14-tägiges Widerrufsrecht.{' '}
-                    <button
-                      type="button"
-                      className="font-medium text-brand underline"
-                      onClick={() => setBelehrungOpen(true)}
-                    >
-                      Widerrufsbelehrung ›
-                    </button>
-                  </p>
-                  {consentBlock}
-                  {!consent ? (
-                    <p className="text-[13px] text-textMuted">
-                      Bitte bestätige die Zustimmung, um zahlungspflichtig zu kaufen.
-                    </p>
-                  ) : null}
-                </>
-              )}
+              <p className="text-[14px] leading-snug text-textMuted">{summary}</p>
 
-              {started &&
-              !showPayForm &&
-              (checkout.phase === 'preparing' || checkout.phase === 'idle') ? (
+              {(checkout.phase === 'preparing' || (checkout.phase === 'idle' && hashes)) &&
+              !showPayForm ? (
                 <PaymentFormPlaceholder label="Wird vorbereitet …" />
               ) : null}
 
-              {started && checkout.phase === 'processing' ? (
+              {checkout.phase === 'processing' ? (
                 <div className="flex flex-col items-center gap-3 py-6" role="status">
                   <Loader2 className="h-8 w-8 animate-spin text-brand" aria-hidden />
                   <p className="text-[15px] text-text">Zahlung wird geprüft …</p>
                 </div>
               ) : null}
 
-              {started && checkout.phase === 'error' ? (
+              {checkout.phase === 'error' && !showPayForm ? (
                 <p role="alert" className="text-sm text-danger">
                   {checkout.message ?? paymentMessageForCode(checkout.code)}
                 </p>
@@ -269,24 +351,11 @@ const PassPurchaseSheet: React.FC<Props> = ({
                   holdExpired={false}
                   studioName={studioName}
                   bookingSummary={null}
-                  aboveSubmit={
-                    <>
-                      <p className="mb-1 text-[15px] font-medium tabular-nums text-text">
-                        {priceLine}
-                      </p>
-                      <p className="mb-2 text-[13px] text-textMuted">
-                        Du hast ein 14-tägiges Widerrufsrecht.{' '}
-                        <button
-                          type="button"
-                          className="font-medium text-brand underline"
-                          onClick={() => setBelehrungOpen(true)}
-                        >
-                          Widerrufsbelehrung ›
-                        </button>
-                      </p>
-                      {consentBlock}
-                    </>
-                  }
+                  hideSecureHint
+                  midSlot={consentBlock}
+                  aboveSubmit={priceRow}
+                  afterSubmit={legalRow}
+                  beforeSubmit={ensureConsent}
                   onSubmitToken={async (tokenId: string) => {
                     if (!checkout.prepare || !config.publishableKey) return;
                     if (checkout.phase !== 'ready' && checkout.phase !== 'error') return;
@@ -318,39 +387,61 @@ const PassPurchaseSheet: React.FC<Props> = ({
                     );
                   }}
                 />
-              ) : null}
+              ) : (
+                <>
+                  {consentBlock}
+                  <div
+                    className="sticky bottom-0 z-10 -mx-5 mt-4 border-t border-border bg-surface px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:static sm:mx-0 sm:border-t-0 sm:px-0 sm:pb-0"
+                    data-testid="pass-sticky-footer"
+                  >
+                    {priceRow}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        ensureConsent();
+                      }}
+                      className="inline-flex h-11 w-full items-center justify-center rounded-full bg-brand px-5 text-[15px] font-medium text-onBrand active:bg-brandPressed"
+                      data-testid="checkout-pay"
+                    >
+                      {BINDING_BUY_PASS_LABEL}
+                    </button>
+                    {legalRow}
+                  </div>
+                </>
+              )}
             </>
           )}
         </div>
       </ModalBackdrop>
 
-      {belehrungOpen ? (
+      {mehrOpen ? (
         <div
           className="fixed inset-0 z-[60] flex items-end justify-center bg-text/45 p-0 sm:items-center sm:p-4"
-          onClick={() => setBelehrungOpen(false)}
+          onClick={() => setMehrOpen(false)}
         >
           <div
             className="max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-t-lg border border-border bg-surface p-5 sm:rounded-lg"
             onClick={(ev) => ev.stopPropagation()}
             role="dialog"
-            aria-labelledby="pass-widerruf-title"
+            aria-labelledby="pass-mehr-title"
+            data-testid="pass-mehr-dialog"
           >
-            <h3 id="pass-widerruf-title" className="text-lg font-semibold text-text">
-              Widerrufsbelehrung
+            <h3 id="pass-mehr-title" className="text-lg font-semibold text-text">
+              Widerruf
             </h3>
-            <p className="mt-3 text-[15px] leading-relaxed text-text">
-              {PASS_WITHDRAWAL_BELEHRUNG_BODY}
-            </p>
+            <p className="mt-3 text-[15px] leading-relaxed text-text">{mehrBody}</p>
             <button
               type="button"
               className="mt-5 inline-flex min-h-11 items-center rounded-full bg-brand px-5 text-[15px] font-medium text-onBrand"
-              onClick={() => setBelehrungOpen(false)}
+              onClick={() => setMehrOpen(false)}
             >
               Verstanden
             </button>
           </div>
         </div>
       ) : null}
+
+      <StudioPublicLegalSheet kind={legalKind} onClose={() => setLegalKind(null)} />
     </>
   );
 };

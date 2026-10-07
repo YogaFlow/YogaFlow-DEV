@@ -40,7 +40,7 @@ const SLUG = 'e2eapp';
 const EMAIL_PREFIX = 'e2eappk1';
 
 const IMMEDIATE_TEXT =
-  'Ich verlange ausdrücklich, dass ich die Karte sofort nutzen kann. Mir ist bekannt, dass ich bei einem Widerruf für bereits genutzte Termine anteilig Wertersatz leiste.';
+  'Ich möchte die Karte sofort nutzen. Bei Widerruf zahle ich genutzte Termine anteilig; sind alle genutzt, endet das Widerrufsrecht.';
 const WITHDRAWAL_TEXT =
   'Du hast ein 14-tägiges Widerrufsrecht. Widerrufsbelehrung.';
 

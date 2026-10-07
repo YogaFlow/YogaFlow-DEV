@@ -5,7 +5,6 @@ import {
   checkoutTaxLineAlone,
   formatLegalCents,
   providerAddressBlock,
-  providerCityLine,
   WITHDRAWAL_NOTICE_COMPACT,
   type TaxRegime,
 } from '../../lib/legalCheckoutTexts';
@@ -96,16 +95,17 @@ export function BookingCheckoutFooter({
       className="sticky bottom-0 z-10 -mx-5 mt-4 border-t border-border bg-surface px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
       data-testid="checkout-sticky-footer"
     >
-      <div className="mb-2 flex items-baseline justify-between gap-3">
-        <span className="text-[15px] font-medium text-text">Gesamt</span>
+      <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span
-          className="text-[17px] font-medium tabular-nums text-text"
+          className="text-[22px] font-medium tabular-nums text-text"
           data-testid="checkout-price"
         >
           {formatLegalCents(data.amountCents)}
         </span>
+        <span className="text-[12px] leading-snug text-textMuted" data-testid="checkout-tax">
+          {tax}
+        </span>
       </div>
-      <p className="mb-3 text-[12px] leading-snug text-textMuted">{tax}</p>
 
       {alertMessage ? (
         <p role="alert" className="mb-3 text-[13px] leading-snug text-danger">
@@ -115,35 +115,33 @@ export function BookingCheckoutFooter({
 
       {children}
 
-      <p className="mt-2 text-[12px] leading-snug text-textMuted">
+      <p className="mt-2 text-center text-[12px] leading-snug text-textMuted">
         {hasTerms ? (
           <>
-            Es gelten die{' '}
             <Link to="/agb" className="text-brand underline underline-offset-2">
               AGB
-            </Link>{' '}
-            von {studioName}.{' '}
+            </Link>
+            {' · '}
           </>
         ) : null}
-        Hinweise zum{' '}
         <Link to="/datenschutz" className="text-brand underline underline-offset-2">
           Datenschutz
         </Link>
-        .
         {' · '}
-        {cancelRuleLineCompact(data.cancelDeadlineLabel)}
-        {' · '}
-        {WITHDRAWAL_NOTICE_COMPACT}
-        {' · '}
-        Anbieter:{' '}
         <button
           type="button"
           className="text-brand underline underline-offset-2"
           onClick={() => setProviderOpen(true)}
           data-testid="provider-details-open"
         >
-          {providerCityLine(data.providerName, data.providerCity)}
+          Anbieter
         </button>
+      </p>
+      <p className="mt-1 text-center text-[11px] leading-snug text-textMuted">
+        {cancelRuleLineCompact(data.cancelDeadlineLabel)}
+        {' · '}
+        {WITHDRAWAL_NOTICE_COMPACT}
+        {studioName ? ` · ${studioName}` : ''}
       </p>
 
       <ModalBackdrop

@@ -92,7 +92,7 @@ function passWithdrawalUpcomingNotice(dates) {
     .join(', ');
   const term = n === 1 ? '1 kommenden Termin' : `${n} kommende Termine`;
   return (
-    `Du hast ${term} mit dieser Karte gebucht (${list}). ` +
+    `Du hast ${term} mit dieser Mehrfachkarte gebucht (${list}). ` +
     'Sie bleiben gebucht und werden als genutzt berechnet. ' +
     'Wenn du sie nicht wahrnehmen willst, melde dich vorher ab — dann bekommst du mehr zurück.'
   );
@@ -108,9 +108,21 @@ function hashLegal(text) {
 }
 
 const IMMEDIATE =
-  'Ich verlange ausdrücklich, dass ich die Karte sofort nutzen kann. Mir ist bekannt, dass ich bei einem Widerruf für bereits genutzte Termine anteilig Wertersatz leiste.';
+  'Ich möchte die Karte sofort nutzen. Bei Widerruf zahle ich genutzte Termine anteilig; sind alle genutzt, endet das Widerrufsrecht.';
 
-console.log('K1 pass texts');
+function passWithdrawalExampleBody(priceCents, units, usedExample = 1) {
+  const used = usedExample;
+  const u = Math.max(1, units);
+  const wertersatz = passWertersatzCents(priceCents, u, used);
+  const refund = Math.max(priceCents - wertersatz, 0);
+  return (
+    `Du hast 14 Tage Widerrufsrecht. Weil du die Karte sofort nutzen kannst, ziehen wir bei einem Widerruf die schon genutzten Termine anteilig ab. ` +
+    `Beispiel: ${formatCents(priceCents)} ÷ ${u} Termine × ${used} genutzt = ${formatCents(wertersatz)} → du bekommst ${formatCents(refund)} zurück. ` +
+    `Hast du alle Termine genutzt, ist kein Widerruf mehr möglich.`
+  );
+}
+
+console.log('K1 / UX-9 pass texts');
 
 {
   const { line, tooltip } = passBuyListLine({
@@ -158,6 +170,7 @@ console.log('K1 pass texts');
 {
   const text = passWithdrawalUpcomingNotice(['2026-10-08', '2026-10-10']);
   assert.match(text, /2 kommende Termine/);
+  assert.match(text, /Mehrfachkarte/);
   assert.match(text, /bleiben gebucht und werden als genutzt berechnet/);
   assert.match(text, /melde dich vorher ab/);
   assert.equal(passWithdrawalUpcomingNotice([]), null);
@@ -177,11 +190,20 @@ console.log('K1 pass texts');
   assert.equal(hashLegal(IMMEDIATE).length, 64);
   assert.equal(hashLegal(IMMEDIATE), hashLegal(IMMEDIATE + '\n'));
   assert.notEqual(hashLegal(IMMEDIATE), hashLegal(IMMEDIATE + 'x'));
-  // Häkchen-Pflicht: ohne Consent kein Kauf (UI-Regel)
   const consentRequired = (checked) => checked === true;
   assert.equal(consentRequired(false), false);
   assert.equal(consentRequired(true), true);
   console.log('  ok Consent-Hash + Häkchen-Pflicht');
 }
 
-console.log('K1 pass texts OK');
+{
+  const a = passWithdrawalExampleBody(6500, 5, 1);
+  assert.match(a, /65,00 € ÷ 5 Termine × 1 genutzt = 13,00 €/);
+  assert.match(a, /52,00 € zurück/);
+  const b = passWithdrawalExampleBody(12000, 10, 2);
+  assert.match(b, /120,00 € ÷ 10 Termine × 2 genutzt = 24,00 €/);
+  assert.match(b, /96,00 € zurück/);
+  console.log('  ok UX-9 Mehr-Pop-up-Beispiel');
+}
+
+console.log('K1 / UX-9 pass texts OK');

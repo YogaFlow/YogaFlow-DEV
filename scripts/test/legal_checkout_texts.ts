@@ -31,10 +31,13 @@ test('Knöpfe K4', () => {
   assert.equal(BINDING_BOOK_LABEL, 'Zahlungspflichtig buchen');
 });
 
-test('Preis K5 je Steuerregime', () => {
-  assert.equal(checkoutPriceLine(2400, 'regular', 1900), '24,00 € inkl. 19 % USt');
-  assert.equal(checkoutPriceLine(2400, 'regular', 700), '24,00 € inkl. 7 % USt');
-  assert.equal(checkoutPriceLine(2400, 'small_business', 0), '24,00 € · gemäß § 19 UStG ohne USt');
+test('Preis K5 / UX-9 je Steuerregime', () => {
+  assert.equal(checkoutPriceLine(2400, 'regular', 1900), '24,00 € · inkl. 19 % USt');
+  assert.equal(checkoutPriceLine(2400, 'regular', 700), '24,00 € · inkl. 7 % USt');
+  assert.equal(
+    checkoutPriceLine(2400, 'small_business', 0),
+    '24,00 € · Endpreis · keine USt (§ 19 UStG)',
+  );
 });
 
 test('Belegsteuer K8 / Anzeige N5', () => {
@@ -74,7 +77,7 @@ test('UX-2 A4 Abmelde kompakt + Steuerfuß', () => {
     cancelRuleLineCompact(null),
     'Keine Erstattung bei Abmeldung (Frist vorbei)',
   );
-  assert.equal(checkoutTaxLineAlone('small_business', 0), 'gemäß § 19 UStG ohne USt');
+  assert.equal(checkoutTaxLineAlone('small_business', 0), 'Endpreis · keine USt (§ 19 UStG)');
   assert.equal(checkoutTaxLineAlone('regular', 1900), 'inkl. 19 % USt');
   assert.equal(checkoutTaxLineAlone('regular', 700), 'inkl. 7 % USt');
   assert.match(WITHDRAWAL_NOTICE_COMPACT, /Widerrufsrecht/);

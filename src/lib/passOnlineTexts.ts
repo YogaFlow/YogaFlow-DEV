@@ -1,21 +1,26 @@
 /**
- * K1 — Texte für Online-Kartenkauf, Ersparnis, Fristen, Wertersatz, Consent.
+ * K1 / UX-9 — Texte für Online-Mehrfachkartenkauf, Ersparnis, Fristen, Wertersatz, Consent.
  */
 import { formatCents } from './format';
 
+/** UX-9: neuer Consent-Wortlaut (Hash neu; alte Consents mit altem Hash gültig). */
 export const PASS_IMMEDIATE_USE_TEXT =
-  'Ich verlange ausdrücklich, dass ich die Karte sofort nutzen kann. Mir ist bekannt, dass ich bei einem Widerruf für bereits genutzte Termine anteilig Wertersatz leiste.';
+  'Ich möchte die Karte sofort nutzen. Bei Widerruf zahle ich genutzte Termine anteilig; sind alle genutzt, endet das Widerrufsrecht.';
 
+/** Hash-Konstante (unverändert) — „über Widerruf informiert“; UI zeigt „Mehr ›“-Pop-up. */
 export const PASS_WITHDRAWAL_INFO_TEXT =
   'Du hast ein 14-tägiges Widerrufsrecht. Widerrufsbelehrung.';
 
 export const BINDING_BUY_PASS_LABEL = 'Zahlungspflichtig kaufen';
 
+export const PASS_CONSENT_REQUIRED_HINT =
+  'Bitte setze das Häkchen, um die Karte sofort nutzen zu können.';
+
 export const PASS_WITHDRAWAL_BELEHRUNG_BODY =
   'Du kannst den Vertrag innerhalb von 14 Tagen ohne Angabe von Gründen widerrufen. ' +
   'Die Frist beginnt mit dem Kauf. Weil du der sofortigen Nutzung zustimmst, leistest du bei Widerruf ' +
   'anteilig Wertersatz für bereits genutzte Termine (Preis ÷ Termine × genutzte Termine). ' +
-  'Ungenutzte Termine werden entwertet. Den Widerruf erklärst du über „Meine Karten“ oder die Seite Widerruf.';
+  'Ungenutzte Termine werden entwertet. Den Widerruf erklärst du über „Mehrfachkarten“ oder die Seite Widerruf.';
 
 export function passProductPreviewLine(input: {
   units: number;
@@ -83,22 +88,34 @@ export function passBuyListLine(input: {
   };
 }
 
+/** UX-9: Zusammenfassung unter dem Produkttitel (Name steht im Titel). */
 export function passCheckoutSummary(input: {
-  name: string;
+  name?: string;
   units: number;
   validityRule: 'months' | 'years_to_year_end';
   validityValue: number;
+  priceCents?: number;
 }): string {
   const units = input.units === 1 ? '1 Termin' : `${input.units} Termine`;
   const validity =
     input.validityRule === 'months'
       ? input.validityValue === 1
-        ? 'gültig 1 Monat ab heute'
-        : `gültig ${input.validityValue} Monate ab heute`
+        ? '1 Monat gültig'
+        : `${input.validityValue} Monate gültig`
       : input.validityValue === 1
-        ? 'gültig bis Jahresende + 1 Jahr'
-        : `gültig bis Jahresende + ${input.validityValue} Jahre`;
-  return `${input.name} · ${units} · ${validity}`;
+        ? 'bis Jahresende + 1 Jahr'
+        : `bis Jahresende + ${input.validityValue} Jahre`;
+  const parts = [units, validity];
+  if (
+    input.priceCents != null &&
+    Number.isFinite(input.priceCents) &&
+    input.units > 0
+  ) {
+    parts.push(`${formatCents(Math.round(input.priceCents / input.units))} pro Termin`);
+  } else if (input.name) {
+    return `${input.name} · ${units} · ${validity}`;
+  }
+  return parts.join(' · ');
 }
 
 export function passSuccessHeadline(name: string): string {
@@ -114,6 +131,23 @@ export function passWertersatzCents(
   if (units <= 0 || used <= 0) return 0;
   if (used >= units) return Math.max(0, priceCents);
   return Math.round((priceCents * used) / units);
+}
+
+/** Pop-up „Mehr ›“ — Beispielrechnung aus Produktpreis. */
+export function passWithdrawalExampleBody(input: {
+  priceCents: number;
+  units: number;
+  usedExample?: number;
+}): string {
+  const used = input.usedExample ?? 1;
+  const units = Math.max(1, input.units);
+  const wertersatz = passWertersatzCents(input.priceCents, units, used);
+  const refund = Math.max(input.priceCents - wertersatz, 0);
+  return (
+    `Du hast 14 Tage Widerrufsrecht. Weil du die Karte sofort nutzen kannst, ziehen wir bei einem Widerruf die schon genutzten Termine anteilig ab. ` +
+    `Beispiel: ${formatCents(input.priceCents)} ÷ ${units} Termine × ${used} genutzt = ${formatCents(wertersatz)} → du bekommst ${formatCents(refund)} zurück. ` +
+    `Hast du alle Termine genutzt, ist kein Widerruf mehr möglich.`
+  );
 }
 
 /** Kurzdatum für Widerruf-Hinweis: „Mi 8. Okt“ (ohne Komma nach Wochentag). */
@@ -141,7 +175,7 @@ export function passWithdrawalUpcomingNotice(upcomingDates: string[]): string | 
   const list = upcomingDates.map(passWithdrawalDateLabel).filter(Boolean).join(', ');
   const term = n === 1 ? '1 kommenden Termin' : `${n} kommende Termine`;
   return (
-    `Du hast ${term} mit dieser Karte gebucht (${list}). ` +
+    `Du hast ${term} mit dieser Mehrfachkarte gebucht (${list}). ` +
     'Sie bleiben gebucht und werden als genutzt berechnet. ' +
     'Wenn du sie nicht wahrnehmen willst, melde dich vorher ab — dann bekommst du mehr zurück.'
   );

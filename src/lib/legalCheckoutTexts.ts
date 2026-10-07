@@ -24,9 +24,12 @@ export const RECEIPT_PRINT_LABEL = 'Drucken / als PDF speichern';
 
 export const RECEIPT_LINK_LABEL = 'Beleg';
 
-export const PAYMENT_METHOD_ONLINE = 'Karte (online)';
+export const PAYMENT_METHOD_ONLINE = 'Kreditkarte (online)';
 
 export const ONLINE_AMOUNT_LIMIT_CENTS = 25000;
+
+/** UX-9: Steuerhinweis neben dem Betrag (Checkout / Kauf-Sheet). */
+export const CHECKOUT_TAX_SMALL_BUSINESS = 'Endpreis · keine USt (§ 19 UStG)';
 
 export type TaxRegime = 'regular' | 'small_business';
 
@@ -43,16 +46,14 @@ export function vatPercentFromBp(vatRateBp: number): number {
   return Math.round(vatRateBp / 100);
 }
 
+/** Betrag + Steuerhinweis in einer Zeile (Mails / ältere Aufrufer). */
 export function checkoutPriceLine(
   amountCents: number,
   regime: TaxRegime,
   vatRateBp: number,
 ): string {
   const amount = formatLegalCents(Math.abs(amountCents));
-  if (regime === 'small_business') {
-    return `${amount} · gemäß § 19 UStG ohne USt`;
-  }
-  return `${amount} inkl. ${vatPercentFromBp(vatRateBp)} % USt`;
+  return `${amount} · ${checkoutTaxLineAlone(regime, vatRateBp)}`;
 }
 
 /** Voller Satz auf Belegseite und in der Bestätigungsmail (N5). */
@@ -103,9 +104,9 @@ export function cancelRuleLineCompact(deadlineLabel: string | null | undefined):
 export const WITHDRAWAL_NOTICE_COMPACT =
   'Kein Widerrufsrecht bei festem Termin';
 
-/** Steuerzeile allein (Fußbereich), ohne Betrag. */
+/** Steuerzeile allein (Fußbereich), ohne Betrag. UX-9: § 19 kurz neben dem Endpreis. */
 export function checkoutTaxLineAlone(regime: TaxRegime, vatRateBp: number): string {
-  if (regime === 'small_business') return RECEIPT_TAX_SMALL_BUSINESS_SHORT;
+  if (regime === 'small_business') return CHECKOUT_TAX_SMALL_BUSINESS;
   return `inkl. ${vatPercentFromBp(vatRateBp)} % USt`;
 }
 
