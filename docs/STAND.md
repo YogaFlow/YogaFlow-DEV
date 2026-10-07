@@ -49,5 +49,5 @@ Nach UX-9 Klicktest: Bericht abschließen → nächste Story.
 
 - Regeln: [.cursor/rules/omlify-autonom.mdc](../.cursor/rules/omlify-autonom.mdc), [.cursor/rules/rls-access-not-display.mdc](../.cursor/rules/rls-access-not-display.mdc)
 - Story: [docs/stories/ux9_kartenkauf_wording.md](stories/ux9_kartenkauf_wording.md)
-- Entscheidungen: [19_Wording_Mehrfachkarte.md](entscheidungen/19_Wording_Mehrfachkarte.md) (UX-9), [18_Teilnehmerliste_Zahlstatus.md](entscheidungen/18_Teilnehmerliste_Zahlstatus.md) (UX-6), [17_Studio_Rechtstexte.md](entscheidungen/17_Studio_Rechtstexte.md) (RT-1)
+- Entscheidungen: [19_Wording_Kurskarte.md](entscheidungen/19_Wording_Kurskarte.md) (UX-9/UX-10), [18_Teilnehmerliste_Zahlstatus.md](entscheidungen/18_Teilnehmerliste_Zahlstatus.md) (UX-6), [17_Studio_Rechtstexte.md](entscheidungen/17_Studio_Rechtstexte.md) (RT-1)
 - Offene Punkte: [docs/OFFENE_PUNKTE.md](OFFENE_PUNKTE.md)

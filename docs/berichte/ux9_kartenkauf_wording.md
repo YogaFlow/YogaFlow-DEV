@@ -2,7 +2,7 @@
 
 Stand: 2026-10-07 · Branch `Julius` · Status: **Haltestelle 5 (Klicktest)**
 
-Grundlage: [ux9_kartenkauf_wording.md](../stories/ux9_kartenkauf_wording.md), Entscheidung [19_Wording_Mehrfachkarte.md](../entscheidungen/19_Wording_Mehrfachkarte.md).
+Grundlage: [ux9_kartenkauf_wording.md](../stories/ux9_kartenkauf_wording.md), Entscheidung [19_Wording_Kurskarte.md](../entscheidungen/19_Wording_Kurskarte.md) (früher Mehrfachkarte).
 
 ## Erledigt
 
