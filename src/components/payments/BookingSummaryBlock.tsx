@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
   cancelRuleLineCompact,
@@ -8,6 +9,10 @@ import {
   WITHDRAWAL_NOTICE_COMPACT,
   type TaxRegime,
 } from '../../lib/legalCheckoutTexts';
+import {
+  courseCancelReassurance,
+  courseCheckoutMetaLine,
+} from '../../lib/checkoutSummaryTexts';
 import { loadPublicStudioLegal } from '../../lib/studioLegal';
 import { useTenant } from '../../context/TenantContext';
 import ModalBackdrop from '../ui/ModalBackdrop';
@@ -28,29 +33,37 @@ export type BookingSummaryData = {
   providerPostalCode: string;
   providerContactEmail: string | null;
   providerPhone: string | null;
+  /** Formatiert, nur wenn Frist noch in der Zukunft; sonst null → „vorbei“. */
   cancelDeadlineLabel: string | null;
   termsUrl?: string | null;
   privacyUrl?: string | null;
 };
 
-/** Zwei-Zeilen-Zusammenfassung im Checkout-Scrollbereich (UX-2 A4). */
+/** UX-10: Titel, Meta-Zeile, Beruhigung — Preis nur im sticky Fuß. */
 export function BookingSummaryCompact({ data }: { data: BookingSummaryData }) {
-  const meta = [data.whenLabel, data.place].filter(Boolean).join(' · ');
+  const meta = courseCheckoutMetaLine({
+    whenLabel: data.whenLabel,
+    place: data.place,
+    teacher: data.teacher,
+  });
+  const reassurance = courseCancelReassurance(data.cancelDeadlineLabel);
   return (
     <div className="mb-4" data-testid="booking-summary">
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-[15px] font-medium leading-snug text-text">{data.title}</p>
-        <p
-          className="shrink-0 text-[15px] font-medium tabular-nums text-text"
-          data-testid="checkout-price-inline"
-        >
-          {formatLegalCents(data.amountCents)}
+      <p className="text-[15px] font-medium leading-snug text-text">{data.title}</p>
+      {meta ? (
+        <p className="mt-1 text-[13px] leading-snug text-textMuted" data-testid="booking-summary-meta">
+          {meta}
         </p>
-      </div>
-      {meta ? <p className="mt-1 text-[13px] leading-snug text-textMuted">{meta}</p> : null}
-      {data.teacher ? (
-        <p className="mt-0.5 text-[13px] leading-snug text-textMuted">{data.teacher}</p>
       ) : null}
+      <p
+        className="mt-2 inline-flex items-start gap-1.5 text-[13px] leading-snug text-text"
+        data-testid="booking-summary-reassurance"
+      >
+        {reassurance.withCheck ? (
+          <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" aria-hidden />
+        ) : null}
+        <span>{reassurance.text}</span>
+      </p>
     </div>
   );
 }

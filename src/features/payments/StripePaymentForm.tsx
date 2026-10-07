@@ -15,10 +15,11 @@ import {
   useStripe,
 } from '@stripe/react-stripe-js';
 import { Lock, Loader2 } from 'lucide-react';
+import { PAYMENT_SUBMITTING } from '../../lib/paymentTexts';
 import {
-  PAYMENT_SECURE_SHORT,
-  PAYMENT_SUBMITTING,
-} from '../../lib/paymentTexts';
+  PAYMENT_HOW_TO_PAY,
+  PAYMENT_SECURE_CARD_HINT,
+} from '../../lib/checkoutSummaryTexts';
 import { BINDING_BOOK_LABEL } from '../../lib/legalCheckoutTexts';
 import {
   BookingCheckoutFooter,
@@ -44,8 +45,6 @@ type FormProps = {
   aboveSubmit?: ReactNode;
   /** Unter dem Zahlungsknopf (UX-9: Rechtszeile). */
   afterSubmit?: ReactNode;
-  /** false: kein Schloss-Hinweis (Pass-Kauf). */
-  hideSecureHint?: boolean;
   /** UX-9: vor confirmPayment / Token — false bricht ab. */
   beforeSubmit?: () => boolean;
   /** L2: nach Ablehnung neuen prepare-Versuch starten (statt confirm). */
@@ -62,7 +61,6 @@ function PaymentFormInner({
   midSlot,
   aboveSubmit,
   afterSubmit,
-  hideSecureHint = false,
   beforeSubmit,
   onRetry,
   onSubmitToken,
@@ -80,8 +78,10 @@ function PaymentFormInner({
     (!needsRetry && (!stripe || !elements));
   const alertText = localError ?? alertMessage ?? null;
   const buttonLabel = submitLabel ?? BINDING_BOOK_LABEL;
+  const showBusyLabel = submitting || disabled;
 
   const onPay = async () => {
+    if (locked && !(needsRetry && onRetry)) return;
     if (needsRetry && onRetry) {
       setLocalError(null);
       setSubmitting(true);
@@ -92,7 +92,7 @@ function PaymentFormInner({
       }
       return;
     }
-    if (!stripe || !elements || locked) return;
+    if (!stripe || !elements) return;
     if (beforeSubmit && !beforeSubmit()) return;
     setLocalError(null);
     setSubmitting(true);
@@ -132,8 +132,9 @@ function PaymentFormInner({
         onClick={() => void onPay()}
         className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-brand px-5 text-[15px] font-medium text-onBrand active:bg-brandPressed disabled:opacity-50"
         data-testid="checkout-pay"
+        aria-busy={showBusyLabel || undefined}
       >
-        {submitting || disabled ? (
+        {showBusyLabel ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
             <span>{PAYMENT_SUBMITTING}</span>
@@ -142,19 +143,22 @@ function PaymentFormInner({
           buttonLabel
         )}
       </button>
-      {hideSecureHint ? null : (
-        <p className="mt-2 inline-flex items-start gap-1.5 text-[12px] leading-snug text-textMuted">
-          <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-          <span>{PAYMENT_SECURE_SHORT}</span>
-        </p>
-      )}
       {afterSubmit}
     </>
   );
 
   return (
     <div className="flex flex-col">
-      <div className="min-h-[10rem]">
+      <div className="mb-3">
+        <p className="text-[15px] font-medium text-text" data-testid="payment-how-to-pay">
+          {PAYMENT_HOW_TO_PAY}
+        </p>
+        <p className="mt-1 inline-flex items-start gap-1.5 text-[12px] leading-snug text-textMuted">
+          <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+          <span>{PAYMENT_SECURE_CARD_HINT}</span>
+        </p>
+      </div>
+      <div className="min-h-[10rem]" data-testid="payment-element">
         <PaymentElement
           options={{
             ...STRIPE_PAYMENT_ELEMENT_OPTIONS,
@@ -210,7 +214,6 @@ type Props = {
   midSlot?: ReactNode;
   aboveSubmit?: ReactNode;
   afterSubmit?: ReactNode;
-  hideSecureHint?: boolean;
   beforeSubmit?: () => boolean;
   onRetry?: () => Promise<void>;
   onSubmitToken: (confirmationTokenId: string) => Promise<void>;
@@ -230,7 +233,6 @@ export default function StripePaymentForm({
   midSlot,
   aboveSubmit,
   afterSubmit,
-  hideSecureHint = false,
   beforeSubmit,
   onRetry,
   onSubmitToken,
@@ -293,7 +295,6 @@ export default function StripePaymentForm({
         midSlot={midSlot}
         aboveSubmit={aboveSubmit}
         afterSubmit={afterSubmit}
-        hideSecureHint={hideSecureHint}
         beforeSubmit={beforeSubmit}
         onRetry={onRetry}
         onSubmitToken={onSubmitToken}

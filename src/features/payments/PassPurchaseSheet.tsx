@@ -1,20 +1,25 @@
 /**
- * UX-9 — Online-Mehrfachkartenkauf: Produktname, Payment Element, Consent, sticky Fuß.
+ * UX-9/UX-10 — Online-Kurskartenkauf: Zusammenfassung, Payment Element, Consent, sticky Fuß.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Loader2, X } from 'lucide-react';
+import { Check, Loader2, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ModalBackdrop from '../../components/ui/ModalBackdrop';
 import StudioPublicLegalSheet, {
   type StudioLegalSheetKind,
 } from '../../components/legal/StudioPublicLegalSheet';
 import { paymentsClientConfig } from '../../lib/paymentsClientConfig';
-import { paymentMessageForCode, PAYMENT_RETRY_LABEL } from '../../lib/paymentTexts';
+import {
+  paymentMessageForCode,
+  PAYMENT_PROCESSING,
+  PAYMENT_RETRY_LABEL,
+} from '../../lib/paymentTexts';
 import {
   checkoutTaxLineAlone,
   formatLegalCents,
   type TaxRegime,
 } from '../../lib/legalCheckoutTexts';
+import { PASS_CHECKOUT_REASSURANCE } from '../../lib/checkoutSummaryTexts';
 import {
   BINDING_BUY_PASS_LABEL,
   PASS_CONSENT_REQUIRED_HINT,
@@ -316,7 +321,13 @@ const PassPurchaseSheet: React.FC<Props> = ({
             </div>
           ) : (
             <>
-              <p className="text-[14px] leading-snug text-textMuted">{summary}</p>
+              <div data-testid="pass-checkout-summary">
+                <p className="text-[14px] leading-snug text-textMuted">{summary}</p>
+                <p className="mt-2 inline-flex items-start gap-1.5 text-[13px] leading-snug text-text">
+                  <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" aria-hidden />
+                  <span>{PASS_CHECKOUT_REASSURANCE}</span>
+                </p>
+              </div>
 
               {(checkout.phase === 'preparing' || (checkout.phase === 'idle' && hashes)) &&
               !showPayForm ? (
@@ -326,7 +337,7 @@ const PassPurchaseSheet: React.FC<Props> = ({
               {checkout.phase === 'processing' ? (
                 <div className="flex flex-col items-center gap-3 py-6" role="status">
                   <Loader2 className="h-8 w-8 animate-spin text-brand" aria-hidden />
-                  <p className="text-[15px] text-text">Zahlung wird geprüft …</p>
+                  <p className="text-[15px] text-text">{PAYMENT_PROCESSING}</p>
                 </div>
               ) : null}
 
@@ -351,7 +362,6 @@ const PassPurchaseSheet: React.FC<Props> = ({
                   holdExpired={false}
                   studioName={studioName}
                   bookingSummary={null}
-                  hideSecureHint
                   midSlot={consentBlock}
                   aboveSubmit={priceRow}
                   afterSubmit={legalRow}

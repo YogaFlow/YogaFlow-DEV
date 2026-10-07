@@ -212,7 +212,8 @@ test('K1: Kurs- und Karten-Checkout teilen Elements-Init', () => {
   assert.equal(course.locale, 'de');
   assert.equal(STRIPE_PAYMENT_ELEMENT_OPTIONS.wallets, STRIPE_PAYMENT_ELEMENT_WALLETS);
   assert.equal(STRIPE_PAYMENT_ELEMENT_OPTIONS.layout.type, 'accordion');
-  assert.equal(STRIPE_PAYMENT_ELEMENT_OPTIONS.layout.visibleAccordionItemsCount, 0);
+  assert.equal(STRIPE_PAYMENT_ELEMENT_OPTIONS.layout.radios, 'always');
+  assert.equal(STRIPE_PAYMENT_ELEMENT_OPTIONS.layout.spacedAccordionItems, true);
   assert.deepEqual(STRIPE_PAYMENT_ELEMENT_OPTIONS.paymentMethodOrder, [
     'apple_pay',
     'google_pay',

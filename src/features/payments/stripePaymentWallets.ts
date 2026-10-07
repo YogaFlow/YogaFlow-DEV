@@ -25,13 +25,15 @@ export function stripePaymentElementsOptions(input: {
 }
 
 /**
- * Payment Element. Accordion ohne „Mehr“, Wallets fest vor der Karte,
- * damit Apple Pay nicht hinter weiteren Methoden verschwindet.
+ * Payment Element. Accordion mit Radio-Zeilen (UX-10): jede Zahlart eigene Zeile;
+ * bei „Karte“ Logos → eindeutig Kreditkarte. Wallets fest vor der Karte.
  */
 export const STRIPE_PAYMENT_ELEMENT_OPTIONS = {
   layout: {
     type: 'accordion' as const,
-    visibleAccordionItemsCount: 0,
+    /** Story: radios true — Stripe-Typen: always (Radio je Zahlart). */
+    radios: 'always' as const,
+    spacedAccordionItems: true,
   },
   wallets: STRIPE_PAYMENT_ELEMENT_WALLETS,
   paymentMethodOrder: ['apple_pay', 'google_pay', 'card'] as string[],

@@ -92,7 +92,7 @@ function passWithdrawalUpcomingNotice(dates) {
     .join(', ');
   const term = n === 1 ? '1 kommenden Termin' : `${n} kommende Termine`;
   return (
-    `Du hast ${term} mit dieser Mehrfachkarte gebucht (${list}). ` +
+    `Du hast ${term} mit dieser Kurskarte gebucht (${list}). ` +
     'Sie bleiben gebucht und werden als genutzt berechnet. ' +
     'Wenn du sie nicht wahrnehmen willst, melde dich vorher ab — dann bekommst du mehr zurück.'
   );
@@ -109,6 +109,27 @@ function hashLegal(text) {
 
 const IMMEDIATE =
   'Ich möchte die Karte sofort nutzen. Bei Widerruf zahle ich genutzte Termine anteilig; sind alle genutzt, endet das Widerrufsrecht.';
+
+function passCheckoutSummary(input) {
+  const units = input.units === 1 ? '1 Termin' : `${input.units} Termine`;
+  const validity =
+    input.validityRule === 'months'
+      ? input.validityValue === 1
+        ? '1 Monat gültig'
+        : `${input.validityValue} Monate gültig`
+      : input.validityValue === 1
+        ? 'bis Jahresende + 1 Jahr'
+        : `bis Jahresende + ${input.validityValue} Jahre`;
+  const parts = [units, validity];
+  if (
+    input.priceCents != null &&
+    Number.isFinite(input.priceCents) &&
+    input.units > 0
+  ) {
+    parts.push(`${formatCents(Math.round(input.priceCents / input.units))} pro Termin`);
+  }
+  return parts.join(' · ');
+}
 
 function passWithdrawalExampleBody(priceCents, units, usedExample = 1) {
   const used = usedExample;
@@ -170,7 +191,7 @@ console.log('K1 / UX-9 pass texts');
 {
   const text = passWithdrawalUpcomingNotice(['2026-10-08', '2026-10-10']);
   assert.match(text, /2 kommende Termine/);
-  assert.match(text, /Mehrfachkarte/);
+  assert.match(text, /Kurskarte/);
   assert.match(text, /bleiben gebucht und werden als genutzt berechnet/);
   assert.match(text, /melde dich vorher ab/);
   assert.equal(passWithdrawalUpcomingNotice([]), null);
@@ -204,6 +225,19 @@ console.log('K1 / UX-9 pass texts');
   assert.match(b, /120,00 € ÷ 10 Termine × 2 genutzt = 24,00 €/);
   assert.match(b, /96,00 € zurück/);
   console.log('  ok UX-9 Mehr-Pop-up-Beispiel');
+}
+
+{
+  assert.equal(
+    passCheckoutSummary({
+      units: 10,
+      validityRule: 'months',
+      validityValue: 12,
+      priceCents: 12000,
+    }),
+    '10 Termine · 12 Monate gültig · 12,00 € pro Termin',
+  );
+  console.log('  ok UX-10 Kurskarte Meta-Zeile');
 }
 
 console.log('K1 / UX-9 pass texts OK');

@@ -11,7 +11,7 @@ function cssVar(name: string, fallback: string): string {
   return value || fallback;
 }
 
-/** Schlichtes Appearance-Objekt ohne Stripe-Typen (Z9). */
+/** Schlichtes Appearance-Objekt ohne Stripe-Typen (Z9). UX-10: Felder 48 px. */
 export type PaymentAppearanceConfig = {
   theme: 'flat';
   variables: {
@@ -22,9 +22,15 @@ export type PaymentAppearanceConfig = {
     colorTextSecondary: string;
     borderRadius: string;
     fontFamily: string;
+    spacingUnit: string;
   };
   rules: {
-    '.Input': { border: string; boxShadow: string };
+    '.Input': {
+      border: string;
+      boxShadow: string;
+      padding: string;
+      minHeight: string;
+    };
     '.Input:focus': { border: string; boxShadow: string };
   };
 };
@@ -41,11 +47,14 @@ export function stripePaymentAppearance(): PaymentAppearanceConfig {
       borderRadius: tokens.radii.sm,
       fontFamily:
         '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
+      spacingUnit: '4px',
     },
     rules: {
       '.Input': {
         border: `1px solid ${cssVar('--color-border-strong', tokens.colors.borderStrong)}`,
         boxShadow: 'none',
+        padding: '12px',
+        minHeight: '48px',
       },
       '.Input:focus': {
         border: `1px solid ${cssVar('--color-brand', tokens.colors.brand)}`,
