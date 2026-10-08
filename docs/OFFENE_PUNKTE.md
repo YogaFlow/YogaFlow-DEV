@@ -223,11 +223,12 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
       Wer die Rolle `user` hat und den Ping aufruft, bekommt einen
       Audit-Eintrag. Das zählt als Geldbezug: die Person wird anonymisiert
       statt gelöscht. Vorschlag: Ping ohne Audit oder ohne Akteur.
-- [ ] **Studio-Export als eigene Story.** Kündigung eines Studios gibt es nur
-      von Hand (`delete_tenant_complete`, nur `service_role`, L5). AGB § 9
-      verspricht 30 Tage Exportfenster. Heute exportiert die Teilnehmerliste
-      nur Kurs, Datum, Name, E-Mail, Telefon, Status, Anmeldedatum — keine
-      Zahlungen, Events oder Audit. Export vor dem Löschen ist nicht gebaut.
+- [ ] **Studio-Export / Kündigung (AGB § 9 Abs. 3–4, RT-2).** Kündigung nur von
+      Hand (`delete_tenant_complete`, `service_role`). AGB v2 verspricht 30 Tage
+      Exporte (Teilnehmende, Buchungen, Zahlungen, Belege) und „Konto nur noch
+      zum Export nutzbar“ — diesen Kontozustand gibt es nicht; vor erster echter
+      Kündigung stellt Julius Exporte per E-Mail bereit. Teilnehmerlisten-Export
+      deckt Zahlungen/Belege heute nicht ab.
 - [ ] **Rechtstexte anpassen (Julius, mit Anwalt).** Datenschutz Abschnitt 12
       sagt, Buchungen würden mit dem Konto gelöscht. AGB § 9 und AVV § 10
       löschen nach 30 Tagen „unwiderruflich“, ohne Aufbewahrung von
