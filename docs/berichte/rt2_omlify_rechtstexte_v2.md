@@ -49,7 +49,16 @@ npm run dev:e2e -- e2e/rt2.spec.ts → 1 passed
 
 ### Deploy-Nachweis (vor Haltestelle 5)
 
-*(wird nach Push ergänzt)*
+| Beleg | Ergebnis |
+|---|---|
+| HEAD gepusht | `3654d9a` (`docs(geldkette): RT-2 Bericht Diff und STAND`) |
+| Live-Bundle | `https://demoalpha.omlify-dev.de/assets/index-sUKo0xF4.js` |
+| Merkmal Banner | `Aktualisierte Vertragsunterlagen` @ Offset 971542 |
+| Merkmal AGB-Hash | `4b9d1309…dc55f96` @ 943205 |
+| Merkmal Datenschutz | `Anbindung an Stripe` @ 930439; `08.10.2026` @ 927289 |
+| Check-Run Workers Builds | `gh` lokal nicht authentifiziert — Live-Bundle mit neuen Merkmalen belegt den Deploy aus `Julius` |
+
+Statische `/legal/*` auf dem Apex liegen hinter Cloudflare Access; Inhalte stecken im SPA-Bundle (`LEGAL_DOCUMENTS`) und im Marketing-Build (lokal `check:ci`: `legal/agb.html` 14.19 kB, `legal/datenschutz.html` 17.88 kB).
 
 ---
 
