@@ -987,14 +987,14 @@ export default function Users() {
                     {canShowCourseSection(user.role) && (
                       <div className="border-t border-border pt-4">
                         <h3 className="text-xs font-semibold text-textMuted mb-3">Kurs zuweisen</h3>
-                        <div className="flex gap-2 mb-3">
+                        <div className="mb-3 flex flex-col gap-2 sm:flex-row">
                           <select
                             value={selectedCourseId}
                             onChange={e => {
                               setSelectedCourseId(e.target.value);
                               setSelectedCoverage('open');
                             }}
-                            className="flex-1 text-sm border border-border rounded-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
+                            className="min-w-0 w-full flex-1 text-sm border border-border rounded-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
                           >
                             <option value="">Kurs auswählen…</option>
                             {availableCoursesToAdd.map(c => (
@@ -1006,7 +1006,7 @@ export default function Users() {
                           <button
                             onClick={() => handleAddToCourse(user.id)}
                             disabled={!selectedCourseId || addingCourse}
-                            className="flex items-center justify-center px-3 bg-brand text-onBrand rounded-sm hover:bg-brandPressed disabled:opacity-50 transition-colors"
+                            className="flex h-12 w-full flex-shrink-0 items-center justify-center px-3 bg-brand text-onBrand rounded-sm hover:bg-brandPressed disabled:opacity-50 transition-colors sm:h-auto sm:w-auto"
                           >
                             {addingCourse
                               ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-onBrand" />
@@ -1365,14 +1365,14 @@ export default function Users() {
                                 <h3 className="text-sm font-semibold text-textMuted mb-3">Kurs zuweisen</h3>
                                 <div className="mb-5 lg:mt-[5px]">
                                   <label className="block text-xs text-textMuted mb-1">Kurs</label>
-                                  <div className="flex gap-2">
+                                  <div className="flex flex-col gap-2 sm:flex-row">
                                     <select
                                       value={selectedCourseId}
                                       onChange={e => {
                                         setSelectedCourseId(e.target.value);
                                         setSelectedCoverage('open');
                                       }}
-                                      className="flex-1 text-sm border border-border rounded-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
+                                      className="min-w-0 w-full flex-1 text-sm border border-border rounded-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
                                     >
                                       <option value="">Kurs auswählen…</option>
                                       {availableCoursesToAdd.map(c => (
@@ -1386,7 +1386,7 @@ export default function Users() {
                                       onClick={() => handleAddToCourse(user.id)}
                                       disabled={!selectedCourseId || addingCourse}
                                       title="Hinzufügen"
-                                      className="flex items-center justify-center px-3 bg-brand text-onBrand rounded-sm hover:bg-brandPressed disabled:opacity-50 transition-colors"
+                                      className="flex h-12 w-full flex-shrink-0 items-center justify-center px-3 bg-brand text-onBrand rounded-sm hover:bg-brandPressed disabled:opacity-50 transition-colors sm:h-auto sm:w-auto"
                                     >
                                       {addingCourse
                                         ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-onBrand" />
