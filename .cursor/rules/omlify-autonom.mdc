@@ -35,7 +35,18 @@ Zu Beginn jedes neuen Chats zuerst `docs/STAND.md` und den letzten Bericht lesen
 2. Test/Rauchtest bleibt nach 3 eigenen Reparaturversuchen rot (Ursache + Versuche berichten).
 3. Etwas würde PROD, echte Zahlungen oder das Stripe-Dashboard betreffen.
 4. Migration müsste bereits angewendete Nicht-Test-Daten auf DEV verändern/löschen.
-5. Oberfläche fertig → Klicktest durch Julius fällig.
+5. Oberfläche fertig → Klicktest durch Julius fällig. Vorher der Deploy-Nachweis unten.
+
+### Vor Haltestelle 5 — DEV-Frontend live
+
+Für den **letzten gepushten** Commit auf `Julius`, bevor der Bericht auf „angehalten“ geht:
+
+1. Der GitHub-Check-Run **„Workers Builds: omlify-dev“** ist `success`.
+2. Das Live-Bundle enthält ein Merkmal der Änderung: ein String aus dem Diff, der im gebauten JS stehen bleibt (sichtbarer Text, kein minifizierter Funktionsname). Studio-Subdomain `https://demoalpha.omlify-dev.de/assets/index-*.js`. Der Apex `omlify-dev.de` liegt hinter Cloudflare Access und ist nicht das Bundle.
+
+Beides im Bericht belegen (Commit, Ergebnis des Check-Runs, Merkmal und Fundstelle).
+
+Fehlt der Build (Check-Suite `queued` ohne diesen Check-Run, oder der Lauf ist nicht `success`): **leerer Commit** auf `Julius` und `git push origin Julius`. Niemals `npm run deploy:dev` oder `wrangler deploy`. Dieselbe Prüfung wiederholen. Erst dann Haltestelle 5.
 
 An einer Haltestelle: Bericht nach `docs/berichte/<story>.md`, Status „angehalten“, warten.
 
@@ -67,6 +78,7 @@ An einer Haltestelle: Bericht nach `docs/berichte/<story>.md`, Status „angehal
 - Keine Secrets, `acct_…`, `client_secret`, E-Mails in Logs/Berichten
 - Stripe nur über den Port (`check:provider-boundary`)
 - Signaturänderung von SQL-Funktionen nur mit `DROP FUNCTION` der alten Version
+- **Studio-Rechtstexte-Vorlagen** (`docs/legal/studio/*.vN.md`): unveränderlich, sobald eine Version irgendwo freigegeben wurde. Änderungen nur als neue Datei (`agb.v2.md` …). CI prüft Hashes (`scripts/check_studio_legal_template_hashes.mjs`). Neue Vorlage sperrt Online nicht (L3) — nur Banner „Neue Vorlage verfügbar“.
 
 ## Entscheidungen
 

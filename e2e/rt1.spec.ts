@@ -18,6 +18,13 @@ import {
 } from '../scripts/test/_helpers.mjs';
 // @ts-expect-error — .mjs
 import { assertDevGuard, ERLAUBTE_DEV_REF } from '../scripts/dev/dev_guard.mjs';
+import {
+  STUDIO_LEGAL_ACCEPTANCE_DOCS,
+  findStudioLegalTemplateRelease,
+} from '../src/generated/studioLegalTemplates';
+
+const TPL_VERSION = STUDIO_LEGAL_ACCEPTANCE_DOCS.terms.version;
+const IMPRINT_VERSION = findStudioLegalTemplateRelease('imprint').version;
 
 const SLUG = 'e2eapp';
 const EMAIL_PREFIX = 'e2eapprt1';
@@ -88,7 +95,7 @@ test('RT-1 Nachtrag — Rechtliches UX A–C', async ({ page, baseURL }) => {
       '# Impressum\n\nE2E RT1 Yoga\nEinzelunternehmen\nTestweg 1\n10115 Berlin\n';
     const pubImp = await asOwner.rpc('publish_studio_legal_document', {
       p_kind: 'imprint',
-      p_template_version: '2026-10-05',
+      p_template_version: IMPRINT_VERSION,
       p_body_md: imprintBody,
       p_values: {},
       p_content_hash: hashLegal(imprintBody),
@@ -102,7 +109,7 @@ test('RT-1 Nachtrag — Rechtliches UX A–C', async ({ page, baseURL }) => {
       const body = `# ${kind === 'terms' ? 'AGB' : 'Datenschutz'} E2E\n\nStand: Test.\n`;
       const rel = await asOwner.rpc('release_studio_legal', {
         p_kind: kind,
-        p_template_version: '2026-10-05',
+        p_template_version: TPL_VERSION,
         p_body_md: body,
         p_values: { extra_rules: '' },
         p_content_hash: hashLegal(body),
@@ -138,7 +145,7 @@ test('RT-1 Nachtrag — Rechtliches UX A–C', async ({ page, baseURL }) => {
       const body = '# AGB E2E\n\nStand: nach Reset.\n';
       await asOwner.rpc('release_studio_legal', {
         p_kind: 'terms',
-        p_template_version: '2026-10-05',
+        p_template_version: TPL_VERSION,
         p_body_md: body,
         p_values: { extra_rules: '' },
         p_content_hash: hashLegal(body),
@@ -157,7 +164,7 @@ test('RT-1 Nachtrag — Rechtliches UX A–C', async ({ page, baseURL }) => {
       const body = '# AGB E2E\n\nStand: 12 Stunden.\n';
       await asOwner.rpc('publish_studio_legal_document', {
         p_kind: 'terms',
-        p_template_version: '2026-10-05',
+        p_template_version: TPL_VERSION,
         p_body_md: body,
         p_values: { extra_rules: '', cancellation_hours: '12 Stunden' },
         p_content_hash: hashLegal(body),

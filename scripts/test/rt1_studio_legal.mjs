@@ -105,10 +105,13 @@ async function main() {
         .replace(/\n+$/g, '')
         .concat('\n');
     const hash = (t) => createHash('sha256').update(normalize(t), 'utf8').digest('hex');
+    const { STUDIO_LEGAL_ACCEPTANCE_DOCS } = await import(
+      '../../src/generated/studioLegalTemplates.ts'
+    );
     const bodySettings = '# AGB Test\n\nStand: Einstellungen.\n';
     const pubSettings = await asOwner.rpc('publish_studio_legal_document', {
       p_kind: 'terms',
-      p_template_version: '2026-10-05',
+      p_template_version: STUDIO_LEGAL_ACCEPTANCE_DOCS.terms.version,
       p_body_md: bodySettings,
       p_values: { extra_rules: '', cancellation_hours: '12 Stunden' },
       p_content_hash: hash(bodySettings),

@@ -279,8 +279,11 @@ export const AVV_TEST_HASH =
   'b90051caf84bc2deb99535bff2218eec4067d61209ba70d5294c04c20cd5e1d3';
 
 /** RT-1: AGB + Datenschutz freigeben (Minimaltext, Hash wie normalize_legal_text). */
-export async function studioLegalFreigeben(client) {
+export async function studioLegalFreigeben(client, overrides = {}) {
   const { createHash } = await import('node:crypto');
+  const { STUDIO_LEGAL_ACCEPTANCE_DOCS } = await import(
+    '../../src/generated/studioLegalTemplates.ts'
+  );
   const normalize = (t) =>
     String(t)
       .replace(/\r\n/g, '\n')
@@ -289,12 +292,15 @@ export async function studioLegalFreigeben(client) {
       .concat('\n');
   const hash = (t) => createHash('sha256').update(normalize(t), 'utf8').digest('hex');
   for (const kind of ['terms', 'privacy']) {
-    const body = `# ${kind === 'terms' ? 'AGB' : 'Datenschutz'} Test\n\nStand: Test.\n`;
+    const meta = STUDIO_LEGAL_ACCEPTANCE_DOCS[kind];
+    const body =
+      overrides.bodyMd ??
+      `# ${kind === 'terms' ? 'AGB' : 'Datenschutz'} Test\n\nStand: Test.\n`;
     const { data, error } = await client.rpc('release_studio_legal', {
       p_kind: kind,
-      p_template_version: '2026-10-05',
+      p_template_version: overrides.templateVersion ?? meta.version,
       p_body_md: body,
-      p_values: {},
+      p_values: overrides.values ?? {},
       p_content_hash: hash(body),
     });
     if (error || !data?.success) {

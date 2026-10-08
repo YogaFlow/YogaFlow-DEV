@@ -7,7 +7,7 @@ Stand: {{stand_date}}
 Wir haben keine Datenschutzbeauftragte bzw. keinen Datenschutzbeauftragten, weil wir dazu nicht verpflichtet sind. Bei Fragen schreib uns an die oben genannte E-Mail-Adresse.
 
 ## 2. Überblick
-Wir verarbeiten deine Daten, um Buchungen{{#if passes_any}}, Kartenkäufe{{/if}} und Zahlungen abzuwickeln und dich darüber zu informieren. Wir verkaufen keine Daten, nutzen keine Werbe-Tracker und erstellen keine Profile.
+Wir verarbeiten deine Daten, um Buchungen{{#if passes_any}}, Kurskartenkäufe{{/if}} und Zahlungen abzuwickeln und dich darüber zu informieren. Wir verkaufen keine Daten, nutzen keine Werbe-Tracker und erstellen keine Profile.
 
 ## 3. Aufruf der Buchungsseite
 Beim Aufruf verarbeitet der Server technisch notwendige Daten (IP-Adresse, Zeitpunkt, aufgerufene Seite, Browser-Informationen), um die Seite auszuliefern und vor Angriffen zu schützen. Rechtsgrundlage ist unser berechtigtes Interesse an einem sicheren Betrieb (Art. 6 Abs. 1 lit. f DSGVO). Diese Protokolle werden nur so lange gespeichert, wie es für Sicherheit und Fehlersuche nötig ist, und danach automatisch gelöscht.
@@ -16,10 +16,10 @@ Beim Aufruf verarbeitet der Server technisch notwendige Daten (IP-Adresse, Zeitp
 Wir speichern im Browser nur, was für die Funktion nötig ist (z. B. dass du angemeldet bist, deine Spracheinstellung). Das ist ohne Einwilligung zulässig (§ 25 Abs. 2 Nr. 2 TDDDG). Wir setzen keine Analyse- oder Werbe-Cookies.
 
 ## 5. Kundenkonto und Buchungen
-Für Konto und Buchungen verarbeiten wir: Name, E-Mail-Adresse, gegebenenfalls Telefonnummer, deine Buchungen und Abmeldungen, Wartelisten-Einträge{{#if passes_any}}, deine Karten und deren Verlauf{{/if}} sowie die von dir gewählte Zahlungsart. Rechtsgrundlage ist die Durchführung des Vertrags (Art. 6 Abs. 1 lit. b DSGVO). Lehrkräfte sehen die Teilnehmendenliste ihrer Termine.
+Für Konto und Buchungen verarbeiten wir: Name, E-Mail-Adresse, gegebenenfalls Telefonnummer, deine Buchungen und Abmeldungen, Wartelisten-Einträge{{#if passes_any}}, deine Kurskarten und deren Verlauf{{/if}} sowie die von dir gewählte Zahlungsart. Rechtsgrundlage ist die Durchführung des Vertrags (Art. 6 Abs. 1 lit. b DSGVO). Lehrkräfte sehen die Teilnehmendenliste ihrer Termine.
 
 ## 6. E-Mails
-Wir schicken dir E-Mails, die zur Buchung gehören: Bestätigungen, Belege, Änderungen und Absagen, Wartelisten-Benachrichtigungen{{#if passes_any}}, Hinweise zu deiner Karte (z. B. bevor sie abläuft){{/if}}. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO. Werbung schicken wir dir über diese Buchungsseite nicht.
+Wir schicken dir E-Mails, die zur Buchung gehören: Bestätigungen, Belege, Änderungen und Absagen, Wartelisten-Benachrichtigungen{{#if passes_any}}, Hinweise zu deiner Kurskarte (z. B. bevor sie abläuft){{/if}}. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO. Werbung schicken wir dir über diese Buchungsseite nicht.
 
 {{#if pay_online}}## 7. Online-Zahlung
 1. Online-Zahlungen wickelt **Stripe Payments Europe, Limited**, 1 Grand Canal Street Lower, Dublin 2, Irland („Stripe“) ab. Stripe erhält dazu die für die Zahlung nötigen Daten (z. B. Betrag, Kartendaten bzw. Daten der Wallet wie Apple Pay oder Google Pay, E-Mail-Adresse, IP-Adresse). Deine vollständigen Kartendaten sehen wir nicht.
@@ -29,7 +29,7 @@ Wir schicken dir E-Mails, die zur Buchung gehören: Bestätigungen, Belege, Änd
 
 ## 8. Belege, Buchhaltung und Nachweise
 1. Zu jeder Online-Zahlung und Erstattung erstellen wir einen Beleg. Belege und Buchungsunterlagen müssen wir aufbewahren (Art. 6 Abs. 1 lit. c DSGVO i. V. m. § 147 AO): Buchungsbelege **8 Jahre**, geschäftliche Korrespondenz **6 Jahre**, jeweils ab Ende des Kalenderjahres.
-{{#if passes_online}}2. Beim Online-Kauf einer Karte speichern wir, dass und wann du der sofortigen Nutzung zugestimmt hast, sowie einen Widerruf mit Zeitpunkt. Das dient dem Nachweis unserer gesetzlichen Pflichten (Art. 6 Abs. 1 lit. c und f DSGVO).{{/if}}
+{{#if passes_online}}2. Beim Online-Kauf einer Kurskarte speichern wir, dass und wann du der sofortigen Nutzung zugestimmt hast, sowie einen Widerruf mit Zeitpunkt. Das dient dem Nachweis unserer gesetzlichen Pflichten (Art. 6 Abs. 1 lit. c und f DSGVO).{{/if}}
 
 ## 9. Wer deine Daten außerdem erhält
 1. Die Buchungsseite wird von **Omlify** als technischem Dienstleister betrieben. Omlify verarbeitet deine Daten nur in unserem Auftrag und nach unserer Weisung (Auftragsverarbeitung nach Art. 28 DSGVO).

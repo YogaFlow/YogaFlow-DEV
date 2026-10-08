@@ -58,6 +58,7 @@ run('K1 Pass-Texte', 'node', ['scripts/test/k1_pass_texts.mjs']);
 run('K1 Kartenverlauf', 'node', ['--experimental-strip-types', '--test', 'scripts/test/k1_pass_history.mjs']);
 run('RT-1 Legal-Render', 'node', ['--experimental-strip-types', 'scripts/test/rt1_studio_legal_render.mjs']);
 run('RT-1 Freigabe-Status', 'node', ['--experimental-strip-types', 'scripts/test/rt1_legal_release_status.mjs']);
+run('Studio-Vorlagen-Hashes', 'node', ['--experimental-strip-types', 'scripts/check_studio_legal_template_hashes.mjs']);
 run('RT-1 Abmelde-Hinweis', 'node', ['--experimental-strip-types', 'scripts/test/rt1_cancel_onsite_hint.ts']);
 run('UX-7 Kartenhinweis', 'node', ['--experimental-strip-types', '--test', 'scripts/test/ux7_pass_hint.ts']);
 run('UX-8 Zu erledigen', 'node', ['--experimental-strip-types', '--test', 'scripts/test/ux8_todo_items.ts']);

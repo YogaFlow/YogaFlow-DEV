@@ -10,9 +10,11 @@ import {
   type StudioLegalValues,
 } from './studioLegalRender';
 import {
+  findStudioLegalTemplateRelease,
   STUDIO_LEGAL_SUBPROCESSORS,
   STUDIO_LEGAL_TEMPLATE_VERSION,
   STUDIO_LEGAL_TEMPLATES,
+  type StudioLegalTemplateKind,
 } from '../generated/studioLegalTemplates';
 import {
   loadStudioLegalProfile,
@@ -51,6 +53,7 @@ export type StudioLegalKindStatus = {
   template_version: string | null;
   current_template_version?: string | null;
   accepted_version?: string | null;
+  accepted_content_hash?: string | null;
 };
 
 export type StudioLegalVersionRow = {
@@ -162,11 +165,29 @@ export function buildStudioLegalValues(input: {
   };
 }
 
+/** Rendert eine Vorlagen-Version. Ohne opts = aktuelle (neueste) Vorlage. */
 export function renderStudioLegalKind(
   kind: StudioLegalKind,
   values: StudioLegalValues,
+  opts?: { version?: string | null; contentHash?: string | null },
 ): string {
-  return renderStudioLegalTemplate(STUDIO_LEGAL_TEMPLATES[kind], values);
+  const body =
+    opts?.version || opts?.contentHash
+      ? findStudioLegalTemplateRelease(kind as StudioLegalTemplateKind, opts).body
+      : STUDIO_LEGAL_TEMPLATES[kind];
+  return renderStudioLegalTemplate(body, values);
+}
+
+/** Vorlage der zuletzt freigegebenen Version (L3) — für Resync/Anzeige, nicht für Freigabe-Preview. */
+export function renderAcceptedStudioLegalKind(
+  kind: StudioLegalKind,
+  values: StudioLegalValues,
+  status: StudioLegalKindStatus | null | undefined,
+): string {
+  return renderStudioLegalKind(kind, values, {
+    version: status?.accepted_version,
+    contentHash: status?.accepted_content_hash,
+  });
 }
 
 export async function loadStudioLegalStatus(): Promise<StudioLegalStatus | null> {
@@ -191,6 +212,8 @@ export async function loadStudioLegalStatus(): Promise<StudioLegalStatus | null>
       current_template_version:
         o.current_template_version == null ? null : String(o.current_template_version),
       accepted_version: o.accepted_version == null ? null : String(o.accepted_version),
+      accepted_content_hash:
+        o.accepted_content_hash == null ? null : String(o.accepted_content_hash),
     };
   };
   return {
@@ -207,11 +230,17 @@ export async function publishStudioLegalDocument(input: {
   bodyMd: string;
   values: StudioLegalValues;
   trigger: 'release' | 'settings_change' | 'profile_change';
+  /** L3: bei Resync die freigegebene Vorlagen-Version, sonst aktuell. */
+  templateVersion?: string | null;
 }): Promise<{ ok: true; id: string; changed: boolean } | { ok: false; message: string }> {
   const contentHash = await hashNormalizedLegalText(input.bodyMd);
+  const defaultVersion =
+    input.kind === 'imprint'
+      ? findStudioLegalTemplateRelease('imprint').version
+      : STUDIO_LEGAL_TEMPLATE_VERSION;
   const { data, error } = await supabase.rpc('publish_studio_legal_document', {
     p_kind: input.kind,
-    p_template_version: STUDIO_LEGAL_TEMPLATE_VERSION,
+    p_template_version: input.templateVersion || defaultVersion,
     p_body_md: input.bodyMd,
     p_values: input.values,
     p_content_hash: contentHash,
@@ -265,8 +294,8 @@ export async function loadStudioLegalRenderContext(
 }
 
 /**
- * Nach Settings-Änderung: alle bereits freigegebenen Arten neu rendern/publishen
- * (nur wenn Hash sich ändert). Kein SQL-Auto-Render — Client-Hook.
+ * Nach Settings-Änderung: freigegebene Arten mit der zuletzt freigegebenen
+ * Vorlagen-Version neu rendern (L3 — nicht die neueste unfreigegebene).
  */
 export async function resyncStudioLegalDocuments(tenant: {
   name?: string;
@@ -285,24 +314,42 @@ export async function resyncStudioLegalDocuments(tenant: {
     if (status.imprint.status === 'current' || status.imprint.status === 'new_template') {
       kinds.push('imprint');
     }
-    if (status.terms.status === 'current' || status.terms.status === 'new_template') {
+    // terms/privacy: nur wenn schon freigegeben (current | new_template | change_release)
+    if (
+      status.terms.status === 'current' ||
+      status.terms.status === 'new_template' ||
+      status.terms.status === 'change_release'
+    ) {
       kinds.push('terms');
     }
-    if (status.privacy.status === 'current' || status.privacy.status === 'new_template') {
+    if (
+      status.privacy.status === 'current' ||
+      status.privacy.status === 'new_template' ||
+      status.privacy.status === 'change_release'
+    ) {
       kinds.push('privacy');
     }
-    // Impressum ohne Fassung, aber vollständig → einmal publishen
     if (kinds.length === 0 && profile.imprint_complete) {
       kinds.push('imprint');
     }
     const published: StudioLegalKind[] = [];
     for (const kind of kinds) {
-      const bodyMd = renderStudioLegalKind(kind, values);
+      const kindStatus =
+        kind === 'terms' ? status.terms : kind === 'privacy' ? status.privacy : status.imprint;
+      const bodyMd =
+        kind === 'imprint'
+          ? renderStudioLegalKind(kind, values)
+          : renderAcceptedStudioLegalKind(kind, values, kindStatus);
+      const templateVersion =
+        kind === 'imprint'
+          ? findStudioLegalTemplateRelease('imprint').version
+          : kindStatus.accepted_version || STUDIO_LEGAL_TEMPLATE_VERSION;
       const res = await publishStudioLegalDocument({
         kind,
         bodyMd,
         values,
         trigger: 'settings_change',
+        templateVersion,
       });
       if (res.ok) published.push(kind);
     }
@@ -389,12 +436,13 @@ export async function saveExtraRulesAndResync(input: {
       status.terms.status === 'new_template')
   ) {
     const values = await loadStudioLegalRenderContext(withExtra, input.tenant);
-    const bodyMd = renderStudioLegalKind('terms', values);
+    const bodyMd = renderAcceptedStudioLegalKind('terms', values, status.terms);
     const pub = await publishStudioLegalDocument({
       kind: 'terms',
       bodyMd,
       values,
       trigger: 'profile_change',
+      templateVersion: status.terms.accepted_version || STUDIO_LEGAL_TEMPLATE_VERSION,
     });
     if (!pub.ok) return { ok: false, message: pub.message };
   }

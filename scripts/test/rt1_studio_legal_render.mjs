@@ -13,8 +13,9 @@ import {
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '../..');
 const imprint = readFileSync(join(root, 'docs/legal/studio/impressum.v1.md'), 'utf8');
-const terms = readFileSync(join(root, 'docs/legal/studio/agb.v1.md'), 'utf8');
-const privacy = readFileSync(join(root, 'docs/legal/studio/datenschutz.v1.md'), 'utf8');
+const terms = readFileSync(join(root, 'docs/legal/studio/agb.v2.md'), 'utf8');
+const privacy = readFileSync(join(root, 'docs/legal/studio/datenschutz.v2.md'), 'utf8');
+const termsV1 = readFileSync(join(root, 'docs/legal/studio/agb.v1.md'), 'utf8');
 const sub = JSON.parse(readFileSync(join(root, 'docs/legal/subprocessors.json'), 'utf8'));
 
 const subprocessors_list = formatSubprocessorsList(sub.items, sub.guarantee);
@@ -94,5 +95,12 @@ const withExtra = renderStudioLegalTemplate(
 );
 assert.match(withExtra, /Bitte Handtuch mitbringen &lt;script&gt;/);
 assert.match(withExtra, /Weitere Regeln von Yoga Mitte/);
+
+const v1Out = renderStudioLegalTemplate(termsV1, base());
+assert.match(v1Out, /## 8\. Mehrfachkarten/);
+assert.ok(!v1Out.includes('## 8. Kurskarten'));
+const v2Out = renderStudioLegalTemplate(terms, base());
+assert.match(v2Out, /## 8\. Kurskarten/);
+assert.ok(!v2Out.includes('## 8. Mehrfachkarten'));
 
 console.log(`rt1_studio_legal_render OK (${n} Kombinationen)`);
