@@ -278,6 +278,14 @@ export const AVV_TEST_VERSION = '2026-10-04';
 export const AVV_TEST_HASH =
   'b90051caf84bc2deb99535bff2218eec4067d61209ba70d5294c04c20cd5e1d3';
 
+/** RT-2: Omlify-AGB / Datenschutz v2 */
+export const TERMS_TEST_VERSION = '2026-10-08';
+export const TERMS_TEST_HASH =
+  '4b9d13096b488d3d92142e58b041a2727ffc163c77449eff4912d23f6dc55f96';
+export const PRIVACY_TEST_VERSION = '2026-10-08';
+export const PRIVACY_TEST_HASH =
+  '17cdc32a2d38d6871050a29354857c8e5d24a8e1cc80013e2f6012b57f2f352d';
+
 /** RT-1: AGB + Datenschutz freigeben (Minimaltext, Hash wie normalize_legal_text). */
 export async function studioLegalFreigeben(client, overrides = {}) {
   const { createHash } = await import('node:crypto');
@@ -317,6 +325,22 @@ export async function avvAkzeptieren(client, overrides = {}) {
   });
   if (error || !data?.success) {
     abbruch('accept_legal_document: ' + (error?.message || JSON.stringify(data)));
+  }
+  // RT-2: AGB/Datenschutz mitakzeptieren, damit Banner/Aufmerksamkeit in E2E ruhig bleiben.
+  if (overrides.skipTerms !== true) {
+    for (const row of [
+      { doc: 'terms', version: TERMS_TEST_VERSION, hash: TERMS_TEST_HASH },
+      { doc: 'privacy', version: PRIVACY_TEST_VERSION, hash: PRIVACY_TEST_HASH },
+    ]) {
+      const r = await client.rpc('accept_legal_document', {
+        p_document: row.doc,
+        p_version: row.version,
+        p_content_hash: row.hash,
+      });
+      if (r.error || !r.data?.success) {
+        abbruch(`accept_legal_document(${row.doc}): ` + (r.error?.message || JSON.stringify(r.data)));
+      }
+    }
   }
   // RT-1: Online braucht zusätzlich freigegebene Studio-Texte (Impressum via legalProfileSetzen).
   if (overrides.skipStudioLegal !== true) {

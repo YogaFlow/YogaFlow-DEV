@@ -55,6 +55,7 @@ const SKRIPTE = [
   'b1_receipts.mjs',
   'b2_legal_acceptances.mjs',
   'b2_ops_monitor.mjs',
+  'rt2_retention.mjs',
   'zw1_zahlungswege.mjs',
   'k1_pass_online.mjs',
 ];
