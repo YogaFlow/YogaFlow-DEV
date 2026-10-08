@@ -1,40 +1,40 @@
 # STAND — Omlify DEV
 
-Stand: 2026-10-07 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [ux10_checkout_kurskarte.md](berichte/ux10_checkout_kurskarte.md) (Haltestelle 5 Klicktest)
+Stand: 2026-10-08 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [nachtrag_gesamtklicktest_fixes.md](berichte/nachtrag_gesamtklicktest_fixes.md) (Haltestelle 5 Klicktest)
 
 ## DEV
 
-- Migrationen bis `20261006180000` (UX-8 ops refunds archived; zuvor UX-7 `20261006120000`)
-- Functions: `legal-pdf`, `dispatch-emails`, `payments-*` (+ bestehende); `ops_monitor_collect` mit Archiv-Filter
+- Migrationen bis `20261008190000` (F2 open count archive waive; zuvor F1 `20261008180000` Legal L3)
+- Functions: unverändert; Legal-RPCs `studio_tpl_accepted` / `get_public_studio_legal` / `current_terms_document_id` angepasst
 - Secrets (Namen): `LEGAL_PDF_SECRET` (Vault); `CALENDAR_ICS_SECRET`; `OPS_MONITOR_SECRET`, `OPS_ALERT_EMAIL`; `OPS_HEARTBEAT_URL` nicht gesetzt
 - Cron: `yogaflow_process_legal_pdf`, `yogaflow_expire_pass_payment_attempts`, `yogaflow_pass_expiry_reminders` (+ bestehende)
-- E2E: UX-10 `e2e/ux10.spec.ts`, UX-9 `e2e/ux9.spec.ts`, UX-8 `e2e/ux8.spec.ts`, UX-7 `e2e/ux7.spec.ts`, UX-6 `e2e/ux6.spec.ts`, RT-1 `e2e/rt1.spec.ts`, K1 `e2e/k1.spec.ts` (e2eapp)
-- Demo: `node scripts/dev/demo_v3.mjs` / `npm run dev:demo:seed` — demoalpha v3 (echte Stripe-PIs)
-- Legal-Templates DEV: Kurskarte-Hashes via `node scripts/dev/ux10_legal_tpl_hash.mjs` (demoalpha erneut freigeben)
+- E2E: UX-10 `e2e/ux10.spec.ts`, UX-9 `e2e/ux9.spec.ts`, …; F1-Rauch `scripts/test/f1_legal_l3.mjs` (e2ef1leg)
+- Demo: `npm run dev:demo:seed` — relativ zum Laufzeitpunkt; Seed 2026-10-08T17:06:44Z
+- Legal-Templates: `agb.v1`/`v2`, `datenschutz.v1`/`v2`; CI `check_studio_legal_template_hashes`
 
 ## Zuletzt abgeschlossen
 
-- **UX-10** — Checkout Feinschliff + Kurskarte-Wording (E19 fortgeschrieben, A–C)
-  - Bericht: [docs/berichte/ux10_checkout_kurskarte.md](berichte/ux10_checkout_kurskarte.md) — Haltestelle 5
-- **UX-9** — Kauf-Sheet schlanker + Mehrfachkarte-Wording (E19, A–B)
-  - Bericht: [docs/berichte/ux9_kartenkauf_wording.md](berichte/ux9_kartenkauf_wording.md) — Haltestelle 5
-- **UX-8** — Übersicht „Zu erledigen“ (+ U0/U0b Seed/Fake-Cleanup)
-- **UX-7** — Kartenhinweis abschaltbar (A), Buchungsleiste Frist-Umbruch (B), Demo v3 (C)
-- **UX-6-2 Nachtrag** — Personenzeile mobil luftiger + Demo
-- **UX-6** — Teilnehmerliste mit Zahlstatus
-- **RT-1 Nachtrag A–C** — Rechtliches UX
+- **Nachtrag F** — Gesamt-Klicktest-Fixes F1–F5 (Release-Blocker L3 zuerst)
+  - Bericht: [docs/berichte/nachtrag_gesamtklicktest_fixes.md](berichte/nachtrag_gesamtklicktest_fixes.md) — Haltestelle 5
+- **UX-10** — Checkout Feinschliff + Kurskarte-Wording
+- **UX-9** — Kauf-Sheet schlanker + Mehrfachkarte-Wording
+- **UX-8** — Übersicht „Zu erledigen“
+- **UX-7** — Kartenhinweis abschaltbar + Demo v3
+- **UX-6** / **UX-6-2** — Teilnehmerliste Zahlstatus / Zeilenlayout
+- **RT-1 Nachtrag** — Rechtliches UX
 
 ## Nächste Schritte
 
-- UX-10 Haltestelle 5 Klicktest (Liste im Bericht)
+- Nachtrag F Haltestelle 5 Klicktest (Liste im Bericht)
 - Ältere Haltestellen parallel offen, falls noch nicht abgehakt
 
 ## Haltestellen / wartet auf Julius
 
-- **UX-10 Haltestelle 5** — Klickliste in [ux10_checkout_kurskarte.md](berichte/ux10_checkout_kurskarte.md)
-- **UX-9 Haltestelle 5** — Klickliste in [ux9_kartenkauf_wording.md](berichte/ux9_kartenkauf_wording.md)
-- **UX-8 Haltestelle 5** — Klickliste in [ux8_uebersicht_zu_erledigen.md](berichte/ux8_uebersicht_zu_erledigen.md)
-- **UX-7 Haltestelle 5** — Klickliste + Fall→Konto→Wo in [ux7_kartenhinweis_demo_v3.md](berichte/ux7_kartenhinweis_demo_v3.md)
+- **Nachtrag F Haltestelle 5** — [nachtrag_gesamtklicktest_fixes.md](berichte/nachtrag_gesamtklicktest_fixes.md)
+- **UX-10 Haltestelle 5** — [ux10_checkout_kurskarte.md](berichte/ux10_checkout_kurskarte.md)
+- **UX-9 Haltestelle 5** — [ux9_kartenkauf_wording.md](berichte/ux9_kartenkauf_wording.md)
+- **UX-8 Haltestelle 5** — [ux8_uebersicht_zu_erledigen.md](berichte/ux8_uebersicht_zu_erledigen.md)
+- **UX-7 Haltestelle 5** — [ux7_kartenhinweis_demo_v3.md](berichte/ux7_kartenhinweis_demo_v3.md)
 - **UX-6-2 Haltestelle 5** — [nachtrag_ux6_zeilenlayout.md](berichte/nachtrag_ux6_zeilenlayout.md)
 - **UX-6 Haltestelle 5** — [ux6_teilnehmerliste_zahlstatus.md](berichte/ux6_teilnehmerliste_zahlstatus.md)
 - **RT-1 Nachtrag Haltestelle 5** — [nachtrag_rt1_rechtliches_ux.md](berichte/nachtrag_rt1_rechtliches_ux.md)
@@ -47,11 +47,11 @@ Stand: 2026-10-07 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [ux10_ch
 
 ## hier weitermachen
 
-Nach UX-10 Klicktest: Bericht abschließen → nächste Story.
+Nachtrag F Klicktest abwarten → Bericht abschließen → Release-Plan.
 
 ## Verweise
 
 - Regeln: [.cursor/rules/omlify-autonom.mdc](../.cursor/rules/omlify-autonom.mdc), [.cursor/rules/rls-access-not-display.mdc](../.cursor/rules/rls-access-not-display.mdc)
-- Story: [docs/stories/ux10_checkout_kurskarte.md](stories/ux10_checkout_kurskarte.md)
-- Entscheidungen: [19_Wording_Kurskarte.md](entscheidungen/19_Wording_Kurskarte.md) (UX-9/UX-10), [18_Teilnehmerliste_Zahlstatus.md](entscheidungen/18_Teilnehmerliste_Zahlstatus.md) (UX-6), [17_Studio_Rechtstexte.md](entscheidungen/17_Studio_Rechtstexte.md) (RT-1)
+- Story: [docs/stories/nachtrag_gesamtklicktest_fixes.md](stories/nachtrag_gesamtklicktest_fixes.md)
+- Entscheidungen: [17_Studio_Rechtstexte.md](entscheidungen/17_Studio_Rechtstexte.md) (L3), [19_Wording_Kurskarte.md](entscheidungen/19_Wording_Kurskarte.md)
 - Offene Punkte: [docs/OFFENE_PUNKTE.md](OFFENE_PUNKTE.md)
