@@ -111,13 +111,26 @@ export async function devKontext(): Promise<DevCtx> {
     });
   }
   await legalProfileSetzen(owner);
-  // B2: Online einschalten braucht aktuelle AVV-Zustimmung (Hash = normalisierter MD).
-  const { AVV_CONTENT_HASH, AVV_VERSION } = await import('../src/lib/legalVersions.ts');
-  await owner.rpc('accept_legal_document', {
-    p_document: 'avv',
-    p_version: AVV_VERSION,
-    p_content_hash: AVV_CONTENT_HASH,
-  });
+  // B2/RT-2: Online braucht AVV; AGB/Datenschutz mitakzeptieren (Banner ruhig).
+  const {
+    AVV_CONTENT_HASH,
+    AVV_VERSION,
+    TERMS_CONTENT_HASH,
+    TERMS_VERSION,
+    PRIVACY_CONTENT_HASH,
+    PRIVACY_VERSION,
+  } = await import('../src/lib/legalVersions.ts');
+  for (const [doc, version, hash] of [
+    ['avv', AVV_VERSION, AVV_CONTENT_HASH],
+    ['terms', TERMS_VERSION, TERMS_CONTENT_HASH],
+    ['privacy', PRIVACY_VERSION, PRIVACY_CONTENT_HASH],
+  ] as const) {
+    await owner.rpc('accept_legal_document', {
+      p_document: doc,
+      p_version: version,
+      p_content_hash: hash,
+    });
+  }
   await owner.rpc('set_online_payments_enabled', { p_enabled: true });
   await owner.rpc('set_allow_onsite_payment', { p_allow: false });
 

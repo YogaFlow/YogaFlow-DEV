@@ -223,8 +223,8 @@ const OnboardingWizard: React.FC = () => {
 
     try {
       sessionStorage.setItem('yogaflow_onboarding_slug', slug);
-      if (avvAccepted) {
-        sessionStorage.setItem('yogaflow_pending_avv_accept', '1');
+      if (agbAccepted && avvAccepted) {
+        sessionStorage.setItem('yogaflow_pending_legal_bundle', '1');
       }
     } catch {
       /* ignore */
@@ -543,7 +543,7 @@ const OnboardingWizard: React.FC = () => {
                   onChange={e => setAgbAccepted(e.target.checked)}
                   className="mt-0.5 w-4 h-4 text-brand rounded-sm border-border focus:ring-brand"
                 />
-                <span className="text-sm text-textMuted">
+                <span className="text-sm text-textMuted" data-testid="onboarding-agb-privacy">
                   Ich akzeptiere die{' '}
                   <LegalDocLink slug="agb" onOpen={setLegalDoc} className="text-brand underline">
                     AGB

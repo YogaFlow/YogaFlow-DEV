@@ -44,7 +44,7 @@ import {
   type SettingsCategoryId,
 } from '../lib/settingsOverview';
 import { choiceShortLabel, loadTaxSettings, choiceFromSetting } from '../lib/taxStatus';
-import { loadAvvStatus } from '../lib/legalAcceptances';
+import { loadAvvStatus, loadTermsStatus } from '../lib/legalAcceptances';
 import { toUiStatus, type PaymentSetupStatus } from '../features/payments/paymentSetupTypes';
 
 const ICONS: Record<SettingsCategoryId, typeof Building2> = {
@@ -85,12 +85,13 @@ async function loadOverview(input: {
   hasLogo: boolean;
   cancellationWindowHours: number;
 }): Promise<OverviewData> {
-  const [taxRows, products, staffCount, setup, avv, studioLegal] = await Promise.all([
+  const [taxRows, products, staffCount, setup, avv, terms, studioLegal] = await Promise.all([
     loadTaxSettings().catch(() => []),
     listPassProducts().catch(() => []),
     fetchStaffCount(),
     loadPaymentSetup(),
     loadAvvStatus().catch(() => null),
+    loadTermsStatus().catch(() => null),
     loadStudioLegalStatus().catch(() => null),
   ]);
   const today = new Date();
@@ -119,6 +120,7 @@ async function loadOverview(input: {
     platformEnabled: setup?.platform_enabled === true,
     legalProfilePresent: setup ? legalPresent : undefined,
     avvAccepted: avv ? avv.accepted : undefined,
+    termsAccepted: terms ? terms.accepted : undefined,
     imprintComplete: studioLegal ? studioLegal.imprint_complete : undefined,
     termsStatus: studioLegal?.terms.status,
     privacyStatus: studioLegal?.privacy.status,

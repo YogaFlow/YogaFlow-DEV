@@ -77,6 +77,7 @@ export function settingsAttentionItems(input: {
   platformEnabled?: boolean;
   legalProfilePresent?: boolean;
   avvAccepted?: boolean;
+  termsAccepted?: boolean;
   imprintComplete?: boolean;
   termsStatus?: 'missing' | 'release' | 'current' | 'new_template' | 'change_release';
   privacyStatus?: 'missing' | 'release' | 'current' | 'new_template' | 'change_release';
@@ -133,6 +134,13 @@ export function settingsAttentionItems(input: {
           ? 'Neue Datenschutz-Vorlage verfügbar'
           : 'Datenschutz nicht freigegeben',
       to: '/settings/rechtliches/datenschutz',
+    });
+  }
+  if (input.termsAccepted === false) {
+    items.push({
+      id: 'terms',
+      title: 'Bitte bestätige die aktualisierten AGB.',
+      to: '/settings/rechtliches',
     });
   }
   if (input.avvAccepted === false) {

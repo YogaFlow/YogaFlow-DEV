@@ -28,6 +28,7 @@ import ModalBackdrop from '../ui/ModalBackdrop';
 import StudioLegalFullTextSheet from '../legal/StudioLegalFullTextSheet';
 import LegalProfileSection from './LegalProfileSection';
 import AvvAcceptanceSection from './AvvAcceptanceSection';
+import TermsAcceptanceSection from './TermsAcceptanceSection';
 
 export type LegalDocSlug = 'impressum' | 'agb' | 'datenschutz';
 
@@ -125,7 +126,8 @@ export default function StudioLegalHub({ canManage, isOwner, doc }: Props) {
           </p>
           {list}
           {!doc ? (
-            <div className="mt-6">
+            <div className="mt-6 space-y-2">
+              <TermsAcceptanceSection isOwner={isOwner} />
               <AvvAcceptanceSection isOwner={isOwner} />
             </div>
           ) : null}
