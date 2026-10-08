@@ -5,6 +5,8 @@
  *   npm run dev:demo:reset -- demoalpha --dry-run
  *   npm run dev:demo:reset -- demoalpha
  *
+ * Danach frisch seeden (Termine relativ zum Lauf): npm run dev:demo:seed
+ *
  * - Pausiert provider_jobs + E-Mail-Versand, danach Resume
  * - Löscht nur ohne Geldspur (service-role DELETE)
  * - Setzt archived_at auf Kurse/Mitglieder mit Geldspur

@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 /**
- * UX-7 C — Demo-Studio demoalpha v3 (idempotent, nur DEV).
+ * UX-7 C / F3 — Demo-Studio demoalpha v3 (idempotent, nur DEV).
  * Ersetzt demo_ux6.mjs. Voraussetzung: Personen/Produkte aus Seed v2 oder diesem Lauf.
+ * Alle Kurstermine relativ zum Ausführungszeitpunkt (Heute/Gestern/Morgen).
+ * Online-Zahlungen: Stripe-Testmodus (echte PI, pm_card_visa).
  *
+ *   npm run dev:demo:seed
  *   node scripts/dev/demo_v3.mjs
  */
 import { createHash } from 'node:crypto';
@@ -38,6 +41,27 @@ function hashLegal(text) {
 
 const HASH_IMMEDIATE = hashLegal(IMMEDIATE_TEXT);
 const HASH_WITHDRAWAL = hashLegal(WITHDRAWAL_TEXT);
+
+/** Realistische Namen für Pass-Einheiten (früher „Karla Einheit N“). */
+const KARLA_UNIT_TITLES = [
+  'Morgen-Hatha',
+  'Sanftes Yin',
+  'Flow am Mittag',
+  'Rücken-Yoga',
+  'Abend-Vinyasa',
+  'Yin am Freitag',
+  'Hatha Basics',
+  'Flow am Samstag',
+];
+
+const FILLER_PEOPLE = [
+  { email: 'juliusbne+filler1@gmail.com', vorname: 'Anna', nachname: 'Berger' },
+  { email: 'juliusbne+filler2@gmail.com', vorname: 'Jonas', nachname: 'Weber' },
+  { email: 'juliusbne+filler3@gmail.com', vorname: 'Marie', nachname: 'Hofmann' },
+  { email: 'juliusbne+filler4@gmail.com', vorname: 'Tim', nachname: 'Schneider' },
+  { email: 'juliusbne+filler5@gmail.com', vorname: 'Clara', nachname: 'Vogel' },
+  { email: 'juliusbne+filler6@gmail.com', vorname: 'Felix', nachname: 'Braun' },
+];
 
 function ladeEnv(path) {
   if (!existsSync(path)) return {};
@@ -84,6 +108,29 @@ function berlinParts(offsetMs = 0) {
   };
 }
 
+/** Berlin-Kalendertag heute, Startzeit relativ zur Ausführung (Heute-Fälle bleiben gültig). */
+function todayCourseStart() {
+  const todayStr = berlinDate(0);
+  let start = berlinParts(2 * 60 * 60 * 1000);
+  if (start.date !== todayStr) {
+    start = berlinParts(-90 * 60 * 1000);
+  }
+  if (start.date !== todayStr) {
+    start = { date: todayStr, time: '12:00:00' };
+  }
+  return start;
+}
+
+/** Letzter vergangener Sonntag (Europe/Berlin); wenn heute Sonntag → vorige Woche. */
+function pastSundayBerlin() {
+  for (let offset = -1; offset >= -14; offset--) {
+    const date = berlinDate(offset);
+    const [y, m, d] = date.split('-').map(Number);
+    if (new Date(Date.UTC(y, m - 1, d)).getUTCDay() === 0) return date;
+  }
+  return berlinDate(-7);
+}
+
 function addMinutesToTime(time, minutes) {
   const [h, m] = time.split(':').map(Number);
   const total = h * 60 + m + minutes;
@@ -127,6 +174,31 @@ const stripeAccount = (accounts ?? []).find(
 if (!stripeAccount?.provider_ref) fail('demoalpha braucht aktives Stripe-Testkonto');
 const accountRef = stripeAccount.provider_ref;
 
+async function renameCourseTitle(fromTitle, toTitle) {
+  const { data: target } = await admin
+    .from('courses')
+    .select('id')
+    .eq('tenant_id', tenantId)
+    .eq('title', toTitle)
+    .is('archived_at', null)
+    .limit(1)
+    .maybeSingle();
+  const { data: rows } = await admin
+    .from('courses')
+    .select('id')
+    .eq('tenant_id', tenantId)
+    .eq('title', fromTitle)
+    .is('archived_at', null);
+  const nowIso = new Date().toISOString();
+  for (const row of rows ?? []) {
+    if (target?.id) {
+      await admin.from('courses').update({ archived_at: nowIso }).eq('id', row.id);
+    } else {
+      await admin.from('courses').update({ title: toTitle }).eq('id', row.id);
+    }
+  }
+}
+
 // --- U0b: Fake-Zeilen (pi_test_…) — Kurse archivieren, Jobs erledigen, Alarme schließen ---
 {
   const nowIso = new Date().toISOString();
@@ -146,7 +218,38 @@ const accountRef = stripeAccount.provider_ref;
     const { data: regs } = await admin.from('registrations').select('course_id').in('id', regIds);
     for (const r of regs ?? []) if (r.course_id) courseIds.add(r.course_id);
   }
-  // Titel aus altem Seed explizit
+  // Veraltete Zweck-Titel → realistische Namen (Geldspur behalten)
+  await renameCourseTitle('Olaf Flow Teilerstattung', 'Vinyasa am Sonntag');
+  await renameCourseTitle('Vera spät abgemeldet', 'Mobility Flow');
+  const { data: karlaLegacy } = await admin
+    .from('courses')
+    .select('id, title')
+    .eq('tenant_id', tenantId)
+    .is('archived_at', null)
+    .like('title', 'Karla Einheit%');
+  for (const c of karlaLegacy ?? []) {
+    const m = /^Karla Einheit (\d+)$/.exec(c.title);
+    const idx = m ? Number(m[1]) - 1 : -1;
+    const next =
+      idx >= 0 && idx < KARLA_UNIT_TITLES.length
+        ? KARLA_UNIT_TITLES[idx]
+        : `Flow ${m?.[1] ?? 'alt'}`;
+    const { data: clash } = await admin
+      .from('courses')
+      .select('id')
+      .eq('tenant_id', tenantId)
+      .eq('title', next)
+      .is('archived_at', null)
+      .neq('id', c.id)
+      .limit(1)
+      .maybeSingle();
+    if (clash?.id) {
+      await admin.from('courses').update({ archived_at: nowIso }).eq('id', c.id);
+    } else {
+      await admin.from('courses').update({ title: next }).eq('id', c.id);
+    }
+  }
+  // Altlasten archivieren (nicht mehr genutzt / doppelte Zweck-Titel)
   const { data: titled } = await admin
     .from('courses')
     .select('id, title')
@@ -219,10 +322,19 @@ async function ensureMember({ email, vorname, nachname, rolle }) {
     .eq('email', email)
     .maybeSingle();
   if (existing) {
-    if (existing.archived_at) {
-      await admin.from('users').update({ archived_at: null }).eq('id', existing.id);
+    const patch = {};
+    if (existing.archived_at) patch.archived_at = null;
+    if (existing.first_name !== vorname) patch.first_name = vorname;
+    if (existing.last_name !== nachname) patch.last_name = nachname;
+    if (Object.keys(patch).length > 0) {
+      await admin.from('users').update(patch).eq('id', existing.id);
     }
-    return existing;
+    return {
+      ...existing,
+      first_name: vorname,
+      last_name: nachname,
+      archived_at: null,
+    };
   }
   return nutzerAnlegen(admin, {
     email,
@@ -295,12 +407,12 @@ const wiebke = await ensureMember({
 });
 
 const fillers = [];
-for (let i = 1; i <= 6; i++) {
+for (const person of FILLER_PEOPLE) {
   fillers.push(
     await ensureMember({
-      email: `juliusbne+filler${i}@gmail.com`,
-      vorname: `Filler${i}`,
-      nachname: 'Demo',
+      email: person.email,
+      vorname: person.vorname,
+      nachname: person.nachname,
       rolle: 'user',
     }),
   );
@@ -555,8 +667,8 @@ async function payPassOnline(memberClient, productId) {
   }, 90_000, 'pass online bezahlt');
 }
 
-// --- Heute: Hatha am Nachmittag (~2 h) ---
-const start = berlinParts(2 * 60 * 60 * 1000);
+// --- Heute: Hatha am Nachmittag (relativ zum Lauf) ---
+const start = todayCourseStart();
 const hatha = await ensureCourse({
   title: 'Hatha am Nachmittag',
   date: start.date,
@@ -602,13 +714,14 @@ const olafToday = await ensureReg(olaf.id, hatha.id, { price_cents_at_booking: 1
   const sum = (moves ?? []).reduce((a, m) => a + (m.delta ?? 0), 0);
   const need = Math.max(0, sum - 6);
   for (let i = 0; i < need; i++) {
-    const title = `Karla Einheit ${i + 1}`;
+    const title = KARLA_UNIT_TITLES[i] ?? `Flow ${i + 1}`;
     let kurs = (
       await admin
         .from('courses')
         .select('id')
         .eq('tenant_id', tenantId)
         .eq('title', title)
+        .is('archived_at', null)
         .maybeSingle()
     ).data;
     if (!kurs) {
@@ -986,12 +1099,14 @@ const cancelCash = await ensureCourse({
   }
 }
 
-// --- Olaf Teilerstattung 5 € von 18 € (echter Erstattungsweg) ---
+// --- Teilerstattung 5 € von 18 € (echter Erstattungsweg), Kurs in der Vergangenheit ---
 {
-  const title = 'Olaf Flow Teilerstattung';
+  const title = 'Vinyasa am Sonntag';
+  const pastDate = pastSundayBerlin();
+  // Temporär Zukunft für Checkout; danach auf letzten Sonntag setzen
   const kurs = await ensureCourse({
     title,
-    date: berlinDate(5),
+    date: berlinDate(1),
     time: '11:00:00',
     end_time: '12:00:00',
     price: 18,
@@ -1043,11 +1158,12 @@ const cancelCash = await ensureCourse({
       }, 120_000, 'Teilerstattung');
     }
   }
+  await admin.from('courses').update({ date: pastDate }).eq('id', kurs.id);
 }
 
-// --- Vera spät abgemeldet (L12) ---
+// --- Vera spät abgemeldet (L12), Kursname ohne Zweck ---
 {
-  const title = 'Vera spät abgemeldet';
+  const title = 'Mobility Flow';
   const kurs = await ensureCourse({
     title,
     date: berlinDate(2),
@@ -1109,14 +1225,18 @@ upsertEnvLine(envDev, 'DEMO_WIEBKE_EMAIL', wiebke.email);
 upsertEnvLine(envDev, 'DEMO_TEACHER_A_EMAIL', teacherA.email ?? '');
 upsertEnvLine(envDev, 'DEMO_TEACHER_B_EMAIL', teacherB.email ?? '');
 
+const seedAt = new Date().toISOString();
 console.log('\nDemo v3 fertig (demoalpha).');
+console.log(`Seed-Zeitpunkt (UTC): ${seedAt}`);
 console.log(`Heute: Hatha am Nachmittag ${start.date} ${start.time}`);
 console.log('  Vera vor Ort · Karla Mit Karte · Olaf online (echte Stripe-PI)');
-console.log('Gestern: Yin Yoga — Nina offen, Olaf bar, eine Person erlassen');
-console.log('Morgen: Vinyasa Flow 8/8 + Warteliste (Nina pending_payment)');
-console.log('Woche: Yoga für den Rücken / Workshop Atem / Pilates');
+console.log(`Gestern: Yin Yoga ${yesterday} — Nina offen, Olaf bar, Anna Berger erlassen`);
+console.log(`Morgen: Vinyasa Flow ${berlinDate(1)} 8/8 + Warteliste (Nina pending_payment)`);
+console.log(`Woche: Yoga für den Rücken ${berlinDate(7)} / Workshop Atem ${berlinDate(8)} / Pilates ${berlinDate(9)}`);
 console.log('Absage Online: Yoga am Samstagmorgen (Erstattung succeeded)');
 console.log('Absage Bar: Abend-Yoga mit Vera → Rückgabe in Zu erledigen');
-console.log('Wiebke 5er Widerruf · Olaf Flow Teilerstattung');
+console.log(`Vergangenheit: Vinyasa am Sonntag ${pastSundayBerlin()} (Teilerstattung 5 €)`);
+console.log('Wiebke 5er Widerruf · Mobility Flow (späte Abmeldung)');
 console.log('Kartenhinweis: aus (Standard)');
+console.log('Füllpersonen: Anna Berger, Jonas Weber, Marie Hofmann, Tim Schneider, Clara Vogel, Felix Braun');
 console.log('Konten: Owner / Lena|Ben / Vera / Karla / Olaf / Nina / Wiebke (Passwort in supabase/.env.dev)');
