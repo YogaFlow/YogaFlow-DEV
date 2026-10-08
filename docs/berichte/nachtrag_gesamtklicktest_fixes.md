@@ -1,6 +1,6 @@
 # Bericht Nachtrag F — Fixes aus dem Gesamt-Klicktest
 
-Stand: 2026-10-08 · Branch `Julius` · HEAD `2e00069` · Status: **Haltestelle 5 (Klicktest)**
+Stand: 2026-10-08 · Branch `Julius` · HEAD `3f9ab81` · Status: **Haltestelle 5 (Klicktest)**
 
 Grundlage: [nachtrag_gesamtklicktest_fixes.md](../stories/nachtrag_gesamtklicktest_fixes.md), L3 in [17_Studio_Rechtstexte.md](../entscheidungen/17_Studio_Rechtstexte.md).
 
@@ -37,9 +37,9 @@ Nach Fix: Badge = Offen = offene Anmeldungen aus `get_open_coverage`. Abhaken = 
 
 | Prüfung | Ergebnis |
 |---|---|
-| HEAD | `2e00069` |
-| Check-Run **Workers Builds: omlify-dev** | `success` für `2e00069` (2026-10-08T17:06:40Z) |
-| Live-Bundle | `https://demoalpha.omlify-dev.de/assets/index-BDWf1jlp.js` |
+| HEAD | `3f9ab81` |
+| Check-Run **Workers Builds: omlify-dev** | `success` für `3f9ab81` (2026-10-08T17:12:42Z) |
+| Live-Bundle | `https://demoalpha.omlify-dev.de/assets/index-jMDdsRhy.js` |
 | Merkmal | `Ältere Kurse auf einmal als erledigt markieren` @1492189; `Kommt noch · zahlt vor Ort` @1498531; `## 8. Kurskarten` @715322 |
 
 ## Haltestelle 5 — Klickliste (max. 8)
