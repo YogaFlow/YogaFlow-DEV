@@ -1,6 +1,6 @@
 # STAND — Omlify DEV
 
-Stand: 2026-10-08 · Branch `Julius` · HEAD `bfc7f9b` · Hotfix Kurs-zuweisen mobil Haltestelle 5 ([Bericht](berichte/hotfix_nutzerverwaltung_kurs_zuweisen_mobil.md)); parallel RT-2 Wortlaut
+Stand: 2026-10-08 · Branch `Julius` · Hotfix Kurs-zuweisen mobil fertig (Merge `88c0694`, [Bericht](berichte/hotfix_nutzerverwaltung_kurs_zuweisen_mobil.md)); parallel RT-2 Wortlaut
 
 ## DEV
 
@@ -14,6 +14,8 @@ Stand: 2026-10-08 · Branch `Julius` · HEAD `bfc7f9b` · Hotfix Kurs-zuweisen m
 
 ## Zuletzt abgeschlossen
 
+- **Hotfix Kurs-zuweisen mobil** — PROD live (#175 `5a40976`), `main` in Julius (`88c0694`)
+  - Bericht: [docs/berichte/hotfix_nutzerverwaltung_kurs_zuweisen_mobil.md](berichte/hotfix_nutzerverwaltung_kurs_zuweisen_mobil.md)
 - **Nachtrag F** — Gesamt-Klicktest-Fixes F1–F5 (Release-Blocker L3 zuerst)
   - Bericht: [docs/berichte/nachtrag_gesamtklicktest_fixes.md](berichte/nachtrag_gesamtklicktest_fixes.md) — Haltestelle 5
 - **UX-10** — Checkout Feinschliff + Kurskarte-Wording
@@ -31,7 +33,6 @@ Stand: 2026-10-08 · Branch `Julius` · HEAD `bfc7f9b` · Hotfix Kurs-zuweisen m
 
 ## Haltestellen / wartet auf Julius
 
-- **Hotfix Kurs-zuweisen mobil Haltestelle 5** — [hotfix_nutzerverwaltung_kurs_zuweisen_mobil.md](berichte/hotfix_nutzerverwaltung_kurs_zuweisen_mobil.md) (iPhone: Knopf sichtbar + Zuweisen)
 - **RT-2 Wortlaut-Einbau Haltestelle** — [rt2_omlify_rechtstexte_v2.md](berichte/rt2_omlify_rechtstexte_v2.md) (H1: § 6 Abs. 3 vs. § 8a; H2: § 9 Abs. 4 vs. neuer Vertragsende-Absatz)
 - **Nachtrag F Haltestelle 5** — [nachtrag_gesamtklicktest_fixes.md](berichte/nachtrag_gesamtklicktest_fixes.md)
 - **UX-10 Haltestelle 5** — [ux10_checkout_kurskarte.md](berichte/ux10_checkout_kurskarte.md)
@@ -50,7 +51,7 @@ Stand: 2026-10-08 · Branch `Julius` · HEAD `bfc7f9b` · Hotfix Kurs-zuweisen m
 
 ## hier weitermachen
 
-Hotfix Kurs-zuweisen: Julius iPhone-Test auf DEV → dann PR hotfix → main (Julius merged). Parallel RT-2 Klarstellung.
+RT-2: Klarstellung § 6 Abs. 3 + § 9 Abs. 4 von Claude → dann v2-Dateien + Umsetzung 1–5. Parallel: Nachtrag F Klicktest.
 
 ## Verweise
 
