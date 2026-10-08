@@ -27,10 +27,12 @@ export function openPaymentsBadge(count: number): string | null {
   return count > 9 ? '9+' : String(count);
 }
 
+/** F2: Offene Zahlung = eine Anmeldung (Zeile aus get_open_coverage), nicht Person. */
+export function countOpenCoverageRows(rows: unknown[] | null | undefined): number {
+  return Array.isArray(rows) ? rows.length : 0;
+}
+
+/** @deprecated F2 — Badge zählt Anmeldungen, nicht Personen. */
 export function countOpenCoveragePeople(rows: Array<{ user_id?: string | null }>): number {
-  const ids = new Set<string>();
-  for (const row of rows) {
-    if (row.user_id) ids.add(row.user_id);
-  }
-  return ids.size;
+  return countOpenCoverageRows(rows);
 }

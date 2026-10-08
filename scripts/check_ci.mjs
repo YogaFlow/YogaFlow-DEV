@@ -62,6 +62,7 @@ run('Studio-Vorlagen-Hashes', 'node', ['--experimental-strip-types', 'scripts/ch
 run('RT-1 Abmelde-Hinweis', 'node', ['--experimental-strip-types', 'scripts/test/rt1_cancel_onsite_hint.ts']);
 run('UX-7 Kartenhinweis', 'node', ['--experimental-strip-types', '--test', 'scripts/test/ux7_pass_hint.ts']);
 run('UX-8 Zu erledigen', 'node', ['--experimental-strip-types', '--test', 'scripts/test/ux8_todo_items.ts']);
+run('F2 Offene-Zähler', 'node', ['--experimental-strip-types', 'scripts/test/f2_open_counts.ts']);
 run('UX-10 Checkout-Zusammenfassung', 'node', ['--experimental-strip-types', 'scripts/test/ux10_checkout_summary.ts']);
 run('Stripe nur im Adapter', npm, ['run', 'check:provider-boundary']);
 run('Edge-Function-Tests', npm, ['run', 'test:deno']);

@@ -28,7 +28,8 @@ test('Badge-Zahl', () => {
   assert.equal(openPaymentsBadge(3), '3');
   assert.equal(openPaymentsBadge(9), '9');
   assert.equal(openPaymentsBadge(10), '9+');
-  assert.equal(countOpenCoveragePeople([{ user_id: 'a' }, { user_id: 'a' }, { user_id: 'b' }]), 2);
+  // F2: offene Zahlungen = Anmeldungen (Zeilen), nicht Personen
+  assert.equal(countOpenCoveragePeople([{ user_id: 'a' }, { user_id: 'a' }, { user_id: 'b' }]), 3);
 });
 
 test('Default-Reiter', () => {

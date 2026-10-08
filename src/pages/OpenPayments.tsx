@@ -4,7 +4,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { isStudioAdmin } from '../lib/userRoles';
-import { berlinIsoFromInstant } from '../lib/courseDateTime';
+import { berlinIsoDate, berlinIsoFromInstant } from '../lib/courseDateTime';
 import { formatCents, formatDate, formatNumericDate } from '../lib/format';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import FeedbackDialog, { type FeedbackDialogState } from '../components/ui/FeedbackDialog';
@@ -135,6 +135,12 @@ const OpenPayments: React.FC<{ embedded?: boolean }> = ({ embedded: _embedded = 
     bookings: Array<{ registrationId: string; name: string }>;
   };
 
+  /** F4: Sammel-Abhaken nur wenn offene Anmeldungen vor gestern existieren. */
+  const hasOlderOpen = useMemo(() => {
+    const yesterday = berlinIsoDate(-1);
+    return rows.some((row) => berlinIsoFromInstant(row.course_starts_at) < yesterday);
+  }, [rows]);
+
   const upcomingByCourse = useMemo((): UpcomingCourseGroup[] => {
     const map = new Map<string, UpcomingCourseGroup>();
     for (const row of upcomingRows) {
@@ -242,16 +248,6 @@ const OpenPayments: React.FC<{ embedded?: boolean }> = ({ embedded: _embedded = 
         </div>
       ) : null}
 
-      {rows.length > 0 ? (
-        <PreOmlifyWaiveSection
-          onChanged={() => void load()}
-          onWaived={(batchId, count) => {
-            setSuccess({ batchId, count });
-            void load();
-          }}
-        />
-      ) : null}
-
       <section className="overflow-hidden rounded-md border border-border bg-surface">
         <div className="border-b border-border px-3.5 py-3">
           <h2 className="text-[17px] font-medium text-text">Überfällig</h2>
@@ -323,6 +319,16 @@ const OpenPayments: React.FC<{ embedded?: boolean }> = ({ embedded: _embedded = 
           </ul>
         )}
       </section>
+
+      {hasOlderOpen ? (
+        <PreOmlifyWaiveSection
+          onChanged={() => void load()}
+          onWaived={(batchId, count) => {
+            setSuccess({ batchId, count });
+            void load();
+          }}
+        />
+      ) : null}
 
       {upcomingByCourse.length > 0 ? (
         <section className="overflow-hidden rounded-md border border-border bg-surface">

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import {
   asCivilIsoDate,
@@ -33,11 +34,16 @@ export type PreOmlifyWaiveSectionProps = {
 
 const DEBOUNCE_MS = 350;
 
+/**
+ * F4: Standardmäßig eine Zeile unter der Überfällig-Liste.
+ * Aufgeklappt wie bisher. Parent zeigt die Komponente nur bei offenen Anmeldungen vor gestern.
+ */
 const PreOmlifyWaiveSection: React.FC<PreOmlifyWaiveSectionProps> = ({
   onChanged,
   onWaived,
 }) => {
   const today = berlinIsoDate(0);
+  const [expanded, setExpanded] = useState(false);
   const [beforeDate, setBeforeDate] = useState(today);
   const [preview, setPreview] = useState<PreviewBody>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -67,13 +73,14 @@ const PreOmlifyWaiveSection: React.FC<PreOmlifyWaiveSectionProps> = ({
   }, []);
 
   useEffect(() => {
+    if (!expanded) return;
     const civil = clampCivilIsoDate(asCivilIsoDate(beforeDate), null, berlinIsoDate(0));
     if (!civil) return;
     const timer = window.setTimeout(() => {
       void loadPreview(civil);
     }, DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
-  }, [beforeDate, loadPreview]);
+  }, [beforeDate, loadPreview, expanded]);
 
   const count = preview && preview.success ? preview.count : 0;
   const canSubmit = !previewLoading && !busy && preview?.success === true && count > 0;
@@ -122,13 +129,30 @@ const PreOmlifyWaiveSection: React.FC<PreOmlifyWaiveSectionProps> = ({
     (preview && preview.success && count === 0) ||
     (preview && !preview.success && preview.error === 'NOTHING_TO_WAIVE');
 
+  if (!expanded) {
+    return (
+      <button
+        type="button"
+        onClick={() => setExpanded(true)}
+        data-testid="pre-omlify-waive-expand"
+        className="flex min-h-11 w-full items-center justify-between gap-2 rounded-md px-1 py-2 text-left text-[15px] text-brand active:bg-surfaceSunken focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+      >
+        <span>Ältere Kurse auf einmal als erledigt markieren</span>
+        <ChevronRight className="h-[18px] w-[18px] shrink-0 text-textSubtle" aria-hidden />
+      </button>
+    );
+  }
+
   return (
-    <section className="rounded-md border border-border bg-surface p-4 sm:p-5">
+    <section
+      className="rounded-md border border-border bg-surface p-4 sm:p-5"
+      data-testid="pre-omlify-waive-panel"
+    >
       <h2 className="text-[17px] font-medium text-text">Alte Kurse abhaken</h2>
       <p className="mt-2 max-w-prose text-[15px] leading-6 text-textMuted">
         Omlify weiß nicht, wer vor dem Start mit Omlify bezahlt hat. Deshalb stehen deine
         bisherigen Kurse als „offen“. Hast du das früher schon selbst geregelt, kannst du hier
-        alles auf einmal abhaken.
+        alles auf einmal abhaken. Betrifft nur Anmeldungen vor dem gewählten Datum.
       </p>
 
       <label className="mt-5 block text-[13px] font-medium text-textMuted" htmlFor="pre-omlify-before">
@@ -175,18 +199,27 @@ const PreOmlifyWaiveSection: React.FC<PreOmlifyWaiveSectionProps> = ({
         </p>
       ) : null}
 
-      <button
-        type="button"
-        disabled={!canSubmit}
-        onClick={() => void submit()}
-        className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-brand px-5 text-[15px] font-medium text-onBrand active:bg-brandPressed disabled:opacity-50"
-      >
-        {busy
-          ? '…'
-          : count > 0
-            ? `${count} Anmeldungen abhaken`
-            : 'Anmeldungen abhaken'}
-      </button>
+      <div className="mt-5 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          disabled={!canSubmit}
+          onClick={() => void submit()}
+          className="inline-flex min-h-11 items-center justify-center rounded-full bg-brand px-5 text-[15px] font-medium text-onBrand active:bg-brandPressed disabled:opacity-50"
+        >
+          {busy
+            ? '…'
+            : count > 0
+              ? `${count} Anmeldungen abhaken`
+              : 'Anmeldungen abhaken'}
+        </button>
+        <button
+          type="button"
+          onClick={() => setExpanded(false)}
+          className="inline-flex min-h-11 items-center px-2 text-[15px] text-textMuted active:text-text"
+        >
+          Zuklappen
+        </button>
+      </div>
     </section>
   );
 };
