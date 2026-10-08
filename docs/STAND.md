@@ -1,6 +1,6 @@
 # STAND — Omlify DEV
 
-Stand: 2026-10-08 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [nachtrag_gesamtklicktest_fixes.md](berichte/nachtrag_gesamtklicktest_fixes.md) (Haltestelle 5 Klicktest)
+Stand: 2026-10-08 · Branch `Julius` · HEAD `bfc7f9b` · Hotfix Kurs-zuweisen mobil Haltestelle 5 ([Bericht](berichte/hotfix_nutzerverwaltung_kurs_zuweisen_mobil.md)); parallel RT-2 Wortlaut
 
 ## DEV
 
@@ -25,11 +25,14 @@ Stand: 2026-10-08 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [nachtra
 
 ## Nächste Schritte
 
+- RT-2: Claude liefert Klarstellung § 6 Abs. 3 und § 9 Abs. 4 → dann AGB/Datenschutz v2 + Umsetzung 1–5
 - Nachtrag F Haltestelle 5 Klicktest (Liste im Bericht)
 - Ältere Haltestellen parallel offen, falls noch nicht abgehakt
 
 ## Haltestellen / wartet auf Julius
 
+- **Hotfix Kurs-zuweisen mobil Haltestelle 5** — [hotfix_nutzerverwaltung_kurs_zuweisen_mobil.md](berichte/hotfix_nutzerverwaltung_kurs_zuweisen_mobil.md) (iPhone: Knopf sichtbar + Zuweisen)
+- **RT-2 Wortlaut-Einbau Haltestelle** — [rt2_omlify_rechtstexte_v2.md](berichte/rt2_omlify_rechtstexte_v2.md) (H1: § 6 Abs. 3 vs. § 8a; H2: § 9 Abs. 4 vs. neuer Vertragsende-Absatz)
 - **Nachtrag F Haltestelle 5** — [nachtrag_gesamtklicktest_fixes.md](berichte/nachtrag_gesamtklicktest_fixes.md)
 - **UX-10 Haltestelle 5** — [ux10_checkout_kurskarte.md](berichte/ux10_checkout_kurskarte.md)
 - **UX-9 Haltestelle 5** — [ux9_kartenkauf_wording.md](berichte/ux9_kartenkauf_wording.md)
@@ -47,11 +50,11 @@ Stand: 2026-10-08 · Branch `Julius` · HEAD siehe `git log -1` · Lauf [nachtra
 
 ## hier weitermachen
 
-Nachtrag F Klicktest abwarten → Bericht abschließen → Release-Plan.
+Hotfix Kurs-zuweisen: Julius iPhone-Test auf DEV → dann PR hotfix → main (Julius merged). Parallel RT-2 Klarstellung.
 
 ## Verweise
 
 - Regeln: [.cursor/rules/omlify-autonom.mdc](../.cursor/rules/omlify-autonom.mdc), [.cursor/rules/rls-access-not-display.mdc](../.cursor/rules/rls-access-not-display.mdc)
-- Story: [docs/stories/nachtrag_gesamtklicktest_fixes.md](stories/nachtrag_gesamtklicktest_fixes.md)
+- Story: [docs/stories/rt2_omlify_rechtstexte_v2.md](stories/rt2_omlify_rechtstexte_v2.md)
 - Entscheidungen: [17_Studio_Rechtstexte.md](entscheidungen/17_Studio_Rechtstexte.md) (L3), [19_Wording_Kurskarte.md](entscheidungen/19_Wording_Kurskarte.md)
 - Offene Punkte: [docs/OFFENE_PUNKTE.md](OFFENE_PUNKTE.md)
