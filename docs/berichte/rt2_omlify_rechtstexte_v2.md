@@ -61,18 +61,20 @@ npm run dev:e2e -- e2e/rt2.spec.ts → 1 passed
 
 ### Deploy-Nachweis (vor Haltestelle 5)
 
-Abs. 3+4 Nachtrag (dieser Lauf — nach Push eintragen):
+Abs. 3+4 Nachtrag:
 
 | Beleg | Ergebnis |
 |---|---|
-| HEAD | _(nach Push)_ |
+| HEAD | `4e23576` |
 | Migration | `20261009140000` auf DEV |
 | terms-Hash | `815a10da0ad9a1f70fde4ca8dac7e684dd2ac8ec14225b3830e3318c8ad6927d` |
 | `check:ci` / E2E | grün / `e2e/rt2.spec.ts` 1 passed |
-| Live-Bundle | _(nach Workers-Build)_ |
-| Merkmal Hash | `815a10da…` |
-| Merkmal Abs. 3 | `Die Kündigung wird mit ihrem Zugang wirksam` |
-| Merkmal Banner | `Aktualisierte Vertragsunterlagen` |
+| Workers Builds: omlify-dev | `success` (Check-Run auf `4e23576`) |
+| Live-Bundle | `https://demoalpha.omlify-dev.de/assets/index-Doz9uvQm.js` |
+| Merkmal Hash | `815a10da…` @ 941820 |
+| Merkmal Abs. 3 | `Die Kündigung wird mit ihrem Zugang wirksam` @ 951059 |
+| Merkmal Banner | `Aktualisierte Vertragsunterlagen` @ 969621 |
+| Alt-Wortlaut | `bis zum Wirksamwerden` / `nur noch zum Export` — MISS (entfernt) |
 
 ---
 
