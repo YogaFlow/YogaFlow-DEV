@@ -281,7 +281,7 @@ export const AVV_TEST_HASH =
 /** RT-2: Omlify-AGB / Datenschutz v2 */
 export const TERMS_TEST_VERSION = '2026-10-09';
 export const TERMS_TEST_HASH =
-  '9acd5496274c520c18dcccb0fe6bbdae0626225b66bdfdc85dfa1e7734622fe4';
+  '815a10da0ad9a1f70fde4ca8dac7e684dd2ac8ec14225b3830e3318c8ad6927d';
 export const PRIVACY_TEST_VERSION = '2026-10-08';
 export const PRIVACY_TEST_HASH =
   '17cdc32a2d38d6871050a29354857c8e5d24a8e1cc80013e2f6012b57f2f352d';

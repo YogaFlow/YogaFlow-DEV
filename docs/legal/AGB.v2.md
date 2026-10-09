@@ -177,14 +177,12 @@ erforderlichen Angaben auf Anforderung bereit.
 (2) Beide Seiten können den Vertrag jederzeit ohne Einhaltung einer Frist in
 Textform kündigen. Für das Studio genügt eine Mitteilung an support@omlify.de.
 
-(3) Nach Zugang der Kündigung bleibt die Studio-Umgebung bis zum Wirksamwerden
-der Kündigung **30 Tage** im bisherigen Umfang nutzbar. In dieser Zeit kann das
-Studio seine Daten exportieren.
+(3) Die Kündigung wird mit ihrem Zugang wirksam. Danach bleibt die
+Studio-Umgebung noch 30 Tage zugänglich, damit das Studio seine Daten
+exportieren kann (insbesondere Teilnehmende, Buchungen, Zahlungen und Belege).
 
-(4) Nach Wirksamwerden der Kündigung stellt Omlify dem Studio für 30 Tage Exporte
-seiner Daten bereit (insbesondere Teilnehmende, Buchungen, Zahlungen und Belege);
-in dieser Zeit ist das Konto nur noch zum Export nutzbar. Danach löscht Omlify die
-im Auftrag des Studios verarbeiteten Daten unwiderruflich nach Maßgabe des
+(4) Nach Ablauf dieser 30 Tage löscht Omlify die im Auftrag des Studios
+verarbeiteten Daten unwiderruflich nach Maßgabe des
 Auftragsverarbeitungsvertrags. Ausgenommen sind Daten, die Omlify selbst
 gesetzlich aufbewahren muss oder zum Nachweis seiner eigenen Pflichten benötigt,
 insbesondere Nachweise über Zustimmungen zu diesen AGB und zum
@@ -242,10 +240,10 @@ die Wirksamkeit der übrigen Bestimmungen unberührt.
 1. **§ 4 Abs. 2 spiegelt die Zusage auf der Landingpage** („Kommt einer, erfährst
    du ihn mindestens zwei Monate vorher"). Ändert sich die eine Stelle, muss die
    andere mitgeändert werden.
-2. **§ 9 Abs. 3** = 30 Tage voll nutzbar bis zum Wirksamwerden; **Abs. 4** = danach
-   nur Export. Kontozustand „nur Export“ gibt es nicht; Kündigungen manuell
-   (`delete_tenant_complete`); Exporte per E-Mail. Vor erster echter Kündigung:
-   OFFENE_PUNKTE.
+2. **§ 9 Abs. 2** = fristlose Kündigung (unverändert). **Abs. 3** = wirksam mit
+   Zugang, danach 30 Tage zugänglich zum Export. **Abs. 4** = Löschung nach
+   Maßgabe des AVV. Kündigungen manuell (`delete_tenant_complete`); Exporte per
+   E-Mail; Online-Zahlung bei Kündigung von Hand ausschalten. OFFENE_PUNKTE.
 3. **§ 9 Abs. 4 und § 8 Abs. 1 setzen die 90-Tage-Lifecycle-Regel im R2-Bucket
    voraus.** Solange der Bucket nie aufräumt, stimmt die Aussage nicht.
 4. **Widerrufsrecht:** Weil die Nutzung unentgeltlich ist und die erhobenen Daten
