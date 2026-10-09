@@ -64,6 +64,7 @@ run('UX-7 Kartenhinweis', 'node', ['--experimental-strip-types', '--test', 'scri
 run('UX-8 Zu erledigen', 'node', ['--experimental-strip-types', '--test', 'scripts/test/ux8_todo_items.ts']);
 run('F2 Offene-Zähler', 'node', ['--experimental-strip-types', 'scripts/test/f2_open_counts.ts']);
 run('UX-10 Checkout-Zusammenfassung', 'node', ['--experimental-strip-types', 'scripts/test/ux10_checkout_summary.ts']);
+run('Sitzung und Rücksprung', 'node', ['--test', 'scripts/test/session_guard.test.mjs']);
 run('Stripe nur im Adapter', npm, ['run', 'check:provider-boundary']);
 run('Edge-Function-Tests', npm, ['run', 'test:deno']);
 run('Build', npm, ['run', 'build'], {

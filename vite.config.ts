@@ -8,31 +8,29 @@ import { cloudflare } from "@cloudflare/vite-plugin";
 import { legalRollupInput, writeLegalHtmlPages } from './scripts/render-legal-pages.mjs';
 
 function buildSha(): string {
+  const fromCi = process.env.WORKERS_CI_COMMIT_SHA || process.env.CF_PAGES_COMMIT_SHA || '';
+  if (/^[0-9a-f]{7,40}$/i.test(fromCi)) return fromCi;
   try {
-    return execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
+    return execSync('git rev-parse HEAD', { encoding: 'utf8' }).trim();
   } catch {
     return 'unknown';
   }
 }
 
-/** Schreibt public/version.json und setzt VITE_BUILD_SHA (ZW-1 Vorab: Build sichtbar). */
+/** Schreibt public/version.json ({ build }) und dieselbe ID ins Bundle. */
 function writeVersionJson(): Plugin {
   const sha = buildSha();
-  const payload = JSON.stringify(
-    { sha, builtAt: new Date().toISOString() },
-    null,
-    2,
-  );
+  const payload = `${JSON.stringify({ build: sha })}\n`;
   return {
     name: 'write-version-json',
     config() {
       return { define: { 'import.meta.env.VITE_BUILD_SHA': JSON.stringify(sha) } };
     },
     buildStart() {
-      writeFileSync(join(process.cwd(), 'public', 'version.json'), `${payload}\n`);
+      writeFileSync(join(process.cwd(), 'public', 'version.json'), payload);
     },
     configureServer() {
-      writeFileSync(join(process.cwd(), 'public', 'version.json'), `${payload}\n`);
+      writeFileSync(join(process.cwd(), 'public', 'version.json'), payload);
     },
   };
 }

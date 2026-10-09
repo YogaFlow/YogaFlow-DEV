@@ -5,6 +5,7 @@ import RegisterForm from '../components/Auth/RegisterForm';
 import { Heart } from 'lucide-react';
 import StudioMark from '../components/branding/StudioMark';
 import { useAuth } from '../context/AuthContext';
+import { safeReturnPath, SIGNED_OUT_MESSAGE } from '../lib/sessionRules.mjs';
 import { useTenant, buildApexHref, withDevTenant } from '../context/TenantContext';
 import { getStudioLogoUrl } from '../lib/studioBranding';
 import JoinStudio from './JoinStudio';
@@ -88,7 +89,8 @@ const AuthPage: React.FC = () => {
     }
     if (tenantLoading || notFound || !tenant) return;
     if (!userProfile || userProfile.tenant_id !== tenant.id) return;
-    navigate(withDevTenant('/dashboard'), { replace: true });
+    const nextPath = safeReturnPath(searchParams.get('next'));
+    navigate(withDevTenant(nextPath ?? '/dashboard'), { replace: true });
   }, [
     loading,
     profileLoading,
@@ -101,6 +103,7 @@ const AuthPage: React.FC = () => {
     notFound,
     tenant,
     navigate,
+    searchParams,
   ]);
 
   // Falls der Passwort-Reset-Link versehentlich auf /auth zeigt: zur Reset-Seite weiterleiten
@@ -274,6 +277,11 @@ const AuthPage: React.FC = () => {
             </div>
           )}
 
+          {searchParams.get('signed_out') === '1' && (
+            <div className="mx-8 mt-6 p-4 bg-accentSoft border border-accent rounded-sm text-center text-text text-sm">
+              {SIGNED_OUT_MESSAGE}
+            </div>
+          )}
           {showVerifiedMessage && (
             <div className="mx-8 mt-6 p-4 bg-successSoft border border-successSoft rounded-sm text-center text-text text-sm">
               E-Mail bestätigt. Du kannst dich jetzt anmelden.

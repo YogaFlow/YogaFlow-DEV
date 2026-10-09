@@ -55,5 +55,5 @@ Claude outputs/
 # Aus docs/legal/*.md erzeugt, nur im Marketing-Build
 /legal/*.html
 
-# Build-Hash (Vite-Plugin writeVersionJson)
+# Build-ID (Vite-Plugin writeVersionJson)
 /public/version.json
