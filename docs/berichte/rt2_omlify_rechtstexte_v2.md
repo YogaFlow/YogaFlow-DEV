@@ -1,7 +1,7 @@
 # Bericht RT-2 — Omlify-Rechtstexte v2
 
 Stand: 2026-10-09 · Branch `Julius` · Status: **angehalten (Haltestelle 5)**  
-Stories: [rt2_omlify_rechtstexte_v2.md](../stories/rt2_omlify_rechtstexte_v2.md), [rt2_wortlaut_delta.md](../stories/rt2_wortlaut_delta.md), [rt2_delta_nachtrag_h1_h2.md](../stories/rt2_delta_nachtrag_h1_h2.md)
+Stories: [rt2_omlify_rechtstexte_v2.md](../stories/rt2_omlify_rechtstexte_v2.md), [rt2_wortlaut_delta.md](../stories/rt2_wortlaut_delta.md), [rt2_delta_nachtrag_h1_h2.md](../stories/rt2_delta_nachtrag_h1_h2.md), [rt2_delta_nachtrag_para9.md](../stories/rt2_delta_nachtrag_para9.md)
 
 Teil 0 (Volltext v1, Ist-Zustand Zustimmung/Stripe/Protokolle) bleibt oben in diesem Bericht erhalten (früherer STOPP). Unten: Umsetzung nach H1/H2-Klarstellung.
 
@@ -25,49 +25,54 @@ Teil 0 (Volltext v1, Ist-Zustand Zustimmung/Stripe/Protokolle) bleibt oben in di
 
 | Dokument | Version | content_hash |
 |---|---|---|
-| terms (AGB) | 2026-10-09 | `9acd5496274c520c18dcccb0fe6bbdae0626225b66bdfdc85dfa1e7734622fe4` (nach Abs.-3-Klarstellung; zuvor `4b9d1309…` / 2026-10-08) |
+| terms (AGB) | 2026-10-09 | `815a10da0ad9a1f70fde4ca8dac7e684dd2ac8ec14225b3830e3318c8ad6927d` (Abs. 3+4 Nachtrag; zuvor `9acd5496…` / Abs.-3-Klarstellung; davor `4b9d1309…`) |
 | privacy | 2026-10-08 | `17cdc32a2d38d6871050a29354857c8e5d24a8e1cc80013e2f6012b57f2f352d` |
 | avv | 2026-10-04 | unverändert `b90051ca…` |
 
 ### Technik / Produktlücken (laut Nachtrag)
 
-- **„Nur noch zum Export nutzbar“:** kein Kontozustand gebaut. Kündigungen weiter manuell (`delete_tenant_complete`); Julius stellt Exporte per E-Mail bereit. Punkt in [OFFENE_PUNKTE.md](../OFFENE_PUNKTE.md) aktualisiert.
+- **„Nur noch zum Export nutzbar“:** entfällt mit neuem Abs. 3/4 (kein eigener Kontozustand). Kündigungen weiter manuell (`delete_tenant_complete`); Online-Zahlung bei Kündigung von Hand ausschalten; Exporte per E-Mail. Punkt in [OFFENE_PUNKTE.md](../OFFENE_PUNKTE.md) aktualisiert.
 - Impressum: unverändert (kein OS-Link, USt-IdNr. vorhanden).
 
-### § 9 Abs. 3 — Klarstellung (Julius 09.10.2026)
+### § 9 Abs. 3 + 4 — Nachtrag (Claude 09.10.2026)
 
-Zitat (nach Ergänzung):
+Abs. 2 unverändert („jederzeit ohne Einhaltung einer Frist“). Abs. 3 und Abs. 4 ersetzt:
 
-> (3) Nach Zugang der Kündigung bleibt die Studio-Umgebung bis zum Wirksamwerden der Kündigung **30 Tage** im bisherigen Umfang nutzbar. In dieser Zeit kann das Studio seine Daten exportieren.
+> (3) Die Kündigung wird mit ihrem Zugang wirksam. Danach bleibt die Studio-Umgebung noch 30 Tage zugänglich, damit das Studio seine Daten exportieren kann (insbesondere Teilnehmende, Buchungen, Zahlungen und Belege).
 
-Abs. 3 meint die Zeit **bis zum Wirksamwerden** der Kündigung (voller Umfang). Abs. 4 gilt **danach** (nur Export). Kein inhaltlicher Widerspruch — nur der Halbsatz „bis zum Wirksamwerden der Kündigung“ ergänzt, weil der bisherige Wortlaut unklar war. Neuer AGB-Hash → Banner erscheint erneut für Studios mit alter Zustimmung.
+> (4) Nach Ablauf dieser 30 Tage löscht Omlify die im Auftrag des Studios verarbeiteten Daten unwiderruflich nach Maßgabe des Auftragsverarbeitungsvertrags. Ausgenommen sind Daten, die Omlify selbst gesetzlich aufbewahren muss oder zum Nachweis seiner eigenen Pflichten benötigt, insbesondere Nachweise über Zustimmungen zu diesen AGB und zum Auftragsverarbeitungsvertrag; diese löscht Omlify drei Jahre nach Vertragsende.
+
+**AVV-Prüfung (keine Haltestelle):** AVV § 10 Abs. 1–2 nennt dieselbe Frist — 30 Tage nach Vertragsende nutzbar/Export, danach Löschung aus dem Produktivsystem. Zitat:
+
+> (1) Nach Beendigung des Nutzungsvertrags bleibt die Umgebung des Verantwortlichen **30 Tage** nutzbar. … (2) Nach Ablauf dieser Frist löscht der Auftragsverarbeiter alle Daten des Verantwortlichen unwiderruflich aus dem Produktivsystem.
+
+Keine abweichende Löschfrist. (AVV Abs. 3: Backups 90 Tage — AGB verweist auf „nach Maßgabe des AVV“.)
+
+Neuer terms-Hash → Banner erneut für Studios mit alter Zustimmung. Beleg: DEV `stale_terms = 2`; E2E Banner sichtbar → Zustimmen → weg.
 
 ### Tests (Belege)
 
 ```
 npm run check:ci → grün
-npm run dev:apply → 20261008200000 angewendet
-node scripts/test/rt2_retention.mjs → Retention fertig
-  {"ops_alerts":1,"email_deliveries":0,"legal_acceptances":0,"provider_events_raw":1}
-  Acceptance überlebt mit Schnappschuss; verwaiste Acceptance nach 3y-Alterung gelöscht (SQL)
+npm run dev:apply → 20261009140000 angewendet
 node scripts/test/b2_legal_acceptances.mjs → Fertig
 npm run dev:e2e -- e2e/rt2.spec.ts → 1 passed
 ```
 
 ### Deploy-Nachweis (vor Haltestelle 5)
 
-Abs.-3-Klarstellung:
+Abs. 3+4 Nachtrag (dieser Lauf — nach Push eintragen):
 
 | Beleg | Ergebnis |
 |---|---|
-| HEAD | `64a9f4d` |
-| Migration | `20261009120000` auf DEV |
-| terms-Hash | `9acd5496274c520c18dcccb0fe6bbdae0626225b66bdfdc85dfa1e7734622fe4` |
+| HEAD | _(nach Push)_ |
+| Migration | `20261009140000` auf DEV |
+| terms-Hash | `815a10da0ad9a1f70fde4ca8dac7e684dd2ac8ec14225b3830e3318c8ad6927d` |
 | `check:ci` / E2E | grün / `e2e/rt2.spec.ts` 1 passed |
-| Live-Bundle | `https://demoalpha.omlify-dev.de/assets/index-BCHIhVd8.js` |
-| Merkmal Hash | `9acd5496…` @ 943205 |
-| Merkmal Abs. 3 | `Studio-Umgebung bis zum` @ 952628 (Wortlaut mit „bis zum Wirksamwerden der Kündigung“) |
-| Merkmal Banner | `Aktualisierte Vertragsunterlagen` @ 971579 |
+| Live-Bundle | _(nach Workers-Build)_ |
+| Merkmal Hash | `815a10da…` |
+| Merkmal Abs. 3 | `Die Kündigung wird mit ihrem Zugang wirksam` |
+| Merkmal Banner | `Aktualisierte Vertragsunterlagen` |
 
 ---
 
@@ -197,7 +202,7 @@ Bullet-Punkte für Nachweise (+3 Jahre), ops_alerts 90 Tage nach Erledigung, ema
 
 ## Klicktest (Haltestelle 5)
 
-1. Owner mit alter AGB-Zustimmung (Hash vor Abs.-3-Klarstellung, z. B. demoalpha): Banner zeigt wieder **AGB (v2)** — Text öffnen, prüfen § 9 Abs. 3 enthält „bis zum Wirksamwerden der Kündigung“, Häkchen, Zustimmen → Banner weg; neue `legal_acceptances`-Zeile mit Version `2026-10-09` / Hash `9acd5496…`.
+1. Owner mit alter AGB-Zustimmung (z. B. demoalpha): Banner zeigt **AGB (v2)** — Text öffnen, prüfen § 9 Abs. 3 „Die Kündigung wird mit ihrem Zugang wirksam“ und Abs. 4 ohne „nur noch zum Export nutzbar“; Abs. 2 unverändert fristlos; Häkchen, Zustimmen → Banner weg; neue `legal_acceptances`-Zeile Version `2026-10-09` / Hash `815a10da…`.
 2. Einstellungen › Rechtliches: Abschnitte AGB (Omlify) + AVV; Aufmerksamkeit listet fehlende AGB/AVV.
 3. `/legal/agb` und `/legal/datenschutz` auf omlify-dev: Stand AGB **09.10.2026** · Version 2; kein OS-Link im Impressum.
 4. Neues Studio Onboarding: AGB + Datenschutz + AVV verlinkt; nach Login werden drei Fassungen gespeichert.
@@ -206,6 +211,6 @@ Bullet-Punkte für Nachweise (+3 Jahre), ops_alerts 90 Tage nach Erledigung, ema
 
 ## Unsicherheiten / Entscheidungen
 
-1. § 9 Abs. 3: Julius — Zeit bis zum Wirksamwerden; Halbsatz ergänzt (09.10.2026).
+1. § 9 Abs. 3+4: Claude-Nachtrag 09.10.2026 — wirksam mit Zugang, 30 Tage zugänglich zum Export, dann Löschung nach AVV; Abs. 2 bleibt fristlos.
 2. Datenschutz-Zustimmung: im Banner nur AGB+AVV (Story-Wortlaut); Privacy nur Onboarding + Seed in `legal_document_versions`.
 3. `email_deliveries`-Retention im Rauchtest nicht mit künstlicher Zeile belegt (Event-Schema streng); Codepfad in `retention_cleanup` vorhanden; ops_alerts + provider_events_raw + verwaiste Acceptances belegt.

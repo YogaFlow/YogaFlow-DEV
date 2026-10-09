@@ -1,20 +1,20 @@
 # STAND — Omlify DEV
 
-Stand: 2026-10-09 · Branch `Julius` · RT-2 AGB § 9 Abs. 3 Klarstellung (neuer terms-Hash)
+Stand: 2026-10-09 · Branch `Julius` · RT-2 AGB § 9 Abs. 3+4 Nachtrag (neuer terms-Hash)
 
 ## DEV
 
-- Migrationen bis `20261009120000` (AGB Abs. 3 Wirksamwerden-Hash; zuvor `20261008200000` Retention)
+- Migrationen bis `20261009140000` (AGB Abs. 3+4 Hash; zuvor `20261009120000` Abs.-3-Klarstellung)
 - Functions: unverändert; RPC `retention_cleanup` (service_role); Cron `yogaflow_retention_cleanup` 03:15 UTC
 - Secrets (Namen): `LEGAL_PDF_SECRET` (Vault); `CALENDAR_ICS_SECRET`; `OPS_MONITOR_SECRET`, `OPS_ALERT_EMAIL`; `OPS_HEARTBEAT_URL` nicht gesetzt
 - Cron: + `yogaflow_retention_cleanup`; bestehende Legal/Pass/Ops-Jobs
 - E2E: RT-2 `e2e/rt2.spec.ts` (e2eapp); Rauch `scripts/test/rt2_retention.mjs`
-- Legal: `AGB.v2.md` Stand 09.10.2026 · Hash `9acd5496…`; `privacy` 2026-10-08
+- Legal: `AGB.v2.md` Stand 09.10.2026 · Hash `815a10da…`; `privacy` 2026-10-08
 - Demo: `npm run dev:demo:seed` — relativ zum Laufzeitpunkt
 
 ## Zuletzt abgeschlossen
 
-- **RT-2 AGB § 9 Abs. 3** — Halbsatz „bis zum Wirksamwerden“; neuer terms-Hash → Banner erneut
+- **RT-2 AGB § 9 Abs. 3+4** — wirksam mit Zugang, 30 Tage Export, Löschung nach AVV; Abs. 2 unverändert; AVV-Frist gleich
   - Bericht: [docs/berichte/rt2_omlify_rechtstexte_v2.md](berichte/rt2_omlify_rechtstexte_v2.md) — Haltestelle 5
 - **RT-2 Omlify-Rechtstexte v2** — AGB/Datenschutz v2, Banner, Onboarding-Bundle, Retention
 - **Hotfix Kurs-zuweisen mobil** — PROD live (#175 `5a40976`), `main` in Julius (`88c0694`)
@@ -41,6 +41,6 @@ RT-2 Klicktest (Haltestelle 5). Parallel: andere offene Haltestellen.
 ## Verweise
 
 - Regeln: [.cursor/rules/omlify-autonom.mdc](../.cursor/rules/omlify-autonom.mdc)
-- Story: [docs/stories/rt2_omlify_rechtstexte_v2.md](stories/rt2_omlify_rechtstexte_v2.md)
+- Story: [docs/stories/rt2_delta_nachtrag_para9.md](stories/rt2_delta_nachtrag_para9.md)
 - Entscheidungen: [17_Studio_Rechtstexte.md](entscheidungen/17_Studio_Rechtstexte.md)
 - Offene Punkte: [docs/OFFENE_PUNKTE.md](OFFENE_PUNKTE.md)
