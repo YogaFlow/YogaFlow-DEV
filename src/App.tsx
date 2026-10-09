@@ -1,6 +1,8 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useNavigate, useSearchParams } from 'react-router-dom';
+import { VersionBanner } from './components/VersionBanner';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { useSessionGuard } from './lib/useSessionGuard';
 import { TenantProvider, useTenant, buildApexHref, withDevTenant } from './context/TenantContext';
 import AuthPage from './pages/AuthPage';
 import Dashboard from './pages/Dashboard';
@@ -269,9 +271,16 @@ const HomeRoute: React.FC = () => {
   return <RedirectToApexMarketing />;
 };
 
+function SessionWatch() {
+  useSessionGuard();
+  return null;
+}
+
 function App() {
   return (
     <AuthProvider>
+      <SessionWatch />
+      <VersionBanner />
       {/*
         TenantProvider innen: React führt useEffect tiefer zuerst aus → tenants-REST startet vor
         Auth onAuthStateChange/Profil und entlastet dieselbe supabase.co-Verbindung beim Cold Start.

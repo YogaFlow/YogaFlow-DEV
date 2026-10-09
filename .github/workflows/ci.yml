@@ -50,6 +50,9 @@ jobs:
         # siehe Begruendung in eslint.config.js.
         run: npm run lint
 
+      - name: Sitzung und Rücksprung
+        run: node --test scripts/test/session_guard.test.mjs
+
       - name: Build
         # Platzhalterwerte: Der Build braucht die Variablen nur, damit die Warnung
         # aus src/lib/supabase.ts ausbleibt. Das Ergebnis wird verworfen, deployt
