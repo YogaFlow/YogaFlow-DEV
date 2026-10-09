@@ -56,14 +56,18 @@ npm run dev:e2e -- e2e/rt2.spec.ts → 1 passed
 
 ### Deploy-Nachweis (vor Haltestelle 5)
 
-Abs.-3-Klarstellung (nach Push ergänzt):
+Abs.-3-Klarstellung:
 
 | Beleg | Ergebnis |
 |---|---|
+| HEAD | `64a9f4d` |
 | Migration | `20261009120000` auf DEV |
 | terms-Hash | `9acd5496274c520c18dcccb0fe6bbdae0626225b66bdfdc85dfa1e7734622fe4` |
 | `check:ci` / E2E | grün / `e2e/rt2.spec.ts` 1 passed |
-| Live-Bundle | *(nach Push)* Merkmal neuer Hash + „bis zum Wirksamwerden der Kündigung“ |
+| Live-Bundle | `https://demoalpha.omlify-dev.de/assets/index-BCHIhVd8.js` |
+| Merkmal Hash | `9acd5496…` @ 943205 |
+| Merkmal Abs. 3 | `Studio-Umgebung bis zum` @ 952628 (Wortlaut mit „bis zum Wirksamwerden der Kündigung“) |
+| Merkmal Banner | `Aktualisierte Vertragsunterlagen` @ 971579 |
 
 ---
 
