@@ -1,10 +1,10 @@
 # STAND — Omlify DEV
 
-Stand: 2026-10-09 · Branch `Julius` · RT-2 AGB § 9 Abs. 3+4 Nachtrag (neuer terms-Hash)
+Stand: 2026-10-09 · Branch `Julius` · Release 2026-10 Freeze-Vorbereitung (Cron/Bucket)
 
 ## DEV
 
-- Migrationen bis `20261009140000` (AGB Abs. 3+4 Hash; zuvor `20261009120000` Abs.-3-Klarstellung)
+- Migrationen bis `20261009160000` (release cron; zuvor `…150000` studio-legal bucket, RT-2 Hashes)
 - Functions: unverändert; RPC `retention_cleanup` (service_role); Cron `yogaflow_retention_cleanup` 03:15 UTC
 - Secrets (Namen): `LEGAL_PDF_SECRET` (Vault); `CALENDAR_ICS_SECRET`; `OPS_MONITOR_SECRET`, `OPS_ALERT_EMAIL`; `OPS_HEARTBEAT_URL` nicht gesetzt
 - Cron: + `yogaflow_retention_cleanup`; bestehende Legal/Pass/Ops-Jobs
@@ -22,13 +22,14 @@ Stand: 2026-10-09 · Branch `Julius` · RT-2 AGB § 9 Abs. 3+4 Nachtrag (neuer t
 
 ## Nächste Schritte
 
-- **Release 2026-10 Phase 1** Bestandsaufnahme fertig → Entscheidungen E1–E9 (Phase 2)
+- **Release 2026-10** Entscheidungen E1–E9 (Phase 2); Generalprobe E3 (85er-Apply, Docker/Probe)
 - RT-2 Haltestelle 5 Klicktest (Liste im Bericht)
 - Nachtrag F / UX-Haltestellen parallel offen, falls noch nicht abgehakt
 
 ## Haltestellen / wartet auf Julius
 
-- **Release 2026-10 Phase 1 STOPP** — [release_2026-10_bestandsaufnahme.md](berichte/release_2026-10_bestandsaufnahme.md) · Gesamt 🔴 (Cron/Secrets/Functions vor Freeze)
+- **Release 2026-10 Freeze-Vorbereitung STOPP** — [release_2026-10_freeze_vorbereiten.md](berichte/release_2026-10_freeze_vorbereiten.md) · Probelauf 85 ohne Docker
+- **Release 2026-10 Phase 1** — [release_2026-10_bestandsaufnahme.md](berichte/release_2026-10_bestandsaufnahme.md)
 - **RT-2 Haltestelle 5** — [rt2_omlify_rechtstexte_v2.md](berichte/rt2_omlify_rechtstexte_v2.md)
 - **Nachtrag F Haltestelle 5** — [nachtrag_gesamtklicktest_fixes.md](berichte/nachtrag_gesamtklicktest_fixes.md)
 - **UX-10 / UX-9 / UX-8 / UX-7 / UX-6 / RT-1 Nachtrag** — siehe jeweilige Berichte
