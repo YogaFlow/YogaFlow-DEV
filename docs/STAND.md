@@ -1,6 +1,6 @@
 # STAND — Omlify DEV
 
-Stand: 2026-10-09 · Branch `Julius` · Release 2026-10 Freeze-Vorbereitung (Cron/Bucket)
+Stand: 2026-10-09 · Branch `Julius` · Hotfix Sitzung und Version (`f3356dc`)
 
 ## DEV
 
@@ -14,6 +14,8 @@ Stand: 2026-10-09 · Branch `Julius` · Release 2026-10 Freeze-Vorbereitung (Cro
 
 ## Zuletzt abgeschlossen
 
+- **Hotfix Sitzung und Version** — lokal abmelden, Sitzungswächter, Versionsleiste. DEV-Build `f3356dc` live. Klicktest offen.
+  - Bericht: [docs/berichte/hotfix_sitzung_und_version.md](berichte/hotfix_sitzung_und_version.md)
 - **RT-2 AGB § 9 Abs. 3+4** — wirksam mit Zugang, 30 Tage Export, Löschung nach AVV; Abs. 2 unverändert; AVV-Frist gleich
   - Bericht: [docs/berichte/rt2_omlify_rechtstexte_v2.md](berichte/rt2_omlify_rechtstexte_v2.md) — Haltestelle 5
 - **RT-2 Omlify-Rechtstexte v2** — AGB/Datenschutz v2, Banner, Onboarding-Bundle, Retention
@@ -22,12 +24,14 @@ Stand: 2026-10-09 · Branch `Julius` · Release 2026-10 Freeze-Vorbereitung (Cro
 
 ## Nächste Schritte
 
+- **Hotfix Sitzung und Version** — Klicktest 1–5 auf DEV, dann PR `hotfix/sitzung-und-version` → `main`, nicht mergen bevor CI grün und der Klicktest durch ist
 - **Release 2026-10** Entscheidungen E1–E9 (Phase 2); Generalprobe E3 (85er-Apply, Docker/Probe)
 - RT-2 Haltestelle 5 Klicktest (Liste im Bericht)
 - Nachtrag F / UX-Haltestellen parallel offen, falls noch nicht abgehakt
 
 ## Haltestellen / wartet auf Julius
 
+- **Hotfix Sitzung und Version STOPP** — [hotfix_sitzung_und_version.md](berichte/hotfix_sitzung_und_version.md) · Klicktest Mac + iPhone
 - **Release 2026-10 Freeze-Vorbereitung STOPP** — [release_2026-10_freeze_vorbereiten.md](berichte/release_2026-10_freeze_vorbereiten.md) · Probelauf 85 ohne Docker
 - **Release 2026-10 Phase 1** — [release_2026-10_bestandsaufnahme.md](berichte/release_2026-10_bestandsaufnahme.md)
 - **RT-2 Haltestelle 5** — [rt2_omlify_rechtstexte_v2.md](berichte/rt2_omlify_rechtstexte_v2.md)
@@ -39,7 +43,7 @@ Stand: 2026-10-09 · Branch `Julius` · Release 2026-10 Freeze-Vorbereitung (Cro
 
 ## hier weitermachen
 
-RT-2 Klicktest (Haltestelle 5). Parallel: andere offene Haltestellen.
+Klicktest Sitzung und Version (Liste im Bericht). Parallel: andere offene Haltestellen.
 
 ## Verweise
 
