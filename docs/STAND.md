@@ -22,11 +22,13 @@ Stand: 2026-10-09 · Branch `Julius` · RT-2 AGB § 9 Abs. 3+4 Nachtrag (neuer t
 
 ## Nächste Schritte
 
+- **Release 2026-10 Phase 1** Bestandsaufnahme fertig → Entscheidungen E1–E9 (Phase 2)
 - RT-2 Haltestelle 5 Klicktest (Liste im Bericht)
 - Nachtrag F / UX-Haltestellen parallel offen, falls noch nicht abgehakt
 
 ## Haltestellen / wartet auf Julius
 
+- **Release 2026-10 Phase 1 STOPP** — [release_2026-10_bestandsaufnahme.md](berichte/release_2026-10_bestandsaufnahme.md) · Gesamt 🔴 (Cron/Secrets/Functions vor Freeze)
 - **RT-2 Haltestelle 5** — [rt2_omlify_rechtstexte_v2.md](berichte/rt2_omlify_rechtstexte_v2.md)
 - **Nachtrag F Haltestelle 5** — [nachtrag_gesamtklicktest_fixes.md](berichte/nachtrag_gesamtklicktest_fixes.md)
 - **UX-10 / UX-9 / UX-8 / UX-7 / UX-6 / RT-1 Nachtrag** — siehe jeweilige Berichte
