@@ -1,6 +1,6 @@
 # Bericht RT-2 — Omlify-Rechtstexte v2
 
-Stand: 2026-10-08 · Branch `Julius` · Status: **angehalten (Haltestelle 5)**  
+Stand: 2026-10-09 · Branch `Julius` · Status: **angehalten (Haltestelle 5)**  
 Stories: [rt2_omlify_rechtstexte_v2.md](../stories/rt2_omlify_rechtstexte_v2.md), [rt2_wortlaut_delta.md](../stories/rt2_wortlaut_delta.md), [rt2_delta_nachtrag_h1_h2.md](../stories/rt2_delta_nachtrag_h1_h2.md)
 
 Teil 0 (Volltext v1, Ist-Zustand Zustimmung/Stripe/Protokolle) bleibt oben in diesem Bericht erhalten (früherer STOPP). Unten: Umsetzung nach H1/H2-Klarstellung.
@@ -25,15 +25,22 @@ Teil 0 (Volltext v1, Ist-Zustand Zustimmung/Stripe/Protokolle) bleibt oben in di
 
 | Dokument | Version | content_hash |
 |---|---|---|
-| terms (AGB) | 2026-10-08 | `4b9d13096b488d3d92142e58b041a2727ffc163c77449eff4912d23f6dc55f96` |
+| terms (AGB) | 2026-10-09 | `9acd5496274c520c18dcccb0fe6bbdae0626225b66bdfdc85dfa1e7734622fe4` (nach Abs.-3-Klarstellung; zuvor `4b9d1309…` / 2026-10-08) |
 | privacy | 2026-10-08 | `17cdc32a2d38d6871050a29354857c8e5d24a8e1cc80013e2f6012b57f2f352d` |
 | avv | 2026-10-04 | unverändert `b90051ca…` |
 
 ### Technik / Produktlücken (laut Nachtrag)
 
 - **„Nur noch zum Export nutzbar“:** kein Kontozustand gebaut. Kündigungen weiter manuell (`delete_tenant_complete`); Julius stellt Exporte per E-Mail bereit. Punkt in [OFFENE_PUNKTE.md](../OFFENE_PUNKTE.md) aktualisiert.
-- **§ 9 Abs. 3 vs. Abs. 4:** Abs. 3 (v1, unverändert) sagt noch „30 Tage im bisherigen Umfang nutzbar“; Abs. 4 (H2) sagt „nur noch zum Export nutzbar“. Abs. 3 wurde im Delta nicht ersetzt — im Bericht vermerkt, nicht selbst umformuliert.
 - Impressum: unverändert (kein OS-Link, USt-IdNr. vorhanden).
+
+### § 9 Abs. 3 — Klarstellung (Julius 09.10.2026)
+
+Zitat (nach Ergänzung):
+
+> (3) Nach Zugang der Kündigung bleibt die Studio-Umgebung bis zum Wirksamwerden der Kündigung **30 Tage** im bisherigen Umfang nutzbar. In dieser Zeit kann das Studio seine Daten exportieren.
+
+Abs. 3 meint die Zeit **bis zum Wirksamwerden** der Kündigung (voller Umfang). Abs. 4 gilt **danach** (nur Export). Kein inhaltlicher Widerspruch — nur der Halbsatz „bis zum Wirksamwerden der Kündigung“ ergänzt, weil der bisherige Wortlaut unklar war. Neuer AGB-Hash → Banner erscheint erneut für Studios mit alter Zustimmung.
 
 ### Tests (Belege)
 
@@ -49,29 +56,27 @@ npm run dev:e2e -- e2e/rt2.spec.ts → 1 passed
 
 ### Deploy-Nachweis (vor Haltestelle 5)
 
+Abs.-3-Klarstellung (nach Push ergänzt):
+
 | Beleg | Ergebnis |
 |---|---|
-| HEAD gepusht | `3654d9a` (`docs(geldkette): RT-2 Bericht Diff und STAND`) |
-| Live-Bundle | `https://demoalpha.omlify-dev.de/assets/index-sUKo0xF4.js` |
-| Merkmal Banner | `Aktualisierte Vertragsunterlagen` @ Offset 971542 |
-| Merkmal AGB-Hash | `4b9d1309…dc55f96` @ 943205 |
-| Merkmal Datenschutz | `Anbindung an Stripe` @ 930439; `08.10.2026` @ 927289 |
-| Check-Run Workers Builds | `gh` lokal nicht authentifiziert — Live-Bundle mit neuen Merkmalen belegt den Deploy aus `Julius` |
-
-Statische `/legal/*` auf dem Apex liegen hinter Cloudflare Access; Inhalte stecken im SPA-Bundle (`LEGAL_DOCUMENTS`) und im Marketing-Build (lokal `check:ci`: `legal/agb.html` 14.19 kB, `legal/datenschutz.html` 17.88 kB).
+| Migration | `20261009120000` auf DEV |
+| terms-Hash | `9acd5496274c520c18dcccb0fe6bbdae0626225b66bdfdc85dfa1e7734622fe4` |
+| `check:ci` / E2E | grün / `e2e/rt2.spec.ts` 1 passed |
+| Live-Bundle | *(nach Push)* Merkmal neuer Hash + „bis zum Wirksamwerden der Kündigung“ |
 
 ---
 
 ## Diff AGB alt → neu
 
 Quelle alt: `docs/legal/AGB.md` (Stand 20.09.2026)  
-Quelle neu: `docs/legal/AGB.v2.md` (Stand 08.10.2026 · Version 2)
+Quelle neu: `docs/legal/AGB.v2.md` (Stand 09.10.2026 · Version 2)
 
 ### Stand-Zeile
 
 | Alt | Neu |
 |---|---|
-| `**Stand:** 20.09.2026` | `**Stand:** 08.10.2026 · Version 2` |
+| `**Stand:** 20.09.2026` | `**Stand:** 09.10.2026 · Version 2` |
 
 ### § 5 Abs. 3 (ersetzt)
 
@@ -105,7 +110,11 @@ Wortlaut aus Delta wörtlich (PStTG / Behördenmeldungen).
 
 Zusätzlicher Delta-Satz „Nach Vertragsende stellt Omlify …“ **nicht** angehängt (laut H2 bereits in Abs. 4 enthalten).
 
-§ 9 Abs. 3 unverändert (siehe Hinweis oben).
+### § 9 Abs. 3 (Klarstellung 09.10.2026)
+
+**Vorher (v2 erste Fassung):** „Nach Zugang der Kündigung bleibt die Studio-Umgebung **30 Tage** im bisherigen Umfang nutzbar.“
+
+**Nachher:** Halbsatz ergänzt — „bis zum Wirksamwerden der Kündigung“ (siehe Zitat oben). Bedeutet die Zeit bis zum Wirksamwerden, keine Änderung der Systematik zu Abs. 4.
 
 ### § 10 Änderungen (ersetzt)
 
@@ -184,15 +193,15 @@ Bullet-Punkte für Nachweise (+3 Jahre), ops_alerts 90 Tage nach Erledigung, ema
 
 ## Klicktest (Haltestelle 5)
 
-1. Owner ohne AGB-Zustimmung (z. B. demoalpha nach Deploy): Banner „Aktualisierte Vertragsunterlagen: AGB (v2) · AVV (v2)“ — Texte öffnen, Häkchen, Zustimmen → Banner weg; zwei Zeilen in `legal_acceptances` (bzw. nur fehlende Docs).
+1. Owner mit alter AGB-Zustimmung (Hash vor Abs.-3-Klarstellung, z. B. demoalpha): Banner zeigt wieder **AGB (v2)** — Text öffnen, prüfen § 9 Abs. 3 enthält „bis zum Wirksamwerden der Kündigung“, Häkchen, Zustimmen → Banner weg; neue `legal_acceptances`-Zeile mit Version `2026-10-09` / Hash `9acd5496…`.
 2. Einstellungen › Rechtliches: Abschnitte AGB (Omlify) + AVV; Aufmerksamkeit listet fehlende AGB/AVV.
-3. `/legal/agb` und `/legal/datenschutz` auf omlify-dev: Stand 08.10.2026 · Version 2; kein OS-Link im Impressum.
+3. `/legal/agb` und `/legal/datenschutz` auf omlify-dev: Stand AGB **09.10.2026** · Version 2; kein OS-Link im Impressum.
 4. Neues Studio Onboarding: AGB + Datenschutz + AVV verlinkt; nach Login werden drei Fassungen gespeichert.
 
 ---
 
 ## Unsicherheiten / Entscheidungen
 
-1. § 9 Abs. 3 belassen trotz Spannungsfeld zu Abs. 4 (Delta/H2 ersetzten nur Abs. 4).
+1. § 9 Abs. 3: Julius — Zeit bis zum Wirksamwerden; Halbsatz ergänzt (09.10.2026).
 2. Datenschutz-Zustimmung: im Banner nur AGB+AVV (Story-Wortlaut); Privacy nur Onboarding + Seed in `legal_document_versions`.
 3. `email_deliveries`-Retention im Rauchtest nicht mit künstlicher Zeile belegt (Event-Schema streng); Codepfad in `retention_cleanup` vorhanden; ops_alerts + provider_events_raw + verwaiste Acceptances belegt.

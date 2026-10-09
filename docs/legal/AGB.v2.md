@@ -1,6 +1,6 @@
 # Allgemeine Geschäftsbedingungen für die Nutzung von Omlify
 
-**Stand:** 08.10.2026 · Version 2
+**Stand:** 09.10.2026 · Version 2
 
 ---
 
@@ -177,8 +177,9 @@ erforderlichen Angaben auf Anforderung bereit.
 (2) Beide Seiten können den Vertrag jederzeit ohne Einhaltung einer Frist in
 Textform kündigen. Für das Studio genügt eine Mitteilung an support@omlify.de.
 
-(3) Nach Zugang der Kündigung bleibt die Studio-Umgebung **30 Tage** im bisherigen
-Umfang nutzbar. In dieser Zeit kann das Studio seine Daten exportieren.
+(3) Nach Zugang der Kündigung bleibt die Studio-Umgebung bis zum Wirksamwerden
+der Kündigung **30 Tage** im bisherigen Umfang nutzbar. In dieser Zeit kann das
+Studio seine Daten exportieren.
 
 (4) Nach Wirksamwerden der Kündigung stellt Omlify dem Studio für 30 Tage Exporte
 seiner Daten bereit (insbesondere Teilnehmende, Buchungen, Zahlungen und Belege);
@@ -241,9 +242,10 @@ die Wirksamkeit der übrigen Bestimmungen unberührt.
 1. **§ 4 Abs. 2 spiegelt die Zusage auf der Landingpage** („Kommt einer, erfährst
    du ihn mindestens zwei Monate vorher"). Ändert sich die eine Stelle, muss die
    andere mitgeändert werden.
-2. **§ 9 Abs. 3 und Abs. 4:** Es gibt keinen Kontozustand „nur Export“. Kündigungen
-   laufen manuell (`delete_tenant_complete`); Exporte stellt Julius vor dem Löschen
-   per E-Mail bereit. Vor erster echter Kündigung: OFFENE_PUNKTE.
+2. **§ 9 Abs. 3** = 30 Tage voll nutzbar bis zum Wirksamwerden; **Abs. 4** = danach
+   nur Export. Kontozustand „nur Export“ gibt es nicht; Kündigungen manuell
+   (`delete_tenant_complete`); Exporte per E-Mail. Vor erster echter Kündigung:
+   OFFENE_PUNKTE.
 3. **§ 9 Abs. 4 und § 8 Abs. 1 setzen die 90-Tage-Lifecycle-Regel im R2-Bucket
    voraus.** Solange der Bucket nie aufräumt, stimmt die Aussage nicht.
 4. **Widerrufsrecht:** Weil die Nutzung unentgeltlich ist und die erhobenen Daten

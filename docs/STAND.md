@@ -1,21 +1,22 @@
 # STAND — Omlify DEV
 
-Stand: 2026-10-08 · Branch `Julius` · RT-2 AGB/Datenschutz v2 umgesetzt (Haltestelle 5)
+Stand: 2026-10-09 · Branch `Julius` · RT-2 AGB § 9 Abs. 3 Klarstellung (neuer terms-Hash)
 
 ## DEV
 
-- Migrationen bis `20261008200000` (RT-2 terms/privacy Seed, Nachweise, retention_cleanup; zuvor F2 `20261008190000`)
-- Functions: unverändert; neu RPC `retention_cleanup` (service_role); Cron `yogaflow_retention_cleanup` 03:15 UTC
+- Migrationen bis `20261009120000` (AGB Abs. 3 Wirksamwerden-Hash; zuvor `20261008200000` Retention)
+- Functions: unverändert; RPC `retention_cleanup` (service_role); Cron `yogaflow_retention_cleanup` 03:15 UTC
 - Secrets (Namen): `LEGAL_PDF_SECRET` (Vault); `CALENDAR_ICS_SECRET`; `OPS_MONITOR_SECRET`, `OPS_ALERT_EMAIL`; `OPS_HEARTBEAT_URL` nicht gesetzt
 - Cron: + `yogaflow_retention_cleanup`; bestehende Legal/Pass/Ops-Jobs
 - E2E: RT-2 `e2e/rt2.spec.ts` (e2eapp); Rauch `scripts/test/rt2_retention.mjs`
-- Legal: Live-Quellen `AGB.v2.md` / `Datenschutzerklaerung.v2.md`; Seeds `terms`/`privacy` 2026-10-08
+- Legal: `AGB.v2.md` Stand 09.10.2026 · Hash `9acd5496…`; `privacy` 2026-10-08
 - Demo: `npm run dev:demo:seed` — relativ zum Laufzeitpunkt
 
 ## Zuletzt abgeschlossen
 
-- **RT-2 Omlify-Rechtstexte v2** — AGB/Datenschutz v2, Banner, Onboarding-Bundle, Retention
+- **RT-2 AGB § 9 Abs. 3** — Halbsatz „bis zum Wirksamwerden“; neuer terms-Hash → Banner erneut
   - Bericht: [docs/berichte/rt2_omlify_rechtstexte_v2.md](berichte/rt2_omlify_rechtstexte_v2.md) — Haltestelle 5
+- **RT-2 Omlify-Rechtstexte v2** — AGB/Datenschutz v2, Banner, Onboarding-Bundle, Retention
 - **Hotfix Kurs-zuweisen mobil** — PROD live (#175 `5a40976`), `main` in Julius (`88c0694`)
 - **Nachtrag F** — F1–F5 (L3 zuerst)
 
