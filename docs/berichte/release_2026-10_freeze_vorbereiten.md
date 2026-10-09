@@ -248,6 +248,15 @@ Phase 6 separat: Live-Stripe Secrets, Webhooks, `PAYMENTS_MODE=live`, VITE Strip
 
 ---
 
+## Deploy-Nachweis (nach Push)
+
+| | |
+|--|--|
+| HEAD | `da5a9bf` |
+| Workers Builds: omlify-dev | `success` |
+| Typen, Lint und Build | `success` |
+| Live-Bundle-Merkmal | nicht nötig (nur SQL/Doku, keine UI-Änderung) |
+
 ## STOPP
 
-Wartet auf Julius: Freigabe Phase 2 (E1–E9), Docker/Probe für 85er-Lauf, Commit dieser Schicht nach CI.
+Wartet auf Julius: Entscheidungen E1–E9 (Phase 2), Docker/Probe für 85er-Lauf (Haltestelle), T0-1a bei Extension-Fehler.
