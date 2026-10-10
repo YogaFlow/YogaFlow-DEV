@@ -148,10 +148,12 @@ Kurs zuweisen läuft über RPC `admin_register_user_for_course` (kein Function-I
 - Nutzerverwaltung: `reactToSessionInvokeError` an `set-participant-password`, `update-user`, `delete-user`.
 - Unit-Test: Function 401 „Auth session missing“ → genau 1× Ablauf, Hinweistext, URL `/auth?signed_out=1&next=/users` (Login-Route der App ist `/auth`, nicht `/login`).
 
+Commits: Julius `c57eda7`, Hotfix `79ad145`. 12 Unit-Tests grün.
+
 ---
 
 ## STOPP
 
-Schritt 3 erneut auf DEV (Mac global abmelden → iPhone Passwort setzen → Hinweis + Login). Nicht mergen, bis 3–5 durch und die PR-CI grün ist. `origin/main` danach in Julius mergen.
+Schritt 3 erneut auf DEV (Mac global abmelden → iPhone Passwort setzen → Hinweis + Login). Build muss `c57eda7` (oder neuer) sein. Nicht mergen, bis 3–5 durch und die PR-CI grün ist. `origin/main` danach in Julius mergen.
 
 Hinweis danach: Wer die App schon offen hatte, lädt einmal von Hand neu (Testkundin). Ab dann kommt der Versionshinweis von selbst.
