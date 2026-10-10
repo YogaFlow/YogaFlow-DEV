@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { isCourseUpcoming } from './courseDateTime';
+import { reactToSessionInvokeError } from './sessionGuard';
 
 export type RemovalPreview = {
   upcoming: number;
@@ -83,6 +84,9 @@ export async function removePerson(userId: string): Promise<RemovePersonResult> 
     body: { userId },
   });
   if (error) {
+    if (await reactToSessionInvokeError(error)) {
+      return { ok: false, code: 'session_ended', message: '' };
+    }
     const body = await readInvokeErrorBody(error);
     return {
       ok: false,

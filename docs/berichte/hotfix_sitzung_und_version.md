@@ -1,6 +1,6 @@
 # Bericht — Hotfix Sitzung und Version
 
-Stand: 2026-10-09 · Branch `Julius` `f3356dc` · Hotfix `bce1ed0` von `origin/main` · Status: **angehalten (STOPP, Klicktest)**
+Stand: 2026-10-10 · Branch `Julius` · Hotfix `hotfix/sitzung-und-version` · Status: **angehalten (STOPP, Klicktest Schritt 3 erneut)**
 
 ---
 
@@ -110,14 +110,48 @@ console.log(res.status);
 
 `res.status` ist 204. iPhone in den Vordergrund: innerhalb von Sekunden „Du wurdest abgemeldet. Bitte melde dich neu an.“, Anmeldung, danach dieselbe Seite.
 
-3. Wie 2, aber auf dem iPhone direkt Passwort setzen: derselbe Hinweis, dann Anmeldung. Keine stille Fehlermeldung.
+3. Wie 2, aber auf dem iPhone direkt **Passwort setzen**: derselbe Hinweis, dann Anmeldung. Keine stille Fehlermeldung.  
+   _(Schritt 3 am 10.10. zuerst ❌ — siehe Nachtrag unten. Nach dem Fix erneut.)_
 4. Teilnehmer ohne Recht auf eine Owner-Seite: „keine Berechtigung“, kein Abmelden.
 5. App offen lassen und Bescheid sagen. Dann kommt ein leerer Commit. Nach dem Build App in den Vordergrund: Leiste „Neue Version verfügbar“, „Neu laden“, neue Build-ID.
 
 ---
 
+## Nachtrag Klicktest Schritt 3 (10.10.)
+
+### Befund
+
+- Schritt 2 ✅ (Zurückkehren → `session_not_found` → Hinweis + Login).
+- Schritt 3 ❌. DEV-Log UTC: 16:33:17 globaler Logout. 16:33:31 Edge Function vom iPhone → `initService: JWT ungültig` / `AuthSessionMissingError` (401). Kein Hinweis, kein Login; Nutzerverwaltung lud neu (`get_current_member` 16:33:32). Zweiter Versuch 16:34:16: 401 → `logout?scope=local`, danach wieder nur Neuladen.
+
+### Welche Function?
+
+**`set-participant-password`** (Passwort setzen). Dieselbe 401-Form kommt von `initService` auch bei den anderen Function-Aufrufen der Nutzerverwaltung:
+
+| Aufruf | Function |
+|---|---|
+| Passwort setzen | `set-participant-password` |
+| Profil speichern | `update-user` |
+| Person entfernen | `delete-user` (`removePerson`) |
+
+Kurs zuweisen läuft über RPC `admin_register_user_for_course` (kein Function-Invoke); Sitzungsende dort weiter über den zentralen `fetch`-Wächter / PostgREST.
+
+### Ursache
+
+1. Die 401 der Function **wurde** erkannt (`invalid_token` / Status 401 → Klassifizierer + `logout?scope=local` beim zweiten Versuch). Beim ersten Versuch wirkt es so, als hätte der async Body-Weg und/oder der Race den Ablauf „verschluckt“.
+2. **Race:** `beginForcedSignOut` rief `signOut({ scope: 'local' })` ohne `await` und machte sofort `location.replace('/auth?signed_out=1&next=/users')`. Die Auth-Seite startete **mit noch gültigen Tokens in localStorage**, der Redirect-Effekt sah eine Sitzung und sprang zurück nach `/users`. PostgREST akzeptiert den JWT noch (~1 h), Functions prüfen die Session serverseitig → Seite „lädt neu“, kein Login-Hinweis.
+
+### Fix
+
+- Vor dem Wechsel: Intent in `sessionStorage`, `sb-*` lokal löschen, **`await signOut({ scope: 'local' })`**, erst dann `location.replace`.
+- Auth-Seite: Hinweis auch aus `sessionStorage`; während die alte Sitzung noch geräumt wird, kein Sprung zu `next`.
+- Nutzerverwaltung: `reactToSessionInvokeError` an `set-participant-password`, `update-user`, `delete-user`.
+- Unit-Test: Function 401 „Auth session missing“ → genau 1× Ablauf, Hinweistext, URL `/auth?signed_out=1&next=/users` (Login-Route der App ist `/auth`, nicht `/login`).
+
+---
+
 ## STOPP
 
-Nicht mergen, bis der Klicktest 1–5 durch ist und die PR-CI grün ist. `origin/main` wird danach in Julius gemerged, nicht vorher.
+Schritt 3 erneut auf DEV (Mac global abmelden → iPhone Passwort setzen → Hinweis + Login). Nicht mergen, bis 3–5 durch und die PR-CI grün ist. `origin/main` danach in Julius mergen.
 
 Hinweis danach: Wer die App schon offen hatte, lädt einmal von Hand neu (Testkundin). Ab dann kommt der Versionshinweis von selbst.

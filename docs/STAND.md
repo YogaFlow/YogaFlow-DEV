@@ -14,7 +14,7 @@ Stand: 2026-10-09 · Branch `Julius` · Hotfix Sitzung und Version (`f3356dc`)
 
 ## Zuletzt abgeschlossen
 
-- **Hotfix Sitzung und Version** — lokal abmelden, Sitzungswächter, Versionsleiste. DEV-Build `f3356dc` live. Klicktest offen.
+- **Hotfix Sitzung und Version** — lokal abmelden, Sitzungswächter, Versionsleiste. Schritt 2 ✅, Schritt 3-Fix (Race Auth→next) gepusht, Klicktest 3 erneut.
   - Bericht: [docs/berichte/hotfix_sitzung_und_version.md](berichte/hotfix_sitzung_und_version.md)
 - **RT-2 AGB § 9 Abs. 3+4** — wirksam mit Zugang, 30 Tage Export, Löschung nach AVV; Abs. 2 unverändert; AVV-Frist gleich
   - Bericht: [docs/berichte/rt2_omlify_rechtstexte_v2.md](berichte/rt2_omlify_rechtstexte_v2.md) — Haltestelle 5

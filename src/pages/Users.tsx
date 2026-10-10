@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { visibleCourses, visibleMembers } from '../lib/visibleScope';
-import { beginForcedSignOut } from '../lib/sessionGuard';
-import { fieldsFromErrorBody, isSessionError } from '../lib/sessionRules.mjs';
+import { reactToSessionInvokeError, readInvokeFailure } from '../lib/sessionGuard';
 import { formatDate } from '../lib/format';
 import { User, UserRole, Course, AdminRegisterForCourseResult, AdminRegisterCoverage } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -129,28 +128,6 @@ const PASSWORD_ERROR_TEXT: Record<string, string> = {
 function passwordErrorText(code: string | null): string {
   if (code && PASSWORD_ERROR_TEXT[code]) return PASSWORD_ERROR_TEXT[code];
   return 'Das hat nicht geklappt. Bitte versuch es noch einmal.';
-}
-
-async function readFunctionError(error: unknown): Promise<{
-  code: string | null;
-  message: string | null;
-  status: number | null;
-}> {
-  const context = (error as { context?: { status?: number; clone?: () => { text?: () => Promise<string> }; text?: () => Promise<string> } }).context;
-  const status = context && typeof context.status === 'number' ? context.status : null;
-  const source = typeof context?.clone === 'function' ? context.clone() : context;
-  let code: string | null = null;
-  let message: string | null = error instanceof Error ? error.message : null;
-  if (source && typeof source.text === 'function') {
-    try {
-      const parsed = fieldsFromErrorBody(await source.text());
-      code = parsed.code;
-      message = parsed.message ?? message;
-    } catch {
-      // Body bleibt leer, die Statuszeile reicht für den Klassifizierer.
-    }
-  }
-  return { code, message, status };
 }
 
 /** null = Spalte fehlt in der Antwort. Dann nicht „kein Login“ behaupten. */
@@ -485,6 +462,7 @@ export default function Users() {
       });
 
       if (fnError) {
+        if (await reactToSessionInvokeError(fnError)) return;
         throw new Error(
           (fnError as unknown as { details?: string }).details
             || fnError.message
@@ -530,16 +508,8 @@ export default function Users() {
         body: { userId, password: value },
       });
       if (error) {
-        const body = await readFunctionError(error);
-        if (isSessionError({
-          status: body.status,
-          code: body.code,
-          message: body.message,
-          source: 'function',
-        })) {
-          beginForcedSignOut();
-          return;
-        }
+        if (await reactToSessionInvokeError(error)) return;
+        const body = await readInvokeFailure(error);
         setPasswordError(passwordErrorText(body.code));
         return;
       }
@@ -727,6 +697,7 @@ export default function Users() {
     setRemoveErrorCode(null);
     const result = await removePerson(removeTarget.id);
     if (!result.ok) {
+      if (result.code === 'session_ended') return;
       setRemoveError(result.message);
       setRemoveErrorCode(result.code);
       setRemoveBusy(false);

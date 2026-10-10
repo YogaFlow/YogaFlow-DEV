@@ -5,6 +5,9 @@
 
 export const SIGNED_OUT_MESSAGE = 'Du wurdest abgemeldet. Bitte melde dich neu an.';
 
+/** sessionStorage — überlebt das Neuladen, falls die Query noch fehlt. */
+export const FORCED_SIGN_OUT_STORAGE_KEY = 'omlify_forced_sign_out';
+
 const SESSION_CODES = new Set([
   'session_not_found',
   'refresh_token_not_found',
@@ -42,7 +45,6 @@ export function fieldsFromErrorBody(text) {
     const code = firstString([
       record.error_code,
       typeof record.code === 'string' ? record.code : null,
-      typeof record.error === 'string' ? record.error : null,
     ]);
     const message = firstString([
       record.message,
@@ -54,6 +56,32 @@ export function fieldsFromErrorBody(text) {
   } catch {
     return { code: null, message: trimmed.slice(0, 300) };
   }
+}
+
+/**
+ * FunctionsHttpError: Status in error.context.status, Text oft nur im Body.
+ * @param {unknown} error
+ * @param {string | null | undefined} [bodyText]
+ */
+export function sessionFailureFromInvokeError(error, bodyText) {
+  const record = error && typeof error === 'object' ? /** @type {Record<string, unknown>} */ (error) : {};
+  const context = record.context && typeof record.context === 'object'
+    ? /** @type {Record<string, unknown>} */ (record.context)
+    : null;
+  const status =
+    (context && typeof context.status === 'number' ? context.status : null)
+    ?? (typeof record.status === 'number' ? record.status : null);
+  const fromBody = fieldsFromErrorBody(typeof bodyText === 'string' ? bodyText : '');
+  const message = fromBody.message
+    ?? (typeof record.message === 'string' ? record.message : null);
+  const code = fromBody.code
+    ?? (typeof record.code === 'string' ? record.code : null);
+  return {
+    status,
+    code,
+    message,
+    source: /** @type {const} */ ('function'),
+  };
 }
 
 /**
@@ -119,6 +147,7 @@ export function safeReturnPath(input) {
 }
 
 /**
+ * Login-Pfad der App ist `/auth` (nicht `/login`).
  * @param {string} currentPath
  */
 export function loginSearchForReturn(currentPath) {
@@ -127,6 +156,47 @@ export function loginSearchForReturn(currentPath) {
   const next = safeReturnPath(currentPath);
   if (next) params.set('next', next);
   return params.toString();
+}
+
+/**
+ * @param {string} currentPath
+ */
+export function forcedSignOutAuthPath(currentPath) {
+  return `/auth?${loginSearchForReturn(currentPath)}`;
+}
+
+/**
+ * @param {{ next?: string | null }} payload
+ */
+export function persistForcedSignOut(payload) {
+  try {
+    sessionStorage.setItem(
+      FORCED_SIGN_OUT_STORAGE_KEY,
+      JSON.stringify({
+        next: payload.next ?? null,
+        at: Date.now(),
+      }),
+    );
+  } catch {
+    // sessionStorage kann fehlen (privates Fenster).
+  }
+}
+
+/**
+ * @returns {{ next: string | null } | null}
+ */
+export function consumeForcedSignOutStorage() {
+  try {
+    const raw = sessionStorage.getItem(FORCED_SIGN_OUT_STORAGE_KEY);
+    if (!raw) return null;
+    sessionStorage.removeItem(FORCED_SIGN_OUT_STORAGE_KEY);
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    const next = typeof parsed.next === 'string' ? safeReturnPath(parsed.next) : null;
+    return { next };
+  } catch {
+    return null;
+  }
 }
 
 let voluntarySignOut = false;
@@ -155,6 +225,7 @@ export function claimForcedSignOut() {
 
 export function resetForcedSignOutForTests() {
   forcedSignOutClaimed = false;
+  voluntarySignOut = false;
 }
 
 /**

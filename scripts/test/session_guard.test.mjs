@@ -6,11 +6,14 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
+  forcedSignOutAuthPath,
   isSessionError,
   loginSearchForReturn,
   resetForcedSignOutForTests,
   runForcedSignOutOnce,
   safeReturnPath,
+  sessionFailureFromInvokeError,
+  SIGNED_OUT_MESSAGE,
 } from '../../src/lib/sessionRules.mjs';
 
 test('session_not_found ist ein Sitzungsfehler', () => {
@@ -120,4 +123,43 @@ test('Rücksprung lehnt fremde Hosts ab', () => {
   assert.equal(params.get('next'), null);
   assert.equal(safeReturnPath('/users'), '/users');
   assert.equal(new URLSearchParams(loginSearchForReturn('/users?tab=1')).get('next'), '/users?tab=1');
+});
+
+test('Function 401 Auth session missing → genau 1× Ablauf, Auth-URL mit Rücksprung', async () => {
+  resetForcedSignOutForTests();
+  const invokeError = {
+    name: 'FunctionsHttpError',
+    message: 'Edge Function returned a non-2xx status code',
+    context: { status: 401 },
+  };
+  const body = JSON.stringify({
+    code: 'invalid_token',
+    error: 'Auth session missing',
+  });
+  const failure = sessionFailureFromInvokeError(invokeError, body);
+  assert.equal(isSessionError(failure), true);
+  assert.equal(failure.status, 401);
+  assert.match(failure.message ?? '', /auth session missing/i);
+
+  let authPath = null;
+  let notice = null;
+  const results = await Promise.all([
+    runForcedSignOutOnce(async () => {
+      authPath = forcedSignOutAuthPath('/users');
+      notice = SIGNED_OUT_MESSAGE;
+    }),
+    runForcedSignOutOnce(async () => {
+      authPath = 'zweimal';
+    }),
+    runForcedSignOutOnce(async () => {
+      authPath = 'dreimal';
+    }),
+  ]);
+  assert.deepEqual(results, [true, false, false]);
+  assert.equal(notice, 'Du wurdest abgemeldet. Bitte melde dich neu an.');
+  assert.equal(authPath, '/auth?signed_out=1&next=%2Fusers');
+  const url = new URL(authPath, 'https://demoalpha.omlify-dev.de');
+  assert.equal(url.pathname, '/auth');
+  assert.equal(url.searchParams.get('signed_out'), '1');
+  assert.equal(url.searchParams.get('next'), '/users');
 });
