@@ -111,12 +111,15 @@ const Participants: React.FC = () => {
         if (!isMounted) return;
         setCourses(upcomingCourses);
 
+        // FK-Hints: nach Geldkette hat registrations mehrere FKs auf users
+        // (user_id, cancelled_by, coverage_waived_by) → sonst PGRST201.
+        // registrations_user_id_fkey existiert auch auf dem alten PROD-Schema.
         const { data: registrationsData, error: registrationsError } = await supabase
           .from('registrations')
           .select(`
             *,
             user:users!registrations_user_id_fkey(*),
-            course:courses(*)
+            course:courses!registrations_course_id_fkey(*)
           `)
           .order('registered_at', { ascending: false });
 
