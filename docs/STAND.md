@@ -1,6 +1,6 @@
 # STAND — Omlify DEV
 
-Stand: 2026-10-12 · Branch `Julius` · Generalprobe GO (Probe stehen lassen)
+Stand: 2026-10-12 · Branch `Julius` · Freeze nach main→Julius inkl. #177
 
 ## DEV
 
@@ -15,7 +15,7 @@ Stand: 2026-10-12 · Branch `Julius` · Generalprobe GO (Probe stehen lassen)
 
 ## Zuletzt abgeschlossen
 
-- **Release 2026-10 Generalprobe** — GO; Tag `release-2026-10-freeze` (= Julius HEAD, UI `2ccbef9`); Bericht [release_2026-10_generalprobe.md](berichte/release_2026-10_generalprobe.md); Probe stehen lassen
+- **Release 2026-10 Generalprobe** — GO; Tag `release-2026-10-freeze` = `a688db0` (main→Julius inkl. PR #177 PGRST201; UI `2ccbef9`); Bericht [release_2026-10_generalprobe.md](berichte/release_2026-10_generalprobe.md); Probe stehen lassen
 - **Release 2026-10 · Allowlist + RT-2 Onboarding-Zustimmungen** — gebaut; **Klicktest A1/A2/B1 grün** (demoepsilon)
   - Migrationen `20261009161000`, `20261009161100`; DEV 204
   - Tests: `online_payments_allowlist.mjs`, `onboarding_legal_acceptances.mjs`
@@ -50,7 +50,7 @@ Stand: 2026-10-12 · Branch `Julius` · Generalprobe GO (Probe stehen lassen)
 
 ## hier weitermachen
 
-Generalprobe **GO mit Bedingungen** — [release_2026-10_generalprobe.md](berichte/release_2026-10_generalprobe.md): Hotfix-PR `hotfix/pgrst201-registration-embeds` → main mergen → PROD Teilnehmerliste → main→Julius → neuer Freeze-Tag. PDF-Link ausgeblendet. **Probe nicht löschen** bis Julius.
+Generalprobe **GO** — [release_2026-10_generalprobe.md](berichte/release_2026-10_generalprobe.md): #177 auf main, PROD Teilnehmerliste grün, `main`→`Julius`, Freeze-Tag neu. PDF ausgeblendet. **Probe nicht löschen** bis Julius. Als Nächstes Release-Abend Phase 5/6.
 
 ## Verweise
 

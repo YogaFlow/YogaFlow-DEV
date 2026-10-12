@@ -135,17 +135,25 @@ Live-PROD (readonly): nur `registrations_user_id_fkey` + `registrations_course_i
 | Branch | `hotfix/pgrst201-registration-embeds` (`b73b7d8`) von `origin/main` |
 | Änderung | `src/pages/Participants.tsx` — FK-Hints |
 | PR | https://github.com/YogaFlow/YogaFlow-DEV/compare/main...hotfix/pgrst201-registration-embeds?expand=1 |
-| Nach Merge | PROD Teilnehmerliste prüfen → `main` in `Julius` mergen → **neuer Freeze-Hash** + Tag |
+| Nach Merge | ✅ PROD Teilnehmerliste lädt (Julius) → `main`→`Julius` `a688db0` → Freeze-Tag neu |
 
 ### 2 — PDF-Link
 
 Owner-PDF-Links in `StudioLegalHub` entfernt; `openStudioLegalPdf` entfernt. OFFENE_PUNKTE aktualisiert.
 
+### 3 — `main`→`Julius` + Freeze (2026-10-12 Abend)
+
+| | |
+|--|--|
+| Merge | `a688db0` `chore: origin/main nach Julius (PR #177 PGRST201)` |
+| Konflikt | `Participants.tsx` course-Embed → Hint `courses!registrations_course_id_fkey` (main) |
+| Tag | `release-2026-10-freeze` → Julius HEAD nach diesem Docs-Commit (enthält `a688db0`) |
+
 ---
 
 ## Endgültige Release-Abend-Reihenfolge
 
-**Vor Phase 5:** Hotfix `main` gemergt, PROD Teilnehmerliste grün, `main`→`Julius`, Freeze-Tag neu.
+**Vor Phase 5:** Hotfix `main` gemergt, PROD Teilnehmerliste grün, `main`→`Julius`, Freeze-Tag neu — **erledigt** (`a688db0`).
 
 Befehle so tippen (PROD nur mit Julius-Bestätigung). Ref-Check immer vorher.
 
@@ -215,9 +223,9 @@ SELECT public.set_online_payments_studio_allowed('yomita', false);
 | Allowlist / Legal-Onboarding | **GO** |
 | Rückweg `main` (nach Hotfix) | **GO** (Teilnehmerliste mit FK-Hint) |
 | PDF Owner-Download | ausgeblendet — kein Blocker |
-| Release-Abend gesamt | **GO** nach Merge Hotfix + Freeze-Tag neu; Allowlist-Reihenfolge; Probe danach löschen |
+| Release-Abend gesamt | **GO**; Allowlist-Reihenfolge; Probe danach löschen |
 
-**Gesamt: GO mit Bedingungen** — Hotfix-PR mergen (Julius), dann Freeze neu; Probe stehen lassen.
+**Gesamt: GO** — Hotfix #177 auf `main`, PROD Teilnehmerliste grün, `main` in `Julius`, Freeze-Tag neu. Probe stehen lassen bis Julius löscht.
 
 ---
 
@@ -231,8 +239,16 @@ SELECT public.set_online_payments_studio_allowed('yomita', false);
 | Workers Builds: omlify-dev | 🟢 `success` für `8199c04` ([run](https://github.com/YogaFlow/YogaFlow-DEV/runs/114930454686)); Bundle enthält UI-Merkmal |
 | CI Typen/Lint/Build | 🟢 `success` |
 | Live-Merkmal | `Frühere Kurse` / `erledigt markieren` / `legal-current-pdf` in `https://demoalpha.omlify-dev.de/assets/index-BQQ1ojyf.js` (Index ~1510164 / ~991923) |
-| Tag `release-2026-10-freeze` | force-update auf Julius HEAD inkl. UI `2ccbef9` (`git rev-parse release-2026-10-freeze`) |
+| Tag `release-2026-10-freeze` | force-update auf Julius HEAD `a688db0` (inkl. PR #177 + UI `2ccbef9`) |
+
+## Nachtrag Freeze nach PGRST201 (Abend)
+
+| | |
+|--|--|
+| Merge-Commit | `a688db0` |
+| Enthält | `179bcfb` Merge #177 · course-FK-Hint in `Participants.tsx` |
+| Tag | `release-2026-10-freeze` auf Julius HEAD (Docs-Nachzug inkl. Merge) |
 
 ## STOPP
 
-Wartet auf Julius: Bericht lesen → Probe löschen → Release-Abend nach Phase 5/6.
+GO-Bedingungen erledigt. Wartet auf Julius: Release-Abend Phase 5/6 · Probe danach löschen.
