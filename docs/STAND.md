@@ -15,7 +15,8 @@ Stand: 2026-10-12 · Branch `Julius` · Freeze nach main→Julius inkl. #177
 
 ## Zuletzt abgeschlossen
 
-- **Release 2026-10 Generalprobe** — GO; Tag `release-2026-10-freeze` = `a688db0` (main→Julius inkl. PR #177 PGRST201; UI `2ccbef9`); Bericht [release_2026-10_generalprobe.md](berichte/release_2026-10_generalprobe.md); Probe stehen lassen
+- **Legal-Cleanup DEV vor Release-Abend** — „AGB Test“ auf demoalpha/demobeta stammte aus `studioLegalFreigeben` (Nachtrag F, 2026-10-08 17:07); neu freigegeben via `demo_legal_rerelease.mjs` (echte Vorlage, Append-only). stash@{0} verworfen. **Befund:** RPC akzeptiert beliebigen Body (kein Vorlagen-Abgleich) → auf PROD nach Schema-Live möglich. Rauchtest PROD `/agb` → `/auth` (Bundle noch ohne Routen). Bericht [release_2026-10_abend_legal_cleanup.md](berichte/release_2026-10_abend_legal_cleanup.md) · **STOPP Phase 5**
+- **Release 2026-10 Generalprobe** — GO; Tag `release-2026-10-freeze` = `35d44d4` (main→Julius inkl. PR #177 PGRST201; UI `2ccbef9`); Bericht [release_2026-10_generalprobe.md](berichte/release_2026-10_generalprobe.md); Probe stehen lassen
 - **Release 2026-10 · Allowlist + RT-2 Onboarding-Zustimmungen** — gebaut; **Klicktest A1/A2/B1 grün** (demoepsilon)
   - Migrationen `20261009161000`, `20261009161100`; DEV 204
   - Tests: `online_payments_allowlist.mjs`, `onboarding_legal_acceptances.mjs`
@@ -31,11 +32,12 @@ Stand: 2026-10-12 · Branch `Julius` · Freeze nach main→Julius inkl. #177
 
 ## Nächste Schritte
 
-- **Release 2026-10** Freeze + Abendablauf §5 (nur omlifytest → Rauch → yomita; Modus `allowlist`)
-- RT-2 Haltestelle 5 / Nachtrag F / UX parallel falls offen
+- **Release 2026-10 Abend** — einseitige Checkliste [RELEASE_2026-10_ABEND.md](RELEASE_2026-10_ABEND.md) (T–60 → Yomita); Freeze `35d44d4`; heute kein PROD
+- Härtung Studio-Rechtstexte-RPC → [OFFENE_PUNKTE.md](OFFENE_PUNKTE.md) (nach Pilot)
 
 ## Haltestellen / wartet auf Julius
 
+- **Release-Abend morgen** — [RELEASE_2026-10_ABEND.md](RELEASE_2026-10_ABEND.md) · Legal-Cleanup: [release_2026-10_abend_legal_cleanup.md](berichte/release_2026-10_abend_legal_cleanup.md)
 - **Stripe live Allowlist + Legal STOPP** — [release_2026-10_stripe_live_vorbereitung.md](berichte/release_2026-10_stripe_live_vorbereitung.md) · Klicktest grün → **Freeze**
 
 - **Hotfix Sitzung und Version STOPP** — [hotfix_sitzung_und_version.md](berichte/hotfix_sitzung_und_version.md)
@@ -50,7 +52,7 @@ Stand: 2026-10-12 · Branch `Julius` · Freeze nach main→Julius inkl. #177
 
 ## hier weitermachen
 
-Generalprobe **GO** — [release_2026-10_generalprobe.md](berichte/release_2026-10_generalprobe.md): #177 auf main, PROD Teilnehmerliste grün, `main`→`Julius`, Freeze-Tag neu. PDF ausgeblendet. **Probe nicht löschen** bis Julius. Als Nächstes Release-Abend Phase 5/6.
+Freeze `35d44d4` halten. Checkliste: [RELEASE_2026-10_ABEND.md](RELEASE_2026-10_ABEND.md). Release-Abend morgen. Probe stehen lassen.
 
 ## Verweise
 

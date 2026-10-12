@@ -1,6 +1,6 @@
 # Offene Punkte
 
-**Stand:** 02.10.2026
+**Stand:** 12.10.2026
 Ausführliche Begründungen stehen im Claude-Projekt „Omlify" in
 `Landingpage_Neubau_September_2026.md` und
 `Rechtstexte_Datenschutz_und_Betrieb_September_2026.md`.
@@ -11,6 +11,11 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Jetzt
 
+- [ ] **Härtung: Studio-Rechtstexte serverseitig aus Vorlage + Profil rendern, Body vom Client nicht mehr annehmen — nach Pilot** —
+      `release_studio_legal` / `publish_studio_legal_document` akzeptieren Freitext
+      (`p_body_md`); Prüfung nur Version + Self-Hash. UI rendert korrekt; Risiko nur
+      eigenes Studio (AGB = Studio-Verantwortung). Kein Release-Blocker 2026-10.
+      Befund 2026-10-12 ([release_2026-10_abend_legal_cleanup.md](berichte/release_2026-10_abend_legal_cleanup.md)).
 - [ ] **Härtung courses-Grants (Allowlist, `archived_at` nur RPC), nach Pilot** —
       Live-PROD: `authenticated`/`anon` haben Tabellen-UPDATE auf `courses`; UX-5
       Spalten-REVOKE ist wirkungslos. Analog `users`: REVOKE Tabellen-UPDATE +
