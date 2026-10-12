@@ -1,10 +1,10 @@
 # Bericht — Release 2026-10 Generalprobe (PROD-Kopie)
 
-Stand: 2026-10-12 · Branch `Julius` · Probe-Ref `ehtfsejppefmktwlhiki` · Status: **STOPP — Probe noch nicht löschen**
+Stand: 2026-10-12 · Branch `Julius` · Probe-Ref `ehtfsejppefmktwlhiki` · Status: **STOPP — GO-Bedingungen (Hotfix main + PDF)**
 
 ## Kurz
 
-Generalprobe auf PROD-Kopie durch: Schema-Push inkl. Freeze-Ausnahme Grants, T0/A/T0-3–5, Durchlauf B 11/12 grün, Schritt 8 Allowlist/Legal SQL grün, Schritt 9 Rückweg `main`→Probe mit bekannter Teilnehmerlisten-Lücke (PGRST201). Freeze-Ausnahmen 1–5 nur Frontend. **GO** für Release-Abend mit Julius-Frontend nach Merge; Probe bleibt bis Julius löscht.
+Generalprobe auf PROD-Kopie durch. **GO mit zwei Bedingungen vor Release** (unten Nachtrag): (1) PGRST201-Hotfix auf `main`, (2) PDF-Link ausgeblendet. Probe bleibt bis Julius löscht.
 
 ---
 
@@ -17,10 +17,10 @@ Generalprobe auf PROD-Kopie durch: Schema-Push inkl. Freeze-Ausnahme Grants, T0/
 | Vault / Mail dry | 🟢 | 0 versendet; Auth-Mails 0 (Claude-Probe-Logs) |
 | T0-2 → A → T0-3/4/5 | 🟢 | Cron manuell; kein `run_geldkette` |
 | Durchlauf B | 🟢 11/12 | 1–3, 5, 7, 9–12 ✅ (4/6/8 Dashboard/User tippen) |
-| Freeze-Ausnahmen 1–5 Frontend | 🟢 | A8-Text belegt; K1 nur Monate empfohlen; Impressum-Refetch; Hash nur Tooltip/sr-only; PDF-Link UI |
+| Freeze-Ausnahmen 1–5 Frontend | 🟢 | A8/K1/Impressum/Hash; PDF-Link **wieder ausgeblendet** (keine Storage-Policy) |
 | Schritt 8 Rest SQL | 🟢 | Plattform/Allowlist/Legal/Onboarding-Kontext — Details unten |
-| Schritt 9 `main` vs Probe | 🟡 | Login/Kurse/Buchen/Abmelden 🟢; Teilnehmerliste 🔴 PGRST201 |
-| `check:ci` / Push / DEV-Build / Freeze-Tag | 🟢 | Tag `release-2026-10-freeze` = Julius HEAD; Workers success; Bundle-Merkmal live |
+| Schritt 9 `main` vs Probe | 🟢→Hotfix | Login/Kurse/Buchen/Abmelden 🟢; Teilnehmerliste per FK-Hint (Branch `hotfix/pgrst201-registration-embeds`) |
+| `check:ci` / Push / DEV-Build / Freeze-Tag | 🟢 | Tag `release-2026-10-freeze`; nach main→Julius **neu setzen** |
 
 ---
 
@@ -61,10 +61,10 @@ Nur **„Monate ab Kauf (empfohlen)“** (K3 / Entscheidung 15, 12 Monate). Opti
 |---------|----------|
 | Objekte in Bucket `studio-legal` / `has_pdf` | 🟢 vorhanden auf Probe |
 | Storage-Policies `studio-legal` SELECT | 🔴 Probe **0** Policies auf `storage.objects`; Live-PROD nur `studio_branding_*` |
-| UI-Link „PDF“ aktuelle Fassung | gebaut (`openStudioLegalPdf` + Hub) |
-| Trivial nutzbar? | **Nein** — Client-`createSignedUrl` braucht SELECT-Policy; weder Probe noch PROD hat `studio-legal`-Policies |
+| UI-Link „PDF“ | gebaut, dann **ausgeblendet** (Owner-Download ohne Policy nicht möglich) |
+| `createSignedUrl` Probe | scheitert (kein brauchbarer Owner-Download) |
 
-→ Befund im Bericht; Download über Client-Signed-URL nicht freigeben bis Policy/Edge-Weg geklärt. Keine Migration in dieser Ausnahme.
+→ OFFENE_PUNKTE: „AGB-PDF für Owner herunterladbar machen (signierter Link)“. Keine Storage-Policies vor Release.
 
 ---
 
@@ -88,16 +88,31 @@ Teststudio `prb5iqkdm` wieder entfernt.
 
 ---
 
-## Schritt 9 — Frontend `main` (`06710c1`) gegen migrierte Probe
+## Schritt 9 — Frontend `main` gegen migrierte Probe (Rückweg)
 
 | Pfad | Ampel | Beleg |
 |------|-------|-------|
-| Login User/Owner | 🟢 | Vite `main` @5174 + Probe-Anon |
-| Kursliste | 🟢 | Kurse geladen (u. a. Test Kurs, Yoga …) |
-| Buchen / Abmelden | 🟢 | UI „Anmeldung/Abmeldung erfolgreich“; RPC nur `{ p_course_id }` ok |
-| Teilnehmerliste | 🔴 | UI „0 Teilnehmer“; Ursache: `user:users(*)` → **PGRST201** (FKs `user_id` / `cancelled_by` / `coverage_waived_by`). Mit FK-Hint ok |
+| Login User/Owner | 🟢 | Vite `main` @5174 + Probe |
+| Kursliste | 🟢 | Kurse geladen |
+| Buchen / Abmelden | 🟢 | UI ok; RPC `{ p_course_id }` ok |
+| Teilnehmerliste (unhinted `06710c1`) | 🔴 | PGRST201 |
+| Teilnehmerliste (Hotfix FK-Hint) | 🟢 | Probe: 3 Zeilen inkl. User-Name |
 
-**Fazit Rückweg:** Altes `main`-Frontend überlebt Schema für Login/Kurse/Buchung. Staff-Teilnehmerliste braucht Julius-Frontend (Embed-Hints). Erwartbare Durchlauf-A-/Rückweg-Lücke — kein NO-GO für Merge Julius→main am Abend, solange Frontend mitmerged.
+### Embed-Scan (main-Muster → Probe)
+
+| Stelle | Embed | Probe |
+|--------|-------|-------|
+| `Participants.tsx` | `user:users(*)` | **PGRST201** |
+| `Participants.tsx` Fix | `users!registrations_user_id_fkey` + `courses!registrations_course_id_fkey` | 🟢 |
+| `MyCourses.tsx` | `teacher:users!courses_teacher_id_fkey` (schon) | 🟢 |
+| `MyCourses` hypothetisch ohne Hint | `teacher:users(*)` | PGRST201 (courses→canceled_by) — **nicht im main-Code** |
+| `Messages` | `user:user_id(...)` | 🟢 |
+| Dashboard / MyRegistrations | `course:courses(*)` | 🟢 (eine FK) |
+| `Users.tsx` | `courses(id,title,date)` | 🟢 |
+
+### Kompatibilität altes PROD-Schema
+
+Live-PROD (readonly): nur `registrations_user_id_fkey` + `registrations_course_id_fkey` (kein `cancelled_by` / `coverage_waived_by`). Hint-Namen existieren → Fix ist vorwärts- und rückwärtskompatibel. Unhinted funktioniert auf PROD heute noch; nach Migrationen nicht.
 
 ---
 
@@ -107,11 +122,30 @@ Teststudio `prb5iqkdm` wieder entfernt.
 2. **Push nur über Pooler `--db-url`**, Passwort ausdrücklich; `npx.cmd` unter Windows; bei Abbruch **kein** zweiter Blind-Push.
 3. **Mails:** dry/0 versendet — vor Vault-URL belegt.
 4. **courses Tabellen-UPDATE** bleibt OFFENE_PUNKTE (nicht Push-Blocker).
-5. **PDF Client-Download** braucht Storage-Policy oder Edge — nicht Teil Freeze-Frontend.
+5. **PDF:** Link ausgeblendet; später OFFENE_PUNKTE.
+
+---
+
+## Nachtrag — GO-Bedingungen vor Release
+
+### 1 — Hotfix `main` (PGRST201)
+
+| | |
+|--|--|
+| Branch | `hotfix/pgrst201-registration-embeds` (`b73b7d8`) von `origin/main` |
+| Änderung | `src/pages/Participants.tsx` — FK-Hints |
+| PR | https://github.com/YogaFlow/YogaFlow-DEV/compare/main...hotfix/pgrst201-registration-embeds?expand=1 |
+| Nach Merge | PROD Teilnehmerliste prüfen → `main` in `Julius` mergen → **neuer Freeze-Hash** + Tag |
+
+### 2 — PDF-Link
+
+Owner-PDF-Links in `StudioLegalHub` entfernt; `openStudioLegalPdf` entfernt. OFFENE_PUNKTE aktualisiert.
 
 ---
 
 ## Endgültige Release-Abend-Reihenfolge
+
+**Vor Phase 5:** Hotfix `main` gemergt, PROD Teilnehmerliste grün, `main`→`Julius`, Freeze-Tag neu.
 
 Befehle so tippen (PROD nur mit Julius-Bestätigung). Ref-Check immer vorher.
 
@@ -179,11 +213,11 @@ SELECT public.set_online_payments_studio_allowed('yomita', false);
 | Schema-Push + Align auf Probe | **GO** |
 | Kernflüsse B (ohne getippte 4/6/8) | **GO** |
 | Allowlist / Legal-Onboarding | **GO** |
-| Rückweg altes main für Staff-Teilnehmer | **NO-GO allein** — mit Julius-Frontend **GO** |
-| PDF Client-Download | **NO-GO** (Policy fehlt) — nicht Release-Blocker für Online-Zahlungen |
-| Release-Abend gesamt | **GO** mit Julius-Frontend-Merge, Allowlist-Reihenfolge, Probe danach löschen |
+| Rückweg `main` (nach Hotfix) | **GO** (Teilnehmerliste mit FK-Hint) |
+| PDF Owner-Download | ausgeblendet — kein Blocker |
+| Release-Abend gesamt | **GO** nach Merge Hotfix + Freeze-Tag neu; Allowlist-Reihenfolge; Probe danach löschen |
 
-**Gesamt: GO** — Probe stehen lassen bis Julius löscht.
+**Gesamt: GO mit Bedingungen** — Hotfix-PR mergen (Julius), dann Freeze neu; Probe stehen lassen.
 
 ---
 

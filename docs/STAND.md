@@ -50,7 +50,7 @@ Stand: 2026-10-12 · Branch `Julius` · Generalprobe GO (Probe stehen lassen)
 
 ## hier weitermachen
 
-Generalprobe **GO** — Bericht [release_2026-10_generalprobe.md](berichte/release_2026-10_generalprobe.md). Freeze-Ausnahmen Frontend + Tag nachziehen. **Probe nicht löschen** bis Julius. Release-Abend Phase 5/6.
+Generalprobe **GO mit Bedingungen** — [release_2026-10_generalprobe.md](berichte/release_2026-10_generalprobe.md): Hotfix-PR `hotfix/pgrst201-registration-embeds` → main mergen → PROD Teilnehmerliste → main→Julius → neuer Freeze-Tag. PDF-Link ausgeblendet. **Probe nicht löschen** bis Julius.
 
 ## Verweise
 

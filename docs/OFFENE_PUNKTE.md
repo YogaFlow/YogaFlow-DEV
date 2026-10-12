@@ -16,10 +16,10 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
       Spalten-REVOKE ist wirkungslos. Analog `users`: REVOKE Tabellen-UPDATE +
       Spalten-Allowlist ohne `archived_at`; Archiv nur SECURITY-DEFINER-RPC.
       Nicht im Release 2026-10. Befund Generalprobe 2026-10-12.
-- [ ] **Storage-Policy `studio-legal` (Owner SELECT / Signed URL)** — Live-PROD und
-      Probe haben keine Policies auf `studio-legal`; Client-`createSignedUrl` scheitert.
-      PDF-Link in der UI vorbereitet; Download erst nach Policy oder Edge-Signed-URL.
-      Befund Generalprobe 2026-10-12.
+- [ ] **AGB-PDF für Owner herunterladbar machen (signierter Link)** — Bucket
+      `studio-legal` privat; Live-PROD/Probe ohne Storage-SELECT-Policy. Client-
+      `createSignedUrl` scheitert. PDF-Link vor Release ausgeblendet (Generalprobe
+      2026-10-12). Später: Policy oder Edge-Signed-URL, dann Link wieder zeigen.
 - [ ] **Probe-Restore: Auth-Trigger prüfen** — `on_auth_user_created` /
       `on_auth_user_app_metadata` fehlen nach Backup-Restore (Live-PROD ok). Künftige
       Proben: nach Restore nachziehen. Nicht Release-Blocker.

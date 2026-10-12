@@ -8,7 +8,6 @@ import {
   loadStudioLegalRenderContext,
   loadStudioLegalStatus,
   loadStudioLegalVersions,
-  openStudioLegalPdf,
   pillLabelShort,
   releaseStudioLegal,
   renderStudioLegalKind,
@@ -386,16 +385,6 @@ function DocDetail({
 
       <section className="rounded-md border border-border bg-surface p-3.5">
         <p className="text-[15px] text-text">{statusCardLabel(status, createdAt)}</p>
-        {versions[0]?.pdf_path ? (
-          <button
-            type="button"
-            onClick={() => void openStudioLegalPdf(versions[0].pdf_path!)}
-            className="mt-2 inline-flex min-h-11 items-center text-[15px] font-medium text-brand"
-            data-testid={`legal-current-pdf-${kind}`}
-          >
-            PDF
-          </button>
-        ) : null}
         {needsRelease ? (
           <button
             type="button"
@@ -557,19 +546,6 @@ function DocDetail({
                   >
                     <span className="tabular-nums text-text">{when}</span>
                     <span className="text-textMuted">· {reason}</span>
-                    {row.pdf_path ? (
-                      <>
-                        <span className="text-textMuted">·</span>
-                        <button
-                          type="button"
-                          onClick={() => void openStudioLegalPdf(row.pdf_path!)}
-                          className="font-medium text-brand"
-                          data-testid={`legal-version-pdf-${row.id}`}
-                        >
-                          PDF
-                        </button>
-                      </>
-                    ) : null}
                   </li>
                 );
               })
