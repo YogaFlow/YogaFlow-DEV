@@ -160,12 +160,23 @@ const OnboardingWizard: React.FC = () => {
     const duplicateEmailMessage =
       'Ein Benutzer mit dieser E-Mail-Adresse ist bereits registriert. Bitte verwende eine andere E-Mail-Adresse oder melde dich an.';
 
-    // 1. Tenant anlegen
+    if (!agbAccepted || !avvAccepted) {
+      setSubmitError('Bitte akzeptiere AGB, Datenschutz und den AVV.');
+      setIsSubmitting(false);
+      return;
+    }
+
+    // 1. Tenant anlegen (RT-2: Zustimmung serverseitig, nicht sessionStorage)
     const { data: rpcResult, error: rpcError } = await callOnboardingPublic<{
       success?: boolean;
       tenant_id?: string;
       message?: string;
-    }>({ action: 'begin', p_name: studioName.trim(), p_slug: slug });
+    }>({
+      action: 'begin',
+      p_name: studioName.trim(),
+      p_slug: slug,
+      p_legal_accepted: true,
+    });
 
     if (rpcError || !rpcResult?.success || !rpcResult.tenant_id) {
       setSubmitError(rpcResult?.message ?? rpcError?.message ?? 'Studio konnte nicht angelegt werden.');
@@ -224,9 +235,7 @@ const OnboardingWizard: React.FC = () => {
 
     try {
       sessionStorage.setItem('yogaflow_onboarding_slug', slug);
-      if (agbAccepted && avvAccepted) {
-        sessionStorage.setItem('yogaflow_pending_legal_bundle', '1');
-      }
+      // RT-2: legal_acceptances entstehen in handle_new_user — kein Pending-Flag mehr.
     } catch {
       /* ignore */
     }
