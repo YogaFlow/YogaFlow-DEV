@@ -38,6 +38,8 @@ interface Body {
   p_slug?: string;
   p_name?: string;
   p_tenant_id?: string;
+  /** RT-2: AGB+Datenschutz+AVV-Häkchen beim begin. */
+  p_legal_accepted?: boolean;
 }
 
 Deno.serve(async (req: Request) => {
@@ -93,15 +95,32 @@ Deno.serve(async (req: Request) => {
     if (action === "begin") {
       const name = body.p_name;
       const slug = body.p_slug;
+      const legalAccepted = body.p_legal_accepted === true;
       if (typeof name !== "string" || typeof slug !== "string") {
         return new Response(JSON.stringify({ error: "p_name und p_slug erforderlich" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      if (!legalAccepted) {
+        return new Response(
+          JSON.stringify({
+            data: {
+              success: false,
+              error: "LEGAL_REQUIRED",
+              message: "Bitte akzeptiere AGB, Datenschutz und den AVV.",
+            },
+          }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      }
       const { data, error } = await supabase.rpc("begin_tenant_onboarding", {
         p_name: name,
         p_slug: slug,
+        p_legal_accepted: true,
       });
       if (error) {
         console.error("begin_tenant_onboarding", error);
