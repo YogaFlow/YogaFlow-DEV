@@ -1,6 +1,6 @@
 # Bericht — Hotfix Sitzung und Version
 
-Stand: 2026-10-12 · Branch `Julius` · Hotfix `hotfix/sitzung-und-version` · Status: **angehalten (STOPP, Klicktest Schritt 3 erneut — Anmelde-Schleife, Fix live)**
+Stand: 2026-10-12 · Branch `Julius` · Status: **angehalten (STOPP, PR #176 gemergt, PROD live geprüft)**
 
 ---
 
@@ -168,8 +168,19 @@ Commits (Anmelde-Schleife): Julius `56bb3d7`, Hotfix `716f793`.
 
 ---
 
+## Release
+
+- PR **#176** `hotfix/sitzung-und-version` → `main` gemergt: Merge-Commit `06710c1`.
+- `origin/main` nach `Julius` gemergt (Konflikte: Julius behält Stripe/Deno-CI, `visibleScope` in Users, `useParams` in App; Hotfix-Sitzungslogik bleibt).
+
+### PROD-Build (Commit `06710c1`)
+
+- `https://omlify.de/version.json` und `https://yomita.omlify.de/version.json` → `{"build":"06710c1629d3657d5ee5f43f54961661395cb401"}`.
+- Antwort-Header `Cache-Control: no-cache` (version.json und Studio-`index.html`).
+- Bundle `https://yomita.omlify.de/assets/index-himMBm8m.js` enthält „Du wurdest abgemeldet. Bitte melde dich neu an.“, `omlify_forced_sign_out`, `omlify_forced_sign_out_loop` und die Build-ID.
+
+---
+
 ## STOPP
 
-Schritt 3 erneut auf DEV (Build `56bb3d7…`): global abmelden → Passwort setzen → Hinweis → **im selben Tab** neu anmelden → landet auf der vorherigen Seite, kein erneutes Logout. Nicht mergen, bis 3–5 durch und die PR-CI grün ist.
-
-Hinweis danach: Wer die App schon offen hatte, lädt einmal von Hand neu (Testkundin). Ab dann kommt der Versionshinweis von selbst.
+Hotfix auf PROD live (`06710c1`). Julius hat `main` eingezogen. Offen nur noch: Bestätigung, dass Klicktest 1–5 auf DEV durch sind und die Testkundin einmal neu geladen hat.

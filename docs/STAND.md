@@ -1,6 +1,6 @@
 # STAND — Omlify DEV
 
-Stand: 2026-10-12 · Branch `Julius` · Hotfix Sitzung und Version (`56bb3d7`, live DEV)
+Stand: 2026-10-12 · Branch `Julius` · Hotfix Sitzung und Version (PR #176 `06710c1`, PROD live)
 
 ## DEV
 
@@ -14,7 +14,7 @@ Stand: 2026-10-12 · Branch `Julius` · Hotfix Sitzung und Version (`56bb3d7`, l
 
 ## Zuletzt abgeschlossen
 
-- **Hotfix Sitzung und Version** — Schritt 2 ✅; Schritt 3 Hinweis ✅, Anmelde-Schleife-Fix (session_id im Intent) gepusht, Klicktest 3 erneut.
+- **Hotfix Sitzung und Version** — PR #176 gemergt (`06710c1`), PROD Bundle + `version.json` `no-cache` geprüft; `main` in Julius.
   - Bericht: [docs/berichte/hotfix_sitzung_und_version.md](berichte/hotfix_sitzung_und_version.md)
 - **RT-2 AGB § 9 Abs. 3+4** — wirksam mit Zugang, 30 Tage Export, Löschung nach AVV; Abs. 2 unverändert; AVV-Frist gleich
   - Bericht: [docs/berichte/rt2_omlify_rechtstexte_v2.md](berichte/rt2_omlify_rechtstexte_v2.md) — Haltestelle 5
@@ -24,14 +24,13 @@ Stand: 2026-10-12 · Branch `Julius` · Hotfix Sitzung und Version (`56bb3d7`, l
 
 ## Nächste Schritte
 
-- **Hotfix Sitzung und Version** — Klicktest 1–5 auf DEV, dann PR `hotfix/sitzung-und-version` → `main`, nicht mergen bevor CI grün und der Klicktest durch ist
 - **Release 2026-10** Entscheidungen E1–E9 (Phase 2); Generalprobe E3 (85er-Apply, Docker/Probe)
 - RT-2 Haltestelle 5 Klicktest (Liste im Bericht)
 - Nachtrag F / UX-Haltestellen parallel offen, falls noch nicht abgehakt
 
 ## Haltestellen / wartet auf Julius
 
-- **Hotfix Sitzung und Version STOPP** — [hotfix_sitzung_und_version.md](berichte/hotfix_sitzung_und_version.md) · Klicktest Mac + iPhone
+- **Hotfix Sitzung und Version STOPP** — [hotfix_sitzung_und_version.md](berichte/hotfix_sitzung_und_version.md) · PROD live; Klicktest 1–5 abschließen
 - **Release 2026-10 Freeze-Vorbereitung STOPP** — [release_2026-10_freeze_vorbereiten.md](berichte/release_2026-10_freeze_vorbereiten.md) · Probelauf 85 ohne Docker
 - **Release 2026-10 Phase 1** — [release_2026-10_bestandsaufnahme.md](berichte/release_2026-10_bestandsaufnahme.md)
 - **RT-2 Haltestelle 5** — [rt2_omlify_rechtstexte_v2.md](berichte/rt2_omlify_rechtstexte_v2.md)
@@ -43,7 +42,7 @@ Stand: 2026-10-12 · Branch `Julius` · Hotfix Sitzung und Version (`56bb3d7`, l
 
 ## hier weitermachen
 
-Klicktest Sitzung und Version (Liste im Bericht). Parallel: andere offene Haltestellen.
+Hotfix Sitzung/Version: PROD bestätigt; Klicktest abschließen. Parallel: andere offene Haltestellen.
 
 ## Verweise
 
