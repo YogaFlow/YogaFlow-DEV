@@ -1,20 +1,32 @@
 /**
- * Sitzungswächter: Klassifizierer, einmaliger Ablauf, Rücksprung.
+ * Sitzungswächter: Klassifizierer, einmaliger Ablauf, Rücksprung, Intent.
  *
  *   node --test scripts/test/session_guard.test.mjs
  */
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
+  decideForcedSignOutAction,
   forcedSignOutAuthPath,
+  FORCED_SIGN_OUT_LOOP_MS,
+  FORCED_SIGN_OUT_TTL_MS,
   isSessionError,
   loginSearchForReturn,
+  parseForcedSignOutIntent,
   resetForcedSignOutForTests,
   runForcedSignOutOnce,
   safeReturnPath,
   sessionFailureFromInvokeError,
+  sessionIdFromAccessToken,
+  isForcedSignOutLoop,
   SIGNED_OUT_MESSAGE,
 } from '../../src/lib/sessionRules.mjs';
+
+function fakeJwt(sessionId) {
+  const header = Buffer.from(JSON.stringify({ alg: 'none', typ: 'JWT' })).toString('base64url');
+  const payload = Buffer.from(JSON.stringify({ session_id: sessionId })).toString('base64url');
+  return `${header}.${payload}.sig`;
+}
 
 test('session_not_found ist ein Sitzungsfehler', () => {
   assert.equal(isSessionError({ code: 'session_not_found' }), true);
@@ -162,4 +174,49 @@ test('Function 401 Auth session missing → genau 1× Ablauf, Auth-URL mit Rück
   assert.equal(url.pathname, '/auth');
   assert.equal(url.searchParams.get('signed_out'), '1');
   assert.equal(url.searchParams.get('next'), '/users');
+});
+
+test('(a) Intent + Login mit neuer session_id → accept_new, Weiterleitung zu next', () => {
+  const now = 1_000_000;
+  const intent = parseForcedSignOutIntent({
+    next: '/users',
+    sessionId: 'sess-old',
+    at: now,
+  }, now);
+  assert.ok(intent);
+  assert.equal(sessionIdFromAccessToken(fakeJwt('sess-new')), 'sess-new');
+  assert.equal(decideForcedSignOutAction(intent, 'sess-new', now), 'accept_new');
+  assert.equal(intent.next, '/users');
+});
+
+test('(b) Intent mit alter session_id + alte Sitzung noch lokal → clear_stale, keine Schleife', () => {
+  const now = 1_000_000;
+  const intent = parseForcedSignOutIntent({
+    next: '/users',
+    sessionId: 'sess-old',
+    at: now,
+  }, now);
+  assert.equal(decideForcedSignOutAction(intent, 'sess-old', now), 'clear_stale');
+  assert.equal(decideForcedSignOutAction(intent, null, now), 'await_login');
+  assert.notEqual(decideForcedSignOutAction(intent, 'sess-new', now), 'clear_stale');
+});
+
+test('(c) Intent älter als Ablauf → wird ignoriert', () => {
+  const at = 1_000_000;
+  const later = at + FORCED_SIGN_OUT_TTL_MS + 1;
+  assert.equal(
+    parseForcedSignOutIntent({ next: '/users', sessionId: 'sess-old', at }, later),
+    null,
+  );
+  const intent = { next: '/users', sessionId: 'sess-old', at };
+  assert.equal(decideForcedSignOutAction(intent, 'sess-old', later), 'expired');
+  assert.equal(decideForcedSignOutAction(intent, 'sess-new', later), 'expired');
+});
+
+test('Schleifenschutz: zweiter Ablauf innerhalb von 10 s wird blockiert', () => {
+  const now = 5_000_000;
+  assert.equal(FORCED_SIGN_OUT_LOOP_MS, 10_000);
+  assert.equal(isForcedSignOutLoop(now - 3_000, now), true);
+  assert.equal(isForcedSignOutLoop(now - 11_000, now), false);
+  assert.equal(isForcedSignOutLoop(null, now), false);
 });

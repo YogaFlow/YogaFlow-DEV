@@ -1,6 +1,11 @@
 import { useEffect } from 'react';
 import { supabase } from './supabase';
-import { beginForcedSignOut, consumeVoluntarySignOut, isSessionAuthFailure } from './sessionGuard';
+import {
+  beginForcedSignOut,
+  clearForcedSignOutAfterSignIn,
+  consumeVoluntarySignOut,
+  isSessionAuthFailure,
+} from './sessionGuard';
 
 const CHECK_INTERVAL_MS = 60_000;
 
@@ -11,12 +16,16 @@ const CHECK_INTERVAL_MS = 60_000;
 export function useSessionGuard(): void {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN') {
+        void clearForcedSignOutAfterSignIn();
+        return;
+      }
       // Fehlgeschlagenes Token-Refresh ruft in dieser supabase-js-Version
       // _removeSession auf und feuert SIGNED_OUT. Freiwilliges Abmelden setzt
       // vorher das Flag, damit hier kein Hinweis entsteht.
       if (event !== 'SIGNED_OUT') return;
       if (consumeVoluntarySignOut()) return;
-      beginForcedSignOut();
+      void beginForcedSignOut();
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -34,7 +43,7 @@ export function useSessionGuard(): void {
         if (cancelled || !session) return;
         const { error } = await supabase.auth.getUser();
         if (cancelled || !error) return;
-        if (isSessionAuthFailure(error)) beginForcedSignOut();
+        if (isSessionAuthFailure(error)) void beginForcedSignOut();
       })();
     };
 
