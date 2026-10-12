@@ -15,6 +15,7 @@ Stand: 2026-10-12 · Branch `Julius` · Generalprobe GO (Probe stehen lassen)
 
 ## Zuletzt abgeschlossen
 
+- **Release 2026-10 Generalprobe** — GO; Freeze `8199c04` / Tag `release-2026-10-freeze`; Bericht [release_2026-10_generalprobe.md](berichte/release_2026-10_generalprobe.md); Probe stehen lassen
 - **Release 2026-10 · Allowlist + RT-2 Onboarding-Zustimmungen** — gebaut; **Klicktest A1/A2/B1 grün** (demoepsilon)
   - Migrationen `20261009161000`, `20261009161100`; DEV 204
   - Tests: `online_payments_allowlist.mjs`, `onboarding_legal_acceptances.mjs`

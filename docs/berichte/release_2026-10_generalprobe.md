@@ -20,7 +20,7 @@ Generalprobe auf PROD-Kopie durch: Schema-Push inkl. Freeze-Ausnahme Grants, T0/
 | Freeze-Ausnahmen 1–5 Frontend | 🟢 | A8-Text belegt; K1 nur Monate empfohlen; Impressum-Refetch; Hash nur Tooltip/sr-only; PDF-Link UI |
 | Schritt 8 Rest SQL | 🟢 | Plattform/Allowlist/Legal/Onboarding-Kontext — Details unten |
 | Schritt 9 `main` vs Probe | 🟡 | Login/Kurse/Buchen/Abmelden 🟢; Teilnehmerliste 🔴 PGRST201 |
-| `check:ci` / Push / DEV-Build / Freeze-Tag | 🟢 | nach diesem Bericht nachziehen |
+| `check:ci` / Push / DEV-Build / Freeze-Tag | 🟢 | `8199c04`; Workers success; Bundle-Merkmal live |
 
 ---
 
@@ -191,10 +191,13 @@ SELECT public.set_online_payments_studio_allowed('yomita', false);
 
 | | |
 |--|--|
-| Commit | _(nach Push eintragen)_ |
-| Workers Builds: omlify-dev | _(success)_ |
-| Live-Merkmal | String `Frühere Kurse als erledigt markieren` in `https://demoalpha.omlify-dev.de/assets/index-*.js` |
-| Tag `release-2026-10-freeze` | neuer Hash |
+| UI-Commit | `2ccbef9` `fix(ui): Generalprobe Freeze-Ausnahmen A8, K1, Legal-Hub` |
+| Docs-Commit / HEAD | `8199c04` `docs(release): Generalprobe 2026-10 Abschluss GO` |
+| `npm run check:ci` | 🟢 vor Push |
+| Workers Builds: omlify-dev | 🟢 `success` ([run](https://github.com/YogaFlow/YogaFlow-DEV/runs/114930454686)) |
+| CI Typen/Lint/Build | 🟢 `success` |
+| Live-Merkmal | `Frühere Kurse` / `erledigt markieren` / `legal-current-pdf` in `https://demoalpha.omlify-dev.de/assets/index-BQQ1ojyf.js` (Index ~1510164 / ~991923) |
+| Tag `release-2026-10-freeze` | `8199c04783730e26aa46519b80a8547ddd780014` (force-update von `bbfc49f`) |
 
 ## STOPP
 
