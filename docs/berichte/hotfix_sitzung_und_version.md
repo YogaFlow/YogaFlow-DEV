@@ -1,6 +1,6 @@
 # Bericht — Hotfix Sitzung und Version
 
-Stand: 2026-10-12 · Branch `Julius` · Hotfix `hotfix/sitzung-und-version` · Status: **angehalten (STOPP, Klicktest Schritt 3 erneut — Anmelde-Schleife)**
+Stand: 2026-10-12 · Branch `Julius` · Hotfix `hotfix/sitzung-und-version` · Status: **angehalten (STOPP, Klicktest Schritt 3 erneut — Anmelde-Schleife, Fix live)**
 
 ---
 
@@ -158,10 +158,18 @@ Ursache: Bei `signed_out=1` hat AuthPage **jede** Sitzung (auch die neue nach Pa
 
 Fix: Intent speichert die alte JWT-`session_id` + Ablauf 2 min. Nur gleiche ID → `clear_stale`. Andere ID → `accept_new` (Intent weg, weiter zu `next`). `SIGNED_IN` räumt den Intent. Zweiter Abmelde-Ablauf innerhalb 10 s → abbrechen + `console.error`. 16 Unit-Tests grün.
 
+Commits (Anmelde-Schleife): Julius `56bb3d7`, Hotfix `716f793`.
+
+### DEV-Build (Commit `56bb3d7`)
+
+- Check-Run **Workers Builds: omlify-dev**: `success` (Check-Run-ID `114722856799`, completed 2026-10-12T08:18:40Z).
+- `https://demoalpha.omlify-dev.de/version.json` → `{"build":"56bb3d7be30095027c89b9215ac2b70fcc75976e"}`.
+- Bundle `https://demoalpha.omlify-dev.de/assets/index-BizYGkMT.js` enthält „Du wurdest abgemeldet. Bitte melde dich neu an.“, `omlify_forced_sign_out`, `omlify_forced_sign_out_loop` und die Build-ID.
+
 ---
 
 ## STOPP
 
-Schritt 3 erneut auf DEV: global abmelden → Passwort setzen → Hinweis → **im selben Tab** neu anmelden → landet auf der vorherigen Seite, kein erneutes Logout. Build mit dem Schleifen-Fix. Nicht mergen, bis 3–5 durch und die PR-CI grün ist.
+Schritt 3 erneut auf DEV (Build `56bb3d7…`): global abmelden → Passwort setzen → Hinweis → **im selben Tab** neu anmelden → landet auf der vorherigen Seite, kein erneutes Logout. Nicht mergen, bis 3–5 durch und die PR-CI grün ist.
 
 Hinweis danach: Wer die App schon offen hatte, lädt einmal von Hand neu (Testkundin). Ab dann kommt der Versionshinweis von selbst.

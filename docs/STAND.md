@@ -1,6 +1,6 @@
 # STAND — Omlify DEV
 
-Stand: 2026-10-09 · Branch `Julius` · Hotfix Sitzung und Version (`f3356dc`)
+Stand: 2026-10-12 · Branch `Julius` · Hotfix Sitzung und Version (`56bb3d7`, live DEV)
 
 ## DEV
 
