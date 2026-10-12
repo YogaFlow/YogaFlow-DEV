@@ -11,6 +11,18 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Jetzt
 
+- [ ] **Härtung courses-Grants (Allowlist, `archived_at` nur RPC), nach Pilot** —
+      Live-PROD: `authenticated`/`anon` haben Tabellen-UPDATE auf `courses`; UX-5
+      Spalten-REVOKE ist wirkungslos. Analog `users`: REVOKE Tabellen-UPDATE +
+      Spalten-Allowlist ohne `archived_at`; Archiv nur SECURITY-DEFINER-RPC.
+      Nicht im Release 2026-10. Befund Generalprobe 2026-10-12.
+- [ ] **Storage-Policy `studio-legal` (Owner SELECT / Signed URL)** — Live-PROD und
+      Probe haben keine Policies auf `studio-legal`; Client-`createSignedUrl` scheitert.
+      PDF-Link in der UI vorbereitet; Download erst nach Policy oder Edge-Signed-URL.
+      Befund Generalprobe 2026-10-12.
+- [ ] **Probe-Restore: Auth-Trigger prüfen** — `on_auth_user_created` /
+      `on_auth_user_app_metadata` fehlen nach Backup-Restore (Live-PROD ok). Künftige
+      Proben: nach Restore nachziehen. Nicht Release-Blocker.
 - [ ] **Lint-Warnungen aufräumen (eigener Commit)** — CI meldet ~34 Warnungen
       (`any`, `react-refresh`, `exhaustive-deps` u. a.); blockieren nicht, aber
       sichtbar. Nicht neben Feature-Arbeit mitnehmen.

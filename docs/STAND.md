@@ -1,6 +1,6 @@
 # STAND — Omlify DEV
 
-Stand: 2026-10-12 · Branch `Julius` · Allowlist + Onboarding-Legal vor Freeze
+Stand: 2026-10-12 · Branch `Julius` · Generalprobe GO (Probe stehen lassen)
 
 ## DEV
 
@@ -49,7 +49,7 @@ Stand: 2026-10-12 · Branch `Julius` · Allowlist + Onboarding-Legal vor Freeze
 
 ## hier weitermachen
 
-Freeze + Release-Abend nach Stripe-Live-Bericht §5.
+Generalprobe **GO** — Bericht [release_2026-10_generalprobe.md](berichte/release_2026-10_generalprobe.md). Freeze-Ausnahmen Frontend + Tag nachziehen. **Probe nicht löschen** bis Julius. Release-Abend Phase 5/6.
 
 ## Verweise
 
