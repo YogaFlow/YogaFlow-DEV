@@ -1,6 +1,6 @@
 # Bericht — Hotfix Sitzung und Version
 
-Stand: 2026-10-10 · Branch `Julius` · Hotfix `hotfix/sitzung-und-version` · Status: **angehalten (STOPP, Klicktest Schritt 3 erneut)**
+Stand: 2026-10-12 · Branch `Julius` · Hotfix `hotfix/sitzung-und-version` · Status: **angehalten (STOPP, Klicktest Schritt 3 erneut — Anmelde-Schleife)**
 
 ---
 
@@ -148,12 +148,20 @@ Kurs zuweisen läuft über RPC `admin_register_user_for_course` (kein Function-I
 - Nutzerverwaltung: `reactToSessionInvokeError` an `set-participant-password`, `update-user`, `delete-user`.
 - Unit-Test: Function 401 „Auth session missing“ → genau 1× Ablauf, Hinweistext, URL `/auth?signed_out=1&next=/users` (Login-Route der App ist `/auth`, nicht `/login`).
 
-Commits: Julius `c57eda7`, Hotfix `79ad145`. 12 Unit-Tests grün.
+Commits (Schritt-3-Race): Julius `c57eda7`, Hotfix `79ad145`.
+
+### Nachtrag Anmelde-Schleife (12.10.)
+
+Klicktest 3: Rauswurf + Hinweis ✅. Anmeldung ❌ — Log UTC Windows 08:08:39–08:09:02 sechsmal `token?grant_type=password` 200, je ~130 ms danach `logout?scope=local` 204; iPhone 08:11:52 Login 200, 08:11:53 logout local. Neuer Tab half (leerer `sessionStorage`).
+
+Ursache: Bei `signed_out=1` hat AuthPage **jede** Sitzung (auch die neue nach Passwort-Login) lokal abgemeldet. Der Intent unterschied keine `session_id`.
+
+Fix: Intent speichert die alte JWT-`session_id` + Ablauf 2 min. Nur gleiche ID → `clear_stale`. Andere ID → `accept_new` (Intent weg, weiter zu `next`). `SIGNED_IN` räumt den Intent. Zweiter Abmelde-Ablauf innerhalb 10 s → abbrechen + `console.error`. 16 Unit-Tests grün.
 
 ---
 
 ## STOPP
 
-Schritt 3 erneut auf DEV (Mac global abmelden → iPhone Passwort setzen → Hinweis + Login). Build muss `c57eda7` (oder neuer) sein. Nicht mergen, bis 3–5 durch und die PR-CI grün ist. `origin/main` danach in Julius mergen.
+Schritt 3 erneut auf DEV: global abmelden → Passwort setzen → Hinweis → **im selben Tab** neu anmelden → landet auf der vorherigen Seite, kein erneutes Logout. Build mit dem Schleifen-Fix. Nicht mergen, bis 3–5 durch und die PR-CI grün ist.
 
 Hinweis danach: Wer die App schon offen hatte, lädt einmal von Hand neu (Testkundin). Ab dann kommt der Versionshinweis von selbst.

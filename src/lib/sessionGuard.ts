@@ -3,14 +3,21 @@ import { withDevTenant } from '../context/TenantContext';
 import { setSessionHttpHandler } from './sessionHttp';
 import {
   claimForcedSignOut,
+  clearForcedSignOutLoopClock,
+  clearForcedSignOutStorage,
+  decideForcedSignOutAction,
   fieldsFromErrorBody,
   forcedSignOutAuthPath,
   isSessionError,
   isVoluntarySignOutPending,
   markVoluntarySignOut,
   persistForcedSignOut,
+  readForcedSignOutIntent,
+  recordForcedSignOutLoopClock,
   safeReturnPath,
   sessionFailureFromInvokeError,
+  sessionIdFromAccessToken,
+  shouldBlockForcedSignOutLoop,
   type SessionErrorSource,
 } from './sessionRules.mjs';
 
@@ -47,17 +54,50 @@ function hasStoredSession(): boolean {
   }
 }
 
+async function currentAccessToken(): Promise<string | null> {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token ?? null;
+}
+
+/** Nach Passwort-Login: Intent weg, wenn die Sitzung neu ist. */
+export async function clearForcedSignOutAfterSignIn(): Promise<void> {
+  const intent = readForcedSignOutIntent();
+  if (!intent) {
+    clearForcedSignOutLoopClock();
+    return;
+  }
+  const token = await currentAccessToken();
+  const sessionId = sessionIdFromAccessToken(token);
+  const action = decideForcedSignOutAction(intent, sessionId);
+  if (action === 'accept_new' || action === 'expired' || action === 'none') {
+    clearForcedSignOutStorage();
+    clearForcedSignOutLoopClock();
+  }
+}
+
 /**
  * Hinweis und Login-URL müssen das Neuladen überleben:
- * zuerst sessionStorage + Tokens löschen, signOut abwarten, dann replace.
- * Ohne await sprang /auth mit noch gültiger Sitzung zurück auf next (/users).
+ * Intent mit alter session_id, Tokens löschen, signOut abwarten, dann replace.
  */
 export async function beginForcedSignOut(): Promise<void> {
+  const now = Date.now();
+  if (shouldBlockForcedSignOutLoop(now)) {
+    console.error(
+      'Abmelde-Ablauf innerhalb von 10 s erneut — abgebrochen, um eine Schleife zu verhindern.',
+    );
+    return;
+  }
   if (!claimForcedSignOut()) return;
+
   markVoluntarySignOut();
+  recordForcedSignOutLoopClock(now);
 
   const here = `${window.location.pathname}${window.location.search}`;
-  persistForcedSignOut({ next: safeReturnPath(here) });
+  const token = await currentAccessToken();
+  persistForcedSignOut({
+    next: safeReturnPath(here),
+    sessionId: sessionIdFromAccessToken(token),
+  }, now);
   clearLocalAuthStorage();
 
   try {

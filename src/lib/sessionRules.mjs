@@ -8,6 +8,15 @@ export const SIGNED_OUT_MESSAGE = 'Du wurdest abgemeldet. Bitte melde dich neu a
 /** sessionStorage — überlebt das Neuladen, falls die Query noch fehlt. */
 export const FORCED_SIGN_OUT_STORAGE_KEY = 'omlify_forced_sign_out';
 
+/** Uhr für Schleifenschutz (zweiter Ablauf innerhalb von 10 s). */
+export const FORCED_SIGN_OUT_LOOP_KEY = 'omlify_forced_sign_out_loop';
+
+/** Intent gilt höchstens so lange. */
+export const FORCED_SIGN_OUT_TTL_MS = 2 * 60 * 1000;
+
+/** Zweiter Abmelde-Ablauf innerhalb dieses Fensters wird abgebrochen. */
+export const FORCED_SIGN_OUT_LOOP_MS = 10 * 1000;
+
 const SESSION_CODES = new Set([
   'session_not_found',
   'refresh_token_not_found',
@@ -166,15 +175,83 @@ export function forcedSignOutAuthPath(currentPath) {
 }
 
 /**
- * @param {{ next?: string | null }} payload
+ * session_id aus dem Access-Token (GoTrue-JWT).
+ * @param {string | null | undefined} token
+ * @returns {string | null}
  */
-export function persistForcedSignOut(payload) {
+export function sessionIdFromAccessToken(token) {
+  if (!token || typeof token !== 'string') return null;
+  const parts = token.split('.');
+  if (parts.length < 2) return null;
+  try {
+    const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4);
+    const json = typeof atob === 'function'
+      ? atob(padded)
+      : Buffer.from(padded, 'base64').toString('utf8');
+    const payload = JSON.parse(json);
+    return typeof payload.session_id === 'string' && payload.session_id
+      ? payload.session_id
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * @param {unknown} raw
+ * @param {number} [now]
+ * @returns {{ next: string | null, sessionId: string | null, at: number } | null}
+ */
+export function parseForcedSignOutIntent(raw, now = Date.now()) {
+  if (raw == null) return null;
+  let parsed = raw;
+  if (typeof raw === 'string') {
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+  if (!parsed || typeof parsed !== 'object') return null;
+  const record = /** @type {Record<string, unknown>} */ (parsed);
+  const at = typeof record.at === 'number' && Number.isFinite(record.at) ? record.at : null;
+  if (at == null) return null;
+  if (now - at > FORCED_SIGN_OUT_TTL_MS) return null;
+  const next = typeof record.next === 'string' ? safeReturnPath(record.next) : null;
+  const sessionId = typeof record.sessionId === 'string' && record.sessionId
+    ? record.sessionId
+    : null;
+  return { next, sessionId, at };
+}
+
+/**
+ * @param {{ next?: string | null, sessionId?: string | null, at?: number }} intent
+ * @param {string | null | undefined} currentSessionId
+ * @param {number} [now]
+ * @returns {'none' | 'expired' | 'await_login' | 'clear_stale' | 'accept_new'}
+ */
+export function decideForcedSignOutAction(intent, currentSessionId, now = Date.now()) {
+  if (!intent) return 'none';
+  if (now - intent.at > FORCED_SIGN_OUT_TTL_MS) return 'expired';
+  if (!currentSessionId) return 'await_login';
+  if (intent.sessionId && currentSessionId === intent.sessionId) return 'clear_stale';
+  // Neue Anmeldung (andere session_id) oder Intent ohne alte ID nach Login.
+  return 'accept_new';
+}
+
+/**
+ * @param {{ next?: string | null, sessionId?: string | null }} payload
+ * @param {number} [now]
+ */
+export function persistForcedSignOut(payload, now = Date.now()) {
   try {
     sessionStorage.setItem(
       FORCED_SIGN_OUT_STORAGE_KEY,
       JSON.stringify({
         next: payload.next ?? null,
-        at: Date.now(),
+        sessionId: payload.sessionId ?? null,
+        at: now,
       }),
     );
   } catch {
@@ -182,20 +259,69 @@ export function persistForcedSignOut(payload) {
   }
 }
 
-/**
- * @returns {{ next: string | null } | null}
- */
-export function consumeForcedSignOutStorage() {
+/** Liest den Intent, ohne ihn zu löschen. Abgelaufene Intents werden entfernt. */
+export function readForcedSignOutIntent(now = Date.now()) {
   try {
     const raw = sessionStorage.getItem(FORCED_SIGN_OUT_STORAGE_KEY);
     if (!raw) return null;
-    sessionStorage.removeItem(FORCED_SIGN_OUT_STORAGE_KEY);
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') return null;
-    const next = typeof parsed.next === 'string' ? safeReturnPath(parsed.next) : null;
-    return { next };
+    const intent = parseForcedSignOutIntent(raw, now);
+    if (!intent) {
+      sessionStorage.removeItem(FORCED_SIGN_OUT_STORAGE_KEY);
+      return null;
+    }
+    return intent;
   } catch {
     return null;
+  }
+}
+
+export function clearForcedSignOutStorage() {
+  try {
+    sessionStorage.removeItem(FORCED_SIGN_OUT_STORAGE_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+/**
+ * @param {number} [now]
+ */
+export function recordForcedSignOutLoopClock(now = Date.now()) {
+  try {
+    sessionStorage.setItem(FORCED_SIGN_OUT_LOOP_KEY, String(now));
+  } catch {
+    // ignore
+  }
+}
+
+/**
+ * @param {number | null | undefined} lastAt
+ * @param {number} [now]
+ * @returns {boolean} true = zweiten Ablauf blockieren
+ */
+export function isForcedSignOutLoop(lastAt, now = Date.now()) {
+  return lastAt != null && Number.isFinite(lastAt) && now - lastAt < FORCED_SIGN_OUT_LOOP_MS;
+}
+
+/**
+ * @param {number} [now]
+ * @returns {boolean} true = zweiten Ablauf blockieren
+ */
+export function shouldBlockForcedSignOutLoop(now = Date.now()) {
+  try {
+    const raw = sessionStorage.getItem(FORCED_SIGN_OUT_LOOP_KEY);
+    if (!raw) return false;
+    return isForcedSignOutLoop(Number(raw), now);
+  } catch {
+    return false;
+  }
+}
+
+export function clearForcedSignOutLoopClock() {
+  try {
+    sessionStorage.removeItem(FORCED_SIGN_OUT_LOOP_KEY);
+  } catch {
+    // ignore
   }
 }
 

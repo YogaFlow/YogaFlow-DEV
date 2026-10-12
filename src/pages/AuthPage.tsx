@@ -5,9 +5,14 @@ import RegisterForm from '../components/Auth/RegisterForm';
 import { Heart } from 'lucide-react';
 import StudioMark from '../components/branding/StudioMark';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 import {
-  consumeForcedSignOutStorage,
+  clearForcedSignOutLoopClock,
+  clearForcedSignOutStorage,
+  decideForcedSignOutAction,
+  readForcedSignOutIntent,
   safeReturnPath,
+  sessionIdFromAccessToken,
   SIGNED_OUT_MESSAGE,
 } from '../lib/sessionRules.mjs';
 import { useTenant, buildApexHref, withDevTenant } from '../context/TenantContext';
@@ -25,10 +30,8 @@ const AuthPage: React.FC = () => {
   const [forcedSignOutNotice, setForcedSignOutNotice] = useState(
     () => new URLSearchParams(window.location.search).get('signed_out') === '1',
   );
-  /** true bis die alte Sitzung nach signed_out wirklich weg ist — blockiert den Sprung zu next. */
-  const clearingStaleSession = useRef(
-    new URLSearchParams(window.location.search).get('signed_out') === '1',
-  );
+  /** true nur solange die *alte* Sitzung (gleiche session_id) noch geräumt wird. */
+  const clearingStaleSession = useRef(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, userProfile, loading, profileLoading, isEmailConfirmed, signOut } = useAuth();
   const { tenantSlug, tenant, loading: tenantLoading, notFound, lookupError } = useTenant();
@@ -38,29 +41,60 @@ const AuthPage: React.FC = () => {
   const showSignedOutNotice =
     forcedSignOutNotice || searchParams.get('signed_out') === '1';
 
-  // Hinweis aus sessionStorage, falls die Query beim Neuladen fehlte.
+  const dropSignedOutQuery = () => {
+    if (searchParams.get('signed_out') !== '1' && !searchParams.get('next')) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete('signed_out');
+    // next bleibt für die Weiterleitung nach erfolgreicher Anmeldung.
+    setSearchParams(next, { replace: true });
+  };
+
+  // Hinweis aus Intent (bleibt bis neue Anmeldung); Query ergänzen falls fehlend.
   useEffect(() => {
-    const stored = consumeForcedSignOutStorage();
-    if (!stored) return;
-    setForcedSignOutNotice(true);
-    clearingStaleSession.current = true;
+    const intent = readForcedSignOutIntent();
+    if (!intent && searchParams.get('signed_out') !== '1') return;
+    if (intent) setForcedSignOutNotice(true);
     if (searchParams.get('signed_out') === '1') return;
+    if (!intent) return;
     const next = new URLSearchParams(searchParams);
     next.set('signed_out', '1');
-    if (stored.next && !next.get('next')) next.set('next', stored.next);
+    if (intent.next && !next.get('next')) next.set('next', intent.next);
     setSearchParams(next, { replace: true });
   }, [searchParams, setSearchParams]);
 
-  // Stale Sitzung räumen; erst danach darf eine neue Anmeldung zu next.
+  // Nur die alte session_id abmelden. Neue Anmeldung → Intent weg, weiter zu next.
   useEffect(() => {
     if (!showSignedOutNotice || loading) return;
-    if (user) {
-      clearingStaleSession.current = true;
-      void signOut();
-      return;
-    }
-    clearingStaleSession.current = false;
-  }, [showSignedOutNotice, user, loading, signOut]);
+    let cancelled = false;
+    void (async () => {
+      const intent = readForcedSignOutIntent();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (cancelled) return;
+      const sessionId = sessionIdFromAccessToken(session?.access_token);
+      const action = decideForcedSignOutAction(intent, sessionId);
+
+      if (action === 'clear_stale') {
+        clearingStaleSession.current = true;
+        void signOut();
+        return;
+      }
+      if (action === 'accept_new' || action === 'expired' || action === 'none') {
+        clearingStaleSession.current = false;
+        clearForcedSignOutStorage();
+        clearForcedSignOutLoopClock();
+        if (action === 'accept_new' || action === 'expired') {
+          setForcedSignOutNotice(false);
+          dropSignedOutQuery();
+        }
+        return;
+      }
+      // await_login: keine Sitzung — Hinweis zeigen, Sperre aus.
+      clearingStaleSession.current = false;
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [showSignedOutNotice, user, loading, signOut, searchParams, setSearchParams]);
 
   // Auf der Marketing-Domain nur Anmeldung (Registrierung läuft über /onboarding).
   useEffect(() => {
@@ -128,9 +162,9 @@ const AuthPage: React.FC = () => {
     }
     if (tenantLoading || notFound || !tenant) return;
     if (!userProfile || userProfile.tenant_id !== tenant.id) return;
-    if (forcedSignOutNotice || searchParams.get('signed_out') === '1') {
-      setForcedSignOutNotice(false);
-    }
+    clearForcedSignOutStorage();
+    clearForcedSignOutLoopClock();
+    setForcedSignOutNotice(false);
     const nextPath = safeReturnPath(searchParams.get('next'));
     navigate(withDevTenant(nextPath ?? '/dashboard'), { replace: true });
   }, [
@@ -146,7 +180,6 @@ const AuthPage: React.FC = () => {
     tenant,
     navigate,
     searchParams,
-    forcedSignOutNotice,
   ]);
 
   // Falls der Passwort-Reset-Link versehentlich auf /auth zeigt: zur Reset-Seite weiterleiten
