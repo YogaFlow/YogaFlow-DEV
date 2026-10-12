@@ -11,15 +11,16 @@ Stand: 2026-10-12 · Branch `Julius` · Allowlist + Onboarding-Legal vor Freeze
 - E2E: RT-2 `e2e/rt2.spec.ts` (e2eapp); Rauch `scripts/test/rt2_retention.mjs`
 - Legal: terms `2026-10-09` · privacy `2026-10-08` · avv `2026-10-04`; Onboarding speichert 3 Acceptances atomar
 - Demo: `npm run dev:demo:seed` — relativ zum Laufzeitpunkt
-- Plattform: `online_payments` an (DEV); Modus `allowlist`; Allowlist = alle bestehenden DEV-Studios
+- Plattform: `online_payments` an (DEV); Modus `allowlist`; Allowlist 8 Studios (ohne demoepsilon)
 
 ## Zuletzt abgeschlossen
 
-- **Release 2026-10 · Allowlist + RT-2 Onboarding-Zustimmungen** — gebaut vor Freeze
+- **Release 2026-10 · Allowlist + RT-2 Onboarding-Zustimmungen** — gebaut; **Klicktest A1/A2/B1 grün** (demoepsilon)
   - Migrationen `20261009161000`, `20261009161100`; DEV 204
   - Tests: `online_payments_allowlist.mjs`, `onboarding_legal_acceptances.mjs`
-  - DEV-Build: Workers `omlify-dev` success für `1c173ed…`; Bundle `index-D3Bs67NQ.js` mit `p_legal_accepted`
-  - Bericht: [docs/berichte/release_2026-10_stripe_live_vorbereitung.md](berichte/release_2026-10_stripe_live_vorbereitung.md) · **STOPP Klicktest A1/A2/B1**
+  - DEV-Build: Workers `omlify-dev` success für `1c173ed…` / `617b3a1…`
+  - Bericht: [docs/berichte/release_2026-10_stripe_live_vorbereitung.md](berichte/release_2026-10_stripe_live_vorbereitung.md) · **STOPP Freeze**
+
 - **Hotfix Sitzung und Version** — PR #176 gemergt (`06710c1`), PROD Bundle + `version.json` `no-cache` geprüft; `main` in Julius.
   - Bericht: [docs/berichte/hotfix_sitzung_und_version.md](berichte/hotfix_sitzung_und_version.md)
 - **RT-2 AGB § 9 Abs. 3+4** — wirksam mit Zugang, 30 Tage Export, Löschung nach AVV
@@ -29,13 +30,13 @@ Stand: 2026-10-12 · Branch `Julius` · Allowlist + Onboarding-Legal vor Freeze
 
 ## Nächste Schritte
 
-- **Klicktest A1/A2/B1** (DEV) laut Stripe-Live-Bericht — dann Freeze
 - **Release 2026-10** Freeze + Abendablauf §5 (nur omlifytest → Rauch → yomita; Modus `allowlist`)
 - RT-2 Haltestelle 5 / Nachtrag F / UX parallel falls offen
 
 ## Haltestellen / wartet auf Julius
 
-- **Stripe live Allowlist + Legal STOPP** — [release_2026-10_stripe_live_vorbereitung.md](berichte/release_2026-10_stripe_live_vorbereitung.md) · Klicktest A1/A2/B1
+- **Stripe live Allowlist + Legal STOPP** — [release_2026-10_stripe_live_vorbereitung.md](berichte/release_2026-10_stripe_live_vorbereitung.md) · Klicktest grün → **Freeze**
+
 - **Hotfix Sitzung und Version STOPP** — [hotfix_sitzung_und_version.md](berichte/hotfix_sitzung_und_version.md)
 - **Release 2026-10 Freeze-Vorbereitung STOPP** — [release_2026-10_freeze_vorbereiten.md](berichte/release_2026-10_freeze_vorbereiten.md)
 - **Release 2026-10 Phase 1** — [release_2026-10_bestandsaufnahme.md](berichte/release_2026-10_bestandsaufnahme.md)
@@ -48,7 +49,7 @@ Stand: 2026-10-12 · Branch `Julius` · Allowlist + Onboarding-Legal vor Freeze
 
 ## hier weitermachen
 
-Nach Klicktest A1/A2/B1: Freeze + Release-Abend nach Stripe-Live-Bericht §5.
+Freeze + Release-Abend nach Stripe-Live-Bericht §5.
 
 ## Verweise
 

@@ -1,6 +1,6 @@
 # Bericht — Release 2026-10 · Stripe live + Freigabe pro Studio + Onboarding-Zustimmungen
 
-Stand: 2026-10-12 · Branch `Julius` · Status: **angehalten (STOPP — Klicktest)**  
+Stand: 2026-10-12 · Branch `Julius` · Status: **angehalten (STOPP — Freeze)** · Klicktest A1/A2/B1 ✅  
 Vorgänger: [release_2026-10_freeze_vorbereiten.md](release_2026-10_freeze_vorbereiten.md)
 
 Entscheidung Julius: **Option A Allowlist** mit Modi `allowlist` | `all` + RT-2-Fix Registrierung — beides vor Freeze gebaut.
@@ -196,30 +196,33 @@ Modus bleibt **`allowlist`**. Reihenfolge:
 
 ---
 
-## Klicktest Julius (DEV) — STOPP
+## Klicktest Julius (DEV) — Ergebnis 12.10.2026
 
-Studio-Zugänge: `supabase/.env.dev`.
+Nur DEV `mufxhtctutfpzklwqnze`. Runbook-SQL aus §1/§5.
 
-### A1 — Allowlist
+| Schritt | SQL / Beleg | UI (Julius) | Ergebnis |
+|---------|-------------|-------------|----------|
+| **A1.1** | `set_online_payments_studio_allowed('demoalpha', false)` · Liste ohne demoalpha | Owner: kein Stripe-Bereich; Checkout nur vor Ort | ✅ |
+| **A1.2** | Onboarding `start` → 409 `PLATFORM_DISABLED`; `register_for_course` online → `ONLINE_UNAVAILABLE`; Attempts 101→101 | — | ✅ |
+| **A1.3** | `set_online_payments_studio_allowed('demoalpha', true)` · demoalpha wieder sichtbar | Stripe/Online wieder wie vorher | ✅ |
+| **A2.4** | `set_online_payments_rollout('all')` | Neues Studio **demoepsilon**: Stripe sofort sichtbar | ✅ |
+| **A2.5** | `set_online_payments_rollout('allowlist')` · demoepsilon nicht in Liste | demoepsilon: nach Neuladen kein Stripe | ✅ |
+| **B1** | `legal_acceptances` demoepsilon: 3 Zeilen terms/`2026-10-09`, privacy/`2026-10-08`, avv/`2026-10-04`, `accepted_at` = Anlagezeit | kein Banner; Rechtliches zeigt Zustimmungen | ✅ |
 
-1. SQL: `SELECT public.set_online_payments_studio_allowed('demoalpha', false);` (Plattform bleibt an, Modus allowlist).
-2. Als Owner demoalpha: Einstellungen › Zahlungen → **kein** Abschnitt Online-Zahlung / Stripe; Kursdetail → Online nicht wählbar (nur vor Ort / Karte).
-3. SQL: `SELECT public.set_online_payments_studio_allowed('demoalpha', true);` → Stripe-Bereich wieder da wie vorher.
+**Neues Studio:** slug `demoepsilon` · id `c30fd002-c614-4866-a87e-eaea59113921` · created `2026-10-12 13:47:29 UTC`
 
-### A2 — Modus `all`
+### Endzustand DEV (nach Klicktest)
 
-1. SQL: `SELECT public.set_online_payments_rollout('all');`
-2. Neues Studio über Onboarding anlegen (kurze URL) → als Owner: Stripe-Bereich **sofort** sichtbar (Plattform an vorausgesetzt).
-3. SQL: `SELECT public.set_online_payments_rollout('allowlist');` zurück.
-
-### B1 — Zustimmungen
-
-1. Neues Studio registrieren (Häkchen AGB+Datenschutz + AVV).
-2. Nach E-Mail-Bestätigung Login auf Subdomain → **kein** Banner „AGB (v2) · AVV (v2)“.
-3. Einstellungen › Rechtliches: drei Zustimmungen (AGB, Datenschutz, AVV) mit Datum.
+| | |
+|--|--|
+| Plattform `online_payments` | an |
+| Modus | `allowlist` |
+| Allowlist | demoalpha, demobeta, demodelta, juliusteststudio, sonnengruss, testerstudio, teststudio, yomita |
+| demoalpha | freigeschaltet |
+| demoepsilon | **nicht** auf Allowlist (bewusst) |
 
 ---
 
 ## STOPP
 
-Wartet auf Julius’ Klicktest A1 / A2 / B1. Danach Freeze.
+Klicktest A1/A2/B1 grün. Nächster Schritt: **Freeze** + Release-Abend §5.
