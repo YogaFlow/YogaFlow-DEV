@@ -217,6 +217,7 @@ Cron-Migration einsortiert: **`20261009160000` zuletzt** (nach Bucket `…150000
 
 ## Handgriff-Liste Release-Tag (Reihenfolge)
 
+0. **Vorher:** Hotfix `hotfix/pgrst201-registration-embeds` → `main` mergen; PROD Teilnehmerliste prüfen; `main` → `Julius`; neuer Freeze-Tag (Generalprobe-Bericht).
 1. **T0-0** Backup PROD + Snapshot Zählwerte (Bestandsaufnahme §5)
 2. **T0-1a** Dashboard: `pg_cron` + `pg_net` aktivieren (falls A6-3/B2 beim Push 2BP01/`extension`-Fehler zeigt — sonst A6-3/B2 installieren lassen)
 3. **T0-1b** Migrationen: `db push --include-all` (Julius tippt) — endet mit `20261009160000_release_2026_10_cron`
