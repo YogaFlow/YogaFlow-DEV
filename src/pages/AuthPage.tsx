@@ -1,10 +1,20 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import LoginForm from '../components/Auth/LoginForm';
 import RegisterForm from '../components/Auth/RegisterForm';
 import { Heart } from 'lucide-react';
 import StudioMark from '../components/branding/StudioMark';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
+import {
+  clearForcedSignOutLoopClock,
+  clearForcedSignOutStorage,
+  decideForcedSignOutAction,
+  readForcedSignOutIntent,
+  safeReturnPath,
+  sessionIdFromAccessToken,
+  SIGNED_OUT_MESSAGE,
+} from '../lib/sessionRules.mjs';
 import { useTenant, buildApexHref, withDevTenant } from '../context/TenantContext';
 import { getStudioLogoUrl } from '../lib/studioBranding';
 import JoinStudio from './JoinStudio';
@@ -16,12 +26,72 @@ const AuthPage: React.FC = () => {
   const [loginFormKey, setLoginFormKey] = useState(0);
   const [showVerifiedMessage, setShowVerifiedMessage] = useState(false);
   const [accessNotice, setAccessNotice] = useState<AccessNotice>(null);
+  const [forcedSignOutNotice, setForcedSignOutNotice] = useState(
+    () => new URLSearchParams(window.location.search).get('signed_out') === '1',
+  );
+  /** true nur solange die *alte* Sitzung (gleiche session_id) noch geräumt wird. */
+  const clearingStaleSession = useRef(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, userProfile, loading, profileLoading, isEmailConfirmed, signOut } = useAuth();
   const { tenantSlug, tenant, loading: tenantLoading, notFound, lookupError } = useTenant();
   const navigate = useNavigate();
 
   const isApexAuth = !tenantSlug;
+  const showSignedOutNotice =
+    forcedSignOutNotice || searchParams.get('signed_out') === '1';
+
+  const dropSignedOutQuery = () => {
+    if (searchParams.get('signed_out') !== '1' && !searchParams.get('next')) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete('signed_out');
+    setSearchParams(next, { replace: true });
+  };
+
+  // Hinweis aus Intent (bleibt bis neue Anmeldung); Query ergänzen falls fehlend.
+  useEffect(() => {
+    const intent = readForcedSignOutIntent();
+    if (!intent && searchParams.get('signed_out') !== '1') return;
+    if (intent) setForcedSignOutNotice(true);
+    if (searchParams.get('signed_out') === '1') return;
+    if (!intent) return;
+    const next = new URLSearchParams(searchParams);
+    next.set('signed_out', '1');
+    if (intent.next && !next.get('next')) next.set('next', intent.next);
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  // Nur die alte session_id abmelden. Neue Anmeldung → Intent weg, weiter zu next.
+  useEffect(() => {
+    if (!showSignedOutNotice || loading) return;
+    let cancelled = false;
+    void (async () => {
+      const intent = readForcedSignOutIntent();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (cancelled) return;
+      const sessionId = sessionIdFromAccessToken(session?.access_token);
+      const action = decideForcedSignOutAction(intent, sessionId);
+
+      if (action === 'clear_stale') {
+        clearingStaleSession.current = true;
+        void signOut();
+        return;
+      }
+      if (action === 'accept_new' || action === 'expired' || action === 'none') {
+        clearingStaleSession.current = false;
+        clearForcedSignOutStorage();
+        clearForcedSignOutLoopClock();
+        if (action === 'accept_new' || action === 'expired') {
+          setForcedSignOutNotice(false);
+          dropSignedOutQuery();
+        }
+        return;
+      }
+      clearingStaleSession.current = false;
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [showSignedOutNotice, user, loading, signOut, searchParams, setSearchParams]);
 
   // Auf der Marketing-Domain nur Anmeldung (Registrierung läuft über /onboarding).
   useEffect(() => {
@@ -77,8 +147,10 @@ const AuthPage: React.FC = () => {
   // Nur bei passendem Mandant: Subdomain → Dashboard, Apex → Landing
   // Kein Redirect während Registrierung läuft (Register-Tab aktiv), damit
   // der Bestätigungsdialog sichtbar bleibt bevor manuell zum Dashboard navigiert wird.
+  // Während clearingStaleSession nicht zu next — sonst zurück auf /users (Schritt 3).
   useEffect(() => {
     if (loading || profileLoading) return;
+    if (clearingStaleSession.current) return;
     if (!user || !isEmailConfirmed) return;
     if (!isLogin) return;
     if (!tenantSlug) {
@@ -87,7 +159,11 @@ const AuthPage: React.FC = () => {
     }
     if (tenantLoading || notFound || !tenant) return;
     if (!userProfile || userProfile.tenant_id !== tenant.id) return;
-    navigate(withDevTenant('/dashboard'), { replace: true });
+    clearForcedSignOutStorage();
+    clearForcedSignOutLoopClock();
+    setForcedSignOutNotice(false);
+    const nextPath = safeReturnPath(searchParams.get('next'));
+    navigate(withDevTenant(nextPath ?? '/dashboard'), { replace: true });
   }, [
     loading,
     profileLoading,
@@ -100,6 +176,7 @@ const AuthPage: React.FC = () => {
     notFound,
     tenant,
     navigate,
+    searchParams,
   ]);
 
   // Falls der Passwort-Reset-Link versehentlich auf /auth zeigt: zur Reset-Seite weiterleiten
@@ -273,6 +350,11 @@ const AuthPage: React.FC = () => {
             </div>
           )}
 
+          {showSignedOutNotice && (
+            <div className="mx-8 mt-6 p-4 bg-accentSoft border border-accent rounded-sm text-center text-text text-sm">
+              {SIGNED_OUT_MESSAGE}
+            </div>
+          )}
           {showVerifiedMessage && (
             <div className="mx-8 mt-6 p-4 bg-successSoft border border-successSoft rounded-sm text-center text-text text-sm">
               E-Mail bestätigt. Du kannst dich jetzt anmelden.

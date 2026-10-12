@@ -94,6 +94,31 @@ function hasSpaRootQuery(url: URL): boolean {
   return false;
 }
 
+function withShellCache(request: Request, response: Response): Response {
+  const url = new URL(request.url);
+  const pathname = url.pathname;
+  const type = response.headers.get('content-type') ?? '';
+  const marketingOrLegal =
+    isApexHost(hostnameOf(request)) &&
+    (isPlatformLegalPath(pathname) ||
+      pathname === '/marketing.html' ||
+      ((pathname === '/' || pathname === '/index.html') && !hasSpaRootQuery(url)));
+  const noCache = pathname === '/version.json' || (type.includes('text/html') && !marketingOrLegal);
+  if (!noCache) return response;
+  const headers = new Headers(response.headers);
+  headers.set('Cache-Control', 'no-cache');
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+async function fetchAsset(request: Request, env: WorkerEnv, assetPath?: string): Promise<Response> {
+  const response = await env.ASSETS.fetch(assetPath ? new URL(assetPath, request.url) : request);
+  return withShellCache(request, response);
+}
+
 export default {
   async fetch(request: Request, env: WorkerEnv): Promise<Response> {
     const hostname = hostnameOf(request);
@@ -114,26 +139,26 @@ export default {
       // dessen Rechtsangaben, nicht die der Plattform. html_handling wuerde sonst
       // legal/*.html aus dem Marketing-Build ausliefern.
       if (isPlatformLegalPath(pathname)) {
-        return env.ASSETS.fetch(new URL('/', request.url));
+        return fetchAsset(request, env, '/');
       }
-      return env.ASSETS.fetch(request);
+      return fetchAsset(request, env);
     }
 
     if (pathname === '/' || pathname === '/index.html') {
       if (hasSpaRootQuery(url)) {
-        return env.ASSETS.fetch(request);
+        return fetchAsset(request, env);
       }
       // Ueber eine neue URL holen, nicht ueber den Original-Request: html_handling
       // wuerde /marketing.html sonst mit 307 nach /marketing schicken.
-      return env.ASSETS.fetch(new URL('/marketing.html', request.url));
+      return fetchAsset(request, env, '/marketing.html');
     }
 
     if (pathname === '/marketing.html') {
-      return env.ASSETS.fetch(new URL('/marketing.html', request.url));
+      return fetchAsset(request, env, '/marketing.html');
     }
 
     if (isPlatformLegalPath(pathname)) {
-      return env.ASSETS.fetch(request);
+      return fetchAsset(request, env);
     }
 
     if (pathname === '/sitemap.xml') {
@@ -146,6 +171,6 @@ export default {
       });
     }
 
-    return env.ASSETS.fetch(request);
+    return fetchAsset(request, env);
   },
 };

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
 import { User as SupabaseUser, type Session, type AuthChangeEvent } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { signOutThisDevice } from '../lib/sessionGuard';
 import { User, UserRole } from '../types';
 import { clearDevTenantSlug } from './TenantContext';
 
@@ -254,7 +255,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
+      await signOutThisDevice();
     } finally {
       clearDevTenantSlug();
       setUser(null);

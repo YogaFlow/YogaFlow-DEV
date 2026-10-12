@@ -1,8 +1,39 @@
+import { execSync } from 'node:child_process';
+import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { defineConfig, loadEnv, build as viteBuild, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 
 import { cloudflare } from "@cloudflare/vite-plugin";
 import { legalRollupInput, writeLegalHtmlPages } from './scripts/render-legal-pages.mjs';
+
+function buildSha(): string {
+  const fromCi = process.env.WORKERS_CI_COMMIT_SHA || process.env.CF_PAGES_COMMIT_SHA || '';
+  if (/^[0-9a-f]{7,40}$/i.test(fromCi)) return fromCi;
+  try {
+    return execSync('git rev-parse HEAD', { encoding: 'utf8' }).trim();
+  } catch {
+    return 'unknown';
+  }
+}
+
+/** Schreibt public/version.json und dieselbe ID ins Bundle. */
+function writeVersionJson(): Plugin {
+  const sha = buildSha();
+  const payload = `${JSON.stringify({ build: sha })}\n`;
+  return {
+    name: 'write-version-json',
+    config() {
+      return { define: { 'import.meta.env.VITE_BUILD_SHA': JSON.stringify(sha) } };
+    },
+    buildStart() {
+      writeFileSync(join(process.cwd(), 'public', 'version.json'), payload);
+    },
+    configureServer() {
+      writeFileSync(join(process.cwd(), 'public', 'version.json'), payload);
+    },
+  };
+}
 
 const mpaInput = {
   main: 'index.html',
@@ -87,6 +118,7 @@ export default defineConfig(({ mode, command }) => {
 
   return {
     plugins: [
+      writeVersionJson(),
       react(),
       ...(includeLegalPages ? [stripLegalScripts()] : []),
       ...(marketingBuild ? [] : [cloudflare(), isolatedMarketingBuild()]),

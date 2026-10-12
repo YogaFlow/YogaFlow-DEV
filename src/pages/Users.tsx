@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import { reactToSessionInvokeError, readInvokeFailure } from '../lib/sessionGuard';
 import { formatDate } from '../lib/format';
 import { User, UserRole, Course } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -113,22 +114,7 @@ const PASSWORD_ERROR_TEXT: Record<string, string> = {
 
 function passwordErrorText(code: string | null): string {
   if (code && PASSWORD_ERROR_TEXT[code]) return PASSWORD_ERROR_TEXT[code];
-  return 'Das Passwort konnte nicht gesetzt werden.';
-}
-
-async function readFunctionErrorCode(error: unknown): Promise<string | null> {
-  const context = (error as { context?: { clone?: () => { json?: () => Promise<unknown> }; json?: () => Promise<unknown> } }).context;
-  const source = typeof context?.clone === 'function' ? context.clone() : context;
-  if (!source || typeof source.json !== 'function') return null;
-  try {
-    const body = await source.json();
-    if (body && typeof body === 'object' && 'code' in body && typeof body.code === 'string') {
-      return body.code;
-    }
-  } catch {
-    return null;
-  }
-  return null;
+  return 'Das hat nicht geklappt. Bitte versuch es noch einmal.';
 }
 
 /** null = Spalte fehlt in der Antwort. Dann nicht „kein Login“ behaupten. */
@@ -428,6 +414,7 @@ export default function Users() {
       });
 
       if (fnError) {
+        if (await reactToSessionInvokeError(fnError)) return;
         throw new Error(
           (fnError as unknown as { details?: string }).details
             || fnError.message
@@ -473,10 +460,12 @@ export default function Users() {
         body: { userId, password: value },
       });
       if (error) {
-        setPasswordError(passwordErrorText(await readFunctionErrorCode(error)));
+        if (await reactToSessionInvokeError(error)) return;
+        const body = await readInvokeFailure(error);
+        setPasswordError(passwordErrorText(body.code));
         return;
       }
-      setPasswordNotice('Das Passwort ist gesetzt.');
+      setPasswordNotice('Passwort geändert');
     } catch {
       setPasswordError(passwordErrorText(null));
     } finally {

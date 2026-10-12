@@ -1,0 +1,9 @@
+# version.json und die App-Hülle nicht lange cachen. Gehashte Bundles dürfen.
+/version.json
+  Cache-Control: no-cache
+
+/index.html
+  Cache-Control: no-cache
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

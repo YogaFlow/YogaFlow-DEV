@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Heart, ChevronRight, ChevronLeft, Check, Loader2, LogOut, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { signOutThisDevice } from '../lib/sessionGuard';
 import { useAuth } from '../context/AuthContext';
 import { useTenant, buildStudioEntryHref, buildStudioAuthHref, APP_BASE_DOMAIN } from '../context/TenantContext';
 
@@ -85,7 +86,7 @@ const OnboardingWizard: React.FC = () => {
     if (!forceNewStudio || !user || autoSignOutHandledRef.current) return;
     autoSignOutHandledRef.current = true;
     setAutoSigningOut(true);
-    void supabase.auth.signOut().finally(() => {
+    void signOutThisDevice().finally(() => {
       navigate('/onboarding', { replace: true });
       setAutoSigningOut(false);
     });
@@ -241,11 +242,7 @@ const OnboardingWizard: React.FC = () => {
     }
 
     // Best effort: Session löschen, damit Onboarding-Landing nicht als "eingeloggt" gilt.
-    try {
-      await supabase.auth.signOut();
-    } catch {
-      /* ignore */
-    }
+    await signOutThisDevice();
 
     setSuccess(true);
     setIsSubmitting(false);
@@ -325,7 +322,7 @@ const OnboardingWizard: React.FC = () => {
               {tenantSlug ? 'Zurück zum Dashboard' : 'Zur Studio-Webadresse'}
             </button>
             <button
-              onClick={async () => { await supabase.auth.signOut(); window.location.replace('/onboarding'); }}
+              onClick={async () => { await signOutThisDevice(); window.location.replace('/onboarding'); }}
               className="w-full border border-border text-textMuted py-3 rounded-sm hover:bg-surfaceSunken transition-colors"
             >
               Abmelden und neues Studio anlegen

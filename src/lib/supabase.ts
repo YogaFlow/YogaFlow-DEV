@@ -1,4 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
+import { notifySessionHttp, resolveRequestUrl } from './sessionHttp';
+import { markVoluntarySignOut } from './sessionRules.mjs';
 import { currentTenantSlug } from './tenantSlug';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co';
@@ -24,12 +26,16 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   global: {
     fetch: (input: RequestInfo | URL, init?: RequestInit) => {
       const slug = currentTenantSlug();
-      if (!slug) {
-        return fetch(input, init);
+      let nextInit = init;
+      if (slug) {
+        const headers = new Headers(init?.headers);
+        headers.set('x-omlify-tenant', slug);
+        nextInit = { ...init, headers };
       }
-      const headers = new Headers(init?.headers);
-      headers.set('x-omlify-tenant', slug);
-      return fetch(input, { ...init, headers });
+      return fetch(input, nextInit).then((response) => {
+        notifySessionHttp(resolveRequestUrl(input), response);
+        return response;
+      });
     },
   },
 });
@@ -55,8 +61,13 @@ export const signIn = async (email: string, password: string) => {
 };
 
 export const signOut = async () => {
-  const { error } = await supabase.auth.signOut();
-  return { error };
+  markVoluntarySignOut();
+  try {
+    const { error } = await supabase.auth.signOut({ scope: 'local' });
+    return { error };
+  } catch {
+    return { error: null };
+  }
 };
 
 export const getCurrentUser = async () => {
