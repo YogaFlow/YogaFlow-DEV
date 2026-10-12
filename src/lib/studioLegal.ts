@@ -416,6 +416,18 @@ export async function loadStudioLegalVersions(
   });
 }
 
+/** Signierte Kurzzeit-URL für eine PDF im privaten Bucket `studio-legal`. */
+export async function openStudioLegalPdf(pdfPath: string): Promise<boolean> {
+  const path = pdfPath.trim();
+  if (!path) return false;
+  const { data, error } = await supabase.storage
+    .from('studio-legal')
+    .createSignedUrl(path, 120);
+  if (error || !data?.signedUrl) return false;
+  window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+  return true;
+}
+
 /**
  * Weitere Regeln speichern und AGB-Fassung neu veröffentlichen (wenn schon freigegeben).
  * Löst change_release aus, bis erneut freigegeben wird.

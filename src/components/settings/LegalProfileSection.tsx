@@ -42,10 +42,13 @@ type FieldKey = keyof Omit<StudioLegalProfile, 'present' | 'country' | 'legal_fo
 export default function LegalProfileSection({
   isOwner,
   collapsiblePreview = false,
+  onSaved,
 }: {
   isOwner: boolean;
   /** RT-1 Nachtrag: Vorschau als einklappbare Karte „So sieht es aus“ (mobil zu). */
   collapsiblePreview?: boolean;
+  /** Nach erfolgreichem Speichern: Hub-Status/Pillen neu laden. */
+  onSaved?: () => void | Promise<void>;
 }) {
   const { tenant } = useTenant();
   const [form, setForm] = useState<StudioLegalProfile>(emptyLegalProfile);
@@ -124,10 +127,11 @@ export default function LegalProfileSection({
       setFieldError({ field: result.field, message: result.message });
       return;
     }
-    setForm((prev) => ({ ...prev, present: true, imprint_complete: result.imprint_complete }));
+    const nextForm = { ...form, present: true, imprint_complete: result.imprint_complete };
+    setForm(nextForm);
     if (result.imprint_complete && tenant) {
       try {
-        const values = await buildPreviewValues({ ...form, present: true }, tenant);
+        const values = await buildPreviewValues(nextForm, tenant);
         const bodyMd = renderStudioLegalKind('imprint', values);
         await publishStudioLegalDocument({
           kind: 'imprint',
@@ -137,12 +141,21 @@ export default function LegalProfileSection({
         });
         // AGB/Datenschutz neu fassen wenn schon freigegeben (Platzhalter aus Profil).
         await resyncStudioLegalDocuments(tenant);
+        const md = renderStudioLegalKind('imprint', values);
+        setPreviewHtml(studioLegalMarkdownToHtml(md));
       } catch {
         /* Speichern ok; Veröffentlichung kann später nachgeholt werden */
       }
     }
     setBusy(false);
     setSavedNote('Gespeichert.');
+    try {
+      const fresh = await loadStudioLegalProfile();
+      setForm(fresh);
+    } catch {
+      /* Formular behält den gespeicherten Stand */
+    }
+    await onSaved?.();
   };
 
   const textFields = [

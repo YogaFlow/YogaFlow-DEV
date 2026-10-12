@@ -126,10 +126,9 @@ const PassProductDialog: React.FC<Props> = ({ open, product, onClose, onSaved })
   const validityValue = validityMode === 'years_to_year_end' ? years : months;
   const exampleValidity = formatPassValidity(validityMode, validityValue);
   const showShortValidityHint = validityMode === 'months' && months < 12;
+  // K3 / Entscheidung 15: empfohlen 12 Monate ab Kauf — nur diese Option trägt „(empfohlen)“.
   const yearsLabel =
-    years === 1
-      ? 'Bis Jahresende, 1 Jahr (empfohlen)'
-      : `Bis Jahresende, ${years} Jahre (empfohlen)`;
+    years === 1 ? 'Bis Jahresende, 1 Jahr' : `Bis Jahresende, ${years} Jahre`;
 
   const switchBlock = onlinePassSwitchBlockReason({
     onlineReady,

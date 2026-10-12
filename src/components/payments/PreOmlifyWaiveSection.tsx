@@ -137,7 +137,7 @@ const PreOmlifyWaiveSection: React.FC<PreOmlifyWaiveSectionProps> = ({
         data-testid="pre-omlify-waive-expand"
         className="flex min-h-11 w-full items-center justify-between gap-2 rounded-md px-1 py-2 text-left text-[15px] text-brand active:bg-surfaceSunken focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
       >
-        <span>Ältere Kurse auf einmal als erledigt markieren</span>
+        <span>Frühere Kurse als erledigt markieren</span>
         <ChevronRight className="h-[18px] w-[18px] shrink-0 text-textSubtle" aria-hidden />
       </button>
     );
@@ -148,11 +148,14 @@ const PreOmlifyWaiveSection: React.FC<PreOmlifyWaiveSectionProps> = ({
       className="rounded-md border border-border bg-surface p-4 sm:p-5"
       data-testid="pre-omlify-waive-panel"
     >
-      <h2 className="text-[17px] font-medium text-text">Alte Kurse abhaken</h2>
+      <h2 className="text-[17px] font-medium text-text">
+        Frühere Kurse als erledigt markieren
+      </h2>
       <p className="mt-2 max-w-prose text-[15px] leading-6 text-textMuted">
-        Omlify weiß nicht, wer vor dem Start mit Omlify bezahlt hat. Deshalb stehen deine
-        bisherigen Kurse als „offen“. Hast du das früher schon selbst geregelt, kannst du hier
-        alles auf einmal abhaken. Betrifft nur Anmeldungen vor dem gewählten Datum.
+        Omlify zeigt jetzt bei jeder Anmeldung, ob sie bezahlt ist. Für deine Anmeldungen von
+        vorher weiß Omlify das nicht, deshalb stehen sie als „offen“. Wenn das schon geregelt war,
+        markiere hier alle Anmeldungen bis zum gewählten Datum mit einem Klick als erledigt. Es
+        wird dabei kein Geld bewegt und niemand benachrichtigt.
       </p>
 
       <label className="mt-5 block text-[13px] font-medium text-textMuted" htmlFor="pre-omlify-before">
@@ -187,8 +190,6 @@ const PreOmlifyWaiveSection: React.FC<PreOmlifyWaiveSectionProps> = ({
           <li>
             Die Anmeldungen stehen nicht mehr als offen, sondern als „vor Omlify erledigt“.
           </li>
-          <li>Deine Teilnehmenden merken davon nichts, es geht keine Nachricht raus.</li>
-          <li>Es wird kein Geld verbucht.</li>
           <li>Du kannst es jederzeit rückgängig machen.</li>
         </ul>
       </div>

@@ -45,11 +45,12 @@ export default function TermsAcceptanceSection({ isOwner }: { isOwner: boolean }
       : null;
 
   const displayedHash = LEGAL_DOCUMENTS.agb.pageHash;
+  const hashShort = displayedHash.slice(0, 8);
 
   return (
     <section className="mt-8 space-y-3" data-testid="terms-section">
       <h2 className="text-[17px] font-medium text-text">AGB (Omlify)</h2>
-      <p className="text-[15px] text-textMuted">
+      <p className="text-[15px] text-textMuted" title={`Prüfsumme ${hashShort}…`}>
         Version {status?.currentVersion ?? TERMS_VERSION}.{' '}
         <button
           type="button"
@@ -82,8 +83,8 @@ export default function TermsAcceptanceSection({ isOwner }: { isOwner: boolean }
           {error}
         </p>
       ) : null}
-      <span className="sr-only" data-testid="terms-display-hash">
-        {displayedHash}
+      <span className="sr-only" data-testid="terms-display-hash" title={hashShort}>
+        {hashShort}
       </span>
       <LegalDocumentSheet
         slug={legalOpen ? 'agb' : null}

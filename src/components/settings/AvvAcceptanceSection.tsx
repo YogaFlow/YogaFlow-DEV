@@ -41,11 +41,12 @@ export default function AvvAcceptanceSection({ isOwner }: { isOwner: boolean }) 
       : null;
 
   const displayedHash = LEGAL_DOCUMENTS.auftragsverarbeitung.pageHash;
+  const hashShort = displayedHash.slice(0, 8);
 
   return (
     <section className="mt-8 space-y-3" data-testid="avv-section">
       <h2 className="text-[17px] font-medium text-text">Auftragsverarbeitung (AVV)</h2>
-      <p className="text-[15px] text-textMuted">
+      <p className="text-[15px] text-textMuted" title={`Prüfsumme ${hashShort}…`}>
         Version {status?.currentVersion ?? AVV_VERSION}.{' '}
         <button
           type="button"
@@ -78,8 +79,8 @@ export default function AvvAcceptanceSection({ isOwner }: { isOwner: boolean }) 
           {error}
         </p>
       ) : null}
-      <span className="sr-only" data-testid="avv-display-hash">
-        {displayedHash}
+      <span className="sr-only" data-testid="avv-display-hash" title={hashShort}>
+        {hashShort}
       </span>
       <LegalDocumentSheet
         slug={legalOpen ? 'auftragsverarbeitung' : null}
