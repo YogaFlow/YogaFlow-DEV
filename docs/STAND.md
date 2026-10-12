@@ -1,6 +1,6 @@
 # STAND — Omlify DEV
 
-Stand: 2026-10-12 · Branch `Julius` · Hotfix Sitzung und Version (PR #176 `06710c1`, PROD live)
+Stand: 2026-10-12 · Branch `Julius` · Stripe-Live-Vorbereitung E4 neu (nur Doku)
 
 ## DEV
 
@@ -11,9 +11,12 @@ Stand: 2026-10-12 · Branch `Julius` · Hotfix Sitzung und Version (PR #176 `067
 - E2E: RT-2 `e2e/rt2.spec.ts` (e2eapp); Rauch `scripts/test/rt2_retention.mjs`
 - Legal: `AGB.v2.md` Stand 09.10.2026 · Hash `815a10da…`; `privacy` 2026-10-08
 - Demo: `npm run dev:demo:seed` — relativ zum Laufzeitpunkt
+- Plattform: `online_payments` an (DEV); `demoalpha` Studio-Online an
 
 ## Zuletzt abgeschlossen
 
+- **Release 2026-10 Stripe live Vorbereitung (E4 neu)** — nur Doku; **Haltestelle Freigabe pro Studio** (keine Allowlist)
+  - Bericht: [docs/berichte/release_2026-10_stripe_live_vorbereitung.md](berichte/release_2026-10_stripe_live_vorbereitung.md)
 - **Hotfix Sitzung und Version** — PR #176 gemergt (`06710c1`), PROD Bundle + `version.json` `no-cache` geprüft; `main` in Julius.
   - Bericht: [docs/berichte/hotfix_sitzung_und_version.md](berichte/hotfix_sitzung_und_version.md)
 - **RT-2 AGB § 9 Abs. 3+4** — wirksam mit Zugang, 30 Tage Export, Löschung nach AVV; Abs. 2 unverändert; AVV-Frist gleich
@@ -24,12 +27,14 @@ Stand: 2026-10-12 · Branch `Julius` · Hotfix Sitzung und Version (PR #176 `067
 
 ## Nächste Schritte
 
-- **Release 2026-10** Entscheidungen E1–E9 (Phase 2); Generalprobe E3 (85er-Apply, Docker/Probe)
+- **Haltestelle §1 Stripe-Freigabe:** Allowlist vor Freeze (Vorschlag A) oder Risiko-Freigabe Julius
+- **Release 2026-10** Freeze + Abendablauf Phase 5/6 laut Stripe-Live-Bericht §5
 - RT-2 Haltestelle 5 Klicktest (Liste im Bericht)
 - Nachtrag F / UX-Haltestellen parallel offen, falls noch nicht abgehakt
 
 ## Haltestellen / wartet auf Julius
 
+- **Stripe live E4 neu STOPP** — [release_2026-10_stripe_live_vorbereitung.md](berichte/release_2026-10_stripe_live_vorbereitung.md) · **🔴 keine Studio-Allowlist** (Yomita sähe Stripe-UI bei Plattform an)
 - **Hotfix Sitzung und Version STOPP** — [hotfix_sitzung_und_version.md](berichte/hotfix_sitzung_und_version.md) · PROD live; Klicktest 1–5 abschließen
 - **Release 2026-10 Freeze-Vorbereitung STOPP** — [release_2026-10_freeze_vorbereiten.md](berichte/release_2026-10_freeze_vorbereiten.md) · Probelauf 85 ohne Docker
 - **Release 2026-10 Phase 1** — [release_2026-10_bestandsaufnahme.md](berichte/release_2026-10_bestandsaufnahme.md)
@@ -42,7 +47,7 @@ Stand: 2026-10-12 · Branch `Julius` · Hotfix Sitzung und Version (PR #176 `067
 
 ## hier weitermachen
 
-Hotfix Sitzung/Version: PROD bestätigt; Klicktest abschließen. Parallel: andere offene Haltestellen.
+Entscheidung §1 Allowlist (A/B/Risiko), dann Freeze + Release-Abend nach Stripe-Live-Bericht §5.
 
 ## Verweise
 
