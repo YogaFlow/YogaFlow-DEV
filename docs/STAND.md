@@ -16,8 +16,9 @@ Stand: 2026-10-12 · Branch `Julius` · Allowlist + Onboarding-Legal vor Freeze
 ## Zuletzt abgeschlossen
 
 - **Release 2026-10 · Allowlist + RT-2 Onboarding-Zustimmungen** — gebaut vor Freeze
-  - Migrationen `20261009161000`, `20261009161100`
+  - Migrationen `20261009161000`, `20261009161100`; DEV 204
   - Tests: `online_payments_allowlist.mjs`, `onboarding_legal_acceptances.mjs`
+  - DEV-Build: Workers `omlify-dev` success für `1c173ed…`; Bundle `index-D3Bs67NQ.js` mit `p_legal_accepted`
   - Bericht: [docs/berichte/release_2026-10_stripe_live_vorbereitung.md](berichte/release_2026-10_stripe_live_vorbereitung.md) · **STOPP Klicktest A1/A2/B1**
 - **Hotfix Sitzung und Version** — PR #176 gemergt (`06710c1`), PROD Bundle + `version.json` `no-cache` geprüft; `main` in Julius.
   - Bericht: [docs/berichte/hotfix_sitzung_und_version.md](berichte/hotfix_sitzung_und_version.md)

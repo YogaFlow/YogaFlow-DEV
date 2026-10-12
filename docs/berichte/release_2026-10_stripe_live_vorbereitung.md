@@ -184,6 +184,16 @@ Modus bleibt **`allowlist`**. Reihenfolge:
 - `npm run functions:dev` (inkl. `onboarding-public`)
 - DEV: platform an, mode allowlist, Allowlist = alle 8 Studios
 
+### DEV-Build (Haltestelle 5)
+
+| | |
+|--|--|
+| HEAD (Feature) | `1c173ed71d634a7aebd80e8b42dac218bffe68de` |
+| Workers Builds: omlify-dev | `success` · build_uuid `8576b781-2d30-4cd5-bce3-fa6cecb4b637` · commit `1c173ed…` · stopped `2026-10-12T12:40:52Z` |
+| `version.json` | `{"build":"1c173ed71d634a7aebd80e8b42dac218bffe68de"}` |
+| Live-Bundle | `https://demoalpha.omlify-dev.de/assets/index-D3Bs67NQ.js` |
+| Merkmal | enthält `p_legal_accepted` und „Bitte akzeptiere AGB, Datenschutz und den AVV.“ |
+
 ---
 
 ## Klicktest Julius (DEV) — STOPP
