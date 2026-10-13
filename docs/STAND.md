@@ -1,6 +1,6 @@
 # STAND — Omlify DEV
 
-Stand: 2026-10-12 · Branch `Julius` · Freeze nach main→Julius inkl. #177
+Stand: 2026-10-13 · Branch `Julius` · Freeze nach main→Julius inkl. #177
 
 ## DEV
 
@@ -10,11 +10,12 @@ Stand: 2026-10-12 · Branch `Julius` · Freeze nach main→Julius inkl. #177
 - Cron: `yogaflow_retention_cleanup` 03:15 UTC; bestehende Legal/Pass/Ops-Jobs
 - E2E: RT-2 `e2e/rt2.spec.ts` (e2eapp); Rauch `scripts/test/rt2_retention.mjs`
 - Legal: terms `2026-10-09` · privacy `2026-10-08` · avv `2026-10-04`; Onboarding speichert 3 Acceptances atomar
-- Demo: `npm run dev:demo:seed` — relativ zum Laufzeitpunkt
-- Plattform: `online_payments` an (DEV); Modus `allowlist`; Allowlist 8 Studios (ohne demoepsilon)
+- Demo: `npm run dev:demo:seed` (demoalpha) · **YOMITA-Stand:** `node scripts/dev/seed_demo_studio.mjs` → `demostudio` / Yoga am Rhein
+- Plattform: `online_payments` an (DEV); Modus `allowlist`; Allowlist 8 Studios (ohne demoepsilon/demostudio)
 
 ## Zuletzt abgeschlossen
 
+- **DEV-Demo YOMITA-Stand** — `demostudio` (Acceptances auf demoepsilon → neues Studio); AGB/AVV v2 offen, keine Studio-Rechtstexte, Online aus; 234/158 offen; 0 Mails/Zahlungen/Pässe. Bericht [demo_studio_yomita_stand.md](berichte/demo_studio_yomita_stand.md) · **STOPP**
 - **Legal-Cleanup DEV vor Release-Abend** — „AGB Test“ auf demoalpha/demobeta stammte aus `studioLegalFreigeben` (Nachtrag F, 2026-10-08 17:07); neu freigegeben via `demo_legal_rerelease.mjs` (echte Vorlage, Append-only). stash@{0} verworfen. **Befund:** RPC akzeptiert beliebigen Body (kein Vorlagen-Abgleich) → auf PROD nach Schema-Live möglich. Rauchtest PROD `/agb` → `/auth` (Bundle noch ohne Routen). Bericht [release_2026-10_abend_legal_cleanup.md](berichte/release_2026-10_abend_legal_cleanup.md) · **STOPP Phase 5**
 - **Release 2026-10 Generalprobe** — GO; Tag `release-2026-10-freeze` = `35d44d4` (main→Julius inkl. PR #177 PGRST201; UI `2ccbef9`); Bericht [release_2026-10_generalprobe.md](berichte/release_2026-10_generalprobe.md); Probe stehen lassen
 - **Release 2026-10 · Allowlist + RT-2 Onboarding-Zustimmungen** — gebaut; **Klicktest A1/A2/B1 grün** (demoepsilon)
@@ -37,6 +38,7 @@ Stand: 2026-10-12 · Branch `Julius` · Freeze nach main→Julius inkl. #177
 
 ## Haltestellen / wartet auf Julius
 
+- **DEV-Demo YOMITA-Stand STOPP** — [demo_studio_yomita_stand.md](berichte/demo_studio_yomita_stand.md) · Klicktest `https://demostudio.omlify-dev.de`
 - **Release-Abend morgen** — [RELEASE_2026-10_ABEND.md](RELEASE_2026-10_ABEND.md) · Legal-Cleanup: [release_2026-10_abend_legal_cleanup.md](berichte/release_2026-10_abend_legal_cleanup.md)
 - **Stripe live Allowlist + Legal STOPP** — [release_2026-10_stripe_live_vorbereitung.md](berichte/release_2026-10_stripe_live_vorbereitung.md) · Klicktest grün → **Freeze**
 
@@ -52,7 +54,7 @@ Stand: 2026-10-12 · Branch `Julius` · Freeze nach main→Julius inkl. #177
 
 ## hier weitermachen
 
-Freeze `35d44d4` halten. Checkliste: [RELEASE_2026-10_ABEND.md](RELEASE_2026-10_ABEND.md). Release-Abend morgen. Probe stehen lassen.
+Freeze `35d44d4` halten. Demo: `demostudio` / [demo_studio_yomita_stand.md](berichte/demo_studio_yomita_stand.md). Checkliste: [RELEASE_2026-10_ABEND.md](RELEASE_2026-10_ABEND.md). Release-Abend morgen. Probe stehen lassen.
 
 ## Verweise
 
