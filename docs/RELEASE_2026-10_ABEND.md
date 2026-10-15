@@ -1,6 +1,7 @@
 # Release 2026-10 — Abend-Checkliste
 
-**Freeze:** `release-2026-10-freeze` = `b9a032f` · Branch `Julius` · PROD-Migrationen fehlend **91** · Release-Reihenfolge unverändert  
+**Freeze:** `release-2026-10-freeze` = `origin/Julius` (Asset-404-Fix, Basis `bebf1fe`) · Branch `Julius` · PROD-Migrationen fehlend **91** · Release-Reihenfolge unverändert  
+Der Hash steht nicht in dieser Datei: er ist der Commit, auf den der Tag zeigt. Ein zweiter Doku-Commit nur für den Hash würde das Bundle wieder ändern.
 **Wer:** **J** = Julius tippt/klickt · **C** = Cursor (nur nach Freigabe, nie PROD-Passwort im Chat)  
 **Passwort / Secrets / Keys:** nur Terminal oder Dashboard — **nie in Chat/Bericht**.
 
@@ -12,6 +13,7 @@
 | DB-Push | nur Pooler `:5432` mit `--db-url` und Passwort **ausdrücklich** in der Shell (`$env:SUPABASE_DB_PASSWORD`) |
 | Ein Versuch | Push bricht ab → **STOPP**, Stand prüfen (`db:status:prod` / Migrationen). **Kein** blinder Zweitversuch |
 | Ref-Check | vor jedem PROD-Befehl: URL/Keys zeigen auf PROD-Ref, nicht DEV |
+| Bundle nach Deploy | Nach **jedem** Frontend-Deploy (Schritt 15b und 18, gleich auf DEV `omlify-dev`): (1) aus der live `index.html` die `/assets/index-….js` direkt abrufen, `Content-Type` muss JavaScript sein, der Body darf nicht mit `<!doctype` beginnen. (2) `/assets/index-missing-probe.js` muss **404** sein, ohne `immutable` und ohne `text/html`. HTML, `200` oder `immutable` auf der Probe → Rollback auf den **vorigen** Deploy im Cloudflare-Dashboard. Kein neuer Build als erster Reflex. |
 
 Quellen: [Generalprobe](berichte/release_2026-10_generalprobe.md) · [Freeze](berichte/release_2026-10_freeze_vorbereiten.md) · [Stripe-Live §5](berichte/release_2026-10_stripe_live_vorbereitung.md) · [Pre-PROD](DEV_PROD_SAFETY_WORKFLOW.md)
 
@@ -21,7 +23,7 @@ Quellen: [Generalprobe](berichte/release_2026-10_generalprobe.md) · [Freeze](be
 
 | # | Schritt | Wer | Befehl / Klick | Erwartung | Abbruch |
 |---|---------|-----|----------------|-----------|---------|
-| 0 | Freeze prüfen | J/C | `git fetch`; `git rev-parse origin/Julius release-2026-10-freeze` | beide `b9a032f` | Hash ≠ Freeze → kein Abend |
+| 0 | Freeze prüfen | J/C | `git fetch --tags`; `git rev-parse HEAD origin/Julius release-2026-10-freeze` | alle drei derselbe Commit (Asset-404-Fix nach `bebf1fe`) | einer weicht ab → kein Abend |
 | 1 | Backup PROD | J | GitHub Action `backup-prod` bzw. üblicher PROD-Backup | grün / frisch | Backup fehlt → STOPP |
 | 2 | Snapshot Zählwerte | J/C | SQL wie Bestandsaufnahme §5 (Buchungen, Kurse, …) | notiert zum Vergleich | — |
 | 3 | Pre-PROD-Checkliste | J | [DEV_PROD_SAFETY_WORKFLOW.md](DEV_PROD_SAFETY_WORKFLOW.md) | abgehakt | Zweifel → STOPP |
@@ -50,6 +52,7 @@ Quellen: [Generalprobe](berichte/release_2026-10_generalprobe.md) · [Freeze](be
 | 13 | ops-monitor einmal | J | Cron/Invoke | Mail nur an Julius | Spam/fremde Adresse → Secret prüfen |
 | 14 | PR `Julius`→`main` | J | GitHub Merge Freeze-Stand | Merge grün | CI rot → kein Merge |
 | 15 | Cloudflare-Build | J | Workers Builds PROD abwarten | `success`; `version.json` = Merge-SHA | Build rot → Rollback Frontend (§ Rückweg) |
+| 15b | Bundle ist JavaScript, fehlendes Asset ist 404 | J/C | Studio-Subdomain (z. B. `yomita.omlify.de`): `index.html` lesen, die darin genannte `/assets/index-….js` **direkt** abrufen. Danach `/assets/index-missing-probe.js` | JS: `200`, `Content-Type` JavaScript, Body beginnt nicht mit `<!doctype`. Probe: `404`, `Cache-Control` ohne `immutable`, nicht `text/html` | HTML, `200` oder `immutable` auf der Probe → Cloudflare-Dashboard: Rollback auf den vorigen Deploy von `yogaflow-dev`. Nicht sofort neu bauen |
 | 16 | Smoke Plattform aus | J | `yomita.omlify.de` Owner: **kein** Stripe-/Online-Abschnitt | Plattform aus sichtbar | Online sichtbar trotz Flag aus → Kill-Switch prüfen, STOPP |
 
 ---
@@ -59,7 +62,7 @@ Quellen: [Generalprobe](berichte/release_2026-10_generalprobe.md) · [Freeze](be
 | # | Schritt | Wer | Befehl / Klick | Erwartung | Abbruch |
 |---|---------|-----|----------------|-----------|---------|
 | 17 | Live-Webhooks | J | Stripe Live, URL `https://<PROD_REF>.supabase.co/functions/v1/payments-webhook` | 2 Ziele aktiv (Liste unten) | falsche URL / Test-Modus → STOPP |
-| 18 | Live-Secrets | J | Edge: `PAYMENTS_MODE=live`, `STRIPE_SECRET_KEY=sk_live_…`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_WEBHOOK_SECRET_THIN`; Cloudflare: `VITE_PAYMENTS_MODE=live`, `VITE_STRIPE_PUBLISHABLE_KEY=pk_live_…` → Rebuild | Secrets gesetzt; neuer Build | Test-Key auf PROD → sofort entfernen, STOPP |
+| 18 | Live-Secrets | J | Edge: `PAYMENTS_MODE=live`, `STRIPE_SECRET_KEY=sk_live_…`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_WEBHOOK_SECRET_THIN`; Cloudflare: `VITE_PAYMENTS_MODE=live`, `VITE_STRIPE_PUBLISHABLE_KEY=pk_live_…` → Rebuild | Secrets gesetzt; neuer Build; danach **dieselbe JS-Prüfung wie 15b** | Test-Key auf PROD → sofort entfernen, STOPP. JS ist HTML → Dashboard-Rollback auf den Deploy vor diesem Rebuild |
 | 19 | Allowlist omlifytest | J | `SELECT public.set_online_payments_studio_allowed('omlifytest', true);` dann `SELECT public.set_platform_flag('online_payments', true);` | `list_online_payments_effective()` nur omlifytest | yomita schon sichtbar → Allowlist prüfen, Flag ggf. aus |
 | 20 | Sichtbarkeit | J | omlifytest Owner: Stripe-Bereich da; **yomita: kein** Stripe-Bereich | getrennt | yomita sieht Stripe → STOPP vor Rauch |
 | 21 | **Rauchtest Rechtliches** | J | `https://omlifytest.omlify.de/{impressum,agb,datenschutz}` und `https://yomita.omlify.de/…` (öffentlich) | Text lädt (kein „konnte nicht geladen“, kein Redirect `/auth`); Inhalt Studio-AGB bzw. Hinweis wenn noch nicht freigegeben | dauerhaft `/auth` oder Load-Fail nach Merge → Frontend/RPC prüfen, vor Live-Geld STOPP |
@@ -81,7 +84,7 @@ Quellen: [Generalprobe](berichte/release_2026-10_generalprobe.md) · [Freeze](be
 
 | Lage | Aktion | Wer |
 |------|--------|-----|
-| Nur Frontend kaputt | Cloudflare: Deployment vor Merge; oder `main` auf guten Stand (`179bcfb` / #177) — siehe [ROLLBACK.md](ROLLBACK.md). Schema bleibt (Expand). | J |
+| Nur Frontend kaputt | Cloudflare-Dashboard: Rollback auf den **vorigen** Deploy des Workers (`yogaflow-dev` auf PROD, `omlify-dev` auf DEV). Nicht zuerst einen neuen Commit bauen. Alternativ `main` auf guten Stand (`179bcfb` / #177) — siehe [ROLLBACK.md](ROLLBACK.md). Schema bleibt (Expand). | J |
 | Online-Zahlungen stören | `SELECT public.set_platform_flag('online_payments', false);` und/oder Allowlist `omlifytest`/`yomita` → `false`; Stripe-Webhooks pausieren | J |
 | Schema-Push mitten drin kaputt | **kein** Blind-Retry; Stand prüfen; Restore nur mit bewusstem Backup-Plan ([SCHEMA_ROLLBACK](SCHEMA_ROLLBACK_WORKFLOW.md)) | J |
 | Frontend↔Schema | Alt-Frontend war gegen neues Schema **kompatibel** (Generalprobe §5); `main` mit #177 (Teilnehmerliste FK-Hint) ist Rückfallpunkt vor Geldkette-UI | — |

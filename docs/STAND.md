@@ -1,6 +1,6 @@
 # STAND — Omlify DEV
 
-Stand: 2026-10-15 · Branch `Julius` · Freeze `release-2026-10-freeze` = `b9a032f` (inkl. NU-1)
+Stand: 2026-10-15 · Branch `Julius` · Freeze `release-2026-10-freeze` = dieser Asset-404-Commit (Basis `bebf1fe`, inkl. NU-1)
 
 ## DEV
 
@@ -15,14 +15,15 @@ Stand: 2026-10-15 · Branch `Julius` · Freeze `release-2026-10-freeze` = `b9a03
 
 ## Zuletzt abgeschlossen
 
-- **NU-1 „Neu für dich"** — Seite `/updates`, Glocke-Versand `send_studio_update`; DEV-Build success; Live-Merkmal `2026-10-zahlungen-im-blick` / `Kurskarte anlegen` in `index-Picg4PEw.js`; Tag `release-2026-10-freeze` = `b9a032f`. Bericht [nu1_neu_fuer_dich.md](berichte/nu1_neu_fuer_dich.md) · **STOPP Klicktest**
+- **Asset-404** — fehlende `/assets/*` sind 404 statt HTML mit `immutable`; SPA-Hülle im Worker. Freeze-Tag auf diesem Commit (Basis `bebf1fe`).
+- **NU-1 „Neu für dich"** — Seite `/updates`, Glocke-Versand `send_studio_update`. Bericht [nu1_neu_fuer_dich.md](berichte/nu1_neu_fuer_dich.md) · **STOPP Klicktest** auf dem Asset-404-Stand
 - **DEV-Demo YOMITA-Stand** — [demo_studio_yomita_stand.md](berichte/demo_studio_yomita_stand.md)
 - **Legal-Cleanup DEV vor Release-Abend** — [release_2026-10_abend_legal_cleanup.md](berichte/release_2026-10_abend_legal_cleanup.md)
 
 ## Nächste Schritte
 
 - **Klicktest NU-1** (demoalpha) — siehe Bericht
-- **Release 2026-10 Abend** — [RELEASE_2026-10_ABEND.md](RELEASE_2026-10_ABEND.md); PROD-Migrationen fehlend **91**; Freeze `2c0881c`
+- **Release 2026-10 Abend** — [RELEASE_2026-10_ABEND.md](RELEASE_2026-10_ABEND.md); PROD-Migrationen fehlend **91**; Freeze = Tag `release-2026-10-freeze`
 
 ## Haltestellen / wartet auf Julius
 
@@ -32,7 +33,7 @@ Stand: 2026-10-15 · Branch `Julius` · Freeze `release-2026-10-freeze` = `b9a03
 
 ## hier weitermachen
 
-Klicktest NU-1, dann Release-Abend-Checkliste (Freeze `b9a032f`).
+Klicktest NU-1 und Asset-Check auf diesem Freeze (Tag `release-2026-10-freeze`).
 
 ## Verweise
 

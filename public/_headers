@@ -1,9 +1,9 @@
-# version.json und die App-Hülle nicht lange cachen. Gehashte Bundles dürfen.
+# version.json und die App-Hülle nicht lange cachen.
+# /assets/* bewusst ohne immutable: eine fehlende Bundle-Adresse würde sonst
+# die 404 ein Jahr cachen. Vorhandene Dateien bekommen den Asset-Default
+# (Revalidierung per ETag). immutable wieder nur über den Worker, nach dem Pilot.
 /version.json
   Cache-Control: no-cache
 
 /index.html
   Cache-Control: no-cache
-
-/assets/*
-  Cache-Control: public, max-age=31536000, immutable

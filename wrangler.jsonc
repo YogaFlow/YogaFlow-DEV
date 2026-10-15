@@ -36,7 +36,12 @@
   "main": "src/worker.ts",
   "assets": {
     "binding": "ASSETS",
-    "not_found_handling": "single-page-application",
+    // "none" ist der Default. Nicht "single-page-application": sonst liefert eine
+    // fehlende /assets/*-Datei index.html mit 200, und public/_headers setzt darauf
+    // Cache-Control immutable (ein Jahr). Fehlende Dateien soll die Asset-Schicht
+    // mit 404 beantworten, ohne den Worker aufzurufen. Die SPA-Hülle für
+    // Navigationen baut src/worker.ts.
+    "not_found_handling": "none",
     // Ausschlussmuster: Worker fuer Navigationen, nicht fuer hashed Bundles und
     // die drei statischen Dateien im public/-Ordner. `/*` trifft auch `/`.
     "run_worker_first": [

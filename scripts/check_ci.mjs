@@ -65,6 +65,8 @@ run('UX-8 Zu erledigen', 'node', ['--experimental-strip-types', '--test', 'scrip
 run('F2 Offene-Zähler', 'node', ['--experimental-strip-types', 'scripts/test/f2_open_counts.ts']);
 run('UX-10 Checkout-Zusammenfassung', 'node', ['--experimental-strip-types', 'scripts/test/ux10_checkout_summary.ts']);
 run('NU-1 Studio-Updates', 'node', ['--experimental-strip-types', '--test', 'scripts/test/nu1_studio_updates.ts']);
+run('Asset-Hülle', 'node', ['--experimental-strip-types', '--test', 'scripts/test/asset_shell.test.ts']);
+run('Asset-Reload', 'node', ['--experimental-strip-types', '--test', 'scripts/test/asset_reload.test.ts']);
 run('Sitzung und Rücksprung', 'node', ['--test', 'scripts/test/session_guard.test.mjs']);
 run('Stripe nur im Adapter', npm, ['run', 'check:provider-boundary']);
 run('Edge-Function-Tests', npm, ['run', 'test:deno']);

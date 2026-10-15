@@ -287,6 +287,10 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ## Später
 
+- [ ] **Assets nach Pilot: `/assets/*` wieder über den Worker.** Dann `immutable` auf vorhandenen Bundles und `404` mit `no-store` auf fehlenden. Heute ohne `immutable`, damit eine 404 nicht ein Jahr liegen bleibt (`public/_headers`, 15.10.2026).
+- [ ] **Build-SHA aus dem Hauptbundle.** `VITE_BUILD_SHA` steckt im JS, deshalb ändert jeder Doku-Commit den Bundle-Hash. Später z. B. als `<meta>` in `index.html`.
+- [ ] **Cloudflare „Browser Cache TTL“ auf „Respect Existing Headers“.** Dashboard, Julius. Nicht im Code.
+
 - [ ] **`yogaflow_private.is_tenant_manager()` härten.** `search_path` ist nur
       `public` (`20260911173000`, Zeile 143). Beim nächsten Anfassen auf
       `public, pg_temp` stellen (`pg_temp` zuletzt) oder auf `''` mit

@@ -23,6 +23,62 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Gleicher Ablauf wie src/lib/assetReload.ts. Muss vor dem Modul stehen:
+         fehlt das Einstiegs-Bundle, läuft main.tsx nicht. -->
+    <script>
+      (function () {
+        var KEY = 'omlify:asset-reload-at';
+        var WINDOW_MS = 30000;
+        var STOPPED = 'Die Seite konnte gerade nicht geladen werden. Bitte lade sie noch einmal.';
+        function decide(now, raw) {
+          if (raw == null || raw === '') return 'reload';
+          var last = Number(raw);
+          if (Number.isFinite(last) && now - last < WINDOW_MS) return 'stop';
+          return 'reload';
+        }
+        function once() {
+          try {
+            var now = Date.now();
+            var raw = null;
+            try {
+              raw = sessionStorage.getItem(KEY);
+            } catch (e) {
+              return;
+            }
+            if (decide(now, raw) !== 'reload') {
+              try {
+                document.body.textContent = STOPPED;
+              } catch (e2) {}
+              return;
+            }
+            try {
+              sessionStorage.setItem(KEY, String(now));
+            } catch (e3) {
+              return;
+            }
+            location.reload();
+          } catch (e4) {}
+        }
+        window.addEventListener('vite:preloadError', function (event) {
+          try {
+            event.preventDefault();
+          } catch (e) {}
+          once();
+        });
+        window.addEventListener(
+          'error',
+          function (event) {
+            try {
+              var target = event.target;
+              if (!target || target.tagName !== 'SCRIPT') return;
+              if (String(target.src || '').indexOf('/assets/') === -1) return;
+              once();
+            } catch (e) {}
+          },
+          true,
+        );
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

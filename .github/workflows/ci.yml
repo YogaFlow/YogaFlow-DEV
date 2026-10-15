@@ -56,6 +56,9 @@ jobs:
       - name: Sitzung und Rücksprung
         run: node --test scripts/test/session_guard.test.mjs
 
+      - name: Asset-Hülle und Reload
+        run: node --experimental-strip-types --test scripts/test/asset_shell.test.ts scripts/test/asset_reload.test.ts
+
       - name: Stripe nur im Adapter
         # I8: Kein Stripe-SDK und kein Stripe-Typ ausserhalb von
         # supabase/functions/_shared/payments/stripe/ (auch nicht in src/).

@@ -1,10 +1,10 @@
 // Apex wird an der Label-Anzahl erkannt (zwei Labels, optional mit www.), nicht an
 // einer festen Domain: dieselbe Regel gilt auf DEV und PROD, und VITE_*-Variablen
-// gibt es zur Laufzeit im Worker nicht. run_worker_first ist nötig, weil
-// Navigationsrequests sonst vom Asset-Worker mit index.html beantwortet werden und
-// diesen Worker nie erreichen. robots.txt gilt für jeden Host und wird vor der
-// Apex-Prüfung beantwortet. Alle anderen Requests auf Nicht-Apex (Studio-Subdomains)
-// gehen an ASSETS.
+// gibt es zur Laufzeit im Worker nicht. run_worker_first lässt /assets/* an der
+// Asset-Schicht. not_found_handling ist "none": eine fehlende Datei ist 404, nicht
+// index.html. Navigationen (kein /assets/, kein Datei-Suffix) fängt dieser Worker
+// ab und liefert bei 404 die SPA-Hülle /index.html mit Cache-Control: no-cache.
+// robots.txt gilt für jeden Host und wird vor der Apex-Prüfung beantwortet.
 
 type AssetsBinding = {
   fetch: (input: Request | URL) => Promise<Response>;
@@ -94,6 +94,34 @@ function hasSpaRootQuery(url: URL): boolean {
   return false;
 }
 
+/** Letztes Pfadsegment enthaelt einen Datei-Suffix wie `.js` oder `.json`. */
+export function hasFileSuffix(pathname: string): boolean {
+  const segment = pathname.split('/').filter((part) => part.length > 0).pop() ?? '';
+  const dot = segment.lastIndexOf('.');
+  if (dot <= 0) return false;
+  return /^[a-z0-9]+$/i.test(segment.slice(dot + 1));
+}
+
+/**
+ * SPA-Navigation: GET/HEAD, nicht unter /assets/, kein Datei-Suffix.
+ * Accept: text/html (Adresszeile) faellt darunter. Ein Suffix gewinnt:
+ * /foo.js bleibt 404, auch wenn der Browser text/html schickt.
+ */
+export function isSpaNavigation(request: Request): boolean {
+  if (request.method !== 'GET' && request.method !== 'HEAD') return false;
+  const pathname = new URL(request.url).pathname;
+  if (pathname === '/assets' || pathname.startsWith('/assets/')) return false;
+  if (hasFileSuffix(pathname)) return false;
+  return true;
+}
+
+function plainNotFound(): Response {
+  return new Response(null, {
+    status: 404,
+    headers: { 'Cache-Control': 'no-store' },
+  });
+}
+
 function withShellCache(request: Request, response: Response): Response {
   const url = new URL(request.url);
   const pathname = url.pathname;
@@ -115,8 +143,15 @@ function withShellCache(request: Request, response: Response): Response {
 }
 
 async function fetchAsset(request: Request, env: WorkerEnv, assetPath?: string): Promise<Response> {
-  const response = await env.ASSETS.fetch(assetPath ? new URL(assetPath, request.url) : request);
-  return withShellCache(request, response);
+  const target = assetPath ? new URL(assetPath, request.url) : request;
+  const response = await env.ASSETS.fetch(target);
+  if (response.status !== 404) return withShellCache(request, response);
+  // Konkrete Datei (marketing.html, /) oder kein Navigationspfad: 404 durchreichen,
+  // ohne den HTML-Body und ohne immutable aus der Asset-Schicht.
+  if (assetPath || !isSpaNavigation(request)) return plainNotFound();
+  const shell = await env.ASSETS.fetch(new URL('/index.html', request.url));
+  if (!shell.ok) return plainNotFound();
+  return withShellCache(request, shell);
 }
 
 export default {
