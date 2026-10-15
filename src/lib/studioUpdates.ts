@@ -61,8 +61,14 @@ export function participantDraft(
   }
   const title = applyStudioPlaceholder(update.participantMessage.title, ctx.studioName);
   let body = applyStudioPlaceholder(update.participantMessage.body, ctx.studioName);
-  if (update.participantMessage.onsiteSuffix && ctx.allowOnsitePayment) {
-    body += update.participantMessage.onsiteSuffix;
+  const suffix =
+    update.participantMessage.onsiteSuffix && ctx.allowOnsitePayment
+      ? update.participantMessage.onsiteSuffix
+      : '';
+  if (body.includes('{onsite}')) {
+    body = body.split('{onsite}').join(suffix);
+  } else if (suffix) {
+    body += suffix;
   }
   return { title, body };
 }

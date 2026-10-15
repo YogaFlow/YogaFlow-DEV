@@ -1,6 +1,6 @@
 # Offene Punkte
 
-**Stand:** 12.10.2026
+**Stand:** 15.10.2026
 Ausführliche Begründungen stehen im Claude-Projekt „Omlify" in
 `Landingpage_Neubau_September_2026.md` und
 `Rechtstexte_Datenschutz_und_Betrieb_September_2026.md`.
@@ -8,6 +8,15 @@ Ausführliche Begründungen stehen im Claude-Projekt „Omlify" in
 Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 
 ---
+
+## Bald — vor Pilot-Onboarding Yomita
+
+Abend 15.10.2026, [release_2026-10_abend.md](berichte/release_2026-10_abend.md).
+
+- [ ] **Buchungsbestätigung bei Vor-Ort-Buchung** — `booking_confirmed` über die Outbox, mit AGB-PDF, § 312f. Am Abend kam bei Vor-Ort keine Mail; das ist eine Lücke, keine Regression.
+- [ ] **Erstatten-Dialog: Hinweis, dass die Stripe-Gebühr nicht zurückkommt** — z. B. 15 € → 0,48 €.
+- [ ] **Zahlungsseite: Satz zu Premium-/Firmenkarten streichen.** Kreditkarte, Apple Pay und Google Pay nennen.
+- [ ] **Vorbefüllter Text der Neuigkeit „Online bezahlen“** (Teilnehmer-Nachricht) durch die neue Fassung ersetzen. Die Fassung folgt separat.
 
 ## Jetzt
 
@@ -286,6 +295,12 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
       Der Monatsfilter `type="month"` im Export bleibt nativ.
 
 ## Später
+
+- [ ] **„Meine Karten“ aktualisiert nach Widerruf nicht** — Neuladen nötig. Abend 15.10.2026.
+- [ ] **`pass_units_low` nach Widerruf unterdrücken** — die Mail geht heute trotzdem raus.
+- [ ] **Webhook-Race beim Kontoanlegen (`TENANT_NOT_RESOLVED`)** — Retry statt Fehler. Am Abend vier Anfangs-Events, `reviewed_at` gesetzt. Liegen gebliebene Rohzeilen bleiben der Punkt Richtung 5.1.
+- [ ] **`coverage_intent` bleibt NULL** beim `registered`-INSERT.
+- [ ] **Verwaisten DEV-Secret `ops_monitor_SECRET` löschen.**
 
 - [ ] **Assets nach Pilot: `/assets/*` wieder über den Worker.** Dann `immutable` auf vorhandenen Bundles und `404` mit `no-store` auf fehlenden. Heute ohne `immutable`, damit eine 404 nicht ein Jahr liegen bleibt (`public/_headers`, 15.10.2026).
 - [ ] **Build-SHA aus dem Hauptbundle.** `VITE_BUILD_SHA` steckt im JS, deshalb ändert jeder Doku-Commit den Bundle-Hash. Später z. B. als `<meta>` in `index.html`.
