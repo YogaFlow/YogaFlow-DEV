@@ -1,6 +1,6 @@
 # Release 2026-10 — Abend-Checkliste
 
-**Freeze:** `release-2026-10-freeze` = `2c0881c` · Branch `Julius` · PROD-Migrationen fehlend **91** · Release-Reihenfolge unverändert  
+**Freeze:** `release-2026-10-freeze` = `4be2a15` · Branch `Julius` · PROD-Migrationen fehlend **91** · Release-Reihenfolge unverändert  
 **Wer:** **J** = Julius tippt/klickt · **C** = Cursor (nur nach Freigabe, nie PROD-Passwort im Chat)  
 **Passwort / Secrets / Keys:** nur Terminal oder Dashboard — **nie in Chat/Bericht**.
 
@@ -21,7 +21,7 @@ Quellen: [Generalprobe](berichte/release_2026-10_generalprobe.md) · [Freeze](be
 
 | # | Schritt | Wer | Befehl / Klick | Erwartung | Abbruch |
 |---|---------|-----|----------------|-----------|---------|
-| 0 | Freeze prüfen | J/C | `git fetch`; `git rev-parse origin/Julius release-2026-10-freeze` | beide `2c0881c` | Hash ≠ Freeze → kein Abend |
+| 0 | Freeze prüfen | J/C | `git fetch`; `git rev-parse origin/Julius release-2026-10-freeze` | beide `4be2a15` | Hash ≠ Freeze → kein Abend |
 | 1 | Backup PROD | J | GitHub Action `backup-prod` bzw. üblicher PROD-Backup | grün / frisch | Backup fehlt → STOPP |
 | 2 | Snapshot Zählwerte | J/C | SQL wie Bestandsaufnahme §5 (Buchungen, Kurse, …) | notiert zum Vergleich | — |
 | 3 | Pre-PROD-Checkliste | J | [DEV_PROD_SAFETY_WORKFLOW.md](DEV_PROD_SAFETY_WORKFLOW.md) | abgehakt | Zweifel → STOPP |
