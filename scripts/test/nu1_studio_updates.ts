@@ -8,11 +8,13 @@ import { test } from 'node:test';
 import { STUDIO_UPDATES } from '../../src/content/updates.ts';
 import {
   applyStudioPlaceholder,
+  BODY_MAX_LEN,
   canOfferParticipantSend,
   countUnreadUpdates,
   isParticipantSendCollapsed,
   matchesShowIf,
   participantDraft,
+  TITLE_MAX_LEN,
   toggleExpandedUpdateId,
   visibleUpdates,
   type StudioUpdateContext,
@@ -99,21 +101,54 @@ test('Kurskarten-Nachricht nur mit hasPassProducts', () => {
   );
 });
 
-test('Online-Nachricht: Onsite-Suffix nur wenn vor Ort aktiv', () => {
+const ONSITE_PARAGRAPH =
+  'Und keine Sorge: Wenn du lieber wie bisher vor Ort zahlst, ist das natürlich völlig in Ordnung. Du kannst bei jeder Buchung selbst entscheiden.';
+
+test('Online-Nachricht: Platzhalter und Vor-Ort-Absatz', () => {
   const update = STUDIO_UPDATES.find((u) => u.id === '2026-10-online-bezahlen')!;
+  // Studioname höchstens 60 Zeichen (STUDIO_NAME_MAX in studioBranding.ts).
+  const longName = 'S'.repeat(60);
   const withOnsite = participantDraft(update, {
     ...baseCtx,
     onlinePaymentsActive: true,
     allowOnsitePayment: true,
+    studioName: longName,
   });
-  assert.ok(withOnsite?.body.includes('Bar vor Ort'));
+  assert.ok(withOnsite);
+  assert.equal(
+    withOnsite.title,
+    `Neu bei ${longName}: Du kannst jetzt online bezahlen`,
+  );
+  assert.ok(withOnsite.title.length <= TITLE_MAX_LEN);
+  assert.ok(withOnsite.body.includes(`Stunden bei ${longName} direkt beim Buchen`));
+  assert.ok(withOnsite.body.includes(ONSITE_PARAGRAPH));
+  assert.equal(withOnsite.body.includes('{onsite}'), false);
+  assert.equal(withOnsite.body.includes('{studio}'), false);
+  const onsiteAt = withOnsite.body.indexOf(ONSITE_PARAGRAPH);
+  const stripeAt = withOnsite.body.indexOf('Die Zahlung läuft sicher über Stripe.');
+  const closingAt = withOnsite.body.indexOf('Probier es gern aus');
+  assert.ok(onsiteAt > 0);
+  assert.ok(onsiteAt < stripeAt);
+  assert.ok(stripeAt < closingAt);
+  assert.ok(withOnsite.body.length <= BODY_MAX_LEN);
+
   const without = participantDraft(update, {
     ...baseCtx,
     onlinePaymentsActive: true,
     allowOnsitePayment: false,
+    studioName: 'Demo Alpha',
   });
-  assert.equal(without?.body.includes('Bar vor Ort'), false);
-  assert.ok(without?.title.includes('Demo Alpha'));
+  assert.ok(without);
+  assert.equal(without.body.includes(ONSITE_PARAGRAPH), false);
+  assert.equal(without.body.includes('vor Ort'), false);
+  assert.equal(without.body.includes('{onsite}'), false);
+  assert.ok(without.title.includes('Demo Alpha'));
+  assert.match(
+    without.body,
+    /rollst deine Matte aus\.\n\nDie Zahlung läuft sicher über Stripe\./,
+  );
+  assert.ok(without.body.length <= BODY_MAX_LEN);
+  assert.ok(without.title.length <= TITLE_MAX_LEN);
 });
 
 test('Ungelesen-Zählung nur sichtbare', () => {

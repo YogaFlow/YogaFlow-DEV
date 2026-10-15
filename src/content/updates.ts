@@ -10,7 +10,10 @@ export type StudioUpdateCta = {
 export type StudioUpdateParticipantMessage = {
   title: string;
   body: string;
-  /** Letzter Satz nur anhängen, wenn vor Ort (Bar) aktiv ist. */
+  /**
+   * Absatz nur, wenn vor Ort (Bar) aktiv ist.
+   * Steht `{onsite}` im Text, wird er dort eingesetzt. Sonst ans Ende angehängt.
+   */
   onsiteSuffix?: string;
 };
 
@@ -71,10 +74,15 @@ export const STUDIO_UPDATES: readonly StudioUpdate[] = [
       'Deine Teilnehmenden können jetzt direkt bei der Buchung online bezahlen — mit Karte, Apple Pay oder Google Pay. Sag ihnen Bescheid!',
     showIf: 'onlinePaymentsActive',
     participantMessage: {
-      title: 'Neu bei {studio}: online bezahlen',
+      title: 'Neu bei {studio}: Du kannst jetzt online bezahlen',
       body:
-        'Ab sofort kannst du deine Kurse bei {studio} direkt bei der Buchung online bezahlen — mit Karte, Apple Pay oder Google Pay.',
-      onsiteSuffix: ' Bar vor Ort geht natürlich weiterhin.',
+        'Hallo du,\n\n' +
+        'ich hab eine Neuigkeit für dich: Ab sofort kannst du deine Stunden bei {studio} direkt beim Buchen in der App bezahlen, ganz einfach mit Apple Pay, Google Pay oder Kreditkarte. Dann musst du vor der Stunde an nichts mehr denken, kommst einfach an und rollst deine Matte aus.\n\n' +
+        '{onsite}' +
+        'Die Zahlung läuft sicher über Stripe. Und falls dir mal etwas dazwischenkommt und du rechtzeitig absagst, bekommst du dein Geld automatisch zurück.\n\n' +
+        'Probier es gern aus, und wenn irgendwas hakt oder du eine Idee hast, sag mir einfach Bescheid. Ich freu mich, dich bald wieder auf der Matte zu sehen!',
+      onsiteSuffix:
+        'Und keine Sorge: Wenn du lieber wie bisher vor Ort zahlst, ist das natürlich völlig in Ordnung. Du kannst bei jeder Buchung selbst entscheiden.\n\n',
     },
   },
 ];
