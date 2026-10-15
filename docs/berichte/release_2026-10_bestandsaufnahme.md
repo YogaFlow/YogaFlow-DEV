@@ -11,7 +11,7 @@ Runbook: [docs/RELEASE_2026-10.md](../RELEASE_2026-10.md)
 | § | Thema | Ampel | Kurz |
 |---|--------|-------|------|
 | 1 | Git | 🟢 | Probe-Merge konfliktfrei; Hotfixes #171/#174/#175 in Julius |
-| 2 | Migrationen | 🟡 | 85 fehlend; `--include-all` nötig; A1/A2-Daten auf PROD ok; fachlich E5 |
+| 2 | Migrationen | 🟡 | **91** fehlend (Stand NU-1 15.10.); `--include-all` nötig; A1/A2-Daten auf PROD ok; fachlich E5 |
 | 3 | Rechte-Audit | 🟡 | DEV: kein PUBLIC-EXECUTE; 0-Policy-Tabellen service-only; `debug_request_tenant_header` noch da |
 | 4 | Functions/Secrets/Cron/Storage | 🔴 | PROD ohne pg_cron; 9 Edge Functions fehlen; viele Secrets fehlen; Bucket `studio-legal` fehlt |
 | 5 | PROD-Snapshot | 🟢 | Zählwerte aufgenommen; A2-Impact quantifiziert |
@@ -47,7 +47,7 @@ Runbook: [docs/RELEASE_2026-10.md](../RELEASE_2026-10.md)
 |--|------------------|--------|
 | PROD applied | `20260928213000` `security_courses_teacher_guard_hotfix` | 114 |
 | DEV / Repo Julius | `20261009140000` `rt2_agb_para9_abs3_abs4` | 199 |
-| **Fehlend auf PROD** | ab `20260926141500` … | **85** |
+| **Fehlend auf PROD** | ab `20260926141500` … bis `20261015180000` | **91** (Nachzug NU-1) |
 
 Auf PROD liegen die Hotfixes `20260926160500` und `20260928213000`, aber **nicht** die dazwischen liegenden A1–S1-Migrationen (21 Versionen **vor** letzter PROD-Version).
 

@@ -1,6 +1,6 @@
 # Release 2026-10 — Abend-Checkliste
 
-**Freeze:** `release-2026-10-freeze` = `35d44d4` · Branch `Julius` · Heute kein PROD · **Abend = morgen**  
+**Freeze:** `release-2026-10-freeze` = *(nach NU-1 neu gesetzt — siehe STAND)* · Branch `Julius` · PROD-Migrationen fehlend **91** · Release-Reihenfolge unverändert  
 **Wer:** **J** = Julius tippt/klickt · **C** = Cursor (nur nach Freigabe, nie PROD-Passwort im Chat)  
 **Passwort / Secrets / Keys:** nur Terminal oder Dashboard — **nie in Chat/Bericht**.
 
@@ -21,7 +21,7 @@ Quellen: [Generalprobe](berichte/release_2026-10_generalprobe.md) · [Freeze](be
 
 | # | Schritt | Wer | Befehl / Klick | Erwartung | Abbruch |
 |---|---------|-----|----------------|-----------|---------|
-| 0 | Freeze prüfen | J/C | `git fetch`; `git rev-parse origin/Julius release-2026-10-freeze` | beide `35d44d4` | Hash ≠ Freeze → kein Abend |
+| 0 | Freeze prüfen | J/C | `git fetch`; `git rev-parse origin/Julius release-2026-10-freeze` | beide = aktueller Freeze-Hash (STAND) | Hash ≠ Freeze → kein Abend |
 | 1 | Backup PROD | J | GitHub Action `backup-prod` bzw. üblicher PROD-Backup | grün / frisch | Backup fehlt → STOPP |
 | 2 | Snapshot Zählwerte | J/C | SQL wie Bestandsaufnahme §5 (Buchungen, Kurse, …) | notiert zum Vergleich | — |
 | 3 | Pre-PROD-Checkliste | J | [DEV_PROD_SAFETY_WORKFLOW.md](DEV_PROD_SAFETY_WORKFLOW.md) | abgehakt | Zweifel → STOPP |
@@ -44,7 +44,7 @@ Quellen: [Generalprobe](berichte/release_2026-10_generalprobe.md) · [Freeze](be
 | # | Schritt | Wer | Befehl / Klick | Erwartung | Abbruch |
 |---|---------|-----|----------------|-----------|---------|
 | 9 | Link PROD | J | `$env:SUPABASE_DB_PASSWORD='…'` (nur Terminal); `npx.cmd supabase link --project-ref <PROD-REF>` | linked PROD | falsche Ref → STOPP |
-| 10 | DB push | J | `npx.cmd supabase db push --include-all --db-url "postgresql://postgres.<PROD-REF>@aws-0-eu-west-1.pooler.supabase.com:5432/postgres"` | applied bis `20261009161100` (bzw. letzte Release-Migration) | Abbruch → **STOPP**, Status prüfen; **kein** zweiter Push ohne Diagnose |
+| 10 | DB push | J | `npx.cmd supabase db push --include-all --db-url "postgresql://postgres.<PROD-REF>@aws-0-eu-west-1.pooler.supabase.com:5432/postgres"` | applied bis `20261015180000` (NU-1; **91** fehlende vor Push) | Abbruch → **STOPP**, Status prüfen; **kein** zweiter Push ohne Diagnose |
 | 11 | Post-Push prüfen | J/C | SQL: `online_payments` **false**; `online_payments_rollout.mode = allowlist`; Allowlist **leer**; 10× `yogaflow_*` in `cron.job`; Bucket `studio-legal` | alles wie erwartet | Flag schon an / Allowlist nicht leer → Flag aus, Liste leeren, Ursache klären |
 | 12 | Functions deploy | J | alle Repo-Functions; **nicht** `reset-passwords` | deploy ok; Payment ohne Stripe-Secret → `CONFIG_ERROR` ok | — |
 | 13 | ops-monitor einmal | J | Cron/Invoke | Mail nur an Julius | Spam/fremde Adresse → Secret prüfen |
