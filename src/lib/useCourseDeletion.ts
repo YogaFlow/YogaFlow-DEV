@@ -36,7 +36,7 @@ const DELETE_ERROR: FeedbackDialogState = {
 
 const REGISTRATIONS_BLOCK_DELETE: FeedbackDialogState = {
   title: 'Hinweis',
-  message: 'Dieser Kurs hat noch Anmeldungen. Melde erst die Teilnehmenden ab.',
+  message: 'Kurse mit Anmeldungen kannst du nicht löschen. Du kannst ihn absagen.',
   type: 'error',
 };
 
@@ -59,6 +59,8 @@ export function useCourseDeletion(course: Course | null) {
   const [singlePersonCount, setSinglePersonCount] = useState(0);
   const [seriesPersonCount, setSeriesPersonCount] = useState(0);
   const [blockedSessions, setBlockedSessions] = useState<BlockedSession[]>([]);
+  const [singleRowCount, setSingleRowCount] = useState(0);
+  const [seriesRowCount, setSeriesRowCount] = useState(0);
   const [feedbackDialog, setFeedbackDialog] = useState<FeedbackDialogState | null>(null);
   const deletingRef = useRef(false);
   const preparingRef = useRef(false);
@@ -126,6 +128,26 @@ export function useCourseDeletion(course: Course | null) {
           .map((row) => ({ date: row.date, time: row.time }))
           .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
       );
+
+      const { data: registrationRows, error: rowError } = await supabase
+        .from('registrations')
+        .select('course_id')
+        .in('course_id', countIds);
+      if (rowError) {
+        setFeedbackDialog(COUNTS_ERROR);
+        return;
+      }
+      const rowsByCourse = new Map<string, number>();
+      for (const row of registrationRows ?? []) {
+        rowsByCourse.set(row.course_id, (rowsByCourse.get(row.course_id) ?? 0) + 1);
+      }
+      setSingleRowCount(rowsByCourse.get(course.id) ?? 0);
+      setSeriesRowCount(
+        (upcoming.length > 0 ? upcoming : [{ id: course.id }]).reduce(
+          (sum, row) => sum + (rowsByCourse.get(row.id) ?? 0),
+          0,
+        ),
+      );
       setScope('single');
       setDialogOpen(true);
     } finally {
@@ -137,7 +159,9 @@ export function useCourseDeletion(course: Course | null) {
     if (!course || deletingRef.current) return;
 
     const deletingSeries = scope === 'series' && upcomingSessions.length > 1;
-    const blocked = deletingSeries ? blockedSessions.length > 0 : singlePersonCount > 0;
+    const blocked = deletingSeries
+      ? seriesRowCount > 0
+      : singleRowCount > 0;
     if (blocked) return;
 
     deletingRef.current = true;
@@ -174,7 +198,7 @@ export function useCourseDeletion(course: Course | null) {
       deletingRef.current = false;
       setDeleting(false);
     }
-  }, [blockedSessions, course, scope, singlePersonCount, upcomingSessions]);
+  }, [course, scope, seriesRowCount, singleRowCount, upcomingSessions]);
 
   const cancelDelete = useCallback(() => {
     if (deletingRef.current) return;
@@ -198,6 +222,8 @@ export function useCourseDeletion(course: Course | null) {
     deleting,
     scope,
     setScope,
+    singleRowCount,
+    seriesRowCount,
     upcomingCount,
     personCount,
     singleHasRegistrations: singlePersonCount > 0,

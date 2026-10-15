@@ -1,0 +1,223 @@
+import type { CoverageStatus, PaymentMethod, WaivedReason } from '../types';
+import { berlinIsoDate } from './courseDateTime';
+import {
+  coverageLabel,
+  methodWord,
+  type CoverageLabelAudience,
+  type CoverageLabelInput,
+  type ManualCheckoutMethod,
+} from './coverageLabel';
+
+export { berlinIsoDate };
+export {
+  coverageLabel,
+  methodWord,
+  type CoverageLabelAudience,
+  type CoverageLabelInput,
+  type ManualCheckoutMethod,
+};
+
+export const CASH_HINT =
+  'Omlify vermerkt nur, wer bezahlt hat. Deine Kasse bzw. dein Kassenbuch führst du wie bisher selbst.';
+
+export const WAIVE_NOTE_HINT = 'Die Notiz sieht auch die Kursleitung.';
+
+export const WAIVE_REASONS: { value: WaivedReason; label: string }[] = [
+  { value: 'pre_omlify', label: 'Schon vor Omlify bezahlt' },
+  { value: 'goodwill', label: 'Kulanz' },
+  { value: 'other', label: 'Sonstiges' },
+];
+
+export function waiveReasonLabel(reason: WaivedReason | null | undefined): string {
+  return WAIVE_REASONS.find((item) => item.value === reason)?.label ?? '';
+}
+
+/** Lehrende sehen bei bezahlt nur das Wort. Owner und Admin sehen die Methode. */
+export function paidStatusLabel(
+  seesMethod: boolean,
+  method: PaymentMethod | null | undefined
+): string {
+  if (!seesMethod) return 'bezahlt';
+  if (!method) return 'bezahlt';
+  return methodWord(method);
+}
+
+export function checkoutErrorMessage(code: string | undefined): string {
+  switch (code) {
+    case 'NOT_OPEN':
+      return 'Schon erledigt. Die Liste wird neu geladen.';
+    case 'FORBIDDEN':
+      return 'Dafür hast du keine Berechtigung.';
+    case 'CANCELLED':
+      return 'Diese Anmeldung ist storniert.';
+    case 'NOT_REGISTERED':
+      return 'Diese Person ist nicht angemeldet.';
+    case 'NOTE_REQUIRED':
+      return 'Bitte eine Notiz mit mindestens 3 Zeichen.';
+    case 'INVALID_AMOUNT':
+      return 'Der Betrag muss größer als 0 € sein.';
+    case 'ALREADY_REVERSED':
+      return 'Das ist schon rückgängig gemacht.';
+    case 'INVALID_METHOD':
+      return 'Diese Zahlungsart geht hier nicht.';
+    case 'NOT_FOUND':
+      return 'Diese Buchung gibt es hier nicht.';
+    case 'INVALID_REASON':
+      return 'Bitte einen Grund wählen.';
+    case 'NOT_WAIVED':
+      return 'Das ist kein Erlass mehr. Die Liste wird neu geladen.';
+    case 'NO_VALID_PASS':
+      return 'Keine gültige Kurskarte für diesen Kurs.';
+    case 'WAITLIST_NO_PAYMENT':
+      return 'Der Kurs ist voll. Zahlung vermerken geht erst, wenn die Person nachrückt.';
+    case 'PASS_EMPTY':
+    case 'PASS_EXPIRED':
+    case 'NOT_PASS_ELIGIBLE':
+      return 'Die Kurskarte ist aufgebraucht bzw. gilt an diesem Tag nicht mehr.';
+    default:
+      return 'Das hat nicht geklappt. Bitte versuche es noch einmal.';
+  }
+}
+
+/** @deprecated Prefer coverageLabel. Kurzlabel ohne Rolle/Methode. */
+export function coverageShortLabel(status: CoverageStatus | null | undefined): string {
+  return coverageLabel({ coverage_status: status }, { audience: 'teacher' });
+}
+
+/** @deprecated Prefer coverageLabel. Fließtext für Meine Anmeldungen. */
+export function coveragePaymentPhrase(status: CoverageStatus | null | undefined): string {
+  return coverageLabel({ coverage_status: status }, { audience: 'participant' });
+}
+
+export function preOmlifyErrorMessage(code: string | undefined): string {
+  switch (code) {
+    case 'NOTHING_TO_WAIVE':
+      return 'Vor diesem Datum ist nichts mehr offen.';
+    case 'COUNT_CHANGED':
+      return 'Inzwischen hat sich etwas geändert. Bitte prüf die neue Zahl.';
+    case 'TOO_MANY':
+      return 'Das sind mehr als 1.000 Anmeldungen. Wähle ein früheres Datum und mach es in mehreren Schritten.';
+    case 'DATE_IN_FUTURE':
+      return 'Das Datum darf nicht in der Zukunft liegen.';
+    case 'FORBIDDEN':
+      return 'Nur die Studioleitung kann das.';
+    default:
+      return 'Das hat nicht geklappt. Bitte versuche es noch einmal.';
+  }
+}
+
+/** Euro-Text aus dem Dialog → Cent. Komma oder Punkt, höchstens zwei Nachkommastellen. */
+export function eurosToCents(input: string): number | null {
+  const trimmed = input.trim().replace(/\s/g, '').replace('€', '');
+  if (!trimmed) return null;
+  const normalized = trimmed.replace(',', '.');
+  if (!/^\d+(\.\d{1,2})?$/.test(normalized)) return null;
+  const [whole, frac = ''] = normalized.split('.');
+  const cents = Number(whole) * 100 + Number(frac.padEnd(2, '0'));
+  if (!Number.isSafeInteger(cents) || cents <= 0) return null;
+  return cents;
+}
+
+export function centsToEuroInput(cents: number | null | undefined): string {
+  if (cents == null || !Number.isFinite(cents) || cents <= 0) return '';
+  const whole = Math.trunc(cents / 100);
+  const frac = Math.abs(cents % 100);
+  if (frac === 0) return String(whole);
+  return `${whole},${String(frac).padStart(2, '0')}`;
+}
+
+export type CheckoutSortRow = {
+  coverage?: CoverageStatus | null;
+  paymentPending?: boolean;
+  lastName: string;
+  firstName: string;
+};
+
+export function compareCheckoutRows(a: CheckoutSortRow, b: CheckoutSortRow): number {
+  const rank = (row: CheckoutSortRow) => {
+    if (row.paymentPending) return 1;
+    if ((row.coverage ?? 'open') === 'open') return 0;
+    return 2;
+  };
+  const byRank = rank(a) - rank(b);
+  if (byRank !== 0) return byRank;
+  const byLast = a.lastName.localeCompare(b.lastName, 'de');
+  if (byLast !== 0) return byLast;
+  return a.firstName.localeCompare(b.firstName, 'de');
+}
+
+export function countCheckout(
+  rows: { coverage: CoverageStatus | undefined; paymentPending?: boolean }[],
+): {
+  open: number;
+  done: number;
+} {
+  let open = 0;
+  let pending = 0;
+  for (const row of rows) {
+    if (row.paymentPending) {
+      pending += 1;
+      continue;
+    }
+    if ((row.coverage ?? 'open') === 'open') open += 1;
+  }
+  return { open, done: rows.length - open - pending };
+}
+
+/** Kopfzeile Teilnehmerliste: Zähler mit Zeitbezug (UX-6). */
+export function checkoutAttendanceLine(
+  registered: number,
+  open: number,
+  courseStarted: boolean,
+): string {
+  if (registered === 0) return 'Noch niemand angemeldet';
+  if (open === 0) return 'Alles erledigt ✓';
+  const people = registered === 1 ? '1 angemeldet' : `${registered} angemeldet`;
+  if (courseStarted) {
+    return `${people} · ${open} offen`;
+  }
+  return `${people} · ${open} zahlen vor Ort`;
+}
+
+/** Notiz nur, wenn der Betrag vom eingefrorenen Buchungspreis abweicht. */
+export function amountNoteRequired(
+  cents: number | null,
+  priceCents: number | null | undefined
+): boolean {
+  if (cents == null) return false;
+  return cents !== priceCents;
+}
+
+export function checkoutDayWord(date: string, now = new Date()): 'heute' | 'gestern' | '' {
+  if (date === berlinIsoDate(0, now)) return 'heute';
+  if (date === berlinIsoDate(-1, now)) return 'gestern';
+  return '';
+}
+
+type PaymentLike = {
+  id: string;
+  registration_id: string | null;
+  amount_cents: number;
+  reverses_payment_id: string | null;
+  received_at: string;
+  method: PaymentMethod;
+};
+
+/** Letzte positive Zahlung ohne Gegenzeile, je Buchung. */
+export function latestUnreversedPayment<T extends PaymentLike>(payments: T[]): Map<string, T> {
+  const reversed = new Set(
+    payments
+      .map((payment) => payment.reverses_payment_id)
+      .filter((id): id is string => Boolean(id))
+  );
+  const best = new Map<string, T>();
+  for (const payment of payments) {
+    if (payment.amount_cents <= 0 || payment.reverses_payment_id) continue;
+    if (reversed.has(payment.id) || !payment.registration_id) continue;
+    const current = best.get(payment.registration_id);
+    if (!current || payment.received_at > current.received_at) {
+      best.set(payment.registration_id, payment);
+    }
+  }
+  return best;
+}

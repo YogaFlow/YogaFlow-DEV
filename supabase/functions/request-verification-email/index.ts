@@ -1,6 +1,9 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { apexHostFromRequestOrigin, buildEmailActionLink, resolveEmailLinkBaseUrl } from "../_shared/email_link_base_url.ts";
+import { createServiceLogger } from "../_shared/service.ts";
+
+const log = createServiceLogger();
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -44,7 +47,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (!loginId) {
-      console.log("Verification email: no user found for email:", email, "- no email sent (by design)");
+      log.info("Verification email: no user found for email:", email, "- no email sent (by design)");
       return new Response(
         JSON.stringify({
           success: true,
@@ -168,7 +171,7 @@ Deno.serve(async (req: Request) => {
 
     if (!emailResponse.ok) {
       const errorText = await emailResponse.text();
-      console.error("Error sending verification email:", errorText);
+      log.error("Error sending verification email:", errorText);
       return new Response(
         JSON.stringify({ error: "Die Bestätigungsmail konnte nicht gesendet werden. Bitte versuche es später erneut.", details: errorText }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

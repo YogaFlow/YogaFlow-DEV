@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabase';
+import { isArchivedRow, visibleCourses } from '../visibleScope';
 import { Message, Course, User } from '../../types';
 import { isCourseUpcoming } from '../courseDateTime';
 import { isStudioAdmin, isTeacherOnly } from '../userRoles';
@@ -88,9 +89,7 @@ export function useMessagesData(userProfile: User | null) {
 
     try {
       const today = new Date().toISOString().split('T')[0];
-      let query = supabase
-        .from('courses')
-        .select('*')
+      let query = visibleCourses('*')
         .neq('status', 'canceled')
         .gte('date', today);
 
@@ -120,9 +119,9 @@ export function useMessagesData(userProfile: User | null) {
 
       if (error) throw error;
       const upcomingCourses = await withCourseTeachers(
-        (data || []).filter((course) => isCourseUpcoming(course))
+        ((data || []) as Course[]).filter((course) => isCourseUpcoming(course)),
       );
-      setCourses(upcomingCourses);
+      setCourses(upcomingCourses as Course[]);
     } catch (error) {
       console.error('Error fetching courses:', error);
     }
@@ -175,13 +174,22 @@ export function useMessagesData(userProfile: User | null) {
     try {
       const { data, error } = await supabase
         .from('registrations')
-        .select('user:user_id(id, first_name, last_name, email)')
+        .select(
+          'user:users!registrations_user_id_fkey(id, first_name, last_name, email, anonymized_at, archived_at)',
+        )
         .eq('course_id', courseId)
         .is('cancellation_timestamp', null);
 
       if (error) throw error;
-      const users = data?.map((r) => r.user).filter(Boolean) as unknown as User[];
-      setParticipants(users || []);
+      const users = (data ?? [])
+        .map((row) => row.user)
+        .flat()
+        .filter((user) => {
+          if (!user) return false;
+          const row = user as { anonymized_at?: string | null; archived_at?: string | null };
+          return row.anonymized_at == null && !isArchivedRow(row);
+        }) as unknown as User[];
+      setParticipants(users);
     } catch (error) {
       console.error('Error fetching participants:', error);
     }

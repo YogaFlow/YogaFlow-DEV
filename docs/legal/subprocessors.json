@@ -1,0 +1,36 @@
+{
+  "stand": "2026-09-21",
+  "guarantee": "Für Übermittlungen in die USA gelten die Standardvertragsklauseln der Europäischen Kommission nach Art. 46 Abs. 2 lit. c DSGVO als Bestandteil der jeweiligen Verträge.",
+  "items": [
+    {
+      "name": "Supabase Inc., San Francisco, USA",
+      "purpose": "Datenbank, Authentifizierung, Dateiablage, Serverfunktionen",
+      "location": "Irland (eu-west-1)"
+    },
+    {
+      "name": "Amazon Web Services EMEA SARL, Luxemburg",
+      "purpose": "Infrastruktur für Datenbank und E-Mail-Versand",
+      "location": "Irland (eu-west-1)"
+    },
+    {
+      "name": "Plus Five Five, Inc. (Resend), San Francisco, USA",
+      "purpose": "Versand von System-E-Mails",
+      "location": "Versand über Irland; Verarbeitung auch in den USA"
+    },
+    {
+      "name": "Cloudflare, Inc., San Francisco, USA",
+      "purpose": "Auslieferung der Anwendung, Namensauflösung, Schutz vor Angriffen",
+      "location": "globales Netz mit europäischen Standorten"
+    },
+    {
+      "name": "Cloudflare, Inc. (R2)",
+      "purpose": "Aufbewahrung verschlüsselter Datensicherungen",
+      "location": "Westeuropa"
+    },
+    {
+      "name": "IONOS SE, Montabaur",
+      "purpose": "E-Mail-Postfach für Anfragen an support@omlify.de",
+      "location": "Deutschland"
+    }
+  ]
+}

@@ -5,7 +5,8 @@ type CourseLike = {
   status?: string | null;
 };
 
-const toCourseStart = (course: CourseLike): Date | null => {
+/** Kursbeginn als lokales Date (date+time Strings, nie new Date(date) allein). */
+export const toCourseStart = (course: CourseLike): Date | null => {
   if (!course.date) return null;
 
   const [year, month, day] = course.date.split('-').map(Number);
@@ -30,6 +31,136 @@ export const isCourseInPast = (course: CourseLike, now = new Date()): boolean =>
 
 export const isCourseUpcoming = (course: CourseLike, now = new Date()): boolean => {
   return !isCourseInPast(course, now);
+};
+
+/** Termine einer Serie, die noch nicht begonnen haben (`isCourseUpcoming`). */
+export function futureSeriesCourses<T extends CourseLike>(
+  courses: readonly T[],
+  now = new Date(),
+): T[] {
+  return courses.filter((course) => isCourseUpcoming(course, now));
+}
+
+/**
+ * A5: Welche Felder bei Einzelbearbeitung eines begonnenen Kurses gesperrt sind.
+ * Lehrerin: nur Owner/Admin dürfen ändern (Hint separat in der UI).
+ */
+export type PastCourseEditLocks = {
+  /** Kurs hat begonnen (`!isCourseUpcoming`). */
+  begun: boolean;
+  /** Preis, Datum, Uhrzeit, Ende/Dauer, pass_eligible, Kapazität. */
+  scheduleAndMoneyLocked: boolean;
+  /** Lehrerin-Feld für die aktuelle Rolle gesperrt. */
+  teacherLocked: boolean;
+};
+
+export function pastCourseEditLocks(
+  course: CourseLike | null | undefined,
+  options: { isManager: boolean },
+  now = new Date(),
+): PastCourseEditLocks {
+  const begun = course != null && !isCourseUpcoming(course, now);
+  return {
+    begun,
+    scheduleAndMoneyLocked: begun,
+    teacherLocked: begun ? !options.isManager : false,
+  };
+}
+
+/** Heute als YYYY-MM-DD in Europe/Berlin. Offset in Kalendertagen, ohne courses.date zu parsen. */
+export function berlinIsoDate(dayOffset = 0, now = new Date()): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Berlin',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(now);
+  const read = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find((part) => part.type === type)?.value);
+  const shifted = new Date(read('year'), read('month') - 1, read('day') + dayOffset);
+  const year = shifted.getFullYear();
+  const month = String(shifted.getMonth() + 1).padStart(2, '0');
+  const day = String(shifted.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Reines Kalenderdatum YYYY-MM-DD aus Eingabe oder API-Wert.
+ * Nie über Date/UTC — nur das Präfix YYYY-MM-DD, falls vorhanden.
+ */
+export function asCivilIsoDate(value: string | null | undefined): string {
+  if (value == null || value === '') return '';
+  const match = String(value).trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return '';
+  const y = Number(match[1]);
+  const m = Number(match[2]);
+  const d = Number(match[3]);
+  if (!y || m < 1 || m > 12 || d < 1 || d > 31) return '';
+  return `${match[1]}-${match[2]}-${match[3]}`;
+}
+
+/**
+ * Kalendertag in Europe/Berlin für einen Zeitpunkt (timestamptz).
+ * Bare YYYY-MM-DD bleibt unverändert — `new Date('YYYY-MM-DD')` wäre UTC und verschiebt.
+ */
+export function berlinIsoFromInstant(value: string | Date | null | undefined): string {
+  if (value == null || value === '') return '';
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return asCivilIsoDate(trimmed);
+  }
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Berlin',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
+
+/** YYYY-MM-DD → lokale Mitternacht desselben Kalendertags (für Datumswähler). */
+export function civilIsoToLocalDate(value: string | null | undefined): Date | null {
+  const civil = asCivilIsoDate(value ?? '');
+  if (!civil) return null;
+  const [y, m, d] = civil.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/** Lokaler Kalendertag eines Datumswählers → YYYY-MM-DD (ohne UTC-Umrechnung). */
+export function localDateToCivilIso(date: Date | null | undefined): string {
+  if (!date || Number.isNaN(date.getTime())) return '';
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+/** Hält ein Kalenderdatum in [min, max], jeweils YYYY-MM-DD oder null. */
+export function clampCivilIsoDate(
+  value: string,
+  min: string | null | undefined,
+  max: string | null | undefined,
+): string {
+  const civil = asCivilIsoDate(value);
+  if (!civil) return '';
+  const lo = min ? asCivilIsoDate(min) : '';
+  const hi = max ? asCivilIsoDate(max) : '';
+  if (lo && civil < lo) return lo;
+  if (hi && civil > hi) return hi;
+  return civil;
+}
+
+/**
+ * Teilnehmerliste: Kursdatum heute oder später in Europe/Berlin.
+ * Eine Stunde, die heute schon begonnen hat, bleibt bis Tagesende sichtbar.
+ * isCourseUpcoming (Beginn, andere Listen) bleibt unverändert.
+ */
+export const isCourseVisibleThroughBerlinToday = (
+  course: CourseLike,
+  now = new Date()
+): boolean => {
+  if (!course.date) return false;
+  return course.date >= berlinIsoDate(0, now);
 };
 
 const timeToMinutes = (value?: string | null): number | null => {
@@ -102,3 +233,42 @@ export const isRegistrationVisible = (
   if (isCourseCancelled(registration.course.status)) return false;
   return !hasCourseEnded(registration.course, now);
 };
+
+/**
+ * timestamptz → lesbare Frist in Europe/Berlin.
+ * Beispiel: Mi., 01.10., 16:00 Uhr
+ * Nie courses.date/time hierdurch jagen — nur echte Zeitstempel.
+ */
+export function formatBerlinDateTime(
+  value: string | Date | null | undefined,
+): string {
+  if (value == null || value === '') return '';
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+
+  const weekday = new Intl.DateTimeFormat('de-DE', {
+    timeZone: 'Europe/Berlin',
+    weekday: 'short',
+  })
+    .format(date)
+    .replace(/\.$/, '');
+
+  // de-DE liefert oft schon „01.10.“ — abschließenden Punkt entfernen,
+  // sonst doppelt: „01.10..“
+  const dayMonth = new Intl.DateTimeFormat('de-DE', {
+    timeZone: 'Europe/Berlin',
+    day: '2-digit',
+    month: '2-digit',
+  })
+    .format(date)
+    .replace(/\.$/, '');
+
+  const timePart = new Intl.DateTimeFormat('de-DE', {
+    timeZone: 'Europe/Berlin',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(date);
+
+  return `${weekday}., ${dayMonth}., ${timePart} Uhr`;
+}

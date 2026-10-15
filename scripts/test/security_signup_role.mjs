@@ -135,6 +135,7 @@ async function main() {
     const { data: begun, error: bErr } = await admin.rpc('begin_tenant_onboarding', {
       p_name: 'Security Signup',
       p_slug: slug,
+      p_legal_accepted: true,
     });
     if (bErr || !begun?.success || !begun.tenant_id) {
       abbruch('begin_tenant_onboarding: ' + (bErr?.message || begun?.message || 'kein tenant_id'));

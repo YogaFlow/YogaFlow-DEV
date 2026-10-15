@@ -14,9 +14,15 @@ import {
 } from '../lib/courseTeacherFilter';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+import { visibleCourses } from '../lib/visibleScope';
 import { Course } from '../types';
-import { isCourseUpcoming } from '../lib/courseDateTime';
+import { isCourseCancelled, isCourseUpcoming } from '../lib/courseDateTime';
 import { formatDayLabel, formatTime } from '../lib/format';
+import {
+  isDevPendingPaymentMock,
+  resolveHoldExpiresAt,
+} from '../lib/devPendingPaymentMock';
+import PaymentPendingStatus from '../components/ui/PaymentPendingStatus';
 import { groupCoursesByDay } from '../lib/courseGrouping';
 import { canSelfEnrollInCourses } from '../lib/userRoles';
 import { useCourseEnrollment } from '../lib/useCourseEnrollment';
@@ -37,21 +43,19 @@ const Courses: React.FC = () => {
 
   const fetchCourses = async () => {
     try {
-      const { data, error } = await supabase
-        .from('courses')
-        .select('*')
+      const { data, error } = await visibleCourses('*')
         .gte('date', new Date().toISOString().split('T')[0])
         .order('date', { ascending: true })
         .order('time', { ascending: true });
 
       if (error) throw error;
       const upcomingCourses = await withCourseTeachers(
-        (data || []).filter((course) => isCourseUpcoming(course))
+        ((data || []) as Course[]).filter((course) => isCourseUpcoming(course)),
       );
       setCourses(upcomingCourses);
 
       if (upcomingCourses.length > 0) {
-        const courseIds = upcomingCourses.map(c => c.id);
+        const courseIds = upcomingCourses.map((c) => c.id);
         const { data: countsData, error: countsError } = await supabase.rpc(
           'get_course_participant_counts',
           { p_course_ids: courseIds }
@@ -82,6 +86,7 @@ const Courses: React.FC = () => {
     isUserRegistered,
     getUserRegistrationStatus,
     getUserWaitlistPosition,
+    getOwnRegistration,
   } = useCourseEnrollment(fetchCourses);
 
   useEffect(() => {
@@ -89,9 +94,7 @@ const Courses: React.FC = () => {
 
     const loadData = async () => {
       try {
-        const { data, error } = await supabase
-          .from('courses')
-          .select('*')
+        const { data, error } = await visibleCourses('*')
           .gte('date', new Date().toISOString().split('T')[0])
           .order('date', { ascending: true })
           .order('time', { ascending: true });
@@ -100,13 +103,13 @@ const Courses: React.FC = () => {
         if (!isMounted) return;
 
         const upcomingCourses = await withCourseTeachers(
-          (data || []).filter((course) => isCourseUpcoming(course))
+          ((data || []) as Course[]).filter((course) => isCourseUpcoming(course)),
         );
         if (!isMounted) return;
         setCourses(upcomingCourses);
 
         if (upcomingCourses.length > 0) {
-          const courseIds = upcomingCourses.map(c => c.id);
+          const courseIds = upcomingCourses.map((c) => c.id);
           const { data: countsData, error: countsError } = await supabase.rpc(
             'get_course_participant_counts',
             { p_course_ids: courseIds }
@@ -124,10 +127,10 @@ const Courses: React.FC = () => {
           }
         }
 
-        if (canSelfEnrollInCourses(userProfile)) {
+        if (userProfile && canSelfEnrollInCourses(userProfile)) {
           const { data: regData, error: regError } = await supabase
             .from('registrations')
-            .select('course_id, status, is_waitlist, waitlist_position')
+            .select('id, course_id, status, is_waitlist, waitlist_position, coverage_status, cancellation_deadline, hold_expires_at')
             .eq('user_id', userProfile.id)
             .is('cancellation_timestamp', null);
 
@@ -231,14 +234,30 @@ const Courses: React.FC = () => {
                     .join(' · ');
 
                   let status: React.ReactNode = null;
-                  if (isRegistered && registrationStatus === 'registered') {
+                  if (isCourseCancelled(course.status)) {
+                    status = (
+                      <span className="text-[13px] font-medium text-text">Abgesagt</span>
+                    );
+                  } else if (
+                    isRegistered &&
+                    (registrationStatus === 'pending_payment' ||
+                      isDevPendingPaymentMock())
+                  ) {
+                    status = (
+                      <PaymentPendingStatus
+                        holdExpiresAt={resolveHoldExpiresAt(
+                          getOwnRegistration(course.id)?.hold_expires_at,
+                        )}
+                      />
+                    );
+                  } else if (isRegistered && registrationStatus === 'registered') {
                     status = (
                       <span className="inline-flex items-center gap-1 text-[13px] font-medium text-success">
                         <Check className="h-4 w-4" aria-hidden />
                         Angemeldet
                       </span>
                     );
-                  } else if (isRegistered) {
+                  } else if (isRegistered && registrationStatus === 'waitlist') {
                     status = (
                       <AccentPill>
                         {waitlistPosition ? `Warteliste Pos. ${waitlistPosition}` : 'Warteliste'}

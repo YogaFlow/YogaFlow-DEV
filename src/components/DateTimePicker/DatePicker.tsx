@@ -19,6 +19,8 @@ interface DatePickerProps {
   required?: boolean;
   placeholder?: string;
   id?: string;
+  /** Kalender außerhalb scrollender Container rendern (z. B. in Dialogen). */
+  portalId?: string;
 }
 
 const DatePicker: React.FC<DatePickerProps> = ({
@@ -30,6 +32,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
   required = false,
   placeholder = 'Datum wählen',
   id,
+  portalId,
 }) => {
   const isMobile = useIsMobile();
   const [desktopOpen, setDesktopOpen] = useState(false);
@@ -119,6 +122,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
         showPopperArrow={false}
         popperPlacement="bottom-start"
         popperClassName="yogaflow-datepicker-popper"
+        portalId={portalId}
         open={isMobile ? false : desktopOpen}
         onInputClick={handleInputClick}
         onClickOutside={() => setDesktopOpen(false)}

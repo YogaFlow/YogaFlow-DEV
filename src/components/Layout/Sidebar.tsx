@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
   Calendar,
   Users,
@@ -11,13 +11,20 @@ import {
   MessageSquare,
   UserCog,
   ClipboardCheck,
+  Ticket,
+  Receipt,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTenant } from '../../context/TenantContext';
 import StudioMark from '../branding/StudioMark';
 import { getStudioLogoUrl } from '../../lib/studioBranding';
 import { useUnreadMessages } from '../../lib/useUnreadMessages';
+import { useUnreadUpdates } from '../../lib/useUnreadUpdates';
+import { useOpenPaymentsCount } from '../../lib/useOpenPaymentsCount';
 import { canSelfEnrollInCourses } from '../../lib/userRoles';
+import { useMyPassesNav } from '../../lib/useMyPassesNav';
+import StudioAboutLegalMenu from '../legal/StudioAboutLegalMenu';
+import NavCountBadge from '../ui/NavCountBadge';
 
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
   owner:   { label: 'Inhaberin/Inhaber', color: 'bg-brand text-onBrand' },
@@ -29,8 +36,12 @@ const ROLE_LABELS: Record<string, { label: string; color: string }> = {
 const Sidebar: React.FC = () => {
   const { userProfile, signOut, isAdmin, isCourseLeader } = useAuth();
   const { tenant } = useTenant();
+  const location = useLocation();
   const { unreadCount } = useUnreadMessages();
+  const { unreadUpdates } = useUnreadUpdates(isAdmin);
+  const openPaymentsCount = useOpenPaymentsCount(isAdmin);
   const canSelfEnroll = canSelfEnrollInCourses(userProfile);
+  const showMyPasses = useMyPassesNav(canSelfEnroll);
 
   // Kurzer "Pop"-Effekt jedes Mal, wenn die Anzahl ungelesener Nachrichten steigt.
   const prevUnreadRef = useRef(unreadCount);
@@ -42,49 +53,54 @@ const Sidebar: React.FC = () => {
     prevUnreadRef.current = unreadCount;
   }, [unreadCount]);
 
+  /**
+   * UX-4 D1: täglich → wöchentlich → selten; Profil ganz unten über Abmelden.
+   * Owner/Admin: Übersicht · Kurse · Teilnehmer · Nachrichten · Zahlungen ·
+   * Kurse verwalten · Nutzerverwaltung · Einstellungen · Profil
+   * „Neu für dich" liegt unter Einstellungen (kein eigener Hauptpunkt).
+   */
   const getNavItems = () => {
-    const items = [
-      { to: '/dashboard',  icon: Home,          label: 'Übersicht' },
-      { to: '/courses',    icon: Calendar,      label: 'Kurse' },
-      { to: '/messages',   icon: MessageSquare, label: 'Nachrichten' },
-      { to: '/profile',    icon: User,          label: 'Profil' },
+    type NavItem = { to: string; icon: typeof Home; label: string };
+    const items: NavItem[] = [
+      { to: '/dashboard', icon: Home, label: 'Übersicht' },
+      { to: '/courses', icon: Calendar, label: 'Kurse' },
     ];
 
     if (isCourseLeader) {
-      const courseItems = [
-        { to: '/my-courses', icon: BookOpen, label: 'Kurse verwalten' },
-      ];
+      items.push({ to: '/participants', icon: Users, label: 'Teilnehmer' });
+    }
 
-      if (canSelfEnroll) {
-        courseItems.push({
-          to: '/my-registrations',
-          icon: ClipboardCheck,
-          label: 'Meine Anmeldungen',
-        });
-      }
-
-      courseItems.push({ to: '/participants', icon: Users, label: 'Teilnehmer' });
-      items.splice(2, 0, ...courseItems);
-    } else if (canSelfEnroll) {
-      items.splice(2, 0, {
+    if (canSelfEnroll) {
+      items.push({
         to: '/my-registrations',
         icon: ClipboardCheck,
         label: 'Meine Anmeldungen',
       });
+      if (showMyPasses) {
+        items.push({
+          to: '/my-passes',
+          icon: Ticket,
+          label: 'Kurskarten',
+        });
+      }
     }
 
+    items.push({ to: '/messages', icon: MessageSquare, label: 'Nachrichten' });
+
     if (isAdmin) {
-      items.splice(-1, 0,
-        { to: '/settings', icon: Settings, label: 'Einstellungen' },
-      );
+      items.push({ to: '/payments', icon: Receipt, label: 'Zahlungen' });
     }
 
     if (isCourseLeader) {
-      items.splice(-1, 0,
-        { to: '/users', icon: UserCog, label: 'Nutzerverwaltung' },
-      );
+      items.push({ to: '/my-courses', icon: BookOpen, label: 'Kurse verwalten' });
+      items.push({ to: '/users', icon: UserCog, label: 'Nutzerverwaltung' });
     }
 
+    if (isAdmin) {
+      items.push({ to: '/settings', icon: Settings, label: 'Einstellungen' });
+    }
+
+    items.push({ to: '/profile', icon: User, label: 'Profil' });
     return items;
   };
 
@@ -117,18 +133,27 @@ const Sidebar: React.FC = () => {
         <ul className="space-y-2">
           {navItems.map((item) => {
             const isMessages = item.to === '/messages';
+            const isPayments = item.to === '/payments';
+            const isSettings = item.to === '/settings';
             const hasUnread = isMessages && unreadCount > 0;
             return (
               <li key={item.to}>
                 <NavLink
                   to={item.to}
-                  className={({ isActive }) =>
-                    `flex items-center px-4 py-3 rounded-sm transition-colors ${
-                      isActive ? 'bg-brand text-onBrand' : 'text-textMuted hover:bg-surfaceSunken'
-                    }`
-                  }
+                  className={({ isActive }) => {
+                    const active =
+                      isActive ||
+                      (isSettings && location.pathname === '/updates');
+                    return `flex items-center px-4 py-3 rounded-sm transition-colors ${
+                      active ? 'bg-brand text-onBrand' : 'text-textMuted hover:bg-surfaceSunken'
+                    }`;
+                  }}
                 >
-                  {({ isActive }) => (
+                  {({ isActive }) => {
+                    const active =
+                      isActive ||
+                      (isSettings && location.pathname === '/updates');
+                    return (
                     <>
                       <span className="relative mr-3 inline-flex items-center justify-center">
                         <item.icon
@@ -143,16 +168,33 @@ const Sidebar: React.FC = () => {
                           <span
                             aria-label={`${unreadCount} ungelesene Nachrichten`}
                             className={`absolute -top-1.5 -right-2 min-w-[1rem] h-4 px-1 rounded-full bg-danger text-[10px] leading-4 text-onBrand text-center font-semibold ring-2 ${
-                              isActive ? 'ring-brand' : 'ring-surface'
+                              active ? 'ring-brand' : 'ring-surface'
                             }`}
                           >
                             {unreadCount > 9 ? '9+' : unreadCount}
                           </span>
                         )}
                       </span>
-                      {item.label}
+                      <span className="flex min-w-0 flex-1 items-center gap-2">
+                        {item.label}
+                        {isPayments ? (
+                          <NavCountBadge
+                            count={openPaymentsCount}
+                            label={`${openPaymentsCount} offene Zahlungen`}
+                            active={active}
+                          />
+                        ) : null}
+                        {isSettings ? (
+                          <NavCountBadge
+                            count={unreadUpdates}
+                            label={`${unreadUpdates} ungelesene Neuigkeiten`}
+                            active={active}
+                          />
+                        ) : null}
+                      </span>
                     </>
-                  )}
+                    );
+                  }}
                 </NavLink>
               </li>
             );
@@ -160,7 +202,8 @@ const Sidebar: React.FC = () => {
         </ul>
       </nav>
 
-      <div className="p-4 border-t border-border">
+      <div className="p-4 border-t border-border space-y-1">
+        <StudioAboutLegalMenu variant="sidebar" />
         <button
           onClick={signOut}
           className="flex items-center w-full px-4 py-3 text-textMuted hover:bg-surfaceSunken rounded-sm transition-colors"

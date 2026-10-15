@@ -38,6 +38,13 @@ Deno.test("Stripe-Präfixe pm_ cus_ pi_ acct_ sk_ whsec_", () => {
   );
 });
 
+Deno.test("Restricted Keys rk_test_ und rk_live_", () => {
+  assertEquals(
+    maskSensitiveText("key rk_test_51Abc_def und rk_live_9Xyz"),
+    "key [redacted] und [redacted]",
+  );
+});
+
 Deno.test("Betrag als Key=Zahl und als Währungsstring", () => {
   assertEquals(
     maskSensitiveText("amount_cents: 1500 und Preis 18,50 € sowie EUR 20"),

@@ -1,14 +1,27 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import { visibleCourses, visibleMembers } from '../lib/visibleScope';
 import { reactToSessionInvokeError, readInvokeFailure } from '../lib/sessionGuard';
 import { formatDate } from '../lib/format';
-import { User, UserRole, Course } from '../types';
+import { User, UserRole, Course, AdminRegisterForCourseResult, AdminRegisterCoverage } from '../types';
 import { useAuth } from '../context/AuthContext';
 import {
   Mail, ChevronDown, ChevronUp, Save, Plus,
   UserCheck, Eye, EyeOff, Lock,
 } from 'lucide-react';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
+import RemovePersonDialog, { RemovePersonTarget } from '../components/users/RemovePersonDialog';
+import MemberPassesSection from '../components/passes/MemberPassesSection';
+import { loadRemovalPreview, removePerson } from '../lib/removePerson';
+import { previewMemberRemovalRefunds } from '../lib/refunds';
+import { fetchCourseParticipantCounts } from '../lib/courseParticipantCounts';
+import {
+  fetchMemberPasses,
+  findUsablePass,
+  passRedeemErrorMessage,
+  usablePassChoiceLabel,
+  type MemberPassSummary,
+} from '../lib/passes';
 
 // ---------------------------------------------------------------------------
 // Local types
@@ -248,6 +261,9 @@ export default function Users() {
   const [userRegistrations, setUserRegistrations] = useState<RegWithCourse[]>([]);
   const [regsLoading, setRegsLoading]           = useState(false);
   const [selectedCourseId, setSelectedCourseId] = useState('');
+  const [selectedCoverage, setSelectedCoverage] = useState<AdminRegisterCoverage>('open');
+  const [memberPasses, setMemberPasses] = useState<MemberPassSummary[]>([]);
+  const [courseCounts, setCourseCounts] = useState<Record<string, number>>({});
   const [savingProfile, setSavingProfile]       = useState(false);
   const [addingCourse, setAddingCourse]         = useState(false);
   const [savingRoleId, setSavingRoleId]         = useState<string | null>(null);
@@ -259,10 +275,27 @@ export default function Users() {
   const [savingPassword, setSavingPassword]     = useState(false);
   const [passwordNotice, setPasswordNotice]     = useState<string | null>(null);
   const [passwordError, setPasswordError]       = useState<string | null>(null);
+  const [removeTarget, setRemoveTarget]         = useState<(RemovePersonTarget & { id: string }) | null>(null);
+  const [removeBusy, setRemoveBusy]             = useState(false);
+  const [removeError, setRemoveError]           = useState<string | null>(null);
+  const [removeErrorCode, setRemoveErrorCode]   = useState<string | null>(null);
+  const [preparingRemoveId, setPreparingRemoveId] = useState<string | null>(null);
+  /** Nur ein Layout mountet MemberPassesSection (sonst doppelter Fetch). */
+  const [desktopLayout, setDesktopLayout] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(min-width: 1024px)').matches : false,
+  );
 
   // ---------------------------------------------------------------------------
   // Data fetching
   // ---------------------------------------------------------------------------
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const onChange = () => setDesktopLayout(mq.matches);
+    onChange();
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
 
   useEffect(() => {
     if (!isCourseLeader) return;
@@ -274,19 +307,17 @@ export default function Users() {
     setLoading(true);
     try {
       if (isTeacher) {
-        const { data, error } = await supabase
-          .from('users')
-          .select('*')
+        const { data, error } = await visibleMembers('*')
           .eq('role', 'user')
+          .is('anonymized_at', null)
           .order('last_name', { ascending: true });
         if (error) throw error;
         setUsers(data || []);
         setLoginExclusive(null);
       } else {
         const [list, flags] = await Promise.all([
-          supabase
-            .from('users')
-            .select('*')
+          visibleMembers('*')
+            .is('anonymized_at', null)
             .order('last_name', { ascending: true }),
           supabase.rpc('studio_member_login_exclusive'),
         ]);
@@ -312,9 +343,7 @@ export default function Users() {
 
   const fetchCourses = async () => {
     try {
-      let query = supabase
-        .from('courses')
-        .select('id, title, date, status, tenant_id, teacher_id, description, location, max_participants, price, frequency, created_at, updated_at')
+      let query = visibleCourses('id, title, date, status, tenant_id, teacher_id, description, location, max_participants, price, frequency, pass_eligible, created_at, updated_at')
         .neq('status', 'canceled')
         .order('date', { ascending: true });
 
@@ -324,7 +353,18 @@ export default function Users() {
 
       const { data, error } = await query;
       if (error) throw error;
-      setCourses((data as unknown as Course[]) || []);
+      const list = (data as unknown as Course[]) || [];
+      setCourses(list);
+      if (list.length > 0) {
+        const counts = await fetchCourseParticipantCounts(list.map((c) => c.id));
+        const map: Record<string, number> = {};
+        for (const id of Object.keys(counts)) {
+          map[id] = counts[id]?.registered ?? 0;
+        }
+        setCourseCounts(map);
+      } else {
+        setCourseCounts({});
+      }
     } catch (err) {
       console.error('Error fetching courses:', err);
     }
@@ -353,18 +393,20 @@ export default function Users() {
 
   const handleToggleExpand = async (user: User) => {
     if (expandedId === user.id) {
-    setExpandedId(null);
-    setEditForm(null);
-    setUserRegistrations([]);
-    setSelectedCourseId('');
-    setPasswordDraft('');
-    setPasswordVisible(false);
-    setPasswordNotice(null);
-    setPasswordError(null);
-    return;
-  }
-  setExpandedId(user.id);
-  setEditForm({
+      setExpandedId(null);
+      setEditForm(null);
+      setUserRegistrations([]);
+      setSelectedCourseId('');
+      setSelectedCoverage('open');
+      setMemberPasses([]);
+      setPasswordDraft('');
+      setPasswordVisible(false);
+      setPasswordNotice(null);
+      setPasswordError(null);
+      return;
+    }
+    setExpandedId(user.id);
+    setEditForm({
       first_name:   user.first_name   || '',
       last_name:    user.last_name    || '',
       email:        user.email        || '',
@@ -375,17 +417,23 @@ export default function Users() {
       city:         user.city         || '',
     });
     setSelectedCourseId('');
+    setSelectedCoverage('open');
     setPasswordDraft('');
     setPasswordVisible(false);
     setPasswordNotice(null);
     setPasswordError(null);
     if (canShowCourseSection(user.role)) {
       setRegsLoading(true);
-      const regs = await fetchUserRegistrations(user.id);
+      const [regs, passes] = await Promise.all([
+        fetchUserRegistrations(user.id),
+        fetchMemberPasses(user.id),
+      ]);
       setUserRegistrations(regs);
+      setMemberPasses(passes);
       setRegsLoading(false);
     } else {
       setUserRegistrations([]);
+      setMemberPasses([]);
       setRegsLoading(false);
     }
   };
@@ -479,38 +527,84 @@ export default function Users() {
   // ---------------------------------------------------------------------------
 
   const handleAddToCourse = async (userId: string) => {
-    if (!selectedCourseId) return;
+    if (!selectedCourseId || addingCourse) return;
+    const course = courses.find((c) => c.id === selectedCourseId);
+    const person = users.find((u) => u.id === userId);
+    const personName = person
+      ? `${person.first_name} ${person.last_name}`.trim()
+      : undefined;
+    const full =
+      course != null &&
+      (courseCounts[course.id] ?? 0) >= (course.max_participants ?? 0);
+    const coverage = selectedCoverage;
+    if (full && coverage !== 'open' && coverage !== 'pass') {
+      setFeedbackDialog({
+        title: 'Hinweis',
+        message: 'Der Kurs ist voll. Zahlung vermerken geht erst, wenn die Person nachrückt.',
+        type: 'info',
+      });
+      return;
+    }
+
     setAddingCourse(true);
     try {
       const { data, error } = await supabase.rpc('admin_register_user_for_course', {
         p_user_id:   userId,
         p_course_id: selectedCourseId,
+        p_coverage:  coverage,
       });
       if (error) throw error;
 
-      type RpcResult = { success: boolean; error?: string; on_waitlist?: boolean; waitlist_position?: number };
-      const result = data as RpcResult;
+      const result = data as AdminRegisterForCourseResult;
 
       if (!result.success) {
         if (result.error === 'already_registered') {
           setFeedbackDialog({ title: 'Hinweis', message: 'Der Nutzer ist bereits in diesem Kurs angemeldet.', type: 'info' });
         } else if (result.error === 'Course teachers cannot be added as participants to their own course') {
           setFeedbackDialog({ title: 'Hinweis', message: 'Lehrer können nicht als Teilnehmer in den eigenen Kurs aufgenommen werden.', type: 'info' });
+        } else if (
+          result.error === 'NO_VALID_PASS' ||
+          result.error === 'WAITLIST_NO_PAYMENT' ||
+          result.error === 'INVALID_COVERAGE' ||
+          result.error === 'PASS_EMPTY' ||
+          result.error === 'PASS_EXPIRED' ||
+          result.error === 'NOT_PASS_ELIGIBLE'
+        ) {
+          setFeedbackDialog({
+            title: 'Hinweis',
+            message: passRedeemErrorMessage(result.error, { personName }),
+            type: 'info',
+          });
         } else {
           throw new Error(result.error);
         }
       } else {
         const onWaitlist = !!result.on_waitlist;
+        const coverageNote =
+          result.coverage === 'pass' && result.pass_remaining != null
+            ? ` Mit Kurskarte (noch ${result.pass_remaining}).`
+            : result.coverage === 'paid'
+              ? ' Bezahlt vermerkt.'
+              : '';
         setFeedbackDialog({
           title:   onWaitlist ? 'Auf Warteliste' : 'Hinzugefügt',
           message: onWaitlist
             ? `Der Kurs ist ausgebucht. Der Nutzer wurde auf die Warteliste gesetzt (Platz ${result.waitlist_position}).`
-            : 'Nutzer wurde erfolgreich zum Kurs hinzugefügt.',
+            : `Nutzer wurde erfolgreich zum Kurs hinzugefügt.${coverageNote}`,
           type: onWaitlist ? 'info' : 'success',
         });
         setSelectedCourseId('');
+        setSelectedCoverage('open');
         const regs = await fetchUserRegistrations(userId);
         setUserRegistrations(regs);
+        if (course) {
+          setCourseCounts((prev) => ({
+            ...prev,
+            [course.id]: (prev[course.id] ?? 0) + (onWaitlist ? 0 : 1),
+          }));
+        }
+        const passes = await fetchMemberPasses(userId);
+        setMemberPasses(passes);
       }
     } catch (err: unknown) {
       setFeedbackDialog({
@@ -564,6 +658,106 @@ export default function Users() {
     }
   };
 
+  const handlePrepareRemove = async (user: User) => {
+    if (!isAdmin || user.id === userProfile?.id || user.role === 'owner' || preparingRemoveId) return;
+    setPreparingRemoveId(user.id);
+    try {
+      const [preview, refunds] = await Promise.all([
+        loadRemovalPreview(user.id),
+        previewMemberRemovalRefunds(user.id),
+      ]);
+      setRemoveError(null);
+      setRemoveErrorCode(null);
+      setRemoveTarget({
+        id: user.id,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        upcoming: preview.upcoming,
+        openBookings: preview.openBookings,
+        openCourseId: preview.openCourseId,
+        onlinePaidCount: refunds?.paidCount ?? 0,
+        onlineRefundCents: refunds?.refundCents ?? 0,
+      });
+    } catch (err) {
+      console.error('remove preview failed', err);
+      setFeedbackDialog({
+        title: 'Hinweis',
+        message: 'Die Buchungen konnten nicht geprüft werden. Bitte die Seite neu laden.',
+        type: 'error',
+      });
+    } finally {
+      setPreparingRemoveId(null);
+    }
+  };
+
+  const handleConfirmRemove = async () => {
+    if (!removeTarget || removeBusy) return;
+    setRemoveBusy(true);
+    setRemoveError(null);
+    setRemoveErrorCode(null);
+    const result = await removePerson(removeTarget.id);
+    if (!result.ok) {
+      if (result.code === 'session_ended') return;
+      setRemoveError(result.message);
+      setRemoveErrorCode(result.code);
+      setRemoveBusy(false);
+      return;
+    }
+    const fullName = `${removeTarget.firstName} ${removeTarget.lastName}`.trim();
+    setRemoveTarget(null);
+    setRemoveBusy(false);
+    setExpandedId(null);
+    setEditForm(null);
+    await fetchUsers();
+    setFeedbackDialog({
+      title: result.code === 'LOGIN_NOT_DELETED' ? `${fullName} wurde entfernt.` : 'Entfernt',
+      message: result.code === 'LOGIN_NOT_DELETED'
+        ? result.message
+        : `${fullName} wurde entfernt.`,
+      type: 'success',
+    });
+  };
+
+  /** Gefahrenzone unten im Bearbeiten-Panel; eigene Person: nichts. */
+  const removePersonZone = (user: User, isSelf: boolean) => {
+    if (!isAdmin || isSelf) return null;
+    const isOwner = user.role === 'owner';
+    return (
+      <div className="border-t border-border pt-4 space-y-2">
+        <h3 className="text-xs font-semibold text-text">Person entfernen</h3>
+        <p className="text-sm text-textMuted">
+          Entfernt die Person aus deinem Studio. Bezahlte oder erlassene Buchungen bleiben ohne Namen erhalten.
+        </p>
+        {isOwner ? (
+          <div className="max-w-md">
+            <button
+              type="button"
+              disabled
+              className="inline-flex min-h-11 cursor-not-allowed items-center text-sm font-medium text-danger opacity-50"
+            >
+              Person entfernen
+            </button>
+            <p className="mt-1 text-xs text-textMuted">
+              Inhaberinnen kannst du nicht entfernen. Ändere zuerst die Rolle.
+            </p>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => void handlePrepareRemove(user)}
+            disabled={preparingRemoveId === user.id}
+            className="inline-flex min-h-11 items-center text-sm font-medium text-danger disabled:opacity-50"
+          >
+            {preparingRemoveId === user.id ? 'Wird geprüft …' : 'Person entfernen'}
+          </button>
+        )}
+      </div>
+    );
+  };
+
+  const canOpenEdit = (user: User, isSelf: boolean) =>
+    user.role !== 'owner' || isSelf || isAdmin;
+
   // ---------------------------------------------------------------------------
   // Access guard
   // ---------------------------------------------------------------------------
@@ -593,6 +787,19 @@ export default function Users() {
   return (
     <div className="p-4 sm:p-8">
       <FeedbackDialog dialog={feedbackDialog} onClose={() => setFeedbackDialog(null)} />
+      <RemovePersonDialog
+        target={removeTarget}
+        busy={removeBusy}
+        error={removeError}
+        errorCode={removeErrorCode}
+        onCancel={() => {
+          if (removeBusy) return;
+          setRemoveTarget(null);
+          setRemoveError(null);
+          setRemoveErrorCode(null);
+        }}
+        onConfirm={() => void handleConfirmRemove()}
+      />
 
       <div className="mb-6">
         <p className="text-sm text-textMuted mt-1">
@@ -643,7 +850,7 @@ export default function Users() {
                     </p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    {(user.role !== 'owner' || isSelf) && (
+                    {canOpenEdit(user, isSelf) && (
                       <button
                         onClick={() => handleToggleExpand(user)}
                         className={`flex items-center gap-1 px-3 py-1.5 rounded-sm text-xs font-semibold transition-colors ${
@@ -780,10 +987,13 @@ export default function Users() {
                     {canShowCourseSection(user.role) && (
                       <div className="border-t border-border pt-4">
                         <h3 className="text-xs font-semibold text-textMuted mb-3">Kurs zuweisen</h3>
-                        <div className="mb-4 flex flex-col gap-2 sm:flex-row">
+                        <div className="mb-3 flex flex-col gap-2 sm:flex-row">
                           <select
                             value={selectedCourseId}
-                            onChange={e => setSelectedCourseId(e.target.value)}
+                            onChange={e => {
+                              setSelectedCourseId(e.target.value);
+                              setSelectedCoverage('open');
+                            }}
                             className="min-w-0 w-full flex-1 text-sm border border-border rounded-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
                           >
                             <option value="">Kurs auswählen…</option>
@@ -803,6 +1013,58 @@ export default function Users() {
                               : <Plus size={18} />}
                           </button>
                         </div>
+                        {selectedCourseId ? (() => {
+                          const course = courses.find(c => c.id === selectedCourseId);
+                          if (!course) return null;
+                          const full = (courseCounts[course.id] ?? 0) >= (course.max_participants ?? 0);
+                          const usable = findUsablePass(memberPasses, {
+                            date: course.date,
+                            price: course.price,
+                            pass_eligible: course.pass_eligible,
+                          });
+                          const options: { value: AdminRegisterCoverage; label: string }[] = full
+                            ? [
+                                { value: 'open', label: 'Offen' },
+                                ...(usable
+                                  ? [{ value: 'pass' as const, label: `Mit Kurskarte beim Nachrücken (${usablePassChoiceLabel(usable)})` }]
+                                  : []),
+                              ]
+                            : [
+                                { value: 'open', label: 'Offen' },
+                                ...(usable
+                                  ? [{ value: 'pass' as const, label: `${usable.name.trim() || 'Kurskarte'} (noch ${usable.remaining})` }]
+                                  : []),
+                                { value: 'cash', label: 'Bar' },
+                                { value: 'paypal_manual', label: 'PayPal' },
+                                { value: 'bank_transfer', label: 'Überweisung' },
+                              ];
+                          return (
+                            <fieldset className="mb-4 space-y-1">
+                              <legend className="text-xs font-medium text-textMuted mb-1">
+                                Wie wird bezahlt?
+                              </legend>
+                              {options.map((opt) => (
+                                <label
+                                  key={opt.value}
+                                  className="flex min-h-11 items-center gap-2 text-sm text-text"
+                                >
+                                  <input
+                                    type="radio"
+                                    name={`coverage-mobile-${user.id}`}
+                                    checked={selectedCoverage === opt.value}
+                                    onChange={() => setSelectedCoverage(opt.value)}
+                                  />
+                                  {opt.label}
+                                </label>
+                              ))}
+                              {full ? (
+                                <p className="text-xs text-textMuted pt-1">
+                                  Der Kurs ist voll. Bar und Überweisung erst nach dem Nachrücken.
+                                </p>
+                              ) : null}
+                            </fieldset>
+                          );
+                        })() : null}
                         <h4 className="text-xs font-medium text-textMuted mb-2">Aktuelle Buchungen</h4>
                         {regsLoading ? (
                           <div className="flex items-center gap-2 text-xs text-textSubtle">
@@ -830,6 +1092,17 @@ export default function Users() {
                         )}
                       </div>
                     )}
+
+                    {!desktopLayout ? (
+                      <MemberPassesSection
+                        memberId={user.id}
+                        personName={`${user.first_name} ${user.last_name}`.trim()}
+                        isStudioAdmin={isAdmin}
+                        canSell={isCourseLeader}
+                      />
+                    ) : null}
+
+                    {removePersonZone(user, isSelf)}
                   </div>
                 )}
               </div>
@@ -879,7 +1152,7 @@ export default function Users() {
                   <tr className={`${isSelf ? 'bg-brandSoft' : ''} ${isExpanded ? 'bg-surfaceSunken' : 'hover:bg-surfaceSunken'} transition-colors`}>
                     {/* Toggle button */}
                     <td className="px-3 py-4 text-center">
-                      {(user.role !== 'owner' || isSelf) && (
+                      {canOpenEdit(user, isSelf) && (
                         <button
                           onClick={() => handleToggleExpand(user)}
                           className="text-textSubtle hover:text-brandPressed transition-colors"
@@ -951,7 +1224,7 @@ export default function Users() {
                     {/* Actions */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
-                        {(user.role !== 'owner' || isSelf) && (
+                        {canOpenEdit(user, isSelf) && (
                           <button
                             onClick={() => handleToggleExpand(user)}
                             className={`${isSelf ? 'text-brandOnSoft hover:text-brandPressed' : 'text-brand hover:text-brandPressed'} text-sm font-medium`}
@@ -1095,7 +1368,10 @@ export default function Users() {
                                   <div className="flex flex-col gap-2 sm:flex-row">
                                     <select
                                       value={selectedCourseId}
-                                      onChange={e => setSelectedCourseId(e.target.value)}
+                                      onChange={e => {
+                                        setSelectedCourseId(e.target.value);
+                                        setSelectedCoverage('open');
+                                      }}
                                       className="min-w-0 w-full flex-1 text-sm border border-border rounded-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand"
                                     >
                                       <option value="">Kurs auswählen…</option>
@@ -1118,6 +1394,58 @@ export default function Users() {
                                       }
                                     </button>
                                   </div>
+                                  {selectedCourseId ? (() => {
+                                    const course = courses.find(c => c.id === selectedCourseId);
+                                    if (!course) return null;
+                                    const full = (courseCounts[course.id] ?? 0) >= (course.max_participants ?? 0);
+                                    const usable = findUsablePass(memberPasses, {
+                                      date: course.date,
+                                      price: course.price,
+                                      pass_eligible: course.pass_eligible,
+                                    });
+                                    const options: { value: AdminRegisterCoverage; label: string }[] = full
+                                      ? [
+                                          { value: 'open', label: 'Offen' },
+                                          ...(usable
+                                            ? [{ value: 'pass' as const, label: `Mit Kurskarte beim Nachrücken (${usablePassChoiceLabel(usable)})` }]
+                                            : []),
+                                        ]
+                                      : [
+                                          { value: 'open', label: 'Offen' },
+                                          ...(usable
+                                            ? [{ value: 'pass' as const, label: `${usable.name.trim() || 'Kurskarte'} (noch ${usable.remaining})` }]
+                                            : []),
+                                          { value: 'cash', label: 'Bar' },
+                                          { value: 'paypal_manual', label: 'PayPal' },
+                                          { value: 'bank_transfer', label: 'Überweisung' },
+                                        ];
+                                    return (
+                                      <fieldset className="mt-3 space-y-1">
+                                        <legend className="text-xs font-medium text-textMuted mb-1">
+                                          Wie wird bezahlt?
+                                        </legend>
+                                        {options.map((opt) => (
+                                          <label
+                                            key={opt.value}
+                                            className="flex min-h-11 items-center gap-2 text-sm text-text"
+                                          >
+                                            <input
+                                              type="radio"
+                                              name={`coverage-desktop-${user.id}`}
+                                              checked={selectedCoverage === opt.value}
+                                              onChange={() => setSelectedCoverage(opt.value)}
+                                            />
+                                            {opt.label}
+                                          </label>
+                                        ))}
+                                        {full ? (
+                                          <p className="text-xs text-textMuted pt-1">
+                                            Der Kurs ist voll. Bar und Überweisung erst nach dem Nachrücken.
+                                          </p>
+                                        ) : null}
+                                      </fieldset>
+                                    );
+                                  })() : null}
                                 </div>
 
                                 <h4 className="text-xs font-medium text-textMuted mb-2">
@@ -1156,6 +1484,17 @@ export default function Users() {
                             )}
 
                           </div>
+
+                          {desktopLayout ? (
+                            <MemberPassesSection
+                              memberId={user.id}
+                              personName={`${user.first_name} ${user.last_name}`.trim()}
+                              isStudioAdmin={isAdmin}
+                              canSell={isCourseLeader}
+                            />
+                          ) : null}
+
+                          {removePersonZone(user, isSelf)}
                         </div>
                       </td>
                     </tr>

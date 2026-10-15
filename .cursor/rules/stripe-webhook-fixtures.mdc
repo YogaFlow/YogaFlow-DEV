@@ -1,0 +1,17 @@
+---
+description: Stripe-Webhook-Fixtures an echte provider_events_raw-Form auf DEV ausrichten
+alwaysApply: true
+---
+
+# Stripe-Webhook-Fixtures
+
+## Regel
+
+Fixtures und Deno-Testdaten für Stripe-Ereignisse orientieren sich an der **echten Form** aus `provider_events_raw` auf DEV (nur Schlüssel und Typen, keine echten IDs, Kontorefs oder Personendaten).
+
+Nicht aus Spekulation oder veralteten SDK-Beispielen ableiten. Wenn ein Live-Ereignis auf DEV fehlschlägt: Payload-Schlüssel/`object`-Typ/`id`-Prefix gegen die Fixture prüfen und die Fixture anpassen, bevor der Handler „weiter gedacht“ wird.
+
+## Bekannte Abweichungen (Stand 02.10.2026)
+
+- Dispute-Objekt-IDs: API `2026-08-26.dahlia` liefert `du_…` (früher `dp_…`). Beide Prefixes akzeptieren.
+- `provider_events_raw.payload` speichert das **gesamte** Event; `ProviderEvent.payload` im Adapter ist `data.object`.

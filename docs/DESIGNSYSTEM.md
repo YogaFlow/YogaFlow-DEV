@@ -253,16 +253,53 @@ Für die spätere Expo-App bleibt die untere Leiste die Vorgabe — dort ist sie
   (`src/components/ui/AccentPill.tsx`), nie als bloßer Text.
 - Übersicht für Teilnehmende: die Hero-Karte ist die eine betonte Fläche (Regel 3).
 
+**Rückmeldungen (Toast):**
+
+- Dunkle Pille (`bg-text`, Schrift weiß), Radius 14 px, Schatten, max. 420 px.
+  Mobil unten über der Navigation, Desktop unten mittig. Hineingleiten 200 ms;
+  wegwischbar; `prefers-reduced-motion` → nur einblenden.
+- Links Icon im farbigen Kreis (Erfolg: Marke, Fehler: Gefahr). Eine kurze fette Zeile.
+- Texte konkret statt allgemein: „Du bist dabei · Yin Yoga, Mi 20:00“;
+  „Hans Peter abgemeldet“.
+- Dauer und Zeitbalken (Hover/Fokus pausiert weiter):
+
+  | Art | Rückgängig | Dauer | Zeitbalken |
+  |---|---|---|---|
+  | Bestätigung (gebucht, gespeichert, gesendet) | nein | 4 s | nein |
+  | Entfernen/Abmelden — nur wenn ohne Erstattung umkehrbar | ja | 6 s | ja (2 px, `onBrand` 60 %) |
+  | Fehler | — | bleibt bis Schließen | nein |
+  | Längerer Text (> 60 Zeichen) | wie oben | + 1 s | wie oben |
+
+- **Buchungen ohne Rückgängig** (auch mit Karte): bei Vertipper normal abmelden.
+- **Rückgängig nur bei vollständig umkehrbaren Entfernen/Abmelden-Aktionen.** Abmelden
+  einer online bezahlten Buchung löst eine Erstattung aus → Toast ohne Rückgängig.
+- Jeder Toast: Wischen oder Tipp auf ✕ schließt sofort; Pause bei Hover/Fokus bleibt.
+- Fehler: bleibt bis zum Schließen, `role="alert"`.
+- Folgeschwere Aktionen (Kurs absagen, löschen, erstatten, entfernen): weiterhin
+  `ConfirmDialog` mit Abdunklung und Unschärfe (`ModalBackdrop`), kein Browser-`confirm()`.
+
 **Kursdetailseite:**
 
+- Mobil (unter `lg`): Brotkrumen „Zurück", Titel 22 px, Infokarte mit Trennlinien,
+  Verwaltung über „⋯"-Menü oben rechts (Bearbeiten, Kurs absagen, Kurs löschen in `danger`),
+  feste Aktionsleiste unten; keine losen roten Links.
+- Desktop (`lg`+): Brotkrumen „Kurse ›", Titel 32 px, Termin-Chips, Infokacheln links,
+  sticky Buchungskarte rechts (Belegung nur dort). Verwaltung über „⋯"-Menü (Bearbeiten,
+  Kurs absagen, Kurs löschen in `danger`); keine losen roten Links unten.
 - Oben der Kurszustand (Abgesagt, Hat bereits begonnen, Ausgebucht, noch N Plätze,
-  Dein Kurs). Unten in der Aktionsleiste der eigene Zustand (pro Termin, Angemeldet,
-  Warteliste) und genau eine Aktion.
-- Knöpfe dort einheitlich `rounded-full`, mind. 44 px. „Abmelden" mit Rahmen, nie
-  gefüllt (Regel 7). Mobil fest am unteren Rand, ab `lg` sticky.
-- Destruktive Verwaltungsaktionen (Kurs löschen) stehen als Textknopf in `danger`
-  unter dem Inhalt, nie in der Aktionsleiste. Gefüllt in `danger` ist nur der
-  endgültige Bestätigungsknopf im Dialog.
+  Dein Kurs). In der Aktionsleiste bzw. Buchungskarte der eigene Zustand (pro Termin,
+  Angemeldet, Warteliste) und die passenden Aktionen.
+- Knöpfe einheitlich `rounded-full`, mind. 44 px (mobil Aktionsleiste 48 px).
+  **Knöpfe brechen nie um** (`whitespace-nowrap`); zu lange Texte werden gekürzt
+  formuliert (mobil z. B. „Zur Buchung" statt „Weiter zur Buchung").
+  „Abmelden" mit Rahmen, nie gefüllt (Regel 7). Mobil fest am unteren Rand;
+  Desktop Aktionen in der Buchungskarte.
+- Mobil Aktionsleiste: Zeile 1 Preis + „pro Termin" links, Knopf rechts
+  („Weiter zur Zahlung" / „Weiter zur Buchung" / „Mit 10er-Karte buchen");
+  darunter Zahlart als Auswahlfeld (Rahmen + Chevron bei mehreren Wegen; sonst Info);
+  darunter Abmeldefrist mit Icon-Spalte; Innenabstand 16 px, unten
+  `safe-area-inset-bottom`. Desktop-Buchungskarte: Zahlart-Zeile direkt über dem Knopf.
+- Gefüllt in `danger` ist nur der endgültige Bestätigungsknopf im Dialog.
 
 **Logo und Studiokopf:**
 

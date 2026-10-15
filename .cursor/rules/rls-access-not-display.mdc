@@ -1,0 +1,11 @@
+---
+description: RLS nur für Zugriffsrechte, nie für Anzeige- oder Filterlogik
+alwaysApply: true
+---
+
+# RLS = Zugriff, nicht Anzeige
+
+- **RLS-Policies** steuern nur, wer Zeilen im eigenen Tenant (und mit welcher Rolle) lesen/schreiben darf.
+- **Anzeige- und Filterlogik** (archiviert, abgesagt, Zeitraum, „offen“) gehört in Client-Lesehelfer (`visibleScope`) oder Listen-/Fach-RPCs — nicht in `USING`/`WITH CHECK` von SELECT-Policies.
+- Beispiel UX-5: `archived_at` ist reine Anzeige-Markierung. Owner/Admin müssen archivierte Kurse/Personen für Zahlungen-Archiv, Exporte, Belege und Prüfspur lesen können. Ausblenden nur über `visibleScope`, `get_open_coverage`, `get_studio_payments(p_include_archived)` usw.
+- Buchbarkeit und andere Fachregeln bleiben serverseitig in den RPCs (z. B. `register_for_course` prüft `archived_at`).

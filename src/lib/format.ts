@@ -54,6 +54,16 @@ export function formatTime(value: string | null | undefined): string {
   return `${match[1].padStart(2, '0')}:${match[2]}`;
 }
 
+/** Kurzer Wochentag ohne Punkt: „Mi“ (für Toast-Zeilen). */
+export function formatShortWeekday(value: string | null | undefined): string {
+  if (value == null || value === '') return '';
+  const parts = parseCivilDate(value);
+  if (!parts) return '';
+  return stripTrailingDot(
+    new Intl.DateTimeFormat(LOCALE, { weekday: 'short' }).format(civilToLocalDate(parts)),
+  );
+}
+
 /** 18:30 – 19:30 (en dash with spaces) */
 export function formatTimeRange(
   start: string | null | undefined,
@@ -159,6 +169,49 @@ export function formatDateTime(value: string | Date | null | undefined): string 
   return `${formatDate(isoDate)}, ${time}`;
 }
 
+/** 01.09.2026 — civil date, no timezone shift. */
+export function formatNumericDate(value: string | null | undefined): string {
+  const parts = parseCivilDate(value ?? '');
+  if (!parts) return '';
+  const day = String(parts.d).padStart(2, '0');
+  const month = String(parts.m).padStart(2, '0');
+  return `${day}.${month}.${parts.y}`;
+}
+
+const MONTH_NAMES = [
+  'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+  'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember',
+];
+
+/** Oktober 2026 — civil date, day ignored. */
+export function formatMonthYear(value: string | null | undefined): string {
+  const parts = parseCivilDate(value ?? '');
+  if (!parts) return '';
+  return `${MONTH_NAMES[parts.m - 1]} ${parts.y}`;
+}
+
+/** First day of the month, `months` before the civil date (0 = same month). */
+export function monthStartIso(value: string, monthsBack = 0): string {
+  const parts = parseCivilDate(value);
+  if (!parts) return '';
+  const index = parts.y * 12 + (parts.m - 1) - monthsBack;
+  const y = Math.floor(index / 12);
+  const m = (index % 12) + 1;
+  return `${y}-${String(m).padStart(2, '0')}-01`;
+}
+
+/** Shift a YYYY-MM-DD civil date by whole days. */
+export function shiftIsoDate(value: string, days: number): string {
+  const parts = parseCivilDate(value);
+  if (!parts) return '';
+  const next = addDays(parts, days);
+  const month = String(next.m).padStart(2, '0');
+  const day = String(next.d).padStart(2, '0');
+  return `${next.y}-${month}-${day}`;
+}
+
+export { asCivilIsoDate, berlinIsoFromInstant, clampCivilIsoDate } from './courseDateTime.ts';
+
 /** 18 € / 18,50 € (narrow no-break space before €) */
 export function formatPrice(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(value)) return '';
@@ -167,4 +220,15 @@ export function formatPrice(value: number | null | undefined): string {
     return `${Math.round(rounded)}${NBSP}€`;
   }
   return `${rounded.toFixed(2).replace('.', ',')}${NBSP}€`;
+}
+
+/** Always two decimals from integer cents — e.g. 15000 → 150,00 € */
+export function formatCents(cents: number | null | undefined): string {
+  if (cents == null || !Number.isFinite(cents)) return '';
+  const rounded = Math.round(cents);
+  const sign = rounded < 0 ? '−' : '';
+  const abs = Math.abs(rounded);
+  const euros = Math.floor(abs / 100);
+  const rest = String(abs % 100).padStart(2, '0');
+  return `${sign}${euros},${rest}${NBSP}€`;
 }

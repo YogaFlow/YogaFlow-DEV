@@ -1,5 +1,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import nodemailer from "npm:nodemailer@6.9.10";
+import { createServiceLogger } from "../_shared/service.ts";
+
+const log = createServiceLogger();
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,11 +10,63 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, X-Internal-Secret, x-omlify-tenant",
 };
 
+interface EmailAttachment {
+  filename: string;
+  content: string;
+  contentType?: string;
+  encoding?: "utf-8" | "base64";
+  contentDisposition?: "attachment" | "inline";
+  cid?: string;
+}
+
 interface EmailRequest {
   to: string;
   subject: string;
   html: string;
   text?: string;
+  fromName?: string;
+  replyTo?: string;
+  attachments?: EmailAttachment[];
+}
+
+function sanitizeFromName(raw: string | undefined): string | null {
+  if (!raw) return null;
+  const cleaned = raw.trim().replace(/[\r\n<>"]/g, "");
+  if (!cleaned || cleaned.length > 80) return null;
+  return cleaned;
+}
+
+function validReplyTo(raw: string | undefined): string | null {
+  if (!raw) return null;
+  const value = raw.trim();
+  if (value.length > 120) return null;
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value)) return null;
+  return value;
+}
+
+function normalizeAttachments(raw: EmailAttachment[] | undefined) {
+  if (!Array.isArray(raw) || raw.length === 0) return undefined;
+  const out: {
+    filename: string;
+    content: string;
+    contentType: string;
+    encoding?: string;
+    contentDisposition?: "attachment" | "inline";
+    cid?: string;
+  }[] = [];
+  for (const a of raw.slice(0, 5)) {
+    if (!a?.filename || typeof a.content !== "string") continue;
+    if (a.filename.length > 120 || a.content.length > 400_000) continue;
+    out.push({
+      filename: a.filename.replace(/[\r\n]/g, ""),
+      content: a.content,
+      contentType: a.contentType || "application/octet-stream",
+      encoding: a.encoding === "base64" ? "base64" : undefined,
+      contentDisposition: a.contentDisposition === "inline" ? "inline" : "attachment",
+      cid: a.cid,
+    });
+  }
+  return out.length ? out : undefined;
 }
 
 Deno.serve(async (req: Request) => {
@@ -63,7 +118,7 @@ Deno.serve(async (req: Request) => {
     );
   }
 
-  console.log("Sending email to:", toEmail, "subject:", subject);
+  log.info("Sending email to:", toEmail, "subject:", subject);
 
   const transport = nodemailer.createTransport({
     host: smtpHost,
@@ -86,13 +141,19 @@ Deno.serve(async (req: Request) => {
   let recipient = toEmail;
   let finalSubject = subject;
   if (redirectTo) {
-    console.log("EMAIL_REDIRECT_TO aktiv:", toEmail, "->", redirectTo);
+    log.info("EMAIL_REDIRECT_TO aktiv:", toEmail, "->", redirectTo);
     recipient = redirectTo;
     finalSubject = `[DEV → ${toEmail}] ${subject}`;
   }
 
   const fromAddress = Deno.env.get("SENDER_EMAIL")?.trim() || smtpUser;
-  const from = `"Omlify" <${fromAddress}>`;
+  const displayName = sanitizeFromName(body.fromName) ?? "Omlify";
+  const from = `"${displayName}" <${fromAddress}>`;
+  const replyTo = validReplyTo(body.replyTo);
+  const attachments = normalizeAttachments(body.attachments);
+  const textContent = typeof body.text === "string" && body.text.trim()
+    ? body.text
+    : undefined;
 
   try {
     const info = await transport.sendMail({
@@ -100,6 +161,9 @@ Deno.serve(async (req: Request) => {
       to: recipient,
       subject: finalSubject,
       html: htmlContent,
+      ...(textContent ? { text: textContent } : {}),
+      ...(replyTo ? { replyTo } : {}),
+      ...(attachments ? { attachments } : {}),
     });
 
     console.log("Email sent:", info.messageId);
@@ -113,7 +177,7 @@ Deno.serve(async (req: Request) => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error sending email:", error);
+    log.error("Error sending email:", error);
     const details = (error as { message?: string })?.message ?? String(error);
     return new Response(
       JSON.stringify({ error: "Failed to send email", details }),

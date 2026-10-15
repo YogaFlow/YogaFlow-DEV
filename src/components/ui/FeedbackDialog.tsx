@@ -1,9 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
+import { useToast } from '../../context/ToastContext';
+import type { ToastUndo } from '../../lib/toastModel';
 
 export interface FeedbackDialogState {
   title: string;
   message: string;
   type?: 'success' | 'error' | 'info';
+  undo?: ToastUndo;
+  /** Override auto-hide (success/info). */
+  durationMs?: number;
 }
 
 interface FeedbackDialogProps {
@@ -11,68 +16,47 @@ interface FeedbackDialogProps {
   onClose: () => void;
 }
 
+/**
+ * Kompatibilitätsschicht: frühere Erfolgs-/Fehlerdialoge werden als Toast gezeigt
+ * (UX-3 A). Kein blockierendes OK mehr.
+ */
 const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ dialog, onClose }) => {
-  const [isMounted, setIsMounted] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
+  const { showToast } = useToast();
+  const lastKey = useRef<string | null>(null);
 
   useEffect(() => {
-    if (dialog) {
-      setIsMounted(true);
-      const frameId = window.requestAnimationFrame(() => setIsVisible(true));
-      return () => window.cancelAnimationFrame(frameId);
+    if (!dialog) {
+      lastKey.current = null;
+      return;
+    }
+    const key = `${dialog.type ?? 'info'}|${dialog.title}|${dialog.message}|${dialog.undo?.label ?? ''}`;
+    if (lastKey.current === key) return;
+    lastKey.current = key;
+
+    const type = dialog.type === 'error' ? 'error' : dialog.type === 'info' ? 'info' : 'success';
+
+    if (type === 'error') {
+      showToast({
+        title: dialog.title,
+        message: dialog.message,
+        type: 'error',
+      });
+      // Parent-State freigeben; Fehler-Toast bleibt bis Schließen sichtbar.
+      onClose();
+      return;
     }
 
-    setIsVisible(false);
-    const timeoutId = window.setTimeout(() => setIsMounted(false), 180);
-    return () => window.clearTimeout(timeoutId);
-  }, [dialog]);
+    showToast({
+      title: dialog.title,
+      message: dialog.message,
+      type,
+      undo: dialog.undo,
+      durationMs: dialog.durationMs,
+    });
+    onClose();
+  }, [dialog, onClose, showToast]);
 
-  if (!isMounted || !dialog) return null;
-
-  const variant = dialog.type || 'info';
-  const colorClasses =
-    variant === 'success'
-      ? {
-          dot: 'bg-success',
-          button: 'bg-brand hover:bg-brandPressed',
-        }
-      : variant === 'error'
-        ? {
-            dot: 'bg-danger',
-            button: 'bg-brand hover:bg-brandPressed',
-          }
-        : {
-            dot: 'bg-brand',
-            button: 'bg-brand hover:bg-brandPressed',
-          };
-
-  return (
-    <div
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-200 ${
-        isVisible ? 'bg-text/45 opacity-100' : 'bg-text/0 opacity-0'
-      }`}
-    >
-      <div
-        className={`w-full max-w-md rounded-lg border border-border bg-surface p-6 shadow-lg transition-all duration-200 ${
-          isVisible ? 'scale-100 translate-y-0 opacity-100' : 'scale-95 translate-y-2 opacity-0'
-        }`}
-      >
-        <div className="mb-3 flex items-center gap-2">
-          <span className={`inline-flex h-2.5 w-2.5 rounded-full ${colorClasses.dot}`} aria-hidden />
-          <h3 className="text-lg font-semibold text-text">{dialog.title}</h3>
-        </div>
-        <p className="text-sm leading-6 text-textMuted">{dialog.message}</p>
-        <div className="mt-6 flex justify-center">
-          <button
-            onClick={onClose}
-            className={`rounded-full px-6 py-2 text-sm font-semibold text-onBrand transition-colors ${colorClasses.button}`}
-          >
-            OK
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+  return null;
 };
 
 export default FeedbackDialog;

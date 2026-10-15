@@ -2,20 +2,25 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { Calendar, Plus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { supabase } from '../lib/supabase';
+import { visibleCourses } from '../lib/visibleScope';
 import { Course } from '../types';
 import { isCourseManagerRole } from '../lib/userRoles';
 import { formatDayLabel, formatTime } from '../lib/format';
 import { groupCoursesByDay } from '../lib/courseGrouping';
+import {
+  fetchCourseParticipantCounts,
+  type CourseParticipantCounts,
+} from '../lib/courseParticipantCounts';
 import CourseRow from '../components/courses/CourseRow';
 import AccentPill from '../components/ui/AccentPill';
-import { isCourseUpcoming } from '../lib/courseDateTime';
+import { isCourseCancelled, isCourseUpcoming } from '../lib/courseDateTime';
 
 const MyCourses: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { userProfile } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
+  const [counts, setCounts] = useState<CourseParticipantCounts>({});
   const [loading, setLoading] = useState(true);
   const [successMessage, setSuccessMessage] = useState('');
   const successTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -28,21 +33,21 @@ const MyCourses: React.FC = () => {
     const fetchMyCourses = async () => {
       if (!userProfile || !isCourseManager) return;
 
-      const { data, error } = await supabase
-        .from('courses')
-        .select(`
+      const { data, error } = await visibleCourses(`
           *,
-          teacher:users!courses_teacher_id_fkey(first_name, last_name),
-          registrations:registrations(user_id, status, is_waitlist, cancellation_timestamp)
+          teacher:users!courses_teacher_id_fkey(first_name, last_name)
         `)
         .eq('teacher_id', userProfile.id)
         .order('date', { ascending: true })
         .order('time', { ascending: true });
 
       if (error) throw error;
-      if (isMounted) {
-        setCourses((data || []).filter((course) => isCourseUpcoming(course)));
-      }
+      if (!isMounted) return;
+
+      const upcoming = ((data || []) as Course[]).filter((course) => isCourseUpcoming(course));
+      setCourses(upcoming);
+      const nextCounts = await fetchCourseParticipantCounts(upcoming.map((c) => c.id));
+      if (isMounted) setCounts(nextCounts);
     };
 
     const loadPage = async () => {
@@ -135,12 +140,8 @@ const MyCourses: React.FC = () => {
               </h2>
               <div className="divide-y divide-border overflow-hidden rounded-md border border-border bg-surface">
                 {group.courses.map((course) => {
-                  const registeredCount = course.registrations?.filter(
-                    (r) => r.status === 'registered' && !r.is_waitlist && !r.cancellation_timestamp
-                  ).length ?? 0;
-                  const waitlistCount = course.registrations?.filter(
-                    (r) => r.is_waitlist && !r.cancellation_timestamp
-                  ).length ?? 0;
+                  const registeredCount = counts[course.id]?.registered ?? 0;
+                  const waitlistCount = counts[course.id]?.waitlist ?? 0;
                   const isFull = registeredCount >= (course.max_participants || 0);
                   const remaining = (course.max_participants || 0) - registeredCount;
                   const until = formatTime(course.end_time);
@@ -149,7 +150,11 @@ const MyCourses: React.FC = () => {
                     .join(' · ');
 
                   let occupancyStatus: React.ReactNode = null;
-                  if (isFull) {
+                  if (isCourseCancelled(course.status)) {
+                    occupancyStatus = (
+                      <span className="text-[13px] font-medium text-text">Abgesagt</span>
+                    );
+                  } else if (isFull) {
                     occupancyStatus = (
                       <span className="text-[13px] font-medium text-textMuted">Ausgebucht</span>
                     );

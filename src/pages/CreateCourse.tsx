@@ -1,10 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Users, FileText, Save, ArrowLeft, Repeat, User } from 'lucide-react';
+import { MapPin, Users, Save, ArrowLeft, Repeat, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTenant } from '../context/TenantContext';
 import { supabase } from '../lib/supabase';
+import { visibleMembers } from '../lib/visibleScope';
+import { countActivePassProducts } from '../lib/passProducts';
 import { DatePicker, TimePicker } from '../components/DateTimePicker';
+import PassEligibleToggle from '../components/courses/PassEligibleToggle';
+import { FormField, FormTextArea } from '../components/ui/FormField';
+import { isTeacherOnly, TEACHER_SELF_HINT } from '../lib/userRoles';
+import { PRICE_ABOVE_LIMIT_HINT } from '../lib/legalCheckoutTexts';
 
 interface CourseLeader {
   id: string;
@@ -15,7 +21,7 @@ interface CourseLeader {
 
 const CreateCourse: React.FC = () => {
   const navigate = useNavigate();
-  const { userProfile, isCourseLeader } = useAuth();
+  const { userProfile, isCourseLeader, isAdmin } = useAuth();
   const { tenant } = useTenant();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -39,6 +45,9 @@ const CreateCourse: React.FC = () => {
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurringType, setRecurringType] = useState<'daily' | 'weekly'>('weekly');
   const [recurringEndDate, setRecurringEndDate] = useState('');
+  const [passEligible, setPassEligible] = useState(true);
+  const [showPassEligible, setShowPassEligible] = useState(false);
+  const [onlineEnabled, setOnlineEnabled] = useState(false);
   const maxParticipantsTouchedRef = useRef(false);
 
   const timeToMinutes = (time: string): number => {
@@ -95,8 +104,28 @@ const CreateCourse: React.FC = () => {
   }, [tenant]);
 
   useEffect(() => {
+    void supabase.rpc('get_payment_setup_status').then(({ data }) => {
+      setOnlineEnabled(data?.online_payments_enabled === true);
+    });
+  }, []);
+
+  useEffect(() => {
     if (userProfile) fetchCourseLeaders();
   }, [userProfile]);
+
+  useEffect(() => {
+    if (!isAdmin) {
+      setShowPassEligible(false);
+      return;
+    }
+    let cancelled = false;
+    void countActivePassProducts().then((n) => {
+      if (!cancelled) setShowPassEligible(n > 0);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdmin]);
 
   useEffect(() => {
     if (userProfile && courseLeaders.length > 0) {
@@ -133,10 +162,9 @@ const CreateCourse: React.FC = () => {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('id, first_name, last_name, email')
+      const { data, error } = await visibleMembers('id, first_name, last_name, email')
         .in('role', ['teacher', 'admin', 'owner'])
+        .is('anonymized_at', null)
         .order('last_name', { ascending: true });
 
       if (error) throw error;
@@ -363,7 +391,8 @@ const CreateCourse: React.FC = () => {
             max_participants: parseInt(formData.max_participants),
             price: parseFloat(formData.price),
             teacher_id: selectedTeacherId,
-            series_id: seriesId
+            series_id: seriesId,
+            ...(showPassEligible ? { pass_eligible: passEligible } : {}),
           });
         }
       } else {
@@ -378,7 +407,8 @@ const CreateCourse: React.FC = () => {
           location: formData.location.trim(),
           max_participants: parseInt(formData.max_participants),
           price: parseFloat(formData.price),
-          teacher_id: selectedTeacherId
+          teacher_id: selectedTeacherId,
+          ...(showPassEligible ? { pass_eligible: passEligible } : {}),
         });
       }
 
@@ -411,6 +441,10 @@ const CreateCourse: React.FC = () => {
   };
 
   const hasPermission = isCourseLeader;
+  const teacherSelfOnly = isTeacherOnly(userProfile);
+  const leaderOptions = teacherSelfOnly
+    ? courseLeaders.filter((leader) => leader.id === userProfile?.id)
+    : courseLeaders;
 
   if (!hasPermission) {
     return (
@@ -435,42 +469,37 @@ const CreateCourse: React.FC = () => {
 
       <div className="bg-surface rounded-md border border-border">
         <form onSubmit={handleSubmit} className="p-3.5 space-y-6">
-          {/* Title */}
-          <div>
-            <label htmlFor="title" className="block text-sm font-medium text-textMuted mb-2">
-              Kurstitel *
-            </label>
-            <div className="relative">
-              <FileText className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
-              <input
-                id="title"
-                name="title"
-                type="text"
-                value={formData.title}
-                onChange={handleChange}
-                className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
-                placeholder="z.B. Hatha Yoga für Anfänger"
-                required
-              />
-            </div>
-          </div>
+          <FormField
+            id="title"
+            name="title"
+            label="Kurstitel *"
+            type="text"
+            value={formData.title}
+            onChange={handleChange}
+            placeholder="z.B. Hatha Yoga für Anfänger"
+            error={
+              error.includes('Kurstitel')
+                ? error
+                : null
+            }
+            required
+          />
 
-          {/* Description */}
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium text-textMuted mb-2">
-              Beschreibung *
-            </label>
-            <textarea
-              id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              rows={4}
-              className="w-full px-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
-              placeholder="Beschreibe den Kurs, Zielgruppe, Schwierigkeitsgrad..."
-              required
-            />
-          </div>
+          <FormTextArea
+            id="description"
+            name="description"
+            label="Beschreibung *"
+            value={formData.description}
+            onChange={handleChange}
+            rows={4}
+            placeholder="Beschreibe den Kurs, Zielgruppe, Schwierigkeitsgrad..."
+            error={
+              error.includes('Beschreibung')
+                ? error
+                : null
+            }
+            required
+          />
 
           {/* Course Leader Selection */}
           <div>
@@ -483,17 +512,21 @@ const CreateCourse: React.FC = () => {
                 id="teacher_id"
                 value={selectedTeacherId}
                 onChange={(e) => setSelectedTeacherId(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent appearance-none bg-surface"
+                disabled={teacherSelfOnly}
+                className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent appearance-none bg-surface disabled:cursor-not-allowed disabled:bg-surfaceSunken disabled:opacity-60"
                 required
               >
                 <option value="">Bitte wähle einen Kursleiter</option>
-                {courseLeaders.map((leader) => (
+                {leaderOptions.map((leader) => (
                   <option key={leader.id} value={leader.id}>
                     {leader.first_name} {leader.last_name} ({leader.email})
                   </option>
                 ))}
               </select>
             </div>
+            {teacherSelfOnly ? (
+              <p className="mt-1 text-xs text-textMuted">{TEACHER_SELF_HINT}</p>
+            ) : null}
             {courseLeaders.length === 0 && (
               <p className="mt-2 text-sm text-text">
                 Keine Kursleiter gefunden. Bitte in der Nutzerverwaltung mindestens einen Nutzer als Kursleiter anlegen.
@@ -695,14 +728,21 @@ const CreateCourse: React.FC = () => {
                 />
                 <span className="absolute right-3 top-3 text-textSubtle font-semibold">€</span>
               </div>
+              {onlineEnabled && Number.parseFloat(formData.price) > 250 ? (
+                <p className="mt-2 text-sm text-textMuted">{PRICE_ABOVE_LIMIT_HINT}</p>
+              ) : null}
             </div>
           </div>
 
-          {error && (
+          {showPassEligible ? (
+            <PassEligibleToggle checked={passEligible} onChange={setPassEligible} />
+          ) : null}
+
+          {error && !error.includes('Kurstitel') && !error.includes('Beschreibung') ? (
             <div className="p-3 bg-dangerSoft border border-danger rounded-sm">
               <p className="text-sm text-danger">{error}</p>
             </div>
-          )}
+          ) : null}
 
           <div className="flex items-center justify-end space-x-4 pt-6 border-t border-border">
             <button

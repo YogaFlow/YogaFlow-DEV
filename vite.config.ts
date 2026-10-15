@@ -17,7 +17,7 @@ function buildSha(): string {
   }
 }
 
-/** Schreibt public/version.json und dieselbe ID ins Bundle. */
+/** Schreibt public/version.json ({ build }) und dieselbe ID ins Bundle. */
 function writeVersionJson(): Plugin {
   const sha = buildSha();
   const payload = `${JSON.stringify({ build: sha })}\n`;

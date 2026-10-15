@@ -15,9 +15,9 @@ const EMAIL_RE =
 const IBAN_RE =
   /\b[A-Z]{2}\d{2}(?:[ ]?[A-Z0-9]){11,30}\b/g;
 
-/** Stripe- und Secret-Präfixe inkl. Test-Secrets (sk_test_… mit Unterstrichen). */
+/** Stripe- und Secret-Präfixe inkl. Test-Secrets (sk_test_…, rk_test_… mit Unterstrichen). */
 const STRIPE_RE =
-  /\b(?:pm|cus|pi|acct|sk|whsec)_[A-Za-z0-9_]+\b/g;
+  /\b(?:pm|cus|pi|acct|sk|rk|whsec)_[A-Za-z0-9_]+\b/g;
 
 /**
  * amount_cents: 1500 | "amount":"12.5" | betrag=12

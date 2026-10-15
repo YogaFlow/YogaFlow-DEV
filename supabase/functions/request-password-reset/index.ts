@@ -1,6 +1,9 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { buildEmailActionLink } from "../_shared/email_link_base_url.ts";
+import { createServiceLogger } from "../_shared/service.ts";
+
+const log = createServiceLogger();
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -43,7 +46,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (!loginId) {
-      console.log("Password reset: no user found for email:", email, "- no email sent (by design)");
+      log.info("Password reset: no user found for email:", email, "- no email sent (by design)");
     }
 
     if (loginId) {
@@ -108,9 +111,9 @@ Deno.serve(async (req: Request) => {
 
         if (!emailResponse.ok) {
           const errBody = await emailResponse.text();
-          console.error("Error sending email. Status:", emailResponse.status, "Body:", errBody);
+          log.error("Error sending email. Status:", emailResponse.status, "Body:", errBody);
         } else {
-          console.log("Password reset email sent successfully to:", email);
+          log.info("Password reset email sent successfully to:", email);
         }
       }
     }

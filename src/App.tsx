@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useNavigate, useSearchParams } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { VersionBanner } from './components/VersionBanner';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { useSessionGuard } from './lib/useSessionGuard';
 import { TenantProvider, useTenant, buildApexHref, withDevTenant } from './context/TenantContext';
+import { ToastProvider } from './context/ToastContext';
 import AuthPage from './pages/AuthPage';
 import Dashboard from './pages/Dashboard';
 import Courses from './pages/Courses';
@@ -11,11 +12,15 @@ import CreateCourse from './pages/CreateCourse';
 import EditCourse from './pages/EditCourse';
 import MyCourses from './pages/MyCourses';
 import MyRegistrations from './pages/MyRegistrations';
+import MyPasses from './pages/MyPasses';
+import Widerruf from './pages/Widerruf';
 import Profile from './pages/Profile';
 import Participants from './pages/Participants';
 import Users from './pages/Users';
 import Settings from './pages/Settings';
+import DevPaymentSetupStates from './pages/DevPaymentSetupStates';
 import Messages from './pages/Messages';
+import Updates from './pages/Updates';
 import VerifyEmail from './pages/VerifyEmail';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
@@ -23,9 +28,18 @@ import Layout from './components/Layout/Layout';
 
 import OnboardingWizard from './pages/OnboardingWizard';
 import LegalPage from './pages/LegalPage';
+import StudioLegalPage from './pages/StudioLegalPage';
 import JoinStudio from './pages/JoinStudio';
 import CourseDetail from './pages/CourseDetail';
+import CourseCheckout from './pages/CourseCheckout';
+import PaymentsHub, { OpenPaymentsRedirect } from './pages/PaymentsHub';
+import Receipt from './pages/Receipt';
+import CalendarInvite from './pages/CalendarInvite';
 
+/** Nur DEV — sonst kein Chunk mit paymentSheet / DevPaymentSheet im dist. */
+const LazyDevPaymentSheetStates = import.meta.env.DEV
+  ? React.lazy(() => import('./pages/DevPaymentSheetStates'))
+  : null;
 const Spinner = () => (
   <div className="min-h-screen bg-sand flex items-center justify-center">
     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand" />
@@ -53,13 +67,17 @@ const RedirectToApexMarketing: React.FC = () => {
   return <Spinner />;
 };
 
-/** Mandanten-App: Guard → Auth → Layout → Kindroute (`Outlet`). Pathloses Layout, damit RR6/7 `/dashboard` & Co. zuverlässig matched (nicht `path="*"` + Kinder). */
+/** UX-6: Alt-Route /kassieren → Teilnehmerliste. */
+const KassierenRedirect: React.FC = () => {
+  const { courseId } = useParams<{ courseId: string }>();
+  return <Navigate to={`/course/${courseId ?? ''}/participants`} replace />;
+};
+
+/** Mandanten-App: Guard → Auth → Layout. Das Outlet steht in Layout. Pathloses Layout, damit RR6/7 `/dashboard` & Co. zuverlässig matched (nicht `path="*"` + Kinder). */
 const TenantAppShell: React.FC = () => (
   <TenantGuard>
     <ProtectedRoute>
-      <Layout>
-        <Outlet />
-      </Layout>
+      <Layout />
     </ProtectedRoute>
   </TenantGuard>
 );
@@ -286,6 +304,7 @@ function App() {
         Auth onAuthStateChange/Profil und entlastet dieselbe supabase.co-Verbindung beim Cold Start.
       */}
       <TenantProvider>
+        <ToastProvider>
         <Router>
           <Routes>
             {/* Öffentliche Routen ohne Layout */}
@@ -293,6 +312,43 @@ function App() {
             <Route path="/reset-password"  element={<ResetPassword />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/verify-email"    element={<VerifyEmail />} />
+            {/* UX-4 C1: Kalender-Seite (Token aus Mail; kein Login nötig) */}
+            <Route path="/calendar" element={<CalendarInvite />} />
+            {/* K1: öffentlicher Widerruf ohne Login, mit Tenant-Kontext */}
+            <Route
+              path="/widerruf"
+              element={
+                <TenantGuard>
+                  <Widerruf />
+                </TenantGuard>
+              }
+            />
+
+            {/* RT-1: Studio-Rechtstexte öffentlich */}
+            <Route
+              path="/impressum"
+              element={
+                <TenantGuard>
+                  <StudioLegalPage />
+                </TenantGuard>
+              }
+            />
+            <Route
+              path="/datenschutz"
+              element={
+                <TenantGuard>
+                  <StudioLegalPage />
+                </TenantGuard>
+              }
+            />
+            <Route
+              path="/agb"
+              element={
+                <TenantGuard>
+                  <StudioLegalPage />
+                </TenantGuard>
+              }
+            />
 
             {/* Apex: Token-Redirect oder Worker-Marketing / Subdomain: Dashboard oder Login */}
             <Route path="/" element={<HomeRouteWithTokenRedirect />} />
@@ -303,25 +359,51 @@ function App() {
             {/* Rechtliche Seiten: auf Studio-Hosts nur der Verweis auf omlify.de */}
             <Route path="/legal/*" element={<LegalPage />} />
 
+            {import.meta.env.DEV ? (
+              <>
+                <Route path="/dev/payment-setup" element={<DevPaymentSetupStates />} />
+                <Route
+                  path="/dev/payment-sheet"
+                  element={
+                    <React.Suspense fallback={null}>
+                      {LazyDevPaymentSheetStates ? <LazyDevPaymentSheetStates /> : null}
+                    </React.Suspense>
+                  }
+                />
+              </>
+            ) : null}
+
             {/* Mandanten-App (pathloses Layout — zuverlässiges Matching unter RR 6/7) */}
             <Route element={<TenantAppShell />}>
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="courses" element={<Courses />} />
               <Route path="create-course" element={<CreateCourse />} />
               <Route path="course/:courseId/edit" element={<EditCourse />} />
-              <Route path="course/:courseId/participants" element={<Participants />} />
+              <Route path="course/:courseId/participants" element={<CourseCheckout />} />
+              <Route
+                path="course/:courseId/kassieren"
+                element={<KassierenRedirect />}
+              />
               <Route path="course/:courseId" element={<CourseDetail />} />
               <Route path="my-courses" element={<MyCourses />} />
               <Route path="my-registrations" element={<MyRegistrations />} />
+              <Route path="my-passes" element={<MyPasses />} />
+              <Route path="receipts/:receiptId" element={<Receipt />} />
               <Route path="profile" element={<Profile />} />
               <Route path="participants" element={<Participants />} />
+              <Route path="open-payments" element={<OpenPaymentsRedirect />} />
+              <Route path="payments" element={<PaymentsHub />} />
               <Route path="users" element={<Users />} />
               <Route path="settings" element={<Settings />} />
+              <Route path="settings/:category" element={<Settings />} />
+              <Route path="settings/:category/:legalDoc" element={<Settings />} />
               <Route path="messages" element={<Messages />} />
+              <Route path="updates" element={<Updates />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Route>
           </Routes>
         </Router>
+        </ToastProvider>
       </TenantProvider>
     </AuthProvider>
   );

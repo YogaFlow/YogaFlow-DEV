@@ -1,21 +1,61 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Calendar, Check, Users, BookOpen, Settings } from 'lucide-react';
+import {
+  AlertTriangle,
+  Calendar,
+  Check,
+  ChevronRight,
+  Clock,
+  CornerDownLeft,
+  Euro,
+  Users,
+  BookOpen,
+  Settings,
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Course, Registration } from '../types';
-import { isCourseCancelled, isCourseRunning, isCourseUpcoming, isRegistrationVisible } from '../lib/courseDateTime';
+import { Course, PaymentMethod, Registration } from '../types';
+import {
+  berlinIsoDate,
+  berlinIsoFromInstant,
+  isCourseCancelled,
+  isCourseRunning,
+  isCourseUpcoming,
+  isRegistrationVisible,
+} from '../lib/courseDateTime';
 import {
   formatDayLabel,
   formatTime,
   formatTimeRange,
   formatTodayOrTomorrow,
+  monthStartIso,
 } from '../lib/format';
+import {
+  isDevPendingPaymentMock,
+  resolveHoldExpiresAt,
+} from '../lib/devPendingPaymentMock';
+import PaymentPendingStatus from '../components/ui/PaymentPendingStatus';
 import { fetchCourseParticipantCounts } from '../lib/courseParticipantCounts';
 import { isParticipantOnlyRole, isTeacherOnly } from '../lib/userRoles';
 import { formatStaffName, withCourseTeachers } from '../lib/staffNames';
+import { latestUnreversedPayment } from '../lib/courseCheckout';
+import {
+  buildTodoItems,
+  isOnsiteReturnMethod,
+  todoEmptyLabel,
+  todoItemCount,
+  type TodoFailedRefund,
+  type TodoItem,
+  type TodoOpenCourse,
+  type TodoReturnRow,
+  type TodoRole,
+} from '../lib/buildTodoItems';
+import { fetchStudioPayments } from '../lib/studioPayments';
+import { loadTaxSettings, studioHasPayment } from '../lib/taxStatus';
+import LedgerWaitingNotice from '../components/tax/LedgerWaitingNotice';
 import AccentPill from '../components/ui/AccentPill';
 import CourseRow from '../components/courses/CourseRow';
+import { isArchivedRow, visibleCourses as coursesVisible } from '../lib/visibleScope';
 
 type StatCard = {
   title: string;
@@ -25,9 +65,36 @@ type StatCard = {
 
 type CourseWithCount = Course & { registrationCount?: number };
 
+function todoIcon(kind: TodoItem['kind']) {
+  switch (kind) {
+    case 'refund_failed':
+      return AlertTriangle;
+    case 'return_onsite':
+      return CornerDownLeft;
+    case 'payment_open':
+    case 'older_open':
+      return Euro;
+    case 'pay_onsite':
+      return Clock;
+    default:
+      return ChevronRight;
+  }
+}
+
+function berlinTimeFromInstant(value: string): string {
+  const fmt = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Berlin',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  });
+  const parts = Object.fromEntries(fmt.formatToParts(new Date(value)).map((p) => [p.type, p.value]));
+  return `${parts.hour ?? '00'}:${parts.minute ?? '00'}:00`;
+}
+
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { userProfile, isAdmin, isCourseLeader } = useAuth();
+  const { userProfile, isAdmin, isOwner, isCourseLeader } = useAuth();
   const [courses, setCourses] = useState<CourseWithCount[]>([]);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [stats, setStats] = useState({
@@ -37,6 +104,9 @@ const Dashboard: React.FC = () => {
     myRegistrations: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [todoItems, setTodoItems] = useState<TodoItem[]>([]);
+  const [todoReady, setTodoReady] = useState(false);
+  const [ledgerWaiting, setLedgerWaiting] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -59,9 +129,7 @@ const Dashboard: React.FC = () => {
         let participantCourseCandidates: Course[] = [];
 
         if (userProfile.role !== 'user') {
-          let coursesQuery = supabase
-            .from('courses')
-            .select('*')
+          let coursesQuery = coursesVisible('*')
             .gte('date', new Date().toISOString().split('T')[0])
             .order('date', { ascending: true })
             .order('time', { ascending: true });
@@ -76,20 +144,22 @@ const Dashboard: React.FC = () => {
           if (!isMounted) return;
 
           const visibleCourses = await withCourseTeachers(
-            (coursesData || []).filter((course) => isCourseUpcoming(course)).slice(0, 5)
+            ((coursesData || []) as Course[])
+              .filter((course) => isCourseUpcoming(course))
+              .slice(0, 5),
           );
-          setCourses(await attachCounts(visibleCourses));
+          setCourses(await attachCounts(visibleCourses as Course[]));
         } else if (isMounted) {
-          const { data: participantCoursesData, error: participantCoursesError } = await supabase
-            .from('courses')
-            .select('*')
+          const { data: participantCoursesData, error: participantCoursesError } = await coursesVisible('*')
             .gte('date', new Date().toISOString().split('T')[0])
             .order('date', { ascending: true })
             .order('time', { ascending: true })
             .limit(30);
 
           if (participantCoursesError) throw participantCoursesError;
-          participantCourseCandidates = await withCourseTeachers(participantCoursesData || []);
+          participantCourseCandidates = await withCourseTeachers(
+            (participantCoursesData || []) as Course[],
+          );
         }
 
         let myRegistrationsFromList = 0;
@@ -102,7 +172,7 @@ const Dashboard: React.FC = () => {
               course:courses(*)
             `)
             .eq('user_id', userProfile.id)
-            .in('status', ['registered', 'waitlist'])
+            .in('status', ['registered', 'waitlist', 'pending_payment'])
             .is('cancellation_timestamp', null);
 
           if (regError) throw regError;
@@ -172,6 +242,204 @@ const Dashboard: React.FC = () => {
           setRegistrations([]);
         }
 
+        if (userProfile.role === 'user') {
+          if (isMounted) {
+            setTodoItems([]);
+            setTodoReady(true);
+          }
+        } else {
+          const todoRole: TodoRole =
+            userProfile.role === 'teacher'
+              ? 'teacher'
+              : userProfile.role === 'admin'
+                ? 'admin'
+                : 'owner';
+          const isManager = todoRole === 'owner' || todoRole === 'admin';
+
+          const returns: TodoReturnRow[] = [];
+          if (isManager || todoRole === 'teacher') {
+            const { data: paidRows, error: paidError } = await supabase
+              .from('registrations')
+              .select(
+                'id, course:courses(id, title, date, time, status, archived_at, teacher_id), user:users!registrations_user_id_fkey(first_name, last_name, archived_at)',
+              )
+              .eq('cancel_reason', 'course_cancelled')
+              .eq('coverage_status', 'paid');
+            if (paidError) throw paidError;
+            const paidList = (paidRows ?? []).filter((row) => {
+              const course = Array.isArray(row.course) ? row.course[0] : row.course;
+              const person = Array.isArray(row.user) ? row.user[0] : row.user;
+              if (!course || isArchivedRow(course) || !isCourseCancelled(course.status)) return false;
+              if (person?.archived_at) return false;
+              if (todoRole === 'teacher' && course.teacher_id !== userProfile.id) return false;
+              return true;
+            });
+            if (paidList.length > 0) {
+              const { data: paymentRows, error: paymentError } = await supabase
+                .from('payments')
+                .select(
+                  'id, registration_id, method, amount_cents, reverses_payment_id, received_at',
+                )
+                .in(
+                  'registration_id',
+                  paidList.map((row) => row.id),
+                );
+              if (paymentError) throw paymentError;
+              const openPayment = latestUnreversedPayment(paymentRows ?? []);
+              for (const row of paidList) {
+                const payment = openPayment.get(row.id);
+                if (!payment || !isOnsiteReturnMethod(payment.method as PaymentMethod)) continue;
+                const course = Array.isArray(row.course) ? row.course[0] : row.course;
+                const person = Array.isArray(row.user) ? row.user[0] : row.user;
+                if (!course) continue;
+                returns.push({
+                  registrationId: row.id,
+                  courseId: course.id,
+                  courseTitle: course.title,
+                  courseDate: course.date,
+                  courseTime: course.time,
+                  teacherId: course.teacher_id ?? null,
+                  courseArchived: Boolean(course.archived_at),
+                  firstName: person?.first_name ?? '',
+                  lastName: person?.last_name ?? '',
+                  method: payment.method as PaymentMethod,
+                  amountCents: payment.amount_cents,
+                });
+              }
+            }
+          }
+
+          const openCourses: TodoOpenCourse[] = [];
+          if (isManager) {
+            const { data: overdue, error: overdueErr } = await supabase.rpc('get_open_coverage');
+            if (overdueErr) throw overdueErr;
+            const { data: upcoming, error: upErr } = await supabase.rpc(
+              'get_upcoming_open_coverage',
+            );
+            if (upErr) throw upErr;
+            type CovRow = {
+              course_id: string;
+              course_title: string;
+              course_starts_at: string;
+            };
+            const openRows = [
+              ...((overdue ?? []) as CovRow[]),
+              ...((upcoming ?? []) as CovRow[]),
+            ];
+            const byCourse = new Map<string, TodoOpenCourse>();
+            for (const row of openRows) {
+              const date = berlinIsoFromInstant(row.course_starts_at);
+              const time = berlinTimeFromInstant(row.course_starts_at);
+              const existing = byCourse.get(row.course_id);
+              if (existing) {
+                existing.openCount += 1;
+              } else {
+                byCourse.set(row.course_id, {
+                  courseId: row.course_id,
+                  title: row.course_title,
+                  date,
+                  time,
+                  teacherId: null,
+                  openCount: 1,
+                  courseArchived: false,
+                });
+              }
+            }
+            openCourses.push(...byCourse.values());
+          } else {
+            const yesterday = berlinIsoDate(-1);
+            const todayBerlin = berlinIsoDate(0);
+            const { data: checkoutCourses, error: checkoutError } = await coursesVisible(
+              'id, title, date, time, teacher_id, status',
+            )
+              .in('date', [yesterday, todayBerlin])
+              .eq('teacher_id', userProfile.id)
+              .order('date', { ascending: true })
+              .order('time', { ascending: true });
+            if (checkoutError) throw checkoutError;
+            const list = (checkoutCourses ?? []) as Array<{
+              id: string;
+              title: string;
+              date: string;
+              time: string;
+              teacher_id: string;
+              status: string | null;
+            }>;
+            const ids = list.filter((c) => !isCourseCancelled(c.status)).map((c) => c.id);
+            const openByCourse = new Map<string, number>();
+            if (ids.length > 0) {
+              const { data: openRows, error: openError } = await supabase
+                .from('registrations')
+                .select('course_id')
+                .in('course_id', ids)
+                .eq('status', 'registered')
+                .eq('coverage_status', 'open');
+              if (openError) throw openError;
+              for (const row of openRows ?? []) {
+                openByCourse.set(row.course_id, (openByCourse.get(row.course_id) ?? 0) + 1);
+              }
+            }
+            for (const course of list) {
+              if (isCourseCancelled(course.status)) continue;
+              const n = openByCourse.get(course.id) ?? 0;
+              if (n <= 0) continue;
+              openCourses.push({
+                courseId: course.id,
+                title: course.title,
+                date: course.date,
+                time: course.time,
+                teacherId: course.teacher_id,
+                openCount: n,
+                courseArchived: false,
+              });
+            }
+          }
+
+          const failedRefunds: TodoFailedRefund[] = [];
+          if (isManager) {
+            const todayBerlin = berlinIsoDate(0);
+            const months = [monthStartIso(todayBerlin, 0), monthStartIso(todayBerlin, 1)];
+            for (const month of months) {
+              try {
+                const page = await fetchStudioPayments({
+                  month,
+                  kind: '',
+                  status: 'refund_failed',
+                  search: '',
+                  page: 1,
+                  includeArchived: false,
+                });
+                for (const row of page.items) {
+                  if (failedRefunds.some((f) => f.paymentId === row.payment_id)) continue;
+                  failedRefunds.push({
+                    paymentId: row.payment_id,
+                    amountCents: row.amount_cents,
+                    firstName: row.first_name ?? '',
+                    lastName: row.last_name ?? '',
+                    courseTitle: row.course_title,
+                    courseDate: row.course_date,
+                    courseArchived: false,
+                    personArchived: false,
+                  });
+                }
+              } catch (err) {
+                console.error(err);
+              }
+            }
+          }
+
+          if (!isMounted) return;
+          setTodoItems(
+            buildTodoItems(
+              { failedRefunds, returns, openCourses },
+              new Date(),
+              todoRole,
+              { teacherId: userProfile.id },
+            ),
+          );
+          setTodoReady(true);
+        }
+
         await fetchStats(myRegistrationsFromList);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -187,13 +455,11 @@ const Dashboard: React.FC = () => {
 
       try {
         const today = new Date().toISOString().split('T')[0];
-        const { data: upcomingCoursesData } = await supabase
-          .from('courses')
-          .select('id, date, time, teacher_id')
+        const { data: upcomingCoursesData } = await coursesVisible('id, date, time, teacher_id, status')
           .gte('date', today);
 
-        const upcomingCourses = (upcomingCoursesData || []).filter((course) =>
-          isCourseUpcoming(course)
+        const upcomingCourses = ((upcomingCoursesData || []) as Course[]).filter(
+          (course) => isCourseUpcoming(course) && !isCourseCancelled(course.status),
         );
         const upcomingCourseIds = upcomingCourses.map((course) => course.id);
 
@@ -208,25 +474,28 @@ const Dashboard: React.FC = () => {
 
         let totalParticipantsCount = 0;
         if (participantCourseIds.length > 0) {
-          const { count } = await supabase
+          const { data: seatRows } = await supabase
             .from('registrations')
-            .select('*', { count: 'exact', head: true })
+            .select('id, user:users!registrations_user_id_fkey(anonymized_at, archived_at)')
             .eq('status', 'registered')
             .is('cancellation_timestamp', null)
             .in('course_id', participantCourseIds);
-          totalParticipantsCount = count || 0;
+          totalParticipantsCount = (seatRows ?? []).filter((row) => {
+            const person = Array.isArray(row.user) ? row.user[0] : row.user;
+            return !person?.anonymized_at && !person?.archived_at;
+          }).length;
         }
 
         let myCoursesCount = 0;
         let myRegistrationsCount = 0;
 
         if (userProfile.role !== 'user') {
-          const { data } = await supabase
-            .from('courses')
-            .select('id, date, time')
+          const { data } = await coursesVisible('id, date, time, status')
             .eq('teacher_id', userProfile.id)
             .gte('date', today);
-          myCoursesCount = (data || []).filter((course) => isCourseUpcoming(course)).length;
+          myCoursesCount = ((data || []) as Course[]).filter(
+            (course) => isCourseUpcoming(course) && !isCourseCancelled(course.status),
+          ).length;
         }
 
         if (userProfile.role === 'user' || userProfile.role === 'teacher') {
@@ -252,8 +521,35 @@ const Dashboard: React.FC = () => {
     };
   }, [userProfile]);
 
+  useEffect(() => {
+    if (!isOwner) {
+      setLedgerWaiting(false);
+      return;
+    }
+    let active = true;
+    void (async () => {
+      try {
+        const settings = await loadTaxSettings();
+        if (!active) return;
+        if (settings.length > 0) {
+          setLedgerWaiting(false);
+          return;
+        }
+        const hasPayment = await studioHasPayment();
+        if (active) setLedgerWaiting(hasPayment);
+      } catch {
+        if (active) setLedgerWaiting(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [isOwner, userProfile?.id]);
+
   const isParticipantOnly = isParticipantOnlyRole(userProfile);
   const isTeacher = isTeacherOnly(userProfile);
+  const showTodoCard = todoReady && !isParticipantOnly;
+  const todoCount = useMemo(() => todoItemCount(todoItems), [todoItems]);
 
 
   const getStatCards = (): StatCard[] => {
@@ -270,20 +566,21 @@ const Dashboard: React.FC = () => {
           path: '/my-registrations'
         },
         {
-          title: 'Teilnehmer',
+          title: 'Anmeldungen',
           value: stats.totalParticipants,
           path: '/participants'
         }
       ];
     }
 
+    // totalParticipants = belegte Plätze in kommenden Kursen (Anmeldungen), nicht Studio-Mitgliederzahl.
     const baseCards: StatCard[] = [
       {
         title: 'Kommende Kurse',
         value: stats.upcomingCourses,
       },
       {
-        title: 'Teilnehmer',
+        title: 'Anmeldungen',
         value: stats.totalParticipants,
         path: '/participants'
       }
@@ -339,6 +636,9 @@ const Dashboard: React.FC = () => {
           const remainingSpots = Math.max(0, maxParticipants - registrationCount);
           const isFull = remainingSpots === 0;
           const isRegistered = Boolean(options?.showRegisteredBadge && isRegistration && item.status === 'registered');
+          const isPaymentPending = Boolean(
+            isRegistration && item.status === 'pending_payment',
+          );
           const isWaitlist = Boolean(
             isRegistration && (item.status === 'waitlist' || item.is_waitlist)
           );
@@ -356,14 +656,24 @@ const Dashboard: React.FC = () => {
             .join(' · ');
 
           let status: React.ReactNode = null;
-          if (isRegistered) {
+          if (isCourseCancelled(course.status)) {
+            status = <span className="text-[13px] font-medium text-text">Abgesagt</span>;
+          } else if (isPaymentPending || (isDevPendingPaymentMock() && isRegistered)) {
+            status = (
+              <PaymentPendingStatus
+                holdExpiresAt={resolveHoldExpiresAt(
+                  isRegistration ? item.hold_expires_at : null,
+                )}
+              />
+            );
+          } else if (isRegistered) {
             status = (
               <span className="inline-flex items-center gap-1 text-[13px] font-medium text-success">
                 <Check className="h-4 w-4" aria-hidden />
                 Angemeldet
               </span>
             );
-          } else if (isWaitlist) {
+          } else if (isRegistration && isWaitlist) {
             const waitlistLabel = item.waitlist_position
               ? `Warteliste Pos. ${item.waitlist_position}`
               : 'Warteliste';
@@ -409,7 +719,9 @@ const Dashboard: React.FC = () => {
 
   const statCards = getStatCards();
   const heroRegistration = isParticipantOnly
-    ? registrations.find((item) => item.status === 'registered')
+    ? registrations.find(
+        (item) => item.status === 'registered' || item.status === 'pending_payment',
+      )
     : undefined;
   const danachAll = isParticipantOnly
     ? registrations.filter((item) => item.id !== heroRegistration?.id)
@@ -436,6 +748,52 @@ const Dashboard: React.FC = () => {
             : 'Willkommen zurück!'}
         </p>
       </div>
+
+      {ledgerWaiting ? <LedgerWaitingNotice variant="dashboard" /> : null}
+
+      {showTodoCard ? (
+        <section
+          className="overflow-hidden rounded-md border border-border bg-surface"
+          data-testid="todo-card"
+        >
+          <div className="flex items-baseline justify-between gap-3 border-b border-border px-3.5 py-3">
+            <h2 className="text-[17px] font-medium text-text">Zu erledigen</h2>
+            {todoItems.length > 0 ? (
+              <span className="tabular-nums text-[15px] text-textMuted">{todoCount}</span>
+            ) : null}
+          </div>
+          {todoItems.length === 0 ? (
+            <p className="px-3.5 py-4 text-[15px] text-textMuted" data-testid="todo-empty">
+              {todoEmptyLabel()}
+            </p>
+          ) : (
+            <div className="divide-y divide-border">
+              {todoItems.map((item) => {
+                const Icon = todoIcon(item.kind);
+                return (
+                  <Link
+                    key={`${item.kind}:${item.href}:${item.title}`}
+                    to={item.href}
+                    data-testid={`todo-${item.kind}`}
+                    className="flex min-h-14 items-center gap-3 px-3.5 py-3 text-text no-underline active:bg-surfaceSunken focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset"
+                  >
+                    <Icon className="h-5 w-5 shrink-0 text-textMuted" aria-hidden />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[17px] font-medium tabular-nums">{item.title}</span>
+                      {item.subtitle ? (
+                        <span className="mt-0.5 block text-[15px] font-normal text-textMuted tabular-nums">
+                          {item.subtitle}
+                        </span>
+                      ) : null}
+                    </span>
+                    <ChevronRight className="h-[18px] w-[18px] shrink-0 text-textSubtle" aria-hidden />
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      ) : null}
 
       {isParticipantOnly && heroCourse && (
         <Link

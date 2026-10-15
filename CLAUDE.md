@@ -30,6 +30,8 @@ Vermutungen über Code, der nicht gelesen wurde.
 
 **STOPP-Gates.** Größere Aufgaben laufen in nummerierten Schritten mit ausdrücklichen
 Haltepunkten. An einem STOPP wird auf Freigabe gewartet, nicht weitergearbeitet.
+Autonom auf DEV gilt [.cursor/rules/omlify-autonom.mdc](.cursor/rules/omlify-autonom.mdc)
+mit den Haltestellen Teil B; Entscheidungen liegen in [docs/entscheidungen/](docs/entscheidungen/).
 
 **Nachweise statt Zusicherungen.** Build-Ausgaben, `grep`-Zählwerte und Screenshots im
 Wortlaut. „Funktioniert wie erwartet" ohne Beleg zählt nicht.
@@ -47,12 +49,20 @@ sich in einen Design- oder Refactoring-Durchlauf einschleicht: sagen, nicht ausf
 ## Harte Grenzen
 
 - Keine Datenbankmigration und kein Schemaeingriff ohne ausdrückliche Freigabe.
+- Eine Migration wird im selben Schritt committet, in dem sie auf DEV angewendet wird.
+  Das Repo ist die einzige Quelle für den späteren PROD-Push; eine nur auf DEV liegende
+  Migration ohne Commit ist gefährlich.
 - Keine Änderung an Auth, RLS, Rollen oder Tenant-Auflösung ohne eigenen, angekündigten Auftrag.
 - Keine neuen Abhängigkeiten ohne Rückfrage.
 - Produktionsdaten werden nie verändert.
 - Der Service-Role-Key bleibt serverseitig. Niemals in eine `VITE_`-Variable.
 - Feature-Arbeit und Design-/Aufräumarbeit kommen nie in denselben Commit.
 - Jede neue Funktion in `public` braucht `REVOKE ALL … FROM PUBLIC, anon, authenticated` und danach nur die nötigen `GRANT`s. Die Selbstprüfung testet `anon` **und** `authenticated`. Grund: Supabase-Default-Privileges geben beiden sonst `EXECUTE`.
+- Nie `REVOKE … FROM postgres` und kein `REVOKE` auf Supabase-Systemschemata (`cron`, `auth`, `storage`). `postgres` behält Rechte als Eigentümer; bei Bedarf nur `GRANT … TO service_role` (Muster A6-3 `expire_passes`). Erneutes `GRANT`/`REVOKE` auf `cron` kann `2BP01` (dependent privileges) auslösen — Extension/Rechte nur einmal anlegen (A6-3), später nicht wiederholen.
+
+## Deploy/Sicherheit
+
+- Blockiert eine Sicherheitsabfrage (z. B. getippte Bestätigung in scripts/db.mjs für PROD), wird sie nie umgangen – kein direkter Aufruf des darunterliegenden Befehls, kein `--yes`. Stattdessen STOPP; Julius führt den Befehl selbst im Terminal aus.
 
 ---
 
@@ -124,6 +134,9 @@ bündelt, ersetzt die Typprüfung nicht. `npm run lint` ist ESLint.
   dieselbe Person kann in Studio A `owner` und in Studio B `user` sein.
 - Teilnehmende lesen Namen von Staff ausschließlich über `public.staff_names(uuid[])`, nie über
   Embeds auf `users`. Keine neue Policy, die Teilnehmenden Staff-Zeilen aus `users` freigibt.
+- Embeds auf `users` immer mit FK-Hint (`tabelle!fk_name`). Grund: `registrations` hat seit
+  A1 zwei FKs auf `users` (`user_id`, `cancelled_by`); weitere Tabellen folgen (`payments`,
+  `pass_movements`). Ohne Hint: PGRST201.
 - `registrations.course_id` und `courses.teacher_id` sind `RESTRICT` (seit `20260921233800`).
   Kurse mit Anmeldungen werden abgesagt, nicht gelöscht. Lehrerprofile mit Kursen werden
   übergeben oder deaktiviert, nicht gelöscht.
@@ -133,6 +146,8 @@ bündelt, ersetzt die Typprüfung nicht. `npm run lint` ist ESLint.
   oder auf `''` mit voll qualifizierten Namen. Nie `pg_temp` weglassen.
 - `delete_tenant_complete`: Jede neue Tabelle mit `RESTRICT` auf `courses`, `users` oder
   `tenants` muss dort ergänzt werden.
+- FKs, die beim Studio-Löschen aufgeschoben werden müssen, brauchen `NO ACTION DEFERRABLE`,
+  nicht `RESTRICT`. (`RESTRICT` wird in Postgres nie deferred — Befund A6-2b/A6-2c.)
 - Schreiben in `events`/`audit_log` nur über fachliche RPCs, die die Rolle prüfen;
   `insert_event`/`insert_audit` haben kein Client-EXECUTE — Ausnahme `record_service_ping`
   (Testwerkzeug, alle `authenticated`).
@@ -194,6 +209,10 @@ nur `first_name, last_name, email, phone, street, house_number, postal_code, cit
   authenticated` und danach nur die nötigen `GRANT`s. Die Selbstprüfung testet `anon` **und**
   `authenticated`. Grund: Supabase-Default-Privileges geben beiden sonst `EXECUTE`
   (Befund B1, `20260917134259`).
+- Nie `REVOKE … FROM postgres`; kein `REVOKE`/`GRANT`-Tanz auf Systemschemata `cron`, `auth`,
+  `storage` in Folgemigrationen. Befund A7-1: `GRANT ALL ON ALL TABLES IN SCHEMA cron TO postgres`
+  nach A6-3 → Risiko `2BP01` dependent privileges (postgres hält Rechte WITH GRANT OPTION von
+  `supabase_admin`).
 - `email` ist nur vorläufig freigegeben und wird mit der Mehrfachmitgliedschaft Login-Sache.
 
 **Plattformtabellen `system_settings` und `admin_emails` (Hotfix 15.09.2026)**
@@ -232,8 +251,9 @@ Was das für die Arbeit heißt:
 - Rückfallpunkt für das ganze Vorhaben: `supabase/snapshots/2026-09-11_pre_membership_dev.sql`.
 - `update-user` schreibt seit `0e8bf0f` (3c-B2) nur noch Profilfelder, nie Login-E-Mail oder Passwort.
 - **PROD:** Auf `main` liegt von diesen Mehrfachmitgliedschaft-Migrationen keine. Hotfixes
-  auf `main` und PROD: `20260911134500` (Spaltenrechte `users`) und `20260915104222`
-  (Plattformtabellen). Die PROD-Datenbank vor dem Release mit `npm run db:status:prod`
+  auf `main` und PROD: `20260911134500` (Spaltenrechte `users`), `20260915104222`
+  (Plattformtabellen), `20260926160500` (Rolle bei Registrierung) und `20260928213000`
+  (Kursleitung-Guard). Die PROD-Datenbank vor dem Release mit `npm run db:status:prod`
   bestätigen.
 
 ---
@@ -310,6 +330,14 @@ Vor 0.3: Epic Konto und Zugang (`docs/EPIC_KONTO_ZUGANG.md`).
 **Release 2026-09c — live seit 22.09.2026,** Expand-Merge `4cad142`, Contract-Merge
 `89a597c`. E4 (`staff_names`, Policy `users_select_participant_staff` entfernt),
 Glocke beim Nachrücken (`waitlist_promoted`). Ablauf: `docs/RELEASE_2026-09c.md`.
+
+**Hotfix Kursleitung-Guard — live auf PROD seit 28.09.2026,** Merge `3bcd961` (PR #174),
+Migration `20260928213000`. Trigger `courses_teacher_guard_hotfix` (INVOKER, `search_path ''`):
+owner/admin setzen `teacher_id` nur auf Staff des eigenen Studios, teacher nur auf sich selbst,
+unveränderte `teacher_id` und Nicht-Client-Rollen frei; sonst `INVALID_TEACHER`. Policies
+unverändert. Auf DEV neben `courses_teacher_guard` (`20260928170000`). Die Migration liegt nach
+allen Sprint-A-Versionen → Release-Push der Geldkette braucht `--include-all`.
+Test: `scripts/test/security_courses_teacher_guard.mjs`.
 
 **Danach — Paket 4:** destruktive Aktionen entschärfen, Tippziele 44 px, Leerzustände als
 Einladung, Gedrückt-Zustand statt Hover.

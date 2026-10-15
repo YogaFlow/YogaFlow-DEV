@@ -1,0 +1,240 @@
+/**
+ * WebhookStore über die service_role-RPCs aus 20260928224500_s1_4_webhook_rpcs.sql
+ * und upsert_provider_account (1.2a). Kein Nutzer-JWT, kein Tenant-Header (I12).
+ *
+ * Fehlertexte der Datenbank werden nie weitergereicht: Sie können Werte der
+ * Zeile enthalten (z. B. „Failing row contains …“ mit Payload).
+ */
+import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
+import type { ProviderAccountState, ProviderId } from "../_shared/payments/port.ts";
+import type {
+  CompletePaymentResult,
+  MarkDisconnectedResult,
+  MarkFailedPaymentResult,
+  MarkRefundFailedResult,
+  PaymentAttemptLookup,
+  PaymentLookup,
+  RecordDisputeResult,
+  RecordEventInput,
+  RecordEventResult,
+  RefundRecordResult,
+  UpsertAccountResult,
+  WebhookStore,
+} from "./handler.ts";
+
+class StoreError extends Error {
+  constructor(operation: string) {
+    super(`DB_ERROR ${operation}`);
+    this.name = "StoreError";
+  }
+}
+
+function isObject(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+export function createSupabaseWebhookStore(client: SupabaseClient): WebhookStore {
+  return {
+    async recordEvent(input: RecordEventInput): Promise<RecordEventResult> {
+      const { data, error } = await client.rpc("record_provider_event", {
+        p_provider: input.provider,
+        p_event_id: input.eventId,
+        p_event_type: input.eventType,
+        p_account_ref: input.accountRef,
+        p_livemode: input.livemode,
+        p_payload: input.payload,
+      });
+      if (error || !isObject(data)) throw new StoreError("record_provider_event");
+      if (data.success !== true) {
+        return { ok: false, code: typeof data.error === "string" ? data.error : "UNKNOWN" };
+      }
+      if (typeof data.id !== "string" || typeof data.duplicate !== "boolean" || typeof data.already_processed !== "boolean") {
+        throw new StoreError("record_provider_event");
+      }
+      return {
+        ok: true,
+        id: data.id,
+        tenantId: typeof data.tenant_id === "string" ? data.tenant_id : null,
+        duplicate: data.duplicate,
+        alreadyProcessed: data.already_processed,
+      };
+    },
+
+    async markProcessed(id: string, errorCode: string | null): Promise<void> {
+      const { error } = await client.rpc("mark_provider_event_processed", { p_id: id, p_error: errorCode });
+      if (error) throw new StoreError("mark_provider_event_processed");
+    },
+
+    async markFailed(id: string): Promise<void> {
+      const { error } = await client.rpc("mark_provider_event_failed", { p_id: id });
+      if (error) throw new StoreError("mark_provider_event_failed");
+    },
+
+    async upsertAccount(
+      tenantId: string,
+      provider: ProviderId,
+      state: ProviderAccountState,
+    ): Promise<UpsertAccountResult> {
+      const { data, error } = await client.rpc("upsert_provider_account", {
+        p_tenant: tenantId,
+        p_provider: provider,
+        p_ref: state.ref,
+        p_status: state.status,
+        p_charges: state.chargesEnabled,
+        p_payouts: state.payoutsEnabled,
+        p_details: state.detailsSubmitted,
+        p_livemode: state.livemode,
+        p_capabilities: { card: state.capabilities.card },
+        p_requirements_pending: state.requirementsPending,
+        p_requirements_due_at: state.requirementsDueAt,
+      });
+      if (error || !isObject(data)) throw new StoreError("upsert_provider_account");
+      if (data.success === true) return { ok: true };
+      return { ok: false, code: typeof data.error === "string" ? data.error : "UNKNOWN" };
+    },
+
+    async markDisconnected(provider: ProviderId, accountRef: string): Promise<MarkDisconnectedResult> {
+      const { data, error } = await client.rpc("mark_provider_account_disconnected", {
+        p_provider: provider,
+        p_ref: accountRef,
+      });
+      if (error || !isObject(data)) throw new StoreError("mark_provider_account_disconnected");
+      if (data.success === true) {
+        return { ok: true, changed: data.changed === true };
+      }
+      return { ok: false, code: typeof data.error === "string" ? data.error : "UNKNOWN" };
+    },
+
+    async findPaymentAttempt(provider, providerRef): Promise<PaymentAttemptLookup> {
+      const { data: attempt, error } = await client
+        .from("payment_attempts")
+        .select("id, tenant_id")
+        .eq("provider", provider)
+        .eq("provider_ref", providerRef)
+        .maybeSingle();
+      if (error) throw new StoreError("find_payment_attempt");
+      if (!isObject(attempt) || typeof attempt.id !== "string" || typeof attempt.tenant_id !== "string") {
+        return { found: false };
+      }
+      const { data: account, error: accErr } = await client
+        .from("provider_accounts")
+        .select("provider_ref")
+        .eq("tenant_id", attempt.tenant_id)
+        .eq("provider", provider)
+        .is("disconnected_at", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (accErr) throw new StoreError("find_studio_account");
+      return {
+        found: true,
+        attemptId: attempt.id,
+        tenantId: attempt.tenant_id,
+        studioAccountRef: typeof account?.provider_ref === "string" ? account.provider_ref : null,
+      };
+    },
+
+    async findPaymentByProviderRef(provider, providerRef): Promise<PaymentLookup> {
+      const { data: payment, error } = await client
+        .from("payments")
+        .select("id, tenant_id")
+        .eq("provider", provider)
+        .eq("provider_ref", providerRef)
+        .is("reverses_payment_id", null)
+        .gt("amount_cents", 0)
+        .order("received_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw new StoreError("find_payment");
+      if (!isObject(payment) || typeof payment.id !== "string" || typeof payment.tenant_id !== "string") {
+        return { found: false };
+      }
+      const { data: account, error: accErr } = await client
+        .from("provider_accounts")
+        .select("provider_ref")
+        .eq("tenant_id", payment.tenant_id)
+        .eq("provider", provider)
+        .is("disconnected_at", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (accErr) throw new StoreError("find_studio_account");
+      return {
+        found: true,
+        paymentId: payment.id,
+        tenantId: payment.tenant_id,
+        studioAccountRef: typeof account?.provider_ref === "string" ? account.provider_ref : null,
+      };
+    },
+
+    async completeOnlinePayment(input): Promise<CompletePaymentResult> {
+      const { data, error } = await client.rpc("complete_online_payment", {
+        p_provider_ref: input.providerRef,
+        p_amount_cents: input.amountCents,
+        p_currency: input.currency,
+        p_received_at: input.receivedAt,
+        p_livemode: input.livemode,
+      });
+      if (error || !isObject(data)) throw new StoreError("complete_online_payment");
+      if (data.success !== true) {
+        return { ok: false, code: typeof data.error === "string" ? data.error : "UNKNOWN" };
+      }
+      return { ok: true, code: typeof data.code === "string" ? data.code : null };
+    },
+
+    async markOnlinePaymentFailed(providerRef, failureCode, status): Promise<MarkFailedPaymentResult> {
+      const { data, error } = await client.rpc("mark_online_payment_failed", {
+        p_provider_ref: providerRef,
+        p_failure_code: failureCode,
+        p_status: status ?? "failed",
+      });
+      if (error || !isObject(data)) throw new StoreError("mark_online_payment_failed");
+      if (data.success !== true) {
+        return { ok: false, code: typeof data.error === "string" ? data.error : "UNKNOWN" };
+      }
+      return { ok: true };
+    },
+
+    async recordOnlineRefund(input): Promise<RefundRecordResult> {
+      const { data, error } = await client.rpc("record_online_refund", {
+        p_payment_id: input.paymentId,
+        p_refund_ref: input.refundRef,
+        p_amount_cents: input.amountCents,
+        p_received_at: input.receivedAt,
+        p_refund_id: input.refundId,
+      });
+      if (error || !isObject(data)) throw new StoreError("record_online_refund");
+      if (data.success !== true) {
+        return { ok: false, code: typeof data.error === "string" ? data.error : "UNKNOWN" };
+      }
+      return { ok: true, code: typeof data.code === "string" ? data.code : null };
+    },
+
+    async markRefundFailed(input): Promise<MarkRefundFailedResult> {
+      const { data, error } = await client.rpc("mark_refund_failed", {
+        p_refund_id: input.refundId,
+        p_refund_ref: input.refundRef,
+        p_failure_code: input.failureCode,
+      });
+      if (error || !isObject(data)) throw new StoreError("mark_refund_failed");
+      if (data.success !== true) {
+        return { ok: false, code: typeof data.error === "string" ? data.error : "UNKNOWN" };
+      }
+      return { ok: true };
+    },
+
+    async recordPaymentDispute(input): Promise<RecordDisputeResult> {
+      const { data, error } = await client.rpc("record_payment_dispute", {
+        p_payment_id: input.paymentId,
+        p_provider_ref: input.providerRef,
+        p_amount_cents: input.amountCents,
+        p_status: input.status,
+      });
+      if (error || !isObject(data)) throw new StoreError("record_payment_dispute");
+      if (data.success !== true) {
+        return { ok: false, code: typeof data.error === "string" ? data.error : "UNKNOWN" };
+      }
+      return { ok: true, code: typeof data.code === "string" ? data.code : null };
+    },
+  };
+}

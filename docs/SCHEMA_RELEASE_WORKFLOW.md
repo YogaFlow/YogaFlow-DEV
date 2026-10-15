@@ -68,6 +68,14 @@ Diese Anleitung beschreibt, wie ihr Schema-Änderungen (neue Tabellen, Spalten, 
 
 ---
 
+## Hotfix-Weg
+
+Ein Hotfix geht nicht aus dem Alltag-Branch `Julius` nach PROD.
+
+1. Branch von `origin/main`, in einem **eigenen Worktree**. `main` im Julius-Checkout nicht auschecken.
+2. Nur den Hotfix übernehmen (Cherry-Pick). Vor dem PROD-Push den **SHA256 der Migrationsdatei auf der Platte** prüfen. Ein frischer Checkout kann LF in CRLF verwandeln; `db push` liest die Datei von der Platte.
+3. PROD-Push nur über `npm run db:push:prod`, und nur wenn Julius die Abfrage im Terminal mit `PROD` bestätigt. Blockiert die Abfrage, wird sie nicht umgangen: kein direkter Aufruf von `supabase db push`, kein `--yes`. Dann STOPP, Julius führt den Befehl selbst aus.
+
 ## Schritt 5: Reihenfolge bei mehreren Migrationen
 
 - Im Ordner `supabase/migrations/` sind die Dateien nach Zeitstempel sortiert. Diese **Reihenfolge** muss eingehalten werden – zuerst die älteste noch nicht auf PROD angewendete Migration, dann die nächste.
@@ -107,3 +115,13 @@ Die Funktion schaltet den Trigger kurz aus, löscht die Zeile in `tenants`, und 
 - [ ] PROD-Backup geprüft / notiert.
 - [ ] **Gleiche** Migration in der richtigen Reihenfolge auf **PROD** angewendet (CLI oder Dashboard).
 - [ ] Live-Seite nach PROD-Migration kurz getestet.
+
+### Regel: zusätzlicher FK und PostgREST-Embeds
+
+Eine Migration, die einen **weiteren FK** auf eine Tabelle anlegt, auf die schon ein FK zeigt,
+macht PostgREST-Embeds ohne Hint mehrdeutig (**PGRST201**). Beispiel A1: `registrations.cancelled_by`
+→ `users` neben dem bestehenden `registrations.user_id` → `users`.
+
+**Vor PROD:** Der Frontend-Fix mit expliziten FK-Hints (`tabelle!fk_name`) muss live sein.
+Hints auf den **bestehenden** FK funktionieren mit altem und neuem Schema — deshalb zuerst
+Frontend, dann Migration.

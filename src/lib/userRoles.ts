@@ -29,6 +29,10 @@ export function canSelfEnrollInCourse(
   );
 }
 
+/** Lehrende dürfen nur sich selbst als Kursleitung setzen (Guard `INVALID_TEACHER`). */
+export const TEACHER_SELF_HINT =
+  'Du bist als Kursleitung eingetragen. Eine andere Kursleitung wählt die Studioleitung.';
+
 /** Nur Lehrer ohne Owner/Admin – eingeschränkte Kursliste. */
 export function isTeacherOnly(user: User | null | undefined): boolean {
   return user?.role === 'teacher';

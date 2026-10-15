@@ -8,6 +8,8 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+test-results
+playwright-report
 dist
 dist-ssr
 *.local
@@ -53,5 +55,5 @@ Claude outputs/
 # Aus docs/legal/*.md erzeugt, nur im Marketing-Build
 /legal/*.html
 
-# Build-ID, wird beim Vite-Build geschrieben
+# Build-ID (Vite-Plugin writeVersionJson)
 /public/version.json

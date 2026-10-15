@@ -18,6 +18,7 @@ import {
 import { useTenant, buildApexHref, withDevTenant } from '../context/TenantContext';
 import { getStudioLogoUrl } from '../lib/studioBranding';
 import JoinStudio from './JoinStudio';
+import StudioPublicLegalLine from '../components/Layout/StudioPublicLegalLine';
 
 type AccessNotice = 'wrong_studio' | 'profile_missing' | 'email_not_confirmed' | null;
 
@@ -44,6 +45,7 @@ const AuthPage: React.FC = () => {
     if (searchParams.get('signed_out') !== '1' && !searchParams.get('next')) return;
     const next = new URLSearchParams(searchParams);
     next.delete('signed_out');
+    // next bleibt für die Weiterleitung nach erfolgreicher Anmeldung.
     setSearchParams(next, { replace: true });
   };
 
@@ -86,6 +88,7 @@ const AuthPage: React.FC = () => {
         }
         return;
       }
+      // await_login: keine Sitzung — Hinweis zeigen, Sperre aus.
       clearingStaleSession.current = false;
     })();
     return () => {
@@ -453,8 +456,11 @@ const AuthPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="text-center mt-8 text-sm text-textMuted">
-          <p>© {new Date().getFullYear()} Omlify · Kursverwaltung für Yogastudios</p>
+        <div className="mt-8">
+          <StudioPublicLegalLine showWiderruf={false} />
+          <p className="mt-3 text-center text-sm text-textMuted">
+            © {new Date().getFullYear()} Omlify · Kursverwaltung für Yogastudios
+          </p>
         </div>
       </div>
     </div>

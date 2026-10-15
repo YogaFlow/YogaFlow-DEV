@@ -1,10 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { MapPin, Users, FileText, Save, ArrowLeft, AlertCircle, User } from 'lucide-react';
+import { MapPin, Users, Save, ArrowLeft, AlertCircle, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+import { visibleMembers } from '../lib/visibleScope';
+import { futureSeriesCourses, pastCourseEditLocks } from '../lib/courseDateTime';
+import { countActivePassProducts } from '../lib/passProducts';
 import { Course } from '../types';
 import { DatePicker, TimePicker } from '../components/DateTimePicker';
+import PassEligibleToggle from '../components/courses/PassEligibleToggle';
+import { FormField, FormTextArea } from '../components/ui/FormField';
+import { isTeacherOnly, TEACHER_SELF_HINT } from '../lib/userRoles';
+import { PRICE_ABOVE_LIMIT_HINT } from '../lib/legalCheckoutTexts';
 
 interface CourseLeader {
   id: string;
@@ -12,6 +19,12 @@ interface CourseLeader {
   last_name: string;
   email: string;
 }
+
+type SeriesSessionRow = {
+  id: string;
+  date: string;
+  time: string;
+};
 
 const EditCourse: React.FC = () => {
   const navigate = useNavigate();
@@ -23,8 +36,11 @@ const EditCourse: React.FC = () => {
   const [course, setCourse] = useState<Course | null>(null);
   const [courseLeaders, setCourseLeaders] = useState<CourseLeader[]>([]);
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>('');
-  const [seriesCount, setSeriesCount] = useState(0);
+  const [seriesSessions, setSeriesSessions] = useState<SeriesSessionRow[]>([]);
   const [updateScope, setUpdateScope] = useState<'single' | 'series'>('single');
+  const [passEligible, setPassEligible] = useState(true);
+  const [showPassEligible, setShowPassEligible] = useState(false);
+  const [onlineEnabled, setOnlineEnabled] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
   const [selectedEndTime, setSelectedEndTime] = useState<Date | null>(null);
@@ -87,8 +103,28 @@ const EditCourse: React.FC = () => {
   }, [courseId]);
 
   useEffect(() => {
+    void supabase.rpc('get_payment_setup_status').then(({ data }) => {
+      setOnlineEnabled(data?.online_payments_enabled === true);
+    });
+  }, []);
+
+  useEffect(() => {
     if (userProfile) fetchCourseLeaders();
   }, [userProfile]);
+
+  useEffect(() => {
+    if (!isAdmin) {
+      setShowPassEligible(false);
+      return;
+    }
+    let cancelled = false;
+    void countActivePassProducts().then((n) => {
+      if (!cancelled) setShowPassEligible(n > 0);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdmin]);
 
   useEffect(() => {
     if (formData.time && formData.duration) {
@@ -132,6 +168,7 @@ const EditCourse: React.FC = () => {
       setSelectedDate(stringToDate(data.date));
       setSelectedTime(stringToTime(data.time));
       setSelectedEndTime(stringToTime(data.end_time || ''));
+      setPassEligible(data.pass_eligible !== false);
       setFormData({
         title: data.title,
         description: data.description,
@@ -145,12 +182,15 @@ const EditCourse: React.FC = () => {
       });
 
       if (data.series_id) {
-        const { count } = await supabase
+        const { data: seriesRows, error: seriesError } = await supabase
           .from('courses')
-          .select('*', { count: 'exact', head: true })
+          .select('id, date, time')
           .eq('series_id', data.series_id);
 
-        setSeriesCount(count || 0);
+        if (seriesError) throw seriesError;
+        setSeriesSessions(seriesRows ?? []);
+      } else {
+        setSeriesSessions([]);
       }
     } catch (err: any) {
       console.error('Error fetching course:', err);
@@ -174,10 +214,9 @@ const EditCourse: React.FC = () => {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('id, first_name, last_name, email')
+      const { data, error } = await visibleMembers('id, first_name, last_name, email')
         .in('role', ['teacher', 'admin', 'owner'])
+        .is('anonymized_at', null)
         .order('last_name', { ascending: true });
 
       if (error) throw error;
@@ -316,7 +355,7 @@ const EditCourse: React.FC = () => {
     }
 
     try {
-      const updateData = {
+      const updateData: Record<string, unknown> = {
         title: formData.title.trim(),
         description: formData.description.trim(),
         date: formData.date,
@@ -330,19 +369,51 @@ const EditCourse: React.FC = () => {
         updated_at: new Date().toISOString()
       };
 
+      if (showPassEligible) {
+        updateData.pass_eligible = passEligible;
+      }
+
+      const pastLocks = pastCourseEditLocks(course, { isManager: isAdmin });
+      if (pastLocks.begun && updateScope === 'single') {
+        delete updateData.date;
+        delete updateData.time;
+        delete updateData.end_time;
+        delete updateData.duration;
+        delete updateData.price;
+        delete updateData.max_participants;
+        delete updateData.pass_eligible;
+        if (pastLocks.teacherLocked) {
+          delete updateData.teacher_id;
+        }
+      }
+
       if (updateScope === 'series' && course.series_id) {
-        const seriesUpdateData = { ...updateData };
+        const upcoming = futureSeriesCourses(seriesSessions);
+        if (upcoming.length === 0) {
+          setError('Diese Serie hat keine kommenden Termine mehr.');
+          setSaving(false);
+          return;
+        }
+
+        const seriesUpdateData: Record<string, unknown> = { ...updateData };
         delete seriesUpdateData.date;
 
-        const { error: updateError } = await supabase
+        const upcomingIds = upcoming.map((row) => row.id);
+        const { data: updatedRows, error: updateError } = await supabase
           .from('courses')
           .update(seriesUpdateData)
-          .eq('series_id', course.series_id);
+          .in('id', upcomingIds)
+          .select('id');
 
         if (updateError) throw updateError;
+        if ((updatedRows?.length ?? 0) !== upcomingIds.length) {
+          throw new Error('Serienupdate hat nicht alle kommenden Termine geschrieben.');
+        }
 
         navigate('/my-courses', {
-          state: { message: `Alle ${seriesCount} Kurse der Serie wurden erfolgreich aktualisiert!` }
+          state: {
+            message: `${upcomingIds.length} kommende Termine der Serie wurden aktualisiert.`,
+          },
         });
       } else {
         const { error: updateError } = await supabase
@@ -365,6 +436,21 @@ const EditCourse: React.FC = () => {
   };
 
   const hasPermission = isCourseLeader;
+  const seriesCount = seriesSessions.length;
+  const futureCount = futureSeriesCourses(seriesSessions).length;
+  const seriesSaveBlocked = updateScope === 'series' && course?.series_id != null && futureCount === 0;
+  const pastLocks = pastCourseEditLocks(course, { isManager: isAdmin });
+  const applyPastLocks = pastLocks.begun && !(updateScope === 'series' && futureCount > 0);
+  const scheduleMoneyLocked = applyPastLocks && pastLocks.scheduleAndMoneyLocked;
+  const teacherFieldLocked = applyPastLocks && pastLocks.teacherLocked;
+  const teacherSelfOnly = isTeacherOnly(userProfile);
+  const leaderOptions = teacherSelfOnly
+    ? courseLeaders.filter((leader) => leader.id === userProfile?.id)
+    : courseLeaders;
+  const pastHint = 'Der Kurs hat schon stattgefunden.';
+  const teacherPastHint = 'Nur ändern, wenn jemand anderes den Kurs gegeben hat.';
+  const dateDisabled =
+    scheduleMoneyLocked || (updateScope === 'series' && course?.series_id != null);
 
   if (!hasPermission) {
     return (
@@ -412,40 +498,37 @@ const EditCourse: React.FC = () => {
 
       <div className="bg-surface rounded-md border border-border">
         <form onSubmit={handleSubmit} className="p-3.5 space-y-6">
-          <div>
-            <label htmlFor="title" className="block text-sm font-medium text-textMuted mb-2">
-              Kurstitel *
-            </label>
-            <div className="relative">
-              <FileText className="absolute left-3 top-3 h-5 w-5 text-textSubtle" />
-              <input
-                id="title"
-                name="title"
-                type="text"
-                value={formData.title}
-                onChange={handleChange}
-                className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
-                placeholder="z.B. Hatha Yoga für Anfänger"
-                required
-              />
-            </div>
-          </div>
+          <FormField
+            id="title"
+            name="title"
+            label="Kurstitel *"
+            type="text"
+            value={formData.title}
+            onChange={handleChange}
+            placeholder="z.B. Hatha Yoga für Anfänger"
+            error={
+              error.includes('Kurstitel')
+                ? error
+                : null
+            }
+            required
+          />
 
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium text-textMuted mb-2">
-              Beschreibung *
-            </label>
-            <textarea
-              id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              rows={4}
-              className="w-full px-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
-              placeholder="Beschreibe den Kurs, Zielgruppe, Schwierigkeitsgrad..."
-              required
-            />
-          </div>
+          <FormTextArea
+            id="description"
+            name="description"
+            label="Beschreibung *"
+            value={formData.description}
+            onChange={handleChange}
+            rows={4}
+            placeholder="Beschreibe den Kurs, Zielgruppe, Schwierigkeitsgrad..."
+            error={
+              error.includes('Beschreibung')
+                ? error
+                : null
+            }
+            required
+          />
 
           <div>
             <label htmlFor="teacher_id" className="block text-sm font-medium text-textMuted mb-2">
@@ -457,17 +540,26 @@ const EditCourse: React.FC = () => {
                 id="teacher_id"
                 value={selectedTeacherId}
                 onChange={(e) => setSelectedTeacherId(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent appearance-none bg-surface"
+                disabled={teacherFieldLocked || teacherSelfOnly}
+                className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent appearance-none bg-surface disabled:cursor-not-allowed disabled:bg-surfaceSunken disabled:opacity-60"
                 required
               >
                 <option value="">Bitte wähle einen Kursleiter</option>
-                {courseLeaders.map((leader) => (
+                {leaderOptions.map((leader) => (
                   <option key={leader.id} value={leader.id}>
                     {leader.first_name} {leader.last_name} ({leader.email})
                   </option>
                 ))}
               </select>
             </div>
+            {applyPastLocks && isAdmin ? (
+              <p className="mt-1 text-xs text-textMuted">{teacherPastHint}</p>
+            ) : null}
+            {teacherFieldLocked ? (
+              <p className="mt-1 text-xs text-textMuted">{pastHint}</p>
+            ) : teacherSelfOnly ? (
+              <p className="mt-1 text-xs text-textMuted">{TEACHER_SELF_HINT}</p>
+            ) : null}
             {courseLeaders.length === 0 && (
               <p className="mt-2 text-sm text-text">
                 Keine Kursleiter gefunden. Bitte in der Nutzerverwaltung mindestens einen Nutzer als Kursleiter anlegen.
@@ -512,10 +604,18 @@ const EditCourse: React.FC = () => {
                     className="w-4 h-4 text-brand border-border focus:ring-brand"
                   />
                   <span className="ml-3 text-sm font-medium text-text">
-                    Alle {seriesCount} Termine der Serie ändern
+                    Serie ändern ({futureCount} kommende Termine)
                   </span>
                 </label>
               </div>
+
+              {updateScope === 'series' ? (
+                <p className="mt-3 text-sm text-text">
+                  {futureCount === 0
+                    ? 'Diese Serie hat keine kommenden Termine mehr.'
+                    : `Die Änderung gilt für die ${futureCount} kommenden Termine dieser Serie. Vergangene Termine bleiben, wie sie waren.`}
+                </p>
+              ) : null}
             </div>
           )}
 
@@ -527,15 +627,18 @@ const EditCourse: React.FC = () => {
               id="date"
               selected={selectedDate}
               onChange={handleDateChange}
-              disabled={updateScope === 'series' && course?.series_id !== null}
+              disabled={dateDisabled}
               required
               placeholder="Datum wählen"
             />
-            {updateScope === 'series' && course?.series_id && (
+            {scheduleMoneyLocked ? (
+              <p className="mt-1 text-xs text-textMuted">{pastHint}</p>
+            ) : null}
+            {!scheduleMoneyLocked && updateScope === 'series' && course?.series_id ? (
               <p className="mt-1 text-xs text-text">
                 Bei Serienänderungen bleiben die individuellen Daten aller Termine erhalten.
               </p>
-            )}
+            ) : null}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -547,9 +650,13 @@ const EditCourse: React.FC = () => {
                 id="time"
                 selected={selectedTime}
                 onChange={handleTimeChange}
+                disabled={scheduleMoneyLocked}
                 required
                 placeholder="Zeit wählen"
               />
+              {scheduleMoneyLocked ? (
+                <p className="mt-1 text-xs text-textMuted">{pastHint}</p>
+              ) : null}
             </div>
 
             <div>
@@ -564,7 +671,8 @@ const EditCourse: React.FC = () => {
                 step="15"
                 value={formData.duration}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
+                disabled={scheduleMoneyLocked}
+                className="w-full px-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent disabled:cursor-not-allowed disabled:bg-surfaceSunken disabled:opacity-60"
                 placeholder="z.B. 60"
               />
             </div>
@@ -577,6 +685,7 @@ const EditCourse: React.FC = () => {
                 id="end_time"
                 selected={selectedEndTime}
                 onChange={handleEndTimeChange}
+                disabled={scheduleMoneyLocked}
                 placeholder="Zeit wählen"
               />
             </div>
@@ -616,11 +725,15 @@ const EditCourse: React.FC = () => {
                   max="50"
                   value={formData.max_participants}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
+                  disabled={scheduleMoneyLocked}
+                  className="w-full pl-10 pr-4 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent disabled:cursor-not-allowed disabled:bg-surfaceSunken disabled:opacity-60"
                   placeholder="z.B. 12"
                   required
                 />
               </div>
+              {scheduleMoneyLocked ? (
+                <p className="mt-1 text-xs text-textMuted">{pastHint}</p>
+              ) : null}
             </div>
 
             <div>
@@ -636,20 +749,36 @@ const EditCourse: React.FC = () => {
                   step="0.01"
                   value={formData.price}
                   onChange={handleChange}
-                  className="w-full pl-4 pr-10 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent"
+                  disabled={scheduleMoneyLocked}
+                  className="w-full pl-4 pr-10 py-3 border border-border rounded-sm focus:ring-2 focus:ring-brand focus:border-transparent disabled:cursor-not-allowed disabled:bg-surfaceSunken disabled:opacity-60"
                   placeholder="z.B. 25.00"
                   required
                 />
                 <span className="absolute right-3 top-3 text-textSubtle font-semibold">€</span>
               </div>
+              {scheduleMoneyLocked ? (
+                <p className="mt-1 text-xs text-textMuted">{pastHint}</p>
+              ) : null}
+              {onlineEnabled && Number.parseFloat(formData.price) > 250 ? (
+                <p className="mt-2 text-sm text-textMuted">{PRICE_ABOVE_LIMIT_HINT}</p>
+              ) : null}
             </div>
           </div>
 
-          {error && (
+          {showPassEligible ? (
+            <PassEligibleToggle
+              checked={passEligible}
+              onChange={setPassEligible}
+              disabled={scheduleMoneyLocked}
+              hint={scheduleMoneyLocked ? pastHint : undefined}
+            />
+          ) : null}
+
+          {error && !error.includes('Kurstitel') && !error.includes('Beschreibung') ? (
             <div className="p-3 bg-dangerSoft border border-danger rounded-sm">
               <p className="text-sm text-danger">{error}</p>
             </div>
-          )}
+          ) : null}
 
           <div className="flex items-center justify-end space-x-4 pt-6 border-t border-border">
             <button
@@ -661,7 +790,7 @@ const EditCourse: React.FC = () => {
             </button>
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || seriesSaveBlocked}
               className="flex items-center px-6 py-2 bg-brand text-onBrand rounded-sm hover:bg-brandPressed focus:ring-4 focus:ring-brandSoft transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save className="w-4 h-4 mr-2" />

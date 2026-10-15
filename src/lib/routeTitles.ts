@@ -6,11 +6,21 @@ const TITLES: Record<string, string | undefined> = {
   '/courses': 'Kurse',
   '/my-courses': 'Kurse verwalten',
   '/my-registrations': 'Meine Anmeldungen',
+  '/my-passes': 'Kurskarten',
+  '/widerruf': 'Widerruf',
   '/participants': 'Teilnehmer',
+  '/open-payments': 'Zahlungen',
+  '/payments': 'Zahlungen',
   '/messages': 'Nachrichten',
+  '/updates': 'Neu für dich',
   '/profile': 'Profil',
   '/users': 'Nutzerverwaltung',
   '/settings': 'Einstellungen',
+  '/settings/studio': 'Studio',
+  '/settings/buchungen': 'Buchungen',
+  '/settings/zahlungen': 'Zahlungen',
+  '/settings/karten': 'Kurskarten',
+  '/settings/team': 'Team',
   '/create-course': 'Neuer Kurs',
 };
 
@@ -36,7 +46,13 @@ function courseSegmentTitle(pathname: string): string {
   const participantsSuffix = '/participants';
   if (rest.endsWith(participantsSuffix)) {
     const id = rest.slice(0, rest.length - participantsSuffix.length);
-    return id.length > 0 && !id.includes('/') ? 'Teilnehmer' : '';
+    return id.length > 0 && !id.includes('/') ? 'Teilnehmerliste' : '';
+  }
+
+  const checkoutSuffix = '/kassieren';
+  if (rest.endsWith(checkoutSuffix)) {
+    const id = rest.slice(0, rest.length - checkoutSuffix.length);
+    return id.length > 0 && !id.includes('/') ? 'Teilnehmerliste' : '';
   }
 
   if (rest.length > 0 && !rest.includes('/')) {

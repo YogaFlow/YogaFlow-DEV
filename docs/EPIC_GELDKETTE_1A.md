@@ -1,6 +1,6 @@
 # Scrum Epic: Geldkette 1a — Kurs online buchen und bezahlen
 
-**Stand:** 22.09.2026 · Story 0.2 live auf PROD seit 22.09.2026 (Release 2026-09b, Merge `da19a0d`). **Status: ENTWURF.** E1–E8 am 14.09. entschieden (Abschnitt 4). Offen: E9 (Strategie-Projekt), E10–E12 (Termin mit André am 15.09.).
+**Stand:** 26.09.2026 · Story 0.2 live auf PROD seit 22.09.2026 (Release 2026-09b, Merge `da19a0d`). Story 0.3 live auf PROD seit 26.09.2026 (Release 2026-09d, Merge `3d41292`). Sprint 0 abgeschlossen. Offene PROD-Migrationen: 0. **Status: ENTWURF.** E1–E8 am 14.09. entschieden (Abschnitt 4). Offen: E9 (Strategie-Projekt), E10–E12 (Termin mit André am 15.09.).
 **Branch:** `Julius`. `feature/geldkette` ist nicht der Arbeitsbranch (korrigiert 22.09.2026; die Entscheidung vom 14.09. galt bis zum Release-Schnitt). Story 0.1 braucht keinen Code. · **Basis:** `Omlify_Epic_Geldkette_1a_Cursor_Briefing.md` (14.09.2026), gegen das Repo geprüft
 **Verbindlich daneben:** `CLAUDE.md` (Harte Grenzen), `docs/DESIGNSYSTEM.md`, `docs/SCHEMA_RELEASE_WORKFLOW.md`, `docs/DEV_PROD_SAFETY_WORKFLOW.md`
 
@@ -138,7 +138,7 @@ Jede Story endet mit einem **STOPP**. Weiter geht es erst nach Freigabe, danach 
 laufen nur über `scripts/db.mjs`, jede mit Zweck, Rückweg und selbstprüfendem `DO $$`-Block. Feature-Commits
 und Design-Commits bleiben getrennt.
 
-### Sprint 0 — Voraussetzungen (noch keine Stripe-Zeile im Code)
+### Sprint 0 — Voraussetzungen (abgeschlossen 26.09.2026, noch keine Stripe-Zeile im Code)
 
 #### 0.1 Stripe-Konto und DEV-Testumgebung einrichten
 *Als Gründer möchte ich eine Stripe-Testumgebung, die von Live strikt getrennt ist, damit wir auf DEV
@@ -249,7 +249,9 @@ Zahlungen nicht aus React-Komponenten heraus entstehen.*
 fehl (curl-Ausgabe). Deno-Test für den Log-Maskierer.
 **Schema-Eingriff → Freigabe. STOPP.**
 
-**Erledigt auf DEV, 25.09.2026** (Branch `Julius`, noch nicht auf `main`/PROD):
+**Erledigt auf DEV, 25.09.2026** (Branch `Julius`).
+
+**Live auf PROD seit 26.09.2026 (Release 2026-09d, Merge `3d41292`). Offene PROD-Migrationen: 0. Sprint 0 damit abgeschlossen.**
 
 | Teil | Inhalt | Commits |
 |---|---|---|

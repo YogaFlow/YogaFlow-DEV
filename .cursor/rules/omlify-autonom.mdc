@@ -1,0 +1,92 @@
+---
+description: Omlify – autonomer DEV-Ablauf, Haltestellen, DoD, Testregeln
+alwaysApply: true
+---
+
+# Omlify autonom (DEV)
+
+Zu Beginn jedes neuen Chats zuerst `docs/STAND.md` und den letzten Bericht lesen.
+
+## Erlaubt ohne Rückfrage
+
+- `npm run dev:*`, `npm run check:*`, `npm run test:*`
+- `node scripts/test/*`, `node scripts/dev/*` (nur DEV)
+- `git status` / `diff` / `log` / `add` / `commit`
+- `git push origin Julius`
+
+## Verboten
+
+- Alles mit PROD-Referenz (`db:push:prod`, `secrets:prod`, `functions:prod`, PROD-Project-Ref)
+- `wrangler deploy`, `npm run deploy:*` außer DEV-Hilfsskripten
+- `git push` auf andere Branches, Merge nach `main`
+- Löschen von DEV-Daten außerhalb von Testskripten
+- Direkte SQL-Schreibzugriffe außer gekennzeichnete Negativtests
+- Secrets-Werte ändern außer über `npm run dev:secrets`
+
+## Nie committen
+
+- `.cursor/settings.json`
+- `docs/screenshots/`
+- `.env`, `supabase/.env.dev`
+
+## Haltestellen (Teil B — nur hier anhalten)
+
+1. Fachliche Entscheidung fehlt oder Code/Vorgabe widersprechen sich.
+2. Test/Rauchtest bleibt nach 3 eigenen Reparaturversuchen rot (Ursache + Versuche berichten).
+3. Etwas würde PROD, echte Zahlungen oder das Stripe-Dashboard betreffen.
+4. Migration müsste bereits angewendete Nicht-Test-Daten auf DEV verändern/löschen.
+5. Oberfläche fertig → Klicktest durch Julius fällig. Vorher der Deploy-Nachweis unten.
+
+### Vor Haltestelle 5 — DEV-Frontend live
+
+Für den **letzten gepushten** Commit auf `Julius`, bevor der Bericht auf „angehalten“ geht:
+
+1. Der GitHub-Check-Run **„Workers Builds: omlify-dev“** ist `success`.
+2. Das Live-Bundle enthält ein Merkmal der Änderung: ein String aus dem Diff, der im gebauten JS stehen bleibt (sichtbarer Text, kein minifizierter Funktionsname). Studio-Subdomain `https://demoalpha.omlify-dev.de/assets/index-*.js`. Der Apex `omlify-dev.de` liegt hinter Cloudflare Access und ist nicht das Bundle.
+
+Beides im Bericht belegen (Commit, Ergebnis des Check-Runs, Merkmal und Fundstelle).
+
+Fehlt der Build (Check-Suite `queued` ohne diesen Check-Run, oder der Lauf ist nicht `success`): **leerer Commit** auf `Julius` und `git push origin Julius`. Niemals `npm run deploy:dev` oder `wrangler deploy`. Dieselbe Prüfung wiederholen. Erst dann Haltestelle 5.
+
+An einer Haltestelle: Bericht nach `docs/berichte/<story>.md`, Status „angehalten“, warten.
+
+## Definition of Done (je Story)
+
+- `npm run check:ci` grün (vor jedem Push; Schritte wie `.github/workflows/ci.yml`)
+- `npm run dev:check` grün
+- `npm run dev:apply` grün (wenn Migrationen)
+- Ersetzte SQL-Funktionen per Diff gegen `pg_get_functiondef` auf DEV geprüft (nur geplante Änderungen)
+- `npm run dev:test` grün
+- Rauchtest der Story grün
+- Bericht in `docs/berichte/<story>.md`
+- `docs/STAND.md` aktualisieren (HEAD, Migrationen, Functions, letzte/nächste Story, Haltestellen)
+
+## Testregeln
+
+- Helfer aus `scripts/test/_helpers.mjs`
+- Nur Zeilen des eigenen Test-Studios prüfen, nie globale Zählwerte
+- Plattform-Schalter und Studio-Einstellungen sichern und im `finally` wiederherstellen
+- Läufe in `demoalpha` mit Lauf-ID in E-Mails/Titeln; Aufräumen nur über RPCs; Fehler beim Aufräumen nur warnen
+- **E2E mit append-only-Schreiben** (AVV-Zustimmung, Belege): eigenes Studio (Slug `e2eapp`), nie `demoalpha`/`demobeta` — die bleiben für Julius' Klicktests. Studio über Testskript anlegen/nutzen.
+- **Testdaten nur über RPCs/Testskripte:** Zahlungs-, Erstattungs-, Beleg- und Hauptbuchzeilen nie direkt INSERT/UPDATE/DELETE. Online-Zahlungen nur über den echten Testweg (Stripe-Testmodus, PaymentIntent am verbundenen Konto, 4242 / `pm_card_visa`). Erstattungen nur über `request_refund` / Kursabsage / Jobs — kein erfundenes `pi_…`/`re_…`.
+- Steuerstatus nur setzen, wenn er fehlt
+- Fremde Claims (`claim_*`) sofort zurückgeben
+- Zeiten mit `warteBis`, nie feste Wartezeiten
+
+## Sicherheit
+
+- Keine Secrets, `acct_…`, `client_secret`, E-Mails in Logs/Berichten
+- Stripe nur über den Port (`check:provider-boundary`)
+- Signaturänderung von SQL-Funktionen nur mit `DROP FUNCTION` der alten Version
+- **Studio-Rechtstexte-Vorlagen** (`docs/legal/studio/*.vN.md`): unveränderlich, sobald eine Version irgendwo freigegeben wurde. Änderungen nur als neue Datei (`agb.v2.md` …). CI prüft Hashes (`scripts/check_studio_legal_template_hashes.mjs`). Neue Vorlage sperrt Online nicht (L3) — nur Banner „Neue Vorlage verfügbar“.
+
+## Entscheidungen
+
+- Quelle: `docs/entscheidungen/` und Nachtrag `docs/EPIC_GELDKETTE_1A_NACHTRAG_2026-09-21.md`
+- Widerspricht der Code einer Entscheidung → Haltestelle, nicht still umgehen
+
+## Commits
+
+- Je Schicht: Migration+Test · Functions · Oberfläche-Logik · Oberfläche-Gestaltung · Doku
+- Betreff wie bisher (`feat(geldkette): …`, `chore(dev): …`)
+- Nach jedem grünen Abschnitt committen und nach `Julius` pushen

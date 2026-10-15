@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Course, Registration, User } from '../types';
+import { isArchivedRow, visibleCourses } from '../lib/visibleScope';
+import { Course, CoverageStatus, PaymentMethod, Registration, User } from '../types';
 import { isCourseManagerRole, isStudioAdmin, isTeacherOnly } from '../lib/userRoles';
 import { Users, Mail, Phone, Search, Filter, Download, UserMinus } from 'lucide-react';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
@@ -12,9 +13,31 @@ import {
   formatTimeRange,
 } from '../lib/format';
 import ConfirmDialog, { ConfirmDialogState } from '../components/ui/ConfirmDialog';
-import { isCourseUpcoming } from '../lib/courseDateTime';
+import { isCourseCancelled, isCourseVisibleThroughBerlinToday, toCourseStart } from '../lib/courseDateTime';
 import { formatUserAddress } from '../lib/userAddress';
 import { groupParticipantsByCourse } from '../lib/participantGrouping';
+import {
+  labelRegistrationStatus,
+  labelRegistrationStatusShort,
+} from '../lib/registrationStatus';
+import { coverageLabel, latestUnreversedPayment } from '../lib/courseCheckout';
+import { coverageLabelTone } from '../lib/coverageLabel';
+import { staffUnregisterRefundLine } from '../lib/refundTexts';
+import { fetchRegistrationRefundStates } from '../lib/refunds';
+import {
+  isDevPendingPaymentMock,
+  resolveHoldExpiresAt,
+} from '../lib/devPendingPaymentMock';
+import { paymentPendingDeadlinePhrase } from '../lib/pendingPaymentLabel';
+import PaymentPendingStatus from '../components/ui/PaymentPendingStatus';
+import AccentPill from '../components/ui/AccentPill';
+import { staffUnregisteredToastLine } from '../lib/toastTexts';
+
+function shownMemberEmail(user: { email?: string | null; anonymized_at?: string | null } | null | undefined): string {
+  if (!user || user.anonymized_at) return '';
+  if (user.email && /^entfernt-.+@anonymisiert\.invalid$/i.test(user.email)) return '';
+  return user.email ?? '';
+}
 
 interface ParticipantWithDetails extends Registration {
   user: User;
@@ -28,10 +51,23 @@ const courseGroupHeading = (course: Course, count: number) => {
       <div className="text-[15px] font-medium text-text">{course.title}</div>
       <div className="text-[13px] text-textMuted tabular-nums">
         {formatDate(course.date)} · {formatTimeRange(course.time, course.end_time)} · {countLabel}
+        {isCourseCancelled(course.status) ? ' · Abgesagt' : ''}
       </div>
     </>
   );
 };
+
+const CourseGroupTitle = ({ course, count }: { course: Course; count: number }) => (
+  <div className="flex flex-wrap items-start gap-3">
+    <div className="min-w-0">{courseGroupHeading(course, count)}</div>
+    <Link
+      to={`/course/${course.id}/participants`}
+      className="inline-flex h-11 shrink-0 items-center rounded-full border border-border px-4 text-[15px] font-medium text-brand no-underline active:bg-surfaceSunken"
+    >
+      {isCourseCancelled(course.status) ? 'Rückgaben' : 'Teilnehmerliste'}
+    </Link>
+  </div>
+);
 
 const Participants: React.FC = () => {
   const { courseId } = useParams<{ courseId?: string }>();
@@ -46,6 +82,7 @@ const Participants: React.FC = () => {
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
   const [pendingUnregister, setPendingUnregister] = useState<ParticipantWithDetails | null>(null);
   const [unregisteringId, setUnregisteringId] = useState<string | null>(null);
+  const [paymentMethodByReg, setPaymentMethodByReg] = useState<Record<string, PaymentMethod>>({});
 
   useEffect(() => {
     if (courseId) {
@@ -60,14 +97,12 @@ const Participants: React.FC = () => {
       if (!userProfile) return;
 
       try {
-        const { data: coursesData, error: coursesError } = await supabase
-          .from('courses')
-          .select('*')
+        const { data: coursesData, error: coursesError } = await visibleCourses('*')
           .order('date', { ascending: true });
 
         if (coursesError) throw coursesError;
-        const upcomingCourses = (coursesData || []).filter((course) => {
-          if (!isCourseUpcoming(course)) return false;
+        const upcomingCourses = ((coursesData || []) as Course[]).filter((course) => {
+          if (!isCourseVisibleThroughBerlinToday(course)) return false;
           if (isTeacherOnly(userProfile)) {
             return course.teacher_id === userProfile.id;
           }
@@ -91,13 +126,39 @@ const Participants: React.FC = () => {
         if (registrationsError) throw registrationsError;
         if (isMounted) {
           const upcomingParticipants = (registrationsData || []).filter(
-            (registration: any) =>
-              registration.course &&
-              isCourseUpcoming(registration.course) &&
-              registration.cancellation_timestamp == null &&
-              (!isTeacherOnly(userProfile) || registration.course.teacher_id === userProfile.id)
+            (registration: any) => {
+              if (!registration.course || isArchivedRow(registration.course)) return false;
+              if (isArchivedRow(registration.user)) return false;
+              if (!isCourseVisibleThroughBerlinToday(registration.course)) return false;
+              if (isTeacherOnly(userProfile) && registration.course.teacher_id !== userProfile.id) {
+                return false;
+              }
+              if (registration.cancel_reason === 'course_cancelled') return true;
+              return registration.cancellation_timestamp == null;
+            }
           );
           setParticipants(upcomingParticipants);
+
+          if (isStudioAdmin(userProfile)) {
+            const paidIds = upcomingParticipants
+              .filter((p: ParticipantWithDetails) => p.coverage_status === 'paid')
+              .map((p: ParticipantWithDetails) => p.id);
+            if (paidIds.length > 0) {
+              const { data: payments } = await supabase
+                .from('payments')
+                .select('id, registration_id, method, amount_cents, reverses_payment_id, received_at')
+                .in('registration_id', paidIds);
+              const methods: Record<string, PaymentMethod> = {};
+              for (const [regId, payment] of latestUnreversedPayment(payments ?? [])) {
+                methods[regId] = payment.method;
+              }
+              if (isMounted) setPaymentMethodByReg(methods);
+            } else {
+              setPaymentMethodByReg({});
+            }
+          } else {
+            setPaymentMethodByReg({});
+          }
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -116,10 +177,12 @@ const Participants: React.FC = () => {
   }, [userProfile]);
 
   const isActiveRegistration = (participant: ParticipantWithDetails) =>
-    participant.status === 'registered' && !participant.is_waitlist;
+    (participant.status === 'registered' || participant.status === 'pending_payment') &&
+    !participant.is_waitlist;
 
   const canUnregisterParticipant = (participant: ParticipantWithDetails): boolean => {
     if (!userProfile) return false;
+    if (participant.cancel_reason === 'course_cancelled') return false;
     if (isStudioAdmin(userProfile)) return true;
     if (isTeacherOnly(userProfile)) {
       return (
@@ -130,13 +193,23 @@ const Participants: React.FC = () => {
     return false;
   };
 
-  const requestUnregister = (participant: ParticipantWithDetails) => {
+  const requestUnregister = async (participant: ParticipantWithDetails) => {
     const name = `${participant.user.first_name} ${participant.user.last_name}`.trim();
     const courseTitle = participant.course.title;
+    const passNote =
+      participant.coverage_status === 'pass'
+        ? ' Die Einheit geht zurück auf die Kurskarte.'
+        : '';
+    let onlineNote = '';
+    if (isStudioAdmin(userProfile) && participant.coverage_status === 'paid') {
+      const states = await fetchRegistrationRefundStates([participant.id]);
+      const line = staffUnregisterRefundLine(states[participant.id]?.refundable_cents ?? 0);
+      if (line) onlineNote = ` ${line}`;
+    }
     setPendingUnregister(participant);
     setConfirmDialog({
       title: 'Teilnehmer abmelden',
-      message: `Möchtest du ${name || 'diesen Teilnehmer'} wirklich vom Kurs „${courseTitle}" abmelden?`,
+      message: `Möchtest du ${name || 'diesen Teilnehmer'} wirklich vom Kurs „${courseTitle}" abmelden?${passNote}${onlineNote}`,
       confirmLabel: 'Abmelden',
       cancelLabel: 'Abbrechen',
       variant: 'danger',
@@ -185,9 +258,13 @@ const Participants: React.FC = () => {
       }
 
       setParticipants(prev => prev.filter(p => p.id !== participant.id));
+      const unregLine = staffUnregisteredToastLine(
+        participant.user?.first_name,
+        participant.user?.last_name,
+      );
       setFeedbackDialog({
-        title: 'Abgemeldet',
-        message: result.message || 'Teilnehmer wurde erfolgreich abgemeldet.',
+        title: unregLine,
+        message: unregLine,
         type: 'success',
       });
     } catch (error) {
@@ -208,22 +285,92 @@ const Participants: React.FC = () => {
     }
   };
 
+  const paymentAudience = isStudioAdmin(userProfile) ? 'manager' : 'teacher';
+
+  const paymentText = (participant: ParticipantWithDetails, forCsv = false) => {
+    if (participant.cancel_reason === 'course_cancelled') return '—';
+    if (participant.status === 'pending_payment') {
+      const phrase = paymentPendingDeadlinePhrase(
+        resolveHoldExpiresAt(participant.hold_expires_at),
+      );
+      return phrase || 'Zahlung läuft';
+    }
+    return coverageLabel(
+      {
+        status: participant.status,
+        is_waitlist: participant.is_waitlist,
+        coverage_status: participant.coverage_status as CoverageStatus | undefined,
+        coverage_waived_reason: participant.coverage_waived_reason,
+        method: paymentMethodByReg[participant.id] ?? null,
+      },
+      {
+        audience: forCsv ? 'csv' : paymentAudience,
+        courseStartsAt: forCsv ? null : toCourseStart(participant.course),
+      },
+    );
+  };
+
+  const paymentToneClass = (participant: ParticipantWithDetails) => {
+    const tone = coverageLabelTone(
+      {
+        status: participant.status,
+        is_waitlist: participant.is_waitlist,
+        coverage_status: participant.coverage_status as CoverageStatus | undefined,
+      },
+      { courseStartsAt: toCourseStart(participant.course) },
+    );
+    if (tone === 'warn') return 'text-accentText';
+    if (tone === 'muted') return 'text-textSubtle';
+    return 'text-textMuted';
+  };
+
+  const statusBadge = (
+    participant: ParticipantWithDetails,
+    options?: { forcePending?: boolean },
+  ) => {
+    if (participant.cancel_reason === 'course_cancelled') {
+      return <span className="flex-shrink-0 text-[13px] font-medium text-text">abgesagt</span>;
+    }
+    if (
+      participant.status === 'pending_payment' ||
+      (options?.forcePending &&
+        participant.status === 'registered' &&
+        !participant.is_waitlist)
+    ) {
+      return (
+        <PaymentPendingStatus
+          holdExpiresAt={resolveHoldExpiresAt(participant.hold_expires_at)}
+          compact
+        />
+      );
+    }
+    if (participant.status === 'waitlist' || participant.is_waitlist) {
+      return (
+        <AccentPill>
+          {labelRegistrationStatusShort(participant.status, participant.waitlist_position)}
+        </AccentPill>
+      );
+    }
+    return (
+      <span className="flex-shrink-0 inline-flex rounded-full bg-sage-100 px-2 py-1 text-xs font-medium text-sage-800">
+        {labelRegistrationStatusShort(participant.status, participant.waitlist_position)}
+      </span>
+    );
+  };
+
   const exportParticipants = () => {
     const escapeCell = (value: string) => `"${value.replace(/"/g, '""')}"`;
 
     const rows = [
-      ['Kurs', 'Datum', 'Teilnehmer', 'E-Mail', 'Telefon', 'Status', 'Anmeldedatum'],
+      ['Kurs', 'Datum', 'Teilnehmer', 'E-Mail', 'Telefon', 'Status', 'Bezahlung', 'Anmeldedatum'],
       ...filteredParticipants.map(p => [
         p.course?.title || '',
         p.course?.date ? formatDate(p.course.date) : '',
         `${p.user?.first_name || ''} ${p.user?.last_name || ''}`.trim(),
-        p.user?.email || '',
+        shownMemberEmail(p.user),
         p.user?.phone || '',
-        p.status === 'registered'
-          ? 'Angemeldet'
-          : p.waitlist_position
-            ? `Warteliste (Pos. ${p.waitlist_position})`
-            : 'Warteliste',
+        labelRegistrationStatus(p.status, p.waitlist_position),
+        paymentText(p, true),
         formatDateTime(p.registered_at)
       ])
     ];
@@ -244,6 +391,17 @@ const Participants: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  // DEV-Mock vor dem Filter: sonst fällt die Zeile bei Status „Zahlung ausstehend“ weg.
+  const mockPendingId = isDevPendingPaymentMock()
+    ? participants.find(
+        (p) =>
+          p.user &&
+          p.course &&
+          p.status === 'registered' &&
+          !p.is_waitlist,
+      )?.id ?? null
+    : null;
+
   const filteredParticipants = participants.filter(participant => {
     if (!participant.user || !participant.course) return false;
 
@@ -255,7 +413,10 @@ const Participants: React.FC = () => {
       (participant.course.title || '').toLowerCase().includes(searchLower);
 
     const matchesCourse = !selectedCourse || participant.course_id === selectedCourse;
-    const matchesStatus = !selectedStatus || participant.status === selectedStatus;
+    const matchesStatus =
+      !selectedStatus ||
+      participant.status === selectedStatus ||
+      (selectedStatus === 'pending_payment' && participant.id === mockPendingId);
 
     return matchesSearch && matchesCourse && matchesStatus;
   });
@@ -283,7 +444,7 @@ const Participants: React.FC = () => {
     );
   }
 
-  const headingColSpan = showActionsColumn ? 5 : 4;
+  const headingColSpan = showActionsColumn ? 6 : 5;
 
   return (
     <div className="space-y-6">
@@ -300,7 +461,7 @@ const Participants: React.FC = () => {
       }`}>
         {userProfile && userProfile.role === 'teacher' && (
           <p className="text-textMuted">
-            Anmeldungen für deine kommenden Kurse
+            Anmeldungen für deine heutigen und kommenden Kurse
           </p>
         )}
 
@@ -354,6 +515,7 @@ const Participants: React.FC = () => {
             >
               <option value="">Alle Status</option>
               <option value="registered">Angemeldet</option>
+              <option value="pending_payment">Zahlung ausstehend</option>
               <option value="waitlist">Warteliste</option>
             </select>
           </div>
@@ -381,7 +543,7 @@ const Participants: React.FC = () => {
             {groupedParticipants.map((group) => (
               <section key={group.courseId}>
                 <div className="mb-2">
-                  {courseGroupHeading(group.course, group.participants.length)}
+                  <CourseGroupTitle course={group.course} count={group.participants.length} />
                 </div>
                 <div className="divide-y divide-border overflow-hidden rounded-md border border-border bg-surface">
                   {group.participants.map((participant) => (
@@ -397,24 +559,20 @@ const Participants: React.FC = () => {
                             </div>
                           )}
                         </div>
-                        <span className={`flex-shrink-0 inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                          participant.status === 'registered'
-                            ? 'bg-sage-100 text-sage-800'
-                            : 'bg-accentSoft text-accentText'
-                        }`}>
-                          {participant.status === 'registered'
-                            ? 'Angemeldet'
-                            : participant.waitlist_position
-                              ? `Warteliste ${participant.waitlist_position}`
-                              : 'Warteliste'}
-                        </span>
+                        {statusBadge(participant, {
+                          forcePending: participant.id === mockPendingId,
+                        })}
                       </div>
 
                       <div className="mt-2 space-y-1 text-[13px]">
-                        <a href={`mailto:${participant.user.email}`} className="flex items-center gap-1.5 text-textMuted hover:text-brandPressed">
+                        {shownMemberEmail(participant.user) ? (
+                        <a href={`mailto:${shownMemberEmail(participant.user)}`} className="flex items-center gap-1.5 text-textMuted hover:text-brandPressed">
                           <Mail className="w-3 h-3 flex-shrink-0" />
-                          <span className="truncate">{participant.user.email}</span>
+                          <span className="truncate">{shownMemberEmail(participant.user)}</span>
                         </a>
+                        ) : (
+                        <span className="text-textMuted">–</span>
+                        )}
                         {participant.user.phone && (
                           <a href={`tel:${participant.user.phone}`} className="flex items-center gap-1.5 text-textMuted hover:text-brandPressed">
                             <Phone className="w-3 h-3 flex-shrink-0" />
@@ -423,14 +581,25 @@ const Participants: React.FC = () => {
                         )}
                       </div>
 
-                      <div className="mt-2 flex items-center justify-between">
-                        <span className="text-[13px] text-textSubtle tabular-nums">
-                          {formatDateTime(participant.registered_at)}
-                        </span>
+                      <div className="mt-2 flex items-center justify-between gap-2">
+                        <div className="min-w-0 text-[13px] text-textSubtle tabular-nums">
+                          <span>{formatDateTime(participant.registered_at)}</span>
+                          {participant.cancel_reason !== 'course_cancelled' ? (
+                            <span className="before:content-['·'] before:mx-1">
+                              <span className={paymentToneClass(participant)}>
+                                {participant.id === mockPendingId
+                                  ? paymentPendingDeadlinePhrase(
+                                      resolveHoldExpiresAt(participant.hold_expires_at),
+                                    ) || 'Zahlung läuft'
+                                  : paymentText(participant)}
+                              </span>
+                            </span>
+                          ) : null}
+                        </div>
                         {canUnregisterParticipant(participant) && (
                           <button
                             type="button"
-                            onClick={() => requestUnregister(participant)}
+                            onClick={() => void requestUnregister(participant)}
                             disabled={unregisteringId === participant.id}
                             className="inline-flex min-h-11 items-center gap-1 text-[13px] font-medium text-danger hover:text-danger disabled:opacity-50"
                           >
@@ -466,6 +635,9 @@ const Participants: React.FC = () => {
                       Status
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-textMuted">
+                      Bezahlung
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-textMuted">
                       Angemeldet
                     </th>
                     {showActionsColumn && (
@@ -483,7 +655,7 @@ const Participants: React.FC = () => {
                         scope="colgroup"
                         className="bg-surfaceSunken px-6 py-3 text-left font-normal"
                       >
-                        {courseGroupHeading(group.course, group.participants.length)}
+                        <CourseGroupTitle course={group.course} count={group.participants.length} />
                       </th>
                     </tr>
                     {group.participants.map((participant) => (
@@ -503,9 +675,13 @@ const Participants: React.FC = () => {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-text flex items-center">
                             <Mail className="w-3 h-3 mr-1" />
-                            <a href={`mailto:${participant.user.email}`} className="hover:text-brandPressed">
-                              {participant.user.email}
+                            {shownMemberEmail(participant.user) ? (
+                            <a href={`mailto:${shownMemberEmail(participant.user)}`} className="hover:text-brandPressed">
+                              {shownMemberEmail(participant.user)}
                             </a>
+                            ) : (
+                            <span>–</span>
+                            )}
                           </div>
                           <div className="text-sm text-textMuted flex items-center mt-1">
                             <Phone className="w-3 h-3 mr-1" />
@@ -515,17 +691,16 @@ const Participants: React.FC = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                            participant.status === 'registered'
-                              ? 'bg-sage-100 text-sage-800'
-                              : 'bg-accentSoft text-accentText'
-                          }`}>
-                            {participant.status === 'registered'
-                              ? 'Angemeldet'
-                              : participant.waitlist_position
-                                ? `Warteliste (Pos. ${participant.waitlist_position})`
-                                : 'Warteliste'}
-                          </span>
+                          {statusBadge(participant, {
+                            forcePending: participant.id === mockPendingId,
+                          })}
+                        </td>
+                        <td className={`px-6 py-4 whitespace-nowrap text-sm ${paymentToneClass(participant)}`}>
+                          {participant.id === mockPendingId
+                            ? paymentPendingDeadlinePhrase(
+                                resolveHoldExpiresAt(participant.hold_expires_at),
+                              ) || 'Zahlung läuft'
+                            : paymentText(participant)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-textMuted tabular-nums">
                           {formatDateTime(participant.registered_at)}
@@ -535,7 +710,7 @@ const Participants: React.FC = () => {
                             {canUnregisterParticipant(participant) ? (
                               <button
                                 type="button"
-                                onClick={() => requestUnregister(participant)}
+                                onClick={() => void requestUnregister(participant)}
                                 disabled={unregisteringId === participant.id}
                                 className="inline-flex items-center gap-1.5 text-danger hover:text-danger disabled:opacity-50"
                               >
