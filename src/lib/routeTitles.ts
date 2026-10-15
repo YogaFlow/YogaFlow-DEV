@@ -12,6 +12,7 @@ const TITLES: Record<string, string | undefined> = {
   '/open-payments': 'Zahlungen',
   '/payments': 'Zahlungen',
   '/messages': 'Nachrichten',
+  '/updates': 'Neu für dich',
   '/profile': 'Profil',
   '/users': 'Nutzerverwaltung',
   '/settings': 'Einstellungen',

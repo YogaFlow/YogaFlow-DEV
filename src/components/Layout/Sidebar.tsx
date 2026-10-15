@@ -13,12 +13,14 @@ import {
   ClipboardCheck,
   Ticket,
   Receipt,
+  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTenant } from '../../context/TenantContext';
 import StudioMark from '../branding/StudioMark';
 import { getStudioLogoUrl } from '../../lib/studioBranding';
 import { useUnreadMessages } from '../../lib/useUnreadMessages';
+import { useUnreadUpdates } from '../../lib/useUnreadUpdates';
 import { useOpenPaymentsCount } from '../../lib/useOpenPaymentsCount';
 import { openPaymentsBadge } from '../../lib/paymentsTabs';
 import { canSelfEnrollInCourses } from '../../lib/userRoles';
@@ -36,6 +38,7 @@ const Sidebar: React.FC = () => {
   const { userProfile, signOut, isAdmin, isCourseLeader } = useAuth();
   const { tenant } = useTenant();
   const { unreadCount } = useUnreadMessages();
+  const { unreadUpdates } = useUnreadUpdates(isAdmin);
   const openPaymentsCount = useOpenPaymentsCount(isAdmin);
   const paymentsBadge = openPaymentsBadge(openPaymentsCount);
   const canSelfEnroll = canSelfEnrollInCourses(userProfile);
@@ -86,6 +89,7 @@ const Sidebar: React.FC = () => {
 
     if (isAdmin) {
       items.push({ to: '/payments', icon: Receipt, label: 'Zahlungen' });
+      items.push({ to: '/updates', icon: Sparkles, label: 'Neu für dich' });
     }
 
     if (isCourseLeader) {
@@ -131,7 +135,9 @@ const Sidebar: React.FC = () => {
           {navItems.map((item) => {
             const isMessages = item.to === '/messages';
             const isPayments = item.to === '/payments';
+            const isUpdates = item.to === '/updates';
             const hasUnread = isMessages && unreadCount > 0;
+            const updatesBadge = isUpdates && unreadUpdates > 0;
             return (
               <li key={item.to}>
                 <NavLink
@@ -163,6 +169,16 @@ const Sidebar: React.FC = () => {
                             {unreadCount > 9 ? '9+' : unreadCount}
                           </span>
                         )}
+                        {updatesBadge ? (
+                          <span
+                            aria-label={`${unreadUpdates} ungelesene Neuigkeiten`}
+                            className={`absolute -top-1.5 -right-2 min-w-[1rem] h-4 px-1 rounded-full bg-accent text-[10px] leading-4 text-white text-center font-semibold ring-2 ${
+                              isActive ? 'ring-brand' : 'ring-surface'
+                            }`}
+                          >
+                            {unreadUpdates > 9 ? '9+' : unreadUpdates}
+                          </span>
+                        ) : null}
                       </span>
                       <span className="flex min-w-0 flex-1 items-center gap-2">
                         {item.label}

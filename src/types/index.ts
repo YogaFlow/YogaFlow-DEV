@@ -314,7 +314,9 @@ export type UserNotificationType =
   | 'payment_succeeded'
   | 'payment_refunded'
   | 'hold_expired_checkout'
-  | 'hold_expired_promotion';
+  | 'hold_expired_promotion'
+  | 'studio_update'
+  | 'info';
 
 export interface UserNotification {
   id: string;

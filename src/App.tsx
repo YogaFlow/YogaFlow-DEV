@@ -20,6 +20,7 @@ import Users from './pages/Users';
 import Settings from './pages/Settings';
 import DevPaymentSetupStates from './pages/DevPaymentSetupStates';
 import Messages from './pages/Messages';
+import Updates from './pages/Updates';
 import VerifyEmail from './pages/VerifyEmail';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
@@ -397,6 +398,7 @@ function App() {
               <Route path="settings/:category" element={<Settings />} />
               <Route path="settings/:category/:legalDoc" element={<Settings />} />
               <Route path="messages" element={<Messages />} />
+              <Route path="updates" element={<Updates />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Route>
           </Routes>

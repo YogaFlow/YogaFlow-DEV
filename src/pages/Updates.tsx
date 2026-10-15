@@ -1,0 +1,468 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link, Navigate } from 'react-router-dom';
+import { Check, Copy, Search } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { useTenant } from '../context/TenantContext';
+import { formatDate } from '../lib/format';
+import { visibleMembers } from '../lib/visibleScope';
+import {
+  BODY_MAX_LEN,
+  canOfferParticipantSend,
+  participantDraft,
+  readSentHints,
+  visibleUpdates,
+  writeSentHint,
+  type SentHint,
+  type StudioUpdateContext,
+} from '../lib/studioUpdates';
+import {
+  loadStudioUpdateContext,
+  notifyUpdatesRead,
+} from '../lib/useUnreadUpdates';
+import { sendStudioUpdate } from '../lib/sendStudioUpdate';
+import type { StudioUpdate } from '../content/updates';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
+import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
+import type { User } from '../types';
+
+type RecipientMode = 'all' | 'pick';
+
+function formatSentAt(iso: string): string {
+  try {
+    return new Intl.DateTimeFormat('de-DE', {
+      timeZone: 'Europe/Berlin',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
+}
+
+export default function Updates() {
+  const { userProfile, isAdmin } = useAuth();
+  const { tenant } = useTenant();
+
+  const [ctx, setCtx] = useState<StudioUpdateContext | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [members, setMembers] = useState<User[]>([]);
+  const [drafts, setDrafts] = useState<Record<string, { title: string; body: string }>>({});
+  const [recipientMode, setRecipientMode] = useState<Record<string, RecipientMode>>({});
+  const [selectedIds, setSelectedIds] = useState<Record<string, Set<string>>>({});
+  const [pickerOpen, setPickerOpen] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [sendingId, setSendingId] = useState<string | null>(null);
+  const [confirmUpdate, setConfirmUpdate] = useState<StudioUpdate | null>(null);
+  const [feedback, setFeedback] = useState<FeedbackDialogState | null>(null);
+  const [sentHints, setSentHints] = useState<Record<string, SentHint>>({});
+
+  const reload = useCallback(async () => {
+    if (!tenant?.name || !userProfile?.id || !userProfile.tenant_id) return;
+    setLoading(true);
+    try {
+      const next = await loadStudioUpdateContext(tenant.name);
+      setCtx(next);
+      const visible = visibleUpdates(next);
+      notifyUpdatesRead(
+        userProfile.tenant_id,
+        userProfile.id,
+        visible.map((u) => u.id),
+      );
+      setSentHints(readSentHints(userProfile.tenant_id, userProfile.id));
+
+      const draftMap: Record<string, { title: string; body: string }> = {};
+      for (const u of visible) {
+        const d = participantDraft(u, next);
+        if (d) draftMap[u.id] = d;
+      }
+      setDrafts(draftMap);
+    } finally {
+      setLoading(false);
+    }
+  }, [tenant?.name, userProfile?.id, userProfile?.tenant_id]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    void reload();
+  }, [isAdmin, reload]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    void (async () => {
+      const { data, error } = await visibleMembers(
+        'id, first_name, last_name, email, role, anonymized_at, archived_at',
+      )
+        .eq('role', 'user')
+        .is('anonymized_at', null)
+        .order('last_name', { ascending: true });
+      if (!error && data) setMembers(data as User[]);
+    })();
+  }, [isAdmin]);
+
+  const list = useMemo(() => (ctx ? visibleUpdates(ctx) : []), [ctx]);
+
+  const filteredMembers = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return members;
+    return members.filter((m) => {
+      const name = `${m.first_name ?? ''} ${m.last_name ?? ''} ${m.email ?? ''}`.toLowerCase();
+      return name.includes(q);
+    });
+  }, [members, search]);
+
+  if (!isAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  const allCount = members.length;
+
+  const getMode = (id: string): RecipientMode => recipientMode[id] ?? 'all';
+
+  const getSelected = (id: string): Set<string> => selectedIds[id] ?? new Set();
+
+  const recipientCount = (updateId: string): number => {
+    if (getMode(updateId) === 'all') return allCount;
+    return getSelected(updateId).size;
+  };
+
+  const resetDraft = (update: StudioUpdate) => {
+    if (!ctx) return;
+    const d = participantDraft(update, ctx);
+    if (!d) return;
+    setDrafts((prev) => ({ ...prev, [update.id]: d }));
+  };
+
+  const copyDraft = async (updateId: string) => {
+    const d = drafts[updateId];
+    if (!d) return;
+    const text = d.title ? `${d.title}\n\n${d.body}` : d.body;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(updateId);
+      window.setTimeout(() => setCopiedId((cur) => (cur === updateId ? null : cur)), 2000);
+    } catch {
+      setFeedback({
+        title: 'Kopieren fehlgeschlagen',
+        message: 'Der Text konnte nicht in die Zwischenablage gelegt werden.',
+        type: 'error',
+      });
+    }
+  };
+
+  const toggleMember = (updateId: string, memberId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev[updateId] ?? []);
+      if (next.has(memberId)) next.delete(memberId);
+      else next.add(memberId);
+      return { ...prev, [updateId]: next };
+    });
+  };
+
+  const openConfirm = (update: StudioUpdate) => {
+    const d = drafts[update.id];
+    if (!d || !d.body.trim()) return;
+    if (recipientCount(update.id) < 1) return;
+    setConfirmUpdate(update);
+  };
+
+  const doSend = async () => {
+    const update = confirmUpdate;
+    if (!update || !userProfile?.id || !userProfile.tenant_id) return;
+    const d = drafts[update.id];
+    if (!d) return;
+
+    const ids =
+      getMode(update.id) === 'all' ? null : [...getSelected(update.id)];
+
+    setSendingId(update.id);
+    setConfirmUpdate(null);
+    const result = await sendStudioUpdate({
+      recipientIds: ids,
+      title: d.title.trim(),
+      body: d.body.trim(),
+      updateId: update.id,
+    });
+    setSendingId(null);
+
+    if (!result.ok) {
+      setFeedback({
+        title: 'Senden fehlgeschlagen',
+        message:
+          result.error === 'FORBIDDEN'
+            ? 'Du hast keine Berechtigung für diesen Versand.'
+            : result.error === 'EMPTY_MESSAGE'
+              ? 'Die Nachricht darf nicht leer sein.'
+              : `Fehler: ${result.error}`,
+        type: 'error',
+      });
+      return;
+    }
+
+    writeSentHint(userProfile.tenant_id, userProfile.id, update.id, result.sent);
+    setSentHints(readSentHints(userProfile.tenant_id, userProfile.id));
+    setFeedback({
+      title: 'Gesendet',
+      message: `Nachricht an ${result.sent} Teilnehmende gesendet.`,
+      type: 'success',
+    });
+  };
+
+  return (
+    <div className="mx-auto max-w-2xl space-y-6">
+      <div>
+        <h2 className="text-xl font-semibold text-text">Neu für dich</h2>
+        <p className="mt-1 text-sm text-textMuted">
+          Neuigkeiten von Omlify — und vorformulierte Nachrichten an deine Teilnehmenden.
+        </p>
+      </div>
+
+      {loading || !ctx ? (
+        <p className="text-sm text-textMuted">Laden …</p>
+      ) : list.length === 0 ? (
+        <p className="text-sm text-textMuted">Gerade keine Neuigkeiten.</p>
+      ) : (
+        <ul className="space-y-6">
+          {list.map((update) => {
+            const draft = drafts[update.id];
+            const offerSend = canOfferParticipantSend(update, ctx);
+            const hint = sentHints[update.id];
+            const mode = getMode(update.id);
+            const selected = getSelected(update.id);
+            const n = recipientCount(update.id);
+            const bodyLen = draft?.body.length ?? 0;
+            const canSend =
+              offerSend &&
+              !!draft?.body.trim() &&
+              n > 0 &&
+              bodyLen <= BODY_MAX_LEN &&
+              sendingId !== update.id;
+
+            return (
+              <li
+                key={update.id}
+                className="rounded-sm border border-border bg-surface p-4 sm:p-5 space-y-3"
+              >
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <time className="text-xs text-textSubtle tabular-nums">
+                    {formatDate(update.date)}
+                  </time>
+                  <h3 className="text-base font-semibold text-text">{update.title}</h3>
+                </div>
+                <p className="text-sm text-text leading-relaxed whitespace-pre-wrap">
+                  {update.body}
+                </p>
+                {update.cta ? (
+                  <Link
+                    to={update.cta.path}
+                    className="inline-flex min-h-[44px] items-center rounded-sm bg-brand px-4 text-sm font-medium text-onBrand active:bg-brandPressed"
+                  >
+                    {update.cta.label}
+                  </Link>
+                ) : null}
+
+                {update.participantMessage ? (
+                  <div className="mt-4 border-t border-border pt-4 space-y-3">
+                    <h4 className="text-sm font-semibold text-text">
+                      Nachricht an deine Teilnehmenden
+                    </h4>
+
+                    {!offerSend ? (
+                      <p className="text-sm text-textMuted">
+                        Lege zuerst eine Kurskarte an, dann kannst du diese Nachricht senden.
+                      </p>
+                    ) : (
+                      <>
+                        <div>
+                          <label className="block text-xs font-medium text-textMuted mb-1">
+                            Titel
+                          </label>
+                          <input
+                            type="text"
+                            value={draft?.title ?? ''}
+                            onChange={(e) =>
+                              setDrafts((prev) => ({
+                                ...prev,
+                                [update.id]: {
+                                  title: e.target.value,
+                                  body: prev[update.id]?.body ?? '',
+                                },
+                              }))
+                            }
+                            className="w-full rounded-sm border border-border px-3 py-2.5 text-base"
+                            maxLength={120}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-textMuted mb-1">
+                            Text
+                          </label>
+                          <textarea
+                            value={draft?.body ?? ''}
+                            onChange={(e) =>
+                              setDrafts((prev) => ({
+                                ...prev,
+                                [update.id]: {
+                                  title: prev[update.id]?.title ?? '',
+                                  body: e.target.value,
+                                },
+                              }))
+                            }
+                            rows={5}
+                            className="w-full rounded-sm border border-border px-3 py-2.5 text-base resize-y"
+                            maxLength={BODY_MAX_LEN}
+                          />
+                          <div className="mt-1 flex flex-wrap items-center justify-between gap-2 text-xs text-textSubtle">
+                            <span className="tabular-nums">
+                              {bodyLen} / {BODY_MAX_LEN}
+                            </span>
+                            <div className="flex items-center gap-3">
+                              <button
+                                type="button"
+                                onClick={() => resetDraft(update)}
+                                className="min-h-[44px] text-brand hover:underline"
+                              >
+                                Zurücksetzen auf Vorschlag
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void copyDraft(update.id)}
+                                className="inline-flex min-h-[44px] items-center gap-1.5 text-brand hover:underline"
+                                aria-label="Nachricht kopieren"
+                              >
+                                {copiedId === update.id ? (
+                                  <>
+                                    <Check size={16} aria-hidden />
+                                    Kopiert ✓
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy size={16} aria-hidden />
+                                    Kopieren
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        <fieldset className="space-y-2">
+                          <legend className="text-xs font-medium text-textMuted">
+                            Empfänger
+                          </legend>
+                          <label className="flex min-h-[44px] items-center gap-2 text-sm">
+                            <input
+                              type="radio"
+                              name={`recip-${update.id}`}
+                              checked={mode === 'all'}
+                              onChange={() => {
+                                setRecipientMode((p) => ({ ...p, [update.id]: 'all' }));
+                                setPickerOpen(null);
+                              }}
+                            />
+                            Alle Teilnehmenden ({allCount})
+                          </label>
+                          <label className="flex min-h-[44px] items-center gap-2 text-sm">
+                            <input
+                              type="radio"
+                              name={`recip-${update.id}`}
+                              checked={mode === 'pick'}
+                              onChange={() => {
+                                setRecipientMode((p) => ({ ...p, [update.id]: 'pick' }));
+                                setPickerOpen(update.id);
+                              }}
+                            />
+                            Auswählen …{mode === 'pick' ? ` (${selected.size})` : ''}
+                          </label>
+                        </fieldset>
+
+                        {mode === 'pick' && pickerOpen === update.id ? (
+                          <div className="rounded-sm border border-border bg-surfaceSunken/40 p-3 space-y-2">
+                            <div className="relative">
+                              <Search
+                                size={16}
+                                className="absolute left-3 top-1/2 -translate-y-1/2 text-textSubtle"
+                              />
+                              <input
+                                type="search"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder="Suchen …"
+                                className="w-full rounded-sm border border-border bg-surface py-2.5 pl-9 pr-3 text-base"
+                              />
+                            </div>
+                            <ul className="max-h-48 overflow-y-auto space-y-1">
+                              {filteredMembers.map((m) => (
+                                <li key={m.id}>
+                                  <label className="flex min-h-[44px] items-center gap-2 px-1 text-sm">
+                                    <input
+                                      type="checkbox"
+                                      checked={selected.has(m.id)}
+                                      onChange={() => toggleMember(update.id, m.id)}
+                                    />
+                                    <span>
+                                      {m.first_name} {m.last_name}
+                                    </span>
+                                  </label>
+                                </li>
+                              ))}
+                              {filteredMembers.length === 0 ? (
+                                <li className="text-sm text-textMuted px-1 py-2">
+                                  Keine Treffer.
+                                </li>
+                              ) : null}
+                            </ul>
+                          </div>
+                        ) : null}
+
+                        {hint ? (
+                          <p className="text-xs text-textSubtle">
+                            Von diesem Gerät gesendet am {formatSentAt(hint.at)} an{' '}
+                            {hint.count} {hint.count === 1 ? 'Person' : 'Personen'}.
+                          </p>
+                        ) : null}
+
+                        <button
+                          type="button"
+                          disabled={!canSend}
+                          onClick={() => openConfirm(update)}
+                          className="inline-flex min-h-[44px] items-center rounded-sm bg-brand px-4 text-sm font-medium text-onBrand active:bg-brandPressed disabled:opacity-40 disabled:pointer-events-none"
+                        >
+                          {sendingId === update.id ? 'Senden …' : 'Vorschau & senden'}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <ConfirmDialog
+        dialog={
+          confirmUpdate
+            ? {
+                title: `An ${recipientCount(confirmUpdate.id)} Teilnehmende senden?`,
+                message: drafts[confirmUpdate.id]
+                  ? `Titel: ${drafts[confirmUpdate.id].title} — ${drafts[confirmUpdate.id].body.slice(0, 160)}${drafts[confirmUpdate.id].body.length > 160 ? '…' : ''}`
+                  : '',
+                confirmLabel: 'Senden',
+                cancelLabel: 'Abbrechen',
+                variant: 'primary',
+              }
+            : null
+        }
+        loading={sendingId != null}
+        onConfirm={() => void doSend()}
+        onCancel={() => setConfirmUpdate(null)}
+      />
+
+      <FeedbackDialog dialog={feedback} onClose={() => setFeedback(null)} />
+    </div>
+  );
+}

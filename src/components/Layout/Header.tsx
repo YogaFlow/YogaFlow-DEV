@@ -1,12 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Bell, Menu } from 'lucide-react';
+import { Bell, Menu, X } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useNotifications } from '../../lib/useNotifications';
 import { titleForPath } from '../../lib/routeTitles';
+import type { UserNotification } from '../../types';
+import ModalBackdrop from '../ui/ModalBackdrop';
 
 interface HeaderProps {
   onMenuClick: () => void;
 }
+
+const BODY_PREVIEW_LEN = 140;
 
 /** Linktext der Glocke aus dem Zielpfad. Unbekannte Pfade bleiben allgemein. */
 function labelForNotificationPath(path?: string | null): string {
@@ -27,12 +31,26 @@ function labelForNotificationPath(path?: string | null): string {
   return 'Öffnen';
 }
 
+function hasActionPath(path?: string | null): boolean {
+  return typeof path === 'string' && path.trim().length > 0;
+}
+
+function previewBody(body: string): { text: string; truncated: boolean } {
+  const trimmed = body.trim();
+  if (trimmed.length <= BODY_PREVIEW_LEN) {
+    return { text: trimmed, truncated: false };
+  }
+  return { text: `${trimmed.slice(0, BODY_PREVIEW_LEN).trimEnd()}…`, truncated: true };
+}
+
 const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const pageTitle = titleForPath(location.pathname);
   const { notifications, unreadCount, markAllAsRead } = useNotifications();
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [detail, setDetail] = useState<UserNotification | null>(null);
+  const [detailVisible, setDetailVisible] = useState(false);
   const notificationButtonRef = useRef<HTMLButtonElement | null>(null);
   const notificationPopupRef = useRef<HTMLDivElement | null>(null);
 
@@ -42,6 +60,14 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
       void markAllAsRead();
     }
   }, [isNotificationsOpen, markAllAsRead]);
+
+  useEffect(() => {
+    if (detail) {
+      const frameId = window.requestAnimationFrame(() => setDetailVisible(true));
+      return () => window.cancelAnimationFrame(frameId);
+    }
+    setDetailVisible(false);
+  }, [detail]);
 
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
@@ -59,6 +85,10 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
 
     const handleEscapeKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        if (detail) {
+          setDetail(null);
+          return;
+        }
         setIsNotificationsOpen(false);
       }
     };
@@ -70,10 +100,11 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
       document.removeEventListener('mousedown', handleOutsideClick);
       document.removeEventListener('keydown', handleEscapeKey);
     };
-  }, []);
+  }, [detail]);
 
   const handleGoToRegistrations = (path?: string) => {
     setIsNotificationsOpen(false);
+    setDetail(null);
     const destination =
       !path || path === '/my-courses' || path.startsWith('/my-courses#anmeldungen')
         ? '/my-registrations'
@@ -152,25 +183,50 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                   <p className="text-sm text-textMuted">Keine Benachrichtigungen vorhanden.</p>
                 ) : (
                   <ul className="space-y-3">
-                    {notifications.map((notification) => (
-                      <li
-                        key={notification.id}
-                        className={`rounded-sm border p-3 ${
-                          notification.read_at
-                            ? 'border-border bg-surfaceSunken/50'
-                            : 'border-brandSoft'
-                        }`}
-                      >
-                        <p className="text-sm text-text">{notification.body}</p>
-                        <button
-                          type="button"
-                          onClick={() => handleGoToRegistrations(notification.action_path)}
-                          className="mt-2 text-sm font-medium text-brand hover:text-brandPressed underline-offset-2 hover:underline"
+                    {notifications.map((notification) => {
+                      const preview = previewBody(notification.body);
+                      return (
+                        <li
+                          key={notification.id}
+                          className={`rounded-sm border p-3 ${
+                            notification.read_at
+                              ? 'border-border bg-surfaceSunken/50'
+                              : 'border-brandSoft'
+                          }`}
                         >
-                          {labelForNotificationPath(notification.action_path)}
-                        </button>
-                      </li>
-                    ))}
+                          {notification.title ? (
+                            <p className="text-sm font-medium text-text mb-1">
+                              {notification.title}
+                            </p>
+                          ) : null}
+                          {preview.truncated ? (
+                            <button
+                              type="button"
+                              onClick={() => setDetail(notification)}
+                              className="w-full text-left text-sm text-text"
+                            >
+                              {preview.text}
+                              <span className="mt-1 block text-xs font-medium text-brand">
+                                Mehr lesen
+                              </span>
+                            </button>
+                          ) : (
+                            <p className="text-sm text-text whitespace-pre-wrap">
+                              {preview.text}
+                            </p>
+                          )}
+                          {hasActionPath(notification.action_path) ? (
+                            <button
+                              type="button"
+                              onClick={() => handleGoToRegistrations(notification.action_path)}
+                              className="mt-2 text-sm font-medium text-brand hover:text-brandPressed underline-offset-2 hover:underline"
+                            >
+                              {labelForNotificationPath(notification.action_path)}
+                            </button>
+                          ) : null}
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
               </div>
@@ -178,6 +234,43 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
           </div>
         </div>
       </div>
+
+      {detail ? (
+        <ModalBackdrop
+          open
+          visible={detailVisible}
+          canDismiss
+          onDismiss={() => setDetail(null)}
+          variant="dialog"
+          panelClassName="max-w-md"
+        >
+          <div className="p-5">
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <h3 className="text-base font-semibold text-text">
+                {detail.title?.trim() || 'Benachrichtigung'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setDetail(null)}
+                className="p-2 rounded-sm text-textMuted hover:bg-surfaceSunken"
+                aria-label="Schließen"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <p className="text-sm leading-relaxed text-text whitespace-pre-wrap">{detail.body}</p>
+            {hasActionPath(detail.action_path) ? (
+              <button
+                type="button"
+                onClick={() => handleGoToRegistrations(detail.action_path)}
+                className="mt-4 inline-flex min-h-[44px] items-center text-sm font-medium text-brand"
+              >
+                {labelForNotificationPath(detail.action_path)}
+              </button>
+            ) : null}
+          </div>
+        </ModalBackdrop>
+      ) : null}
     </header>
   );
 };
