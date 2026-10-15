@@ -10,6 +10,7 @@ import {
   canOfferParticipantSend,
   isParticipantSendCollapsed,
   participantDraft,
+  toggleExpandedUpdateId,
   visibleUpdates,
   type StudioUpdateContext,
   type StudioUpdateSend,
@@ -370,11 +371,15 @@ export default function Updates() {
             const draft = drafts[update.id];
             const offerSend = canOfferParticipantSend(update, ctx);
             const send = sends[update.id];
+            const canToggle = Boolean(update.participantMessage && send);
             const collapsed = isParticipantSendCollapsed({
               hasParticipantMessage: Boolean(update.participantMessage),
               hasSend: Boolean(send),
               manuallyExpanded: expandedIds.has(update.id),
             });
+            const toggleCard = () => {
+              setExpandedIds((prev) => toggleExpandedUpdateId(prev, update.id));
+            };
             const mode = getMode(update.id);
             const selected = getSelected(update.id);
             const n = recipientCount(update.id);
@@ -391,11 +396,40 @@ export default function Updates() {
                 key={update.id}
                 className="space-y-3 rounded-sm border border-border bg-surface p-4 sm:p-5"
               >
-                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <div
+                  className={`flex flex-wrap items-center gap-x-3 gap-y-1 ${
+                    canToggle ? 'cursor-pointer select-none' : ''
+                  }`}
+                  onClick={canToggle ? toggleCard : undefined}
+                  onKeyDown={
+                    canToggle
+                      ? (e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            toggleCard();
+                          }
+                        }
+                      : undefined
+                  }
+                  role={canToggle ? 'button' : undefined}
+                  tabIndex={canToggle ? 0 : undefined}
+                  aria-expanded={canToggle ? !collapsed : undefined}
+                >
                   <time className="text-xs text-textSubtle tabular-nums">
                     {formatDate(update.date)}
                   </time>
-                  <h3 className="text-base font-semibold text-text">{update.title}</h3>
+                  <h3 className="min-w-0 flex-1 text-base font-semibold text-text">
+                    {update.title}
+                  </h3>
+                  {canToggle ? (
+                    <ChevronDown
+                      size={20}
+                      aria-hidden
+                      className={`shrink-0 text-textMuted transition-transform ${
+                        collapsed ? '' : 'rotate-180'
+                      }`}
+                    />
+                  ) : null}
                 </div>
 
                 {collapsed && send ? (
@@ -403,9 +437,7 @@ export default function Updates() {
                     <p className="text-sm text-text">{sentLine(send)}</p>
                     <button
                       type="button"
-                      onClick={() =>
-                        setExpandedIds((prev) => new Set(prev).add(update.id))
-                      }
+                      onClick={toggleCard}
                       className="inline-flex min-h-[44px] items-center gap-1.5 text-sm font-medium text-brand"
                       aria-expanded={false}
                     >
@@ -431,6 +463,21 @@ export default function Updates() {
                       <div className="mt-4 space-y-3 border-t border-border pt-4">
                         {send ? (
                           <p className="text-sm text-text">{sentLine(send)}</p>
+                        ) : null}
+                        {canToggle ? (
+                          <button
+                            type="button"
+                            onClick={toggleCard}
+                            className="inline-flex min-h-[44px] items-center gap-1.5 text-sm font-medium text-brand"
+                            aria-expanded={true}
+                          >
+                            <ChevronDown
+                              size={18}
+                              aria-hidden
+                              className="rotate-180"
+                            />
+                            Zuklappen
+                          </button>
                         ) : null}
                         <h4 className="text-sm font-semibold text-text">
                           Nachricht an deine Teilnehmenden

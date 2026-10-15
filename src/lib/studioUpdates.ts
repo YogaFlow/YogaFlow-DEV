@@ -127,5 +127,16 @@ export function isParticipantSendCollapsed(input: {
   return !input.manuallyExpanded;
 }
 
+/** Session-Zustand Aufklappen/Zuklappen umschalten (nicht in DB). */
+export function toggleExpandedUpdateId(
+  current: ReadonlySet<string>,
+  updateId: string,
+): Set<string> {
+  const next = new Set(current);
+  if (next.has(updateId)) next.delete(updateId);
+  else next.add(updateId);
+  return next;
+}
+
 export const BODY_MAX_LEN = 2000;
 export const TITLE_MAX_LEN = 120;

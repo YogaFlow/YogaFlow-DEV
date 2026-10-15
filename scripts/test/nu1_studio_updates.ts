@@ -13,6 +13,7 @@ import {
   isParticipantSendCollapsed,
   matchesShowIf,
   participantDraft,
+  toggleExpandedUpdateId,
   visibleUpdates,
   type StudioUpdateContext,
 } from '../../src/lib/studioUpdates.ts';
@@ -155,6 +156,25 @@ test('zugeklappt bei vorhandenem Versand', () => {
     }),
     false,
   );
+});
+
+test('Auf → Zu → Auf', () => {
+  const id = '2026-10-kurskarten-verkaufen';
+  let expanded = new Set<string>();
+  const collapsed = (manuallyExpanded: boolean) =>
+    isParticipantSendCollapsed({
+      hasParticipantMessage: true,
+      hasSend: true,
+      manuallyExpanded,
+    });
+
+  assert.equal(collapsed(expanded.has(id)), true);
+  expanded = toggleExpandedUpdateId(expanded, id);
+  assert.equal(collapsed(expanded.has(id)), false);
+  expanded = toggleExpandedUpdateId(expanded, id);
+  assert.equal(collapsed(expanded.has(id)), true);
+  expanded = toggleExpandedUpdateId(expanded, id);
+  assert.equal(collapsed(expanded.has(id)), false);
 });
 
 test('Update-IDs eindeutig und stabil', () => {
