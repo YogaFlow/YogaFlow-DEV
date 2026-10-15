@@ -44,6 +44,12 @@ Stand: 2026-10-15 · Branch `Julius` · **STOPP** (Klicktest Julius)
 5. Lehrer: kein Menüpunkt, `/updates` → Übersicht
 6. Mobil: Seite, Auswahl, Kopieren, Senden; lange Glocken-Nachricht → Mehr lesen
 
-## Freeze
+## Freeze / Deploy-Nachweis
 
-Nach Push und grünem Workers-Build `omlify-dev`: Tag `release-2026-10-freeze` auf neuen HEAD (siehe STAND).
+| Beleg | Wert |
+|-------|------|
+| HEAD / Tag | `7d68f03` = `release-2026-10-freeze` |
+| Check-Run CI | `Typen, Lint und Build` → success |
+| Check-Run DEV | `Workers Builds: omlify-dev` → success |
+| Live-Bundle | `https://demoalpha.omlify-dev.de/assets/index-Picg4PEw.js` |
+| Merkmal | `2026-10-zahlungen-im-blick`, `Kurskarte anlegen`, `send_studio_update` im Bundle |

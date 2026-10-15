@@ -1,6 +1,6 @@
 # STAND — Omlify DEV
 
-Stand: 2026-10-15 · Branch `Julius` · NU-1 vor Release 2026-10
+Stand: 2026-10-15 · Branch `Julius` · Freeze `release-2026-10-freeze` = `7d68f03` (inkl. NU-1)
 
 ## DEV
 
@@ -15,15 +15,14 @@ Stand: 2026-10-15 · Branch `Julius` · NU-1 vor Release 2026-10
 
 ## Zuletzt abgeschlossen
 
-- **NU-1 „Neu für dich"** — Seite `/updates`, Inhalte im Repo, Versand via Glocke (`send_studio_update`); Ungelesen localStorage; keine E-Mail. Bericht [nu1_neu_fuer_dich.md](berichte/nu1_neu_fuer_dich.md) · **STOPP Klicktest**
+- **NU-1 „Neu für dich"** — Seite `/updates`, Glocke-Versand `send_studio_update`; DEV-Build success; Live-Merkmal `2026-10-zahlungen-im-blick` / `Kurskarte anlegen` in `index-Picg4PEw.js`; Tag `release-2026-10-freeze` = `7d68f03`. Bericht [nu1_neu_fuer_dich.md](berichte/nu1_neu_fuer_dich.md) · **STOPP Klicktest**
 - **DEV-Demo YOMITA-Stand** — [demo_studio_yomita_stand.md](berichte/demo_studio_yomita_stand.md)
 - **Legal-Cleanup DEV vor Release-Abend** — [release_2026-10_abend_legal_cleanup.md](berichte/release_2026-10_abend_legal_cleanup.md)
-- **Release 2026-10 Generalprobe** — Tag `release-2026-10-freeze` wird nach NU-1 neu gesetzt
 
 ## Nächste Schritte
 
 - **Klicktest NU-1** (demoalpha) — siehe Bericht
-- **Release 2026-10 Abend** — [RELEASE_2026-10_ABEND.md](RELEASE_2026-10_ABEND.md); PROD-Migrationen fehlend **91**; Freeze-Hash nach NU-1
+- **Release 2026-10 Abend** — [RELEASE_2026-10_ABEND.md](RELEASE_2026-10_ABEND.md); PROD-Migrationen fehlend **91**; Freeze `7d68f03`
 
 ## Haltestellen / wartet auf Julius
 
@@ -33,7 +32,7 @@ Stand: 2026-10-15 · Branch `Julius` · NU-1 vor Release 2026-10
 
 ## hier weitermachen
 
-Nach Klicktest NU-1: Freeze-Tag bestätigen, dann Release-Abend-Checkliste.
+Klicktest NU-1, dann Release-Abend-Checkliste (Freeze `7d68f03`).
 
 ## Verweise
 
