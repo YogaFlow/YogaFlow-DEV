@@ -1,6 +1,6 @@
 # STAND — Omlify DEV
 
-Stand: 2026-10-15 · Branch `Julius` · Release 2026-10 **live** · Freeze `ba97419` · Merge `main` `bcb2c95`
+Stand: 2026-10-15 · Branch `Julius` · Release 2026-10 **live** · Freeze `ba97419` · Merge `main` `bc89631`
 
 ## DEV
 
@@ -19,12 +19,12 @@ Stand: 2026-10-15 · Branch `Julius` · Release 2026-10 **live** · Freeze `ba97
 
 ## Zuletzt abgeschlossen
 
+- **Neuigkeit „Online bezahlen“** — Teilnehmerbrief live, Merge `bc89631`. Bericht [nu1_online_bezahlen_brief.md](berichte/nu1_online_bezahlen_brief.md)
 - **Release 2026-10** — live, GO. Bericht [release_2026-10_abend.md](berichte/release_2026-10_abend.md)
-- **NU-1 Zuklappen-Toggle** — im Freeze `ba97419` mit ausgeliefert. Bericht [nu1_neu_fuer_dich.md](berichte/nu1_neu_fuer_dich.md)
 
 ## Nächste Schritte
 
-- **Vor Pilot-Onboarding Yomita** — vier Punkte in [OFFENE_PUNKTE.md](OFFENE_PUNKTE.md) (Vor-Ort-Bestätigung, Gebühr-Hinweis, Zahlungsseite, Neuigkeit „Online bezahlen“)
+- **Vor Pilot-Onboarding Yomita** — drei Punkte in [OFFENE_PUNKTE.md](OFFENE_PUNKTE.md) (Vor-Ort-Bestätigung, Gebühr-Hinweis, Zahlungsseite)
 
 ## Haltestellen / wartet auf Julius
 
