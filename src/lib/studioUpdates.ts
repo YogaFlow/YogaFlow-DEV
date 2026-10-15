@@ -8,17 +8,16 @@ export type StudioUpdateContext = {
   studioName: string;
 };
 
-const READ_PREFIX = 'omlify:updates_read:';
-const SENT_PREFIX = 'omlify:updates_sent:';
+export type StudioUpdateSend = {
+  updateId: string;
+  lastSentAt: string;
+  recipientCount: number;
+};
 
-export type SentHint = { at: string; count: number };
+const READ_PREFIX = 'omlify:updates_read:';
 
 function readKey(tenantId: string, userId: string): string {
   return `${READ_PREFIX}${tenantId}:${userId}`;
-}
-
-function sentKey(tenantId: string, userId: string): string {
-  return `${SENT_PREFIX}${tenantId}:${userId}`;
 }
 
 /** Ersetzt nur `{studio}` — keine Vornamen in Rundnachrichten. */
@@ -33,11 +32,23 @@ export function matchesShowIf(showIf: UpdateShowIf, ctx: StudioUpdateContext): b
   return false;
 }
 
-export function visibleUpdates(ctx: StudioUpdateContext): StudioUpdate[] {
-  return STUDIO_UPDATES.filter((u) => matchesShowIf(u.showIf, ctx)).slice().sort((a, b) => {
-    if (a.date === b.date) return b.id.localeCompare(a.id);
-    return b.date.localeCompare(a.date);
-  });
+/**
+ * Sichtbare Neuigkeiten: freigegeben und showIf.
+ * releasedIds === null → Ladefehler → nichts anzeigen (sicherer Ausfall).
+ */
+export function visibleUpdates(
+  ctx: StudioUpdateContext,
+  releasedIds: ReadonlySet<string> | null,
+): StudioUpdate[] {
+  if (releasedIds == null) return [];
+  return STUDIO_UPDATES.filter(
+    (u) => releasedIds.has(u.id) && matchesShowIf(u.showIf, ctx),
+  )
+    .slice()
+    .sort((a, b) => {
+      if (a.date === b.date) return b.id.localeCompare(a.id);
+      return b.date.localeCompare(a.date);
+    });
 }
 
 export function participantDraft(
@@ -102,34 +113,18 @@ export function countUnreadUpdates(
   return visible.filter((u) => !read.has(u.id)).length;
 }
 
-export function readSentHints(
-  tenantId: string,
-  userId: string,
-): Record<string, SentHint> {
-  try {
-    const raw = localStorage.getItem(sentKey(tenantId, userId));
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as Record<string, SentHint>;
-    if (!parsed || typeof parsed !== 'object') return {};
-    return parsed;
-  } catch {
-    return {};
-  }
-}
-
-export function writeSentHint(
-  tenantId: string,
-  userId: string,
-  updateId: string,
-  count: number,
-): void {
-  try {
-    const map = readSentHints(tenantId, userId);
-    map[updateId] = { at: new Date().toISOString(), count };
-    localStorage.setItem(sentKey(tenantId, userId), JSON.stringify(map));
-  } catch {
-    // ignore
-  }
+/**
+ * Karte mit Teilnehmer-Nachricht: zugeklappt, wenn schon versendet und nicht manuell geöffnet.
+ * Ohne Teilnehmer-Nachricht: nie zugeklappt.
+ */
+export function isParticipantSendCollapsed(input: {
+  hasParticipantMessage: boolean;
+  hasSend: boolean;
+  manuallyExpanded: boolean;
+}): boolean {
+  if (!input.hasParticipantMessage) return false;
+  if (!input.hasSend) return false;
+  return !input.manuallyExpanded;
 }
 
 export const BODY_MAX_LEN = 2000;

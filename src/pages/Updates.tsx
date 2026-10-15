@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { ArrowLeft, Check, Copy, Search } from 'lucide-react';
+import { ArrowLeft, Check, ChevronDown, Copy, Search } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTenant } from '../context/TenantContext';
 import { formatDate } from '../lib/format';
@@ -8,13 +8,16 @@ import { visibleMembers } from '../lib/visibleScope';
 import {
   BODY_MAX_LEN,
   canOfferParticipantSend,
+  isParticipantSendCollapsed,
   participantDraft,
-  readSentHints,
   visibleUpdates,
-  writeSentHint,
-  type SentHint,
   type StudioUpdateContext,
+  type StudioUpdateSend,
 } from '../lib/studioUpdates';
+import {
+  fetchReleasedUpdateIds,
+  fetchStudioUpdateSends,
+} from '../lib/studioUpdateReleases';
 import {
   loadStudioUpdateContext,
   notifyUpdatesRead,
@@ -128,11 +131,19 @@ function formatSentAt(iso: string): string {
   }
 }
 
+function sentLine(send: StudioUpdateSend): string {
+  const n = send.recipientCount;
+  const who = n === 1 ? 'Teilnehmende' : 'Teilnehmende';
+  return `✓ Gesendet am ${formatSentAt(send.lastSentAt)} an ${n} ${who}`;
+}
+
 export default function Updates() {
   const { userProfile, isAdmin } = useAuth();
   const { tenant } = useTenant();
 
   const [ctx, setCtx] = useState<StudioUpdateContext | null>(null);
+  const [releasedIds, setReleasedIds] = useState<Set<string> | null>(null);
+  const [sends, setSends] = useState<Record<string, StudioUpdateSend>>({});
   const [loading, setLoading] = useState(true);
   const [members, setMembers] = useState<User[]>([]);
   const [drafts, setDrafts] = useState<Record<string, { title: string; body: string }>>({});
@@ -144,21 +155,32 @@ export default function Updates() {
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [confirmUpdate, setConfirmUpdate] = useState<StudioUpdate | null>(null);
   const [feedback, setFeedback] = useState<FeedbackDialogState | null>(null);
-  const [sentHints, setSentHints] = useState<Record<string, SentHint>>({});
+  /** Session: manuell aufgeklappte Karten (nach Versand standardmäßig zu). */
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
 
   const reload = useCallback(async () => {
     if (!tenant?.name || !userProfile?.id || !userProfile.tenant_id) return;
     setLoading(true);
     try {
-      const next = await loadStudioUpdateContext(tenant.name);
+      const [next, released, sendMap] = await Promise.all([
+        loadStudioUpdateContext(tenant.name),
+        fetchReleasedUpdateIds(),
+        fetchStudioUpdateSends(),
+      ]);
       setCtx(next);
-      const visible = visibleUpdates(next);
+      setReleasedIds(released);
+      setSends(sendMap ?? {});
+
+      if (released == null) {
+        return;
+      }
+
+      const visible = visibleUpdates(next, released);
       notifyUpdatesRead(
         userProfile.tenant_id,
         userProfile.id,
         visible.map((u) => u.id),
       );
-      setSentHints(readSentHints(userProfile.tenant_id, userProfile.id));
 
       const draftMap: Record<string, { title: string; body: string }> = {};
       for (const u of visible) {
@@ -189,7 +211,10 @@ export default function Updates() {
     })();
   }, [isAdmin]);
 
-  const list = useMemo(() => (ctx ? visibleUpdates(ctx) : []), [ctx]);
+  const list = useMemo(
+    () => (ctx ? visibleUpdates(ctx, releasedIds) : []),
+    [ctx, releasedIds],
+  );
 
   const filteredMembers = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -282,20 +307,41 @@ export default function Updates() {
             ? 'Du hast keine Berechtigung für diesen Versand.'
             : result.error === 'EMPTY_MESSAGE'
               ? 'Die Nachricht darf nicht leer sein.'
-              : `Fehler: ${result.error}`,
+              : result.error === 'UPDATE_NOT_RELEASED'
+                ? 'Diese Neuigkeit ist noch nicht freigegeben.'
+                : `Fehler: ${result.error}`,
         type: 'error',
       });
       return;
     }
 
-    writeSentHint(userProfile.tenant_id, userProfile.id, update.id, result.sent);
-    setSentHints(readSentHints(userProfile.tenant_id, userProfile.id));
+    setSends((prev) => ({
+      ...prev,
+      [update.id]: {
+        updateId: update.id,
+        lastSentAt: new Date().toISOString(),
+        recipientCount: result.sent,
+      },
+    }));
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(update.id);
+      return next;
+    });
     setFeedback({
       title: 'Gesendet',
       message: `Nachricht an ${result.sent} Teilnehmende gesendet.`,
       type: 'success',
     });
+    void fetchStudioUpdateSends().then((map) => {
+      if (map) setSends(map);
+    });
   };
+
+  const confirmExtra =
+    confirmUpdate && sends[confirmUpdate.id]
+      ? `Bereits am ${formatSentAt(sends[confirmUpdate.id].lastSentAt)} an ${sends[confirmUpdate.id].recipientCount} gesendet.`
+      : null;
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -317,13 +363,18 @@ export default function Updates() {
       {loading || !ctx ? (
         <p className="text-sm text-textMuted">Laden …</p>
       ) : list.length === 0 ? (
-        <p className="text-sm text-textMuted">Gerade keine Neuigkeiten.</p>
+        <p className="text-sm text-textMuted">Noch keine Neuigkeiten</p>
       ) : (
         <ul className="space-y-6">
           {list.map((update) => {
             const draft = drafts[update.id];
             const offerSend = canOfferParticipantSend(update, ctx);
-            const hint = sentHints[update.id];
+            const send = sends[update.id];
+            const collapsed = isParticipantSendCollapsed({
+              hasParticipantMessage: Boolean(update.participantMessage),
+              hasSend: Boolean(send),
+              manuallyExpanded: expandedIds.has(update.id),
+            });
             const mode = getMode(update.id);
             const selected = getSelected(update.id);
             const n = recipientCount(update.id);
@@ -338,7 +389,7 @@ export default function Updates() {
             return (
               <li
                 key={update.id}
-                className="rounded-sm border border-border bg-surface p-4 sm:p-5 space-y-3"
+                className="space-y-3 rounded-sm border border-border bg-surface p-4 sm:p-5"
               >
                 <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                   <time className="text-xs text-textSubtle tabular-nums">
@@ -346,162 +397,184 @@ export default function Updates() {
                   </time>
                   <h3 className="text-base font-semibold text-text">{update.title}</h3>
                 </div>
-                <p className="text-sm text-text leading-relaxed whitespace-pre-wrap">
-                  {update.body}
-                </p>
-                {update.cta ? (
-                  <Link
-                    to={update.cta.path}
-                    className="inline-flex min-h-[44px] items-center rounded-sm bg-brand px-4 text-sm font-medium text-onBrand active:bg-brandPressed"
-                  >
-                    {update.cta.label}
-                  </Link>
-                ) : null}
 
-                {update.participantMessage ? (
-                  <div className="mt-4 border-t border-border pt-4 space-y-3">
-                    <h4 className="text-sm font-semibold text-text">
-                      Nachricht an deine Teilnehmenden
-                    </h4>
-
-                    {!offerSend ? (
-                      <p className="text-sm text-textMuted">
-                        Lege zuerst eine Kurskarte an, dann kannst du diese Nachricht senden.
-                      </p>
-                    ) : (
-                      <>
-                        <div>
-                          <label className="block text-xs font-medium text-textMuted mb-1">
-                            Titel
-                          </label>
-                          <input
-                            type="text"
-                            value={draft?.title ?? ''}
-                            onChange={(e) =>
-                              setDrafts((prev) => ({
-                                ...prev,
-                                [update.id]: {
-                                  title: e.target.value,
-                                  body: prev[update.id]?.body ?? '',
-                                },
-                              }))
-                            }
-                            className="w-full rounded-sm border border-border px-3 py-2.5 text-base"
-                            maxLength={120}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-textMuted mb-1">
-                            Text
-                          </label>
-                          <textarea
-                            value={draft?.body ?? ''}
-                            onChange={(e) =>
-                              setDrafts((prev) => ({
-                                ...prev,
-                                [update.id]: {
-                                  title: prev[update.id]?.title ?? '',
-                                  body: e.target.value,
-                                },
-                              }))
-                            }
-                            rows={5}
-                            className="w-full rounded-sm border border-border px-3 py-2.5 text-base resize-y"
-                            maxLength={BODY_MAX_LEN}
-                          />
-                          <div className="mt-1 flex flex-wrap items-center justify-between gap-2 text-xs text-textSubtle">
-                            <span className="tabular-nums">
-                              {bodyLen} / {BODY_MAX_LEN}
-                            </span>
-                            <div className="flex items-center gap-3">
-                              <button
-                                type="button"
-                                onClick={() => resetDraft(update)}
-                                className="min-h-[44px] text-brand hover:underline"
-                              >
-                                Zurücksetzen auf Vorschlag
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => void copyDraft(update.id)}
-                                className="inline-flex min-h-[44px] items-center gap-1.5 text-brand hover:underline"
-                                aria-label="Nachricht kopieren"
-                              >
-                                {copiedId === update.id ? (
-                                  <>
-                                    <Check size={16} aria-hidden />
-                                    Kopiert ✓
-                                  </>
-                                ) : (
-                                  <>
-                                    <Copy size={16} aria-hidden />
-                                    Kopieren
-                                  </>
-                                )}
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        <fieldset className="space-y-2">
-                          <legend className="text-xs font-medium text-textMuted">
-                            Empfänger
-                          </legend>
-                          <label className="flex min-h-[44px] items-center gap-2 text-sm">
-                            <input
-                              type="radio"
-                              name={`recip-${update.id}`}
-                              checked={mode === 'all'}
-                              onChange={() => {
-                                setRecipientMode((p) => ({ ...p, [update.id]: 'all' }));
-                                setPickerOpen(null);
-                              }}
-                            />
-                            Alle Teilnehmenden ({allCount})
-                          </label>
-                          <label className="flex min-h-[44px] items-center gap-2 text-sm">
-                            <input
-                              type="radio"
-                              name={`recip-${update.id}`}
-                              checked={mode === 'pick'}
-                              onChange={() => {
-                                setRecipientMode((p) => ({ ...p, [update.id]: 'pick' }));
-                                setPickerOpen(update.id);
-                              }}
-                            />
-                            Auswählen …
-                          </label>
-                        </fieldset>
-
-                        {mode === 'pick' && pickerOpen === update.id ? (
-                          <RecipientPickerList
-                            members={filteredMembers}
-                            selected={selected}
-                            onToggle={(id) => toggleMember(update.id, id)}
-                            search={search}
-                            onSearchChange={setSearch}
-                          />
-                        ) : null}
-
-                        {hint ? (
-                          <p className="text-xs text-textSubtle">
-                            Von diesem Gerät gesendet am {formatSentAt(hint.at)} an{' '}
-                            {hint.count} {hint.count === 1 ? 'Person' : 'Personen'}.
-                          </p>
-                        ) : null}
-
-                        <button
-                          type="button"
-                          disabled={!canSend}
-                          onClick={() => openConfirm(update)}
-                          className="inline-flex min-h-[44px] items-center rounded-sm bg-brand px-4 text-sm font-medium text-onBrand active:bg-brandPressed disabled:opacity-40 disabled:pointer-events-none"
-                        >
-                          {sendingId === update.id ? 'Senden …' : 'Vorschau & senden'}
-                        </button>
-                      </>
-                    )}
+                {collapsed && send ? (
+                  <div className="space-y-2">
+                    <p className="text-sm text-text">{sentLine(send)}</p>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setExpandedIds((prev) => new Set(prev).add(update.id))
+                      }
+                      className="inline-flex min-h-[44px] items-center gap-1.5 text-sm font-medium text-brand"
+                      aria-expanded={false}
+                    >
+                      <ChevronDown size={18} aria-hidden />
+                      Aufklappen
+                    </button>
                   </div>
-                ) : null}
+                ) : (
+                  <>
+                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-text">
+                      {update.body}
+                    </p>
+                    {update.cta ? (
+                      <Link
+                        to={update.cta.path}
+                        className="inline-flex min-h-[44px] items-center rounded-sm bg-brand px-4 text-sm font-medium text-onBrand active:bg-brandPressed"
+                      >
+                        {update.cta.label}
+                      </Link>
+                    ) : null}
+
+                    {update.participantMessage ? (
+                      <div className="mt-4 space-y-3 border-t border-border pt-4">
+                        {send ? (
+                          <p className="text-sm text-text">{sentLine(send)}</p>
+                        ) : null}
+                        <h4 className="text-sm font-semibold text-text">
+                          Nachricht an deine Teilnehmenden
+                        </h4>
+
+                        {!offerSend ? (
+                          <p className="text-sm text-textMuted">
+                            Lege zuerst eine Kurskarte an, dann kannst du diese Nachricht senden.
+                          </p>
+                        ) : (
+                          <>
+                            <div>
+                              <label className="mb-1 block text-xs font-medium text-textMuted">
+                                Titel
+                              </label>
+                              <input
+                                type="text"
+                                value={draft?.title ?? ''}
+                                onChange={(e) =>
+                                  setDrafts((prev) => ({
+                                    ...prev,
+                                    [update.id]: {
+                                      title: e.target.value,
+                                      body: prev[update.id]?.body ?? '',
+                                    },
+                                  }))
+                                }
+                                className="w-full rounded-sm border border-border px-3 py-2.5 text-base"
+                                maxLength={120}
+                              />
+                            </div>
+                            <div>
+                              <label className="mb-1 block text-xs font-medium text-textMuted">
+                                Text
+                              </label>
+                              <textarea
+                                value={draft?.body ?? ''}
+                                onChange={(e) =>
+                                  setDrafts((prev) => ({
+                                    ...prev,
+                                    [update.id]: {
+                                      title: prev[update.id]?.title ?? '',
+                                      body: e.target.value,
+                                    },
+                                  }))
+                                }
+                                rows={5}
+                                className="w-full resize-y rounded-sm border border-border px-3 py-2.5 text-base"
+                                maxLength={BODY_MAX_LEN}
+                              />
+                              <div className="mt-1 flex flex-wrap items-center justify-between gap-2 text-xs text-textSubtle">
+                                <span className="tabular-nums">
+                                  {bodyLen} / {BODY_MAX_LEN}
+                                </span>
+                                <div className="flex items-center gap-3">
+                                  <button
+                                    type="button"
+                                    onClick={() => resetDraft(update)}
+                                    className="min-h-[44px] text-brand hover:underline"
+                                  >
+                                    Zurücksetzen auf Vorschlag
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => void copyDraft(update.id)}
+                                    className="inline-flex min-h-[44px] items-center gap-1.5 text-brand hover:underline"
+                                    aria-label="Nachricht kopieren"
+                                  >
+                                    {copiedId === update.id ? (
+                                      <>
+                                        <Check size={16} aria-hidden />
+                                        Kopiert ✓
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Copy size={16} aria-hidden />
+                                        Kopieren
+                                      </>
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+
+                            <fieldset className="space-y-2">
+                              <legend className="text-xs font-medium text-textMuted">
+                                Empfänger
+                              </legend>
+                              <label className="flex min-h-[44px] items-center gap-2 text-sm">
+                                <input
+                                  type="radio"
+                                  name={`recip-${update.id}`}
+                                  checked={mode === 'all'}
+                                  onChange={() => {
+                                    setRecipientMode((p) => ({
+                                      ...p,
+                                      [update.id]: 'all',
+                                    }));
+                                    setPickerOpen(null);
+                                  }}
+                                />
+                                Alle Teilnehmenden ({allCount})
+                              </label>
+                              <label className="flex min-h-[44px] items-center gap-2 text-sm">
+                                <input
+                                  type="radio"
+                                  name={`recip-${update.id}`}
+                                  checked={mode === 'pick'}
+                                  onChange={() => {
+                                    setRecipientMode((p) => ({
+                                      ...p,
+                                      [update.id]: 'pick',
+                                    }));
+                                    setPickerOpen(update.id);
+                                  }}
+                                />
+                                Auswählen …
+                              </label>
+                            </fieldset>
+
+                            {mode === 'pick' && pickerOpen === update.id ? (
+                              <RecipientPickerList
+                                members={filteredMembers}
+                                selected={selected}
+                                onToggle={(id) => toggleMember(update.id, id)}
+                                search={search}
+                                onSearchChange={setSearch}
+                              />
+                            ) : null}
+
+                            <button
+                              type="button"
+                              disabled={!canSend}
+                              onClick={() => openConfirm(update)}
+                              className="inline-flex min-h-[44px] items-center rounded-sm bg-brand px-4 text-sm font-medium text-onBrand active:bg-brandPressed disabled:pointer-events-none disabled:opacity-40"
+                            >
+                              {sendingId === update.id ? 'Senden …' : 'Vorschau & senden'}
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    ) : null}
+                  </>
+                )}
               </li>
             );
           })}
@@ -513,9 +586,14 @@ export default function Updates() {
           confirmUpdate
             ? {
                 title: `An ${recipientCount(confirmUpdate.id)} Teilnehmende senden?`,
-                message: drafts[confirmUpdate.id]
-                  ? `Titel: ${drafts[confirmUpdate.id].title} — ${drafts[confirmUpdate.id].body.slice(0, 160)}${drafts[confirmUpdate.id].body.length > 160 ? '…' : ''}`
-                  : '',
+                message: [
+                  confirmExtra,
+                  drafts[confirmUpdate.id]
+                    ? `Titel: ${drafts[confirmUpdate.id].title} — ${drafts[confirmUpdate.id].body.slice(0, 160)}${drafts[confirmUpdate.id].body.length > 160 ? '…' : ''}`
+                    : '',
+                ]
+                  .filter(Boolean)
+                  .join(' '),
                 confirmLabel: 'Senden',
                 cancelLabel: 'Abbrechen',
                 variant: 'primary',

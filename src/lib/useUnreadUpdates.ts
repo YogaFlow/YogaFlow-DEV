@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTenant } from '../context/TenantContext';
 import { supabase } from './supabase';
 import { countActivePassProducts } from './passProducts';
+import { fetchReleasedUpdateIds } from './studioUpdateReleases';
 import {
   countUnreadUpdates,
   markUpdatesRead,
@@ -34,8 +35,8 @@ async function loadContext(
 }
 
 /**
- * Ungelesene Omlify-Neuigkeiten für Owner/Admin (localStorage).
- * Lehrer/Teilnehmende: immer 0.
+ * Ungelesene Omlify-Neuigkeiten für Owner/Admin (localStorage), nur freigegebene.
+ * Lehrer/Teilnehmende: immer 0. Ladefehler Freigaben → 0.
  */
 export function useUnreadUpdates(enabled: boolean) {
   const { userProfile } = useAuth();
@@ -48,8 +49,15 @@ export function useUnreadUpdates(enabled: boolean) {
       return;
     }
     try {
-      const ctx = await loadContext(tenant.name);
-      const visible = visibleUpdates(ctx);
+      const [ctx, released] = await Promise.all([
+        loadContext(tenant.name),
+        fetchReleasedUpdateIds(),
+      ]);
+      if (released == null) {
+        setUnread(0);
+        return;
+      }
+      const visible = visibleUpdates(ctx, released);
       setUnread(countUnreadUpdates(userProfile.tenant_id, userProfile.id, visible));
     } catch {
       setUnread(0);

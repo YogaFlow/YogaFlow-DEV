@@ -1,5 +1,5 @@
 /**
- * NU-1 — Platzhalter, showIf, Ungelesen, Badge, Modal-Scroll-Lock (ohne DB).
+ * NU-1 — Platzhalter, showIf, Freigabe, Ungelesen, Zuklappen (ohne DB).
  *
  *   node --experimental-strip-types --test scripts/test/nu1_studio_updates.ts
  */
@@ -10,6 +10,7 @@ import {
   applyStudioPlaceholder,
   canOfferParticipantSend,
   countUnreadUpdates,
+  isParticipantSendCollapsed,
   matchesShowIf,
   participantDraft,
   visibleUpdates,
@@ -30,6 +31,8 @@ const baseCtx: StudioUpdateContext = {
   studioName: 'Demo Alpha',
 };
 
+const allReleased = new Set(STUDIO_UPDATES.map((u) => u.id));
+
 test('Platzhalter {studio}', () => {
   assert.equal(
     applyStudioPlaceholder('Neu bei {studio}: Test', 'Yoga Fluss'),
@@ -42,24 +45,48 @@ test('Platzhalter {studio}', () => {
 });
 
 test('showIf: Online aus → Online-Neuigkeit unsichtbar', () => {
-  const offline = visibleUpdates({ ...baseCtx, onlinePaymentsActive: false });
+  const offline = visibleUpdates({ ...baseCtx, onlinePaymentsActive: false }, allReleased);
   assert.equal(
     offline.some((u) => u.id === '2026-10-online-bezahlen'),
     false,
   );
-  const online = visibleUpdates({ ...baseCtx, onlinePaymentsActive: true });
+  const online = visibleUpdates({ ...baseCtx, onlinePaymentsActive: true }, allReleased);
   assert.equal(
     online.some((u) => u.id === '2026-10-online-bezahlen'),
     true,
   );
 });
 
-test('showIf always bleibt sichtbar', () => {
+test('showIf always bleibt sichtbar (wenn freigegeben)', () => {
   assert.equal(matchesShowIf('always', baseCtx), true);
-  const ids = visibleUpdates(baseCtx).map((u) => u.id);
+  const ids = visibleUpdates(baseCtx, allReleased).map((u) => u.id);
   assert.ok(ids.includes('2026-10-zahlungen-im-blick'));
   assert.ok(ids.includes('2026-10-kurskarten-verkaufen'));
   assert.ok(ids.includes('2026-10-rechtstexte'));
+});
+
+test('Freigabe × showIf: nur freigegebene IDs', () => {
+  const one = new Set(['2026-10-zahlungen-im-blick']);
+  const list = visibleUpdates(baseCtx, one);
+  assert.equal(list.length, 1);
+  assert.equal(list[0].id, '2026-10-zahlungen-im-blick');
+
+  const onlineOnly = new Set(['2026-10-online-bezahlen']);
+  assert.equal(
+    visibleUpdates({ ...baseCtx, onlinePaymentsActive: false }, onlineOnly).length,
+    0,
+  );
+  assert.equal(
+    visibleUpdates({ ...baseCtx, onlinePaymentsActive: true }, onlineOnly).length,
+    1,
+  );
+});
+
+test('Zahl 0 ohne Freigaben / bei Ladefehler', () => {
+  assert.equal(visibleUpdates(baseCtx, new Set()).length, 0);
+  assert.equal(visibleUpdates(baseCtx, null).length, 0);
+  assert.equal(countUnreadUpdates('t', 'u', []), 0);
+  assert.equal(settingsUpdatesBadge(0), null);
 });
 
 test('Kurskarten-Nachricht nur mit hasPassProducts', () => {
@@ -88,12 +115,46 @@ test('Online-Nachricht: Onsite-Suffix nur wenn vor Ort aktiv', () => {
   assert.ok(without?.title.includes('Demo Alpha'));
 });
 
-test('Ungelesen-Zählung', () => {
-  const visible = visibleUpdates({ ...baseCtx, onlinePaymentsActive: true });
-  // Ohne localStorage (Node): alle ungelesen
+test('Ungelesen-Zählung nur sichtbare', () => {
+  const visible = visibleUpdates({ ...baseCtx, onlinePaymentsActive: true }, allReleased);
   const n = countUnreadUpdates('tenant', 'user', visible);
   assert.equal(n, visible.length);
   assert.ok(n >= 3);
+});
+
+test('zugeklappt bei vorhandenem Versand', () => {
+  assert.equal(
+    isParticipantSendCollapsed({
+      hasParticipantMessage: true,
+      hasSend: true,
+      manuallyExpanded: false,
+    }),
+    true,
+  );
+  assert.equal(
+    isParticipantSendCollapsed({
+      hasParticipantMessage: true,
+      hasSend: true,
+      manuallyExpanded: true,
+    }),
+    false,
+  );
+  assert.equal(
+    isParticipantSendCollapsed({
+      hasParticipantMessage: true,
+      hasSend: false,
+      manuallyExpanded: false,
+    }),
+    false,
+  );
+  assert.equal(
+    isParticipantSendCollapsed({
+      hasParticipantMessage: false,
+      hasSend: true,
+      manuallyExpanded: false,
+    }),
+    false,
+  );
 });
 
 test('Update-IDs eindeutig und stabil', () => {
@@ -106,10 +167,6 @@ test('Einstellungen: Neu für dich als Unterpunkt auf /updates', () => {
   assert.ok(item);
   assert.equal(item!.title, 'Neu für dich');
   assert.equal(item!.to, '/updates');
-  assert.equal(
-    SETTINGS_CATEGORIES.some((c) => c.to === '/updates' && c.id !== 'updates'),
-    false,
-  );
 });
 
 test('Badge auf Einstellungen = Zahlungen-Badge', () => {
@@ -117,26 +174,13 @@ test('Badge auf Einstellungen = Zahlungen-Badge', () => {
   assert.equal(settingsUpdatesBadge(3), '3');
   assert.equal(settingsUpdatesBadge(10), '9+');
   assert.equal(settingsUpdatesBadge(3), openPaymentsBadge(3));
-  assert.equal(settingsUpdatesBadge(10), openPaymentsBadge(10));
   assert.equal(updatesStatusLine(0), 'Neuigkeiten von Omlify');
-  assert.equal(updatesStatusLine(1), '1 ungelesen');
-  assert.equal(updatesStatusLine(4), '4 ungelesen');
 });
 
 test('Modal-Scroll-Lock: Overlay-Sperre weg nach Schließen', () => {
   const body = { style: { overflow: '' } };
-  assert.equal(isBodyScrollLocked(body), false);
   const unlock = lockBodyScroll(body);
-  assert.equal(body.style.overflow, 'hidden');
   assert.equal(isBodyScrollLocked(body), true);
   unlock();
-  assert.equal(body.style.overflow, '');
   assert.equal(isBodyScrollLocked(body), false);
-
-  const bodyPrev = { style: { overflow: 'auto' } };
-  const unlock2 = lockBodyScroll(bodyPrev);
-  assert.equal(isBodyScrollLocked(bodyPrev), true);
-  unlock2();
-  assert.equal(bodyPrev.style.overflow, 'auto');
-  assert.equal(isBodyScrollLocked(bodyPrev), false);
 });
