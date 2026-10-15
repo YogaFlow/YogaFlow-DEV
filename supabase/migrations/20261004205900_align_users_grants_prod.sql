@@ -1,4 +1,5 @@
 -- Align public.users UPDATE grants to DEV sollstand (20260911134500).
+-- allow: _grants_only_no_functions
 -- Freeze-Ausnahme / Generalprobe: PROD-Backup-Restore auf leeres Supabase-Projekt
 -- lässt Tabellen-UPDATE für authenticated/anon stehen (ALTER DEFAULT PRIVILEGES
 -- GRANT ALL ON TABLES), weil schema.sql nur positive GRANTs ohne REVOKE UPDATE
