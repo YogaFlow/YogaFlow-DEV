@@ -1,6 +1,6 @@
 # Release 2026-10 — Abend-Checkliste
 
-**Freeze:** `release-2026-10-freeze` = `origin/Julius` (Asset-404-Fix, Basis `bebf1fe`) · Branch `Julius` · PROD-Migrationen fehlend **91** · Release-Reihenfolge unverändert  
+**Freeze:** `release-2026-10-freeze` = `origin/Julius` (NU-1 Nachbesserung Menü/Glocke/Empfänger, Basis Asset-404) · Branch `Julius` · PROD-Migrationen fehlend **91** · Release-Reihenfolge unverändert  
 Der Hash steht nicht in dieser Datei: er ist der Commit, auf den der Tag zeigt. Ein zweiter Doku-Commit nur für den Hash würde das Bundle wieder ändern.
 **Wer:** **J** = Julius tippt/klickt · **C** = Cursor (nur nach Freigabe, nie PROD-Passwort im Chat)  
 **Passwort / Secrets / Keys:** nur Terminal oder Dashboard — **nie in Chat/Bericht**.
@@ -23,7 +23,7 @@ Quellen: [Generalprobe](berichte/release_2026-10_generalprobe.md) · [Freeze](be
 
 | # | Schritt | Wer | Befehl / Klick | Erwartung | Abbruch |
 |---|---------|-----|----------------|-----------|---------|
-| 0 | Freeze prüfen | J/C | `git fetch --tags`; `git rev-parse HEAD origin/Julius release-2026-10-freeze` | alle drei derselbe Commit (Asset-404-Fix nach `bebf1fe`) | einer weicht ab → kein Abend |
+| 0 | Freeze prüfen | J/C | `git fetch --tags`; `git rev-parse HEAD origin/Julius release-2026-10-freeze` | alle drei derselbe Commit (NU-1 Nachbesserung nach Asset-404) | einer weicht ab → kein Abend |
 | 1 | Backup PROD | J | GitHub Action `backup-prod` bzw. üblicher PROD-Backup | grün / frisch | Backup fehlt → STOPP |
 | 2 | Snapshot Zählwerte | J/C | SQL wie Bestandsaufnahme §5 (Buchungen, Kurse, …) | notiert zum Vergleich | — |
 | 3 | Pre-PROD-Checkliste | J | [DEV_PROD_SAFETY_WORKFLOW.md](DEV_PROD_SAFETY_WORKFLOW.md) | abgehakt | Zweifel → STOPP |

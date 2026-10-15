@@ -1,4 +1,11 @@
-export type SettingsCategoryId = 'studio' | 'buchungen' | 'zahlungen' | 'karten' | 'team' | 'rechtliches';
+export type SettingsCategoryId =
+  | 'studio'
+  | 'buchungen'
+  | 'zahlungen'
+  | 'karten'
+  | 'team'
+  | 'rechtliches'
+  | 'updates';
 
 export type SettingsCategory = {
   id: SettingsCategoryId;
@@ -13,6 +20,8 @@ export const SETTINGS_CATEGORIES: SettingsCategory[] = [
   { id: 'karten', title: 'Kurskarten', to: '/settings/karten' },
   { id: 'team', title: 'Team', to: '/settings/team' },
   { id: 'rechtliches', title: 'Rechtliches', to: '/settings/rechtliches' },
+  /** Eigene Route `/updates` — kein `/settings/…`-Inhalt. */
+  { id: 'updates', title: 'Neu für dich', to: '/updates' },
 ];
 
 export function parseSettingsCategory(raw: string | null | undefined): SettingsCategoryId | null {
@@ -22,7 +31,8 @@ export function parseSettingsCategory(raw: string | null | undefined): SettingsC
     raw === 'zahlungen' ||
     raw === 'karten' ||
     raw === 'team' ||
-    raw === 'rechtliches'
+    raw === 'rechtliches' ||
+    raw === 'updates'
   ) {
     return raw;
   }
@@ -61,6 +71,20 @@ export function teamStatusLine(count: number): string {
 
 export function legalStatusLine(complete: boolean): string {
   return complete ? 'Anbieterangaben vollständig' : 'Anbieterangaben fehlen';
+}
+
+export function updatesStatusLine(unread: number): string {
+  if (!Number.isFinite(unread) || unread <= 0) return 'Neuigkeiten von Omlify';
+  return unread === 1 ? '1 ungelesen' : `${unread} ungelesen`;
+}
+
+/**
+ * Badge-Text für Einstellungen / „Neu für dich" — dieselbe Regel wie offene Zahlungen
+ * (`openPaymentsBadge`). null = kein Badge.
+ */
+export function settingsUpdatesBadge(unread: number): string | null {
+  if (!Number.isFinite(unread) || unread <= 0) return null;
+  return unread > 9 ? '9+' : String(unread);
 }
 
 export type SettingsAttention = {

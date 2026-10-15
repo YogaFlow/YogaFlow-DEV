@@ -1,5 +1,5 @@
 /**
- * NU-1 — Platzhalter, showIf, Ungelesen (ohne DB).
+ * NU-1 — Platzhalter, showIf, Ungelesen, Badge, Modal-Scroll-Lock (ohne DB).
  *
  *   node --experimental-strip-types --test scripts/test/nu1_studio_updates.ts
  */
@@ -15,6 +15,13 @@ import {
   visibleUpdates,
   type StudioUpdateContext,
 } from '../../src/lib/studioUpdates.ts';
+import {
+  SETTINGS_CATEGORIES,
+  settingsUpdatesBadge,
+  updatesStatusLine,
+} from '../../src/lib/settingsOverview.ts';
+import { openPaymentsBadge } from '../../src/lib/paymentsTabs.ts';
+import { isBodyScrollLocked, lockBodyScroll } from '../../src/lib/bodyScrollLock.ts';
 
 const baseCtx: StudioUpdateContext = {
   onlinePaymentsActive: false,
@@ -92,4 +99,44 @@ test('Ungelesen-Zählung', () => {
 test('Update-IDs eindeutig und stabil', () => {
   const ids = STUDIO_UPDATES.map((u) => u.id);
   assert.equal(new Set(ids).size, ids.length);
+});
+
+test('Einstellungen: Neu für dich als Unterpunkt auf /updates', () => {
+  const item = SETTINGS_CATEGORIES.find((c) => c.id === 'updates');
+  assert.ok(item);
+  assert.equal(item!.title, 'Neu für dich');
+  assert.equal(item!.to, '/updates');
+  assert.equal(
+    SETTINGS_CATEGORIES.some((c) => c.to === '/updates' && c.id !== 'updates'),
+    false,
+  );
+});
+
+test('Badge auf Einstellungen = Zahlungen-Badge', () => {
+  assert.equal(settingsUpdatesBadge(0), null);
+  assert.equal(settingsUpdatesBadge(3), '3');
+  assert.equal(settingsUpdatesBadge(10), '9+');
+  assert.equal(settingsUpdatesBadge(3), openPaymentsBadge(3));
+  assert.equal(settingsUpdatesBadge(10), openPaymentsBadge(10));
+  assert.equal(updatesStatusLine(0), 'Neuigkeiten von Omlify');
+  assert.equal(updatesStatusLine(1), '1 ungelesen');
+  assert.equal(updatesStatusLine(4), '4 ungelesen');
+});
+
+test('Modal-Scroll-Lock: Overlay-Sperre weg nach Schließen', () => {
+  const body = { style: { overflow: '' } };
+  assert.equal(isBodyScrollLocked(body), false);
+  const unlock = lockBodyScroll(body);
+  assert.equal(body.style.overflow, 'hidden');
+  assert.equal(isBodyScrollLocked(body), true);
+  unlock();
+  assert.equal(body.style.overflow, '');
+  assert.equal(isBodyScrollLocked(body), false);
+
+  const bodyPrev = { style: { overflow: 'auto' } };
+  const unlock2 = lockBodyScroll(bodyPrev);
+  assert.equal(isBodyScrollLocked(bodyPrev), true);
+  unlock2();
+  assert.equal(bodyPrev.style.overflow, 'auto');
+  assert.equal(isBodyScrollLocked(bodyPrev), false);
 });

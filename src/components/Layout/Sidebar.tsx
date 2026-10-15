@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
   Calendar,
   Users,
@@ -13,7 +13,6 @@ import {
   ClipboardCheck,
   Ticket,
   Receipt,
-  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTenant } from '../../context/TenantContext';
@@ -22,10 +21,10 @@ import { getStudioLogoUrl } from '../../lib/studioBranding';
 import { useUnreadMessages } from '../../lib/useUnreadMessages';
 import { useUnreadUpdates } from '../../lib/useUnreadUpdates';
 import { useOpenPaymentsCount } from '../../lib/useOpenPaymentsCount';
-import { openPaymentsBadge } from '../../lib/paymentsTabs';
 import { canSelfEnrollInCourses } from '../../lib/userRoles';
 import { useMyPassesNav } from '../../lib/useMyPassesNav';
 import StudioAboutLegalMenu from '../legal/StudioAboutLegalMenu';
+import NavCountBadge from '../ui/NavCountBadge';
 
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
   owner:   { label: 'Inhaberin/Inhaber', color: 'bg-brand text-onBrand' },
@@ -37,10 +36,10 @@ const ROLE_LABELS: Record<string, { label: string; color: string }> = {
 const Sidebar: React.FC = () => {
   const { userProfile, signOut, isAdmin, isCourseLeader } = useAuth();
   const { tenant } = useTenant();
+  const location = useLocation();
   const { unreadCount } = useUnreadMessages();
   const { unreadUpdates } = useUnreadUpdates(isAdmin);
   const openPaymentsCount = useOpenPaymentsCount(isAdmin);
-  const paymentsBadge = openPaymentsBadge(openPaymentsCount);
   const canSelfEnroll = canSelfEnrollInCourses(userProfile);
   const showMyPasses = useMyPassesNav(canSelfEnroll);
 
@@ -58,6 +57,7 @@ const Sidebar: React.FC = () => {
    * UX-4 D1: täglich → wöchentlich → selten; Profil ganz unten über Abmelden.
    * Owner/Admin: Übersicht · Kurse · Teilnehmer · Nachrichten · Zahlungen ·
    * Kurse verwalten · Nutzerverwaltung · Einstellungen · Profil
+   * „Neu für dich" liegt unter Einstellungen (kein eigener Hauptpunkt).
    */
   const getNavItems = () => {
     type NavItem = { to: string; icon: typeof Home; label: string };
@@ -89,7 +89,6 @@ const Sidebar: React.FC = () => {
 
     if (isAdmin) {
       items.push({ to: '/payments', icon: Receipt, label: 'Zahlungen' });
-      items.push({ to: '/updates', icon: Sparkles, label: 'Neu für dich' });
     }
 
     if (isCourseLeader) {
@@ -135,20 +134,26 @@ const Sidebar: React.FC = () => {
           {navItems.map((item) => {
             const isMessages = item.to === '/messages';
             const isPayments = item.to === '/payments';
-            const isUpdates = item.to === '/updates';
+            const isSettings = item.to === '/settings';
             const hasUnread = isMessages && unreadCount > 0;
-            const updatesBadge = isUpdates && unreadUpdates > 0;
             return (
               <li key={item.to}>
                 <NavLink
                   to={item.to}
-                  className={({ isActive }) =>
-                    `flex items-center px-4 py-3 rounded-sm transition-colors ${
-                      isActive ? 'bg-brand text-onBrand' : 'text-textMuted hover:bg-surfaceSunken'
-                    }`
-                  }
+                  className={({ isActive }) => {
+                    const active =
+                      isActive ||
+                      (isSettings && location.pathname === '/updates');
+                    return `flex items-center px-4 py-3 rounded-sm transition-colors ${
+                      active ? 'bg-brand text-onBrand' : 'text-textMuted hover:bg-surfaceSunken'
+                    }`;
+                  }}
                 >
-                  {({ isActive }) => (
+                  {({ isActive }) => {
+                    const active =
+                      isActive ||
+                      (isSettings && location.pathname === '/updates');
+                    return (
                     <>
                       <span className="relative mr-3 inline-flex items-center justify-center">
                         <item.icon
@@ -163,38 +168,33 @@ const Sidebar: React.FC = () => {
                           <span
                             aria-label={`${unreadCount} ungelesene Nachrichten`}
                             className={`absolute -top-1.5 -right-2 min-w-[1rem] h-4 px-1 rounded-full bg-danger text-[10px] leading-4 text-onBrand text-center font-semibold ring-2 ${
-                              isActive ? 'ring-brand' : 'ring-surface'
+                              active ? 'ring-brand' : 'ring-surface'
                             }`}
                           >
                             {unreadCount > 9 ? '9+' : unreadCount}
                           </span>
                         )}
-                        {updatesBadge ? (
-                          <span
-                            aria-label={`${unreadUpdates} ungelesene Neuigkeiten`}
-                            className={`absolute -top-1.5 -right-2 min-w-[1rem] h-4 px-1 rounded-full bg-accent text-[10px] leading-4 text-white text-center font-semibold ring-2 ${
-                              isActive ? 'ring-brand' : 'ring-surface'
-                            }`}
-                          >
-                            {unreadUpdates > 9 ? '9+' : unreadUpdates}
-                          </span>
-                        ) : null}
                       </span>
                       <span className="flex min-w-0 flex-1 items-center gap-2">
                         {item.label}
-                        {isPayments && paymentsBadge ? (
-                          <span
-                            aria-label={`${openPaymentsCount} offene Zahlungen`}
-                            className={`min-w-[1.25rem] rounded-full px-1.5 text-center text-[11px] font-semibold leading-5 tabular-nums ${
-                              isActive ? 'bg-onBrand/15 text-onBrand' : 'bg-brand text-onBrand'
-                            }`}
-                          >
-                            {paymentsBadge}
-                          </span>
+                        {isPayments ? (
+                          <NavCountBadge
+                            count={openPaymentsCount}
+                            label={`${openPaymentsCount} offene Zahlungen`}
+                            active={active}
+                          />
+                        ) : null}
+                        {isSettings ? (
+                          <NavCountBadge
+                            count={unreadUpdates}
+                            label={`${unreadUpdates} ungelesene Neuigkeiten`}
+                            active={active}
+                          />
                         ) : null}
                       </span>
                     </>
-                  )}
+                    );
+                  }}
                 </NavLink>
               </li>
             );

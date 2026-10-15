@@ -1,55 +1,42 @@
 # NU-1 — „Neu für dich" (Owner/Admin-Neuigkeiten + Glocken-Versand)
 
-Stand: 2026-10-15 · Branch `Julius` · **STOPP** (Klicktest Julius)
+Stand: 2026-10-15 · Branch `Julius` · **STOPP** (Klicktest Nachbesserung)
 
-## Teil 0 / 0b
+## Nachbesserung nach Klicktest (Freeze-Ausnahme)
 
-| Punkt | Befund |
-|-------|--------|
-| Nachrichten | Kein Studio-Broadcast; `messages.course_id` NOT NULL; INSERT ohne Rollenprüfung |
-| E-Mail | Nachrichten lösen keine `email_deliveries` aus |
-| Entscheidung Julius | Versand über `user_notifications` + RPC `send_studio_update` (additive Migration) |
-| `user_notifications.type` | **Kein CHECK** (DEV) → `'studio_update'` ohne Schema-Änderung |
-| Glocke Text | Bisher voller Body; bei langem Text jetzt Kürzung (~140) + Modal „Mehr lesen"; `action_path` leer → kein Link |
-| Ungelesen | localStorage `omlify:updates_read:{tenant}:{user}` |
-| Gesendet | nur lokal `omlify:updates_sent:…` |
+Klicktest A (Assets) und B1–6 waren grün. Drei UX-Punkte nachgezogen:
 
-## Migration
+| # | Thema | Änderung |
+|---|-------|----------|
+| 1 | Menü | „Neu für dich" nur noch unter Einstellungen (wie Rechtliches); Badge = `NavCountBadge` wie Zahlungen, an **Einstellungen** und am Unterpunkt |
+| 2 | Glocke | Modal per `createPortal` auf `document.body` (`ModalBackdrop`); Popover schließt beim Öffnen; Scroll + Safe-Area; X / Hintergrund / Escape |
+| 3 | Empfänger | Liste `max-h-48`, sichtbare Scrollbar, Verlauf am unteren Rand solange mehr folgt; „X ausgewählt" bleibt oberhalb |
 
-- `20261015180000_nu1_send_studio_update.sql` auf DEV applied (`--include-all` wegen ausstehender `20261004205900`)
-- Zusätzlich Allow-Kopf an `20261004205900_align_users_grants_prod.sql` (war lokal pending ohne Header)
-- DEV Migrationen: **206** bis `20261015180000`
-- PROD-Differenz Runbook: **91** fehlend (vorher 85)
+Ursache Glocke: Modal hing in `Header.tsx` im sticky/`backdrop-blur`-Stacking-Kontext → abgeschnitten + Overlay blockiert. Portal + Popover-Schließen behebt das.
 
-## Dateien
+Route `/updates`, Rollen-Prüfung und Lehrer-Weiterleitung unverändert. CTAs in den Neuigkeiten zeigen weiter auf `/dashboard`, `/settings/karten`, `/settings/rechtliches`.
 
-- `src/content/updates.ts` — 4 Neuigkeiten
-- `src/lib/studioUpdates.ts`, `sendStudioUpdate.ts`, `useUnreadUpdates.ts`
-- `src/pages/Updates.tsx` — `/updates`
-- Sidebar/Header/App/routeTitles/types
-- Tests: `scripts/test/nu1_studio_updates.ts`, `nu1_send_studio_update.mjs`
+Keine Migration.
 
 ## Tests
 
-- Unit (Platzhalter, showIf, Ungelesen): grün
-- Integration DEV: Teacher → FORBIDDEN; Owner sent=2 + Fremd skipped; Admin alle=3; 0 neue `email_deliveries`; anon 42501; EMPTY_MESSAGE
+- Unit: Badge Einstellungen = Zahlungen-Badge; Modal-Scroll-Lock weg nach unlock; Kategorie `updates` → `/updates`
 - `npm run check:ci`: grün
 
-## Klicktest Julius (demoalpha)
-
-1. Owner: Menü „Neu für dich" mit Ungelesen → Seite → Hinweis weg (auch nach Neuladen)
-2. Neuigkeit Kurskarten: Text ändern, Kopieren → stimmt
-3. Senden an 2 Ausgewählte → Bestätigung „2" → als einer davon: Glocke; anderer: keine; keine E-Mail
-4. Online aus → Nr. 4 unsichtbar; an → sichtbar
-5. Lehrer: kein Menüpunkt, `/updates` → Übersicht
-6. Mobil: Seite, Auswahl, Kopieren, Senden; lange Glocken-Nachricht → Mehr lesen
-
-## Freeze / Deploy-Nachweis
+## Freeze / Deploy
 
 | Beleg | Wert |
 |-------|------|
-| Feature-Commit | `7d68f03` (UI+Migration+Tests). Freeze-Tag zeigt auf den späteren Asset-404-Commit (Basis `bebf1fe`). |
-| Check-Run CI | `Typen, Lint und Build` → success |
-| Check-Run DEV | `Workers Builds: omlify-dev` → success |
-| Live-Bundle | `https://demoalpha.omlify-dev.de/assets/index-Picg4PEw.js` |
-| Merkmal | `2026-10-zahlungen-im-blick`, `Kurskarte anlegen`, `send_studio_update` im Bundle |
+| Freeze-Tag | `release-2026-10-freeze` → Commit dieses Berichts (annotiert, lokal + origin); Hash = `git rev-parse release-2026-10-freeze` |
+| Basis | Asset-404 `ce84e7b` / zuvor `bebf1fe` |
+| Check-Run DEV | nach Push: `Workers Builds: omlify-dev` = success |
+| Live-Bundle | Studio-Subdomain: JS aus `index.html`; fehlendes Asset = 404 |
+
+## Klicktest Julius (Nachbesserung)
+
+1. Owner: kein eigener Hauptmenüpunkt „Neu für dich"; unter Einstellungen mit Badge bei Ungelesenen; Badge auch an „Einstellungen"
+2. Seite `/updates` → Hinweis weg; Zurück zu Einstellungen
+3. Lehrer: kein Eintrag unter Einstellungen; `/updates` → Übersicht
+4. Teilnehmende (iPhone + Desktop): Glocke → Mehr lesen → Modal voll sichtbar; Popover zu; X / Hintergrund / Escape → Seite wieder bedienbar
+5. Empfänger „Auswählen …": scrollbar, Verlauf verschwindet am Ende; „X ausgewählt" sichtbar
+6. Asset-Check: live `index-*.js` ist JavaScript; `/assets/index-missing-probe.js` = 404

@@ -8,6 +8,7 @@ import {
   ChevronRight,
   CreditCard,
   Scale,
+  Sparkles,
   Users,
   Wallet,
 } from 'lucide-react';
@@ -21,6 +22,7 @@ import StudioDesignSection from '../components/settings/StudioDesignSection';
 import StudioLegalHub, { type LegalDocSlug } from '../components/settings/StudioLegalHub';
 import TaxSettingsSection from '../components/settings/TaxSettingsSection';
 import TeamSettingsSection from '../components/settings/TeamSettingsSection';
+import NavCountBadge from '../components/ui/NavCountBadge';
 import { fetchStaffCount } from '../lib/settingsStaff';
 import OnlinePaymentSection from '../features/payments/OnlinePaymentSection';
 import { BOOKING_CANCELLATION_WINDOW_DEFAULT } from '../lib/bookingSettings';
@@ -39,10 +41,12 @@ import {
   settingsCategoryTitle,
   studioStatusLine,
   teamStatusLine,
+  updatesStatusLine,
   visibleSettingsCategories,
   type SettingsAttention,
   type SettingsCategoryId,
 } from '../lib/settingsOverview';
+import { useUnreadUpdates } from '../lib/useUnreadUpdates';
 import { choiceShortLabel, loadTaxSettings, choiceFromSetting } from '../lib/taxStatus';
 import { loadAvvStatus, loadTermsStatus } from '../lib/legalAcceptances';
 import { toUiStatus, type PaymentSetupStatus } from '../features/payments/paymentSetupTypes';
@@ -54,6 +58,7 @@ const ICONS: Record<SettingsCategoryId, typeof Building2> = {
   karten: CreditCard,
   team: Users,
   rechtliches: Scale,
+  updates: Sparkles,
 };
 
 type OverviewData = {
@@ -68,6 +73,7 @@ const EMPTY_LINES: Record<SettingsCategoryId, string> = {
   karten: '',
   team: '',
   rechtliches: '',
+  updates: '',
 };
 
 async function loadPaymentSetup(): Promise<PaymentSetupStatus | null> {
@@ -138,6 +144,7 @@ async function loadOverview(input: {
       karten: cardsStatusLine(activeCards),
       team: teamStatusLine(staffCount),
       rechtliches: legalLine,
+      updates: updatesStatusLine(0),
     },
     attention,
   };
@@ -190,6 +197,7 @@ function CategoryContent({
   if (category === 'rechtliches') {
     return <StudioLegalHub canManage isOwner={isOwner} doc={legalDoc} />;
   }
+  if (category === 'updates') return null;
   return <TeamSettingsSection />;
 }
 
@@ -197,10 +205,12 @@ function OverviewList({
   lines,
   attention,
   isOwner,
+  unreadUpdates,
 }: {
   lines: Record<SettingsCategoryId, string>;
   attention: SettingsAttention[];
   isOwner: boolean;
+  unreadUpdates: number;
 }) {
   return (
     <div className="space-y-4">
@@ -232,6 +242,10 @@ function OverviewList({
       <ul className="overflow-hidden rounded-md border border-border bg-surface" data-testid="settings-categories">
         {visibleSettingsCategories(isOwner).map((item) => {
           const Icon = ICONS[item.id];
+          const isUpdates = item.id === 'updates';
+          const statusLine = isUpdates
+            ? updatesStatusLine(unreadUpdates)
+            : lines[item.id];
           return (
             <li key={item.id} className="border-b border-border last:border-b-0">
               <Link
@@ -241,8 +255,16 @@ function OverviewList({
               >
                 <Icon className="h-5 w-5 shrink-0 text-textMuted" aria-hidden />
                 <span className="min-w-0 flex-1">
-                  <span className="block text-[15px] font-medium text-text">{item.title}</span>
-                  <span className="mt-0.5 block text-[13px] text-textMuted">{lines[item.id]}</span>
+                  <span className="flex items-center gap-2">
+                    <span className="text-[15px] font-medium text-text">{item.title}</span>
+                    {isUpdates ? (
+                      <NavCountBadge
+                        count={unreadUpdates}
+                        label={`${unreadUpdates} ungelesene Neuigkeiten`}
+                      />
+                    ) : null}
+                  </span>
+                  <span className="mt-0.5 block text-[13px] text-textMuted">{statusLine}</span>
                 </span>
                 <ChevronRight className="h-[18px] w-[18px] shrink-0 text-textSubtle" aria-hidden />
               </Link>
@@ -257,6 +279,7 @@ function OverviewList({
 export default function Settings() {
   const { isAdmin, isOwner } = useAuth();
   const { tenant } = useTenant();
+  const { unreadUpdates } = useUnreadUpdates(isAdmin);
   const { category: rawCategory, legalDoc: rawLegalDoc } = useParams<{
     category?: string;
     legalDoc?: string;
@@ -293,6 +316,11 @@ export default function Settings() {
     return <Navigate to={withDevTenant('/settings')} replace />;
   }
 
+  /** Kategorie-Link zeigt auf `/updates` — Alt-Pfad `/settings/updates` umleiten. */
+  if (category === 'updates') {
+    return <Navigate to={withDevTenant('/updates')} replace />;
+  }
+
   if (category === 'rechtliches' && rawLegalDoc && !legalDoc) {
     return <Navigate to={withDevTenant('/settings/rechtliches')} replace />;
   }
@@ -302,7 +330,12 @@ export default function Settings() {
   }
 
   const list = (
-    <OverviewList lines={overview.lines} attention={overview.attention} isOwner={isOwner} />
+    <OverviewList
+      lines={overview.lines}
+      attention={overview.attention}
+      isOwner={isOwner}
+      unreadUpdates={unreadUpdates}
+    />
   );
 
   const isLegalHub = category === 'rechtliches';

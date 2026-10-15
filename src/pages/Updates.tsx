@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { Check, Copy, Search } from 'lucide-react';
+import { ArrowLeft, Check, Copy, Search } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTenant } from '../context/TenantContext';
 import { formatDate } from '../lib/format';
@@ -24,6 +24,92 @@ import type { StudioUpdate } from '../content/updates';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import FeedbackDialog, { FeedbackDialogState } from '../components/ui/FeedbackDialog';
 import type { User } from '../types';
+
+/** Empfänger-Liste: Max-Höhe, sichtbare Scrollbar, Verlauf solange mehr folgt. */
+function RecipientPickerList({
+  members,
+  selected,
+  onToggle,
+  search,
+  onSearchChange,
+}: {
+  members: User[];
+  selected: Set<string>;
+  onToggle: (id: string) => void;
+  search: string;
+  onSearchChange: (value: string) => void;
+}) {
+  const listRef = useRef<HTMLUListElement>(null);
+  const [canScrollMore, setCanScrollMore] = useState(false);
+
+  const updateFade = useCallback(() => {
+    const el = listRef.current;
+    if (!el) {
+      setCanScrollMore(false);
+      return;
+    }
+    setCanScrollMore(el.scrollHeight - el.scrollTop - el.clientHeight > 2);
+  }, []);
+
+  useLayoutEffect(() => {
+    updateFade();
+  }, [members, updateFade]);
+
+  return (
+    <div className="space-y-2 rounded-sm border border-border bg-surfaceSunken/40 p-3">
+      <div className="relative">
+        <Search
+          size={16}
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-textSubtle"
+          aria-hidden
+        />
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => onSearchChange(e.target.value)}
+          placeholder="Suchen …"
+          className="w-full rounded-sm border border-border bg-surface py-2.5 pl-9 pr-3 text-base"
+        />
+      </div>
+      <p className="text-xs font-medium text-textMuted tabular-nums" aria-live="polite">
+        {selected.size} ausgewählt
+      </p>
+      <div className="relative">
+        <ul
+          ref={listRef}
+          onScroll={updateFade}
+          className="max-h-48 space-y-1 overflow-y-scroll overscroll-contain [scrollbar-gutter:stable] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-borderStrong [&::-webkit-scrollbar-track]:bg-transparent"
+          data-testid="recipient-picker-list"
+        >
+          {members.map((m) => (
+            <li key={m.id}>
+              <label className="flex min-h-[44px] items-center gap-2 px-1 text-sm">
+                <input
+                  type="checkbox"
+                  checked={selected.has(m.id)}
+                  onChange={() => onToggle(m.id)}
+                />
+                <span>
+                  {m.first_name} {m.last_name}
+                </span>
+              </label>
+            </li>
+          ))}
+          {members.length === 0 ? (
+            <li className="px-1 py-2 text-sm text-textMuted">Keine Treffer.</li>
+          ) : null}
+        </ul>
+        {canScrollMore ? (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[color-mix(in_srgb,var(--color-surface-sunken)_85%,transparent)] to-transparent"
+            data-testid="recipient-picker-fade"
+          />
+        ) : null}
+      </div>
+    </div>
+  );
+}
 
 type RecipientMode = 'all' | 'pick';
 
@@ -214,6 +300,14 @@ export default function Updates() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
+        <Link
+          to="/settings"
+          className="mb-3 inline-flex min-h-11 items-center gap-2 text-[15px] font-medium text-text"
+          data-testid="updates-back-settings"
+        >
+          <ArrowLeft className="h-5 w-5" aria-hidden />
+          Einstellungen
+        </Link>
         <h2 className="text-xl font-semibold text-text">Neu für dich</h2>
         <p className="mt-1 text-sm text-textMuted">
           Neuigkeiten von Omlify — und vorformulierte Nachrichten an deine Teilnehmenden.
@@ -375,47 +469,18 @@ export default function Updates() {
                                 setPickerOpen(update.id);
                               }}
                             />
-                            Auswählen …{mode === 'pick' ? ` (${selected.size})` : ''}
+                            Auswählen …
                           </label>
                         </fieldset>
 
                         {mode === 'pick' && pickerOpen === update.id ? (
-                          <div className="rounded-sm border border-border bg-surfaceSunken/40 p-3 space-y-2">
-                            <div className="relative">
-                              <Search
-                                size={16}
-                                className="absolute left-3 top-1/2 -translate-y-1/2 text-textSubtle"
-                              />
-                              <input
-                                type="search"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Suchen …"
-                                className="w-full rounded-sm border border-border bg-surface py-2.5 pl-9 pr-3 text-base"
-                              />
-                            </div>
-                            <ul className="max-h-48 overflow-y-auto space-y-1">
-                              {filteredMembers.map((m) => (
-                                <li key={m.id}>
-                                  <label className="flex min-h-[44px] items-center gap-2 px-1 text-sm">
-                                    <input
-                                      type="checkbox"
-                                      checked={selected.has(m.id)}
-                                      onChange={() => toggleMember(update.id, m.id)}
-                                    />
-                                    <span>
-                                      {m.first_name} {m.last_name}
-                                    </span>
-                                  </label>
-                                </li>
-                              ))}
-                              {filteredMembers.length === 0 ? (
-                                <li className="text-sm text-textMuted px-1 py-2">
-                                  Keine Treffer.
-                                </li>
-                              ) : null}
-                            </ul>
-                          </div>
+                          <RecipientPickerList
+                            members={filteredMembers}
+                            selected={selected}
+                            onToggle={(id) => toggleMember(update.id, id)}
+                            search={search}
+                            onSearchChange={setSearch}
+                          />
                         ) : null}
 
                         {hint ? (

@@ -1,6 +1,6 @@
 # STAND — Omlify DEV
 
-Stand: 2026-10-15 · Branch `Julius` · Freeze `release-2026-10-freeze` = dieser Asset-404-Commit (Basis `bebf1fe`, inkl. NU-1)
+Stand: 2026-10-15 · Branch `Julius` · Freeze `release-2026-10-freeze` = NU-1 Nachbesserung (Menü/Glocke/Empfänger; Basis Asset-404; Hash = Tag)
 
 ## DEV
 
@@ -15,28 +15,29 @@ Stand: 2026-10-15 · Branch `Julius` · Freeze `release-2026-10-freeze` = dieser
 
 ## Zuletzt abgeschlossen
 
-- **Asset-404** — fehlende `/assets/*` sind 404 statt HTML mit `immutable`; SPA-Hülle im Worker. Freeze-Tag auf diesem Commit (Basis `bebf1fe`).
-- **NU-1 „Neu für dich"** — Seite `/updates`, Glocke-Versand `send_studio_update`. Bericht [nu1_neu_fuer_dich.md](berichte/nu1_neu_fuer_dich.md) · **STOPP Klicktest** auf dem Asset-404-Stand
+- **NU-1 Nachbesserung** — Menü unter Einstellungen, Glocken-Modal Portal, Empfänger-Scroll. Bericht [nu1_neu_fuer_dich.md](berichte/nu1_neu_fuer_dich.md) · **STOPP Klicktest Nachbesserung**
+- **Asset-404** — fehlende `/assets/*` sind 404 statt HTML mit `immutable`; SPA-Hülle im Worker.
+- **NU-1 „Neu für dich"** — Seite `/updates`, Glocke-Versand `send_studio_update` (Klicktest A/B1–6 grün)
 - **DEV-Demo YOMITA-Stand** — [demo_studio_yomita_stand.md](berichte/demo_studio_yomita_stand.md)
 - **Legal-Cleanup DEV vor Release-Abend** — [release_2026-10_abend_legal_cleanup.md](berichte/release_2026-10_abend_legal_cleanup.md)
 
 ## Nächste Schritte
 
-- **Klicktest NU-1** (demoalpha) — siehe Bericht
+- **Klicktest NU-1 Nachbesserung** (demoalpha) — siehe Bericht
 - **Release 2026-10 Abend** — [RELEASE_2026-10_ABEND.md](RELEASE_2026-10_ABEND.md); PROD-Migrationen fehlend **91**; Freeze = Tag `release-2026-10-freeze`
 
 ## Haltestellen / wartet auf Julius
 
-- **NU-1 STOPP** — [nu1_neu_fuer_dich.md](berichte/nu1_neu_fuer_dich.md) · Klicktest
+- **NU-1 STOPP Nachbesserung** — [nu1_neu_fuer_dich.md](berichte/nu1_neu_fuer_dich.md) · Klicktest
 - **DEV-Demo YOMITA-Stand STOPP** — [demo_studio_yomita_stand.md](berichte/demo_studio_yomita_stand.md)
 - **Release-Abend** — [RELEASE_2026-10_ABEND.md](RELEASE_2026-10_ABEND.md)
 
 ## hier weitermachen
 
-Klicktest NU-1 und Asset-Check auf diesem Freeze (Tag `release-2026-10-freeze`).
+Klicktest NU-1 Nachbesserung und Asset-Check auf dem neuen Freeze (Tag `release-2026-10-freeze`).
 
 ## Verweise
 
 - Regeln: [.cursor/rules/omlify-autonom.mdc](../.cursor/rules/omlify-autonom.mdc)
-- Story: NU-1 (Chat 15.10.2026)
+- Story: NU-1 Nachbesserung (Chat 15.10.2026)
 - Offene Punkte: [docs/OFFENE_PUNKTE.md](OFFENE_PUNKTE.md)

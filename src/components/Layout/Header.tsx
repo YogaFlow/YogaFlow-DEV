@@ -71,6 +71,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
 
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
+      if (detail) return;
       const target = event.target as Node;
 
       if (
@@ -84,13 +85,12 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
     };
 
     const handleEscapeKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        if (detail) {
-          setDetail(null);
-          return;
-        }
-        setIsNotificationsOpen(false);
+      if (event.key !== 'Escape') return;
+      if (detail) {
+        setDetail(null);
+        return;
       }
+      setIsNotificationsOpen(false);
     };
 
     document.addEventListener('mousedown', handleOutsideClick);
@@ -101,6 +101,15 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
       document.removeEventListener('keydown', handleEscapeKey);
     };
   }, [detail]);
+
+  const openDetail = (notification: UserNotification) => {
+    setIsNotificationsOpen(false);
+    setDetail(notification);
+  };
+
+  const closeDetail = () => {
+    setDetail(null);
+  };
 
   const handleGoToRegistrations = (path?: string) => {
     setIsNotificationsOpen(false);
@@ -202,7 +211,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                           {preview.truncated ? (
                             <button
                               type="button"
-                              onClick={() => setDetail(notification)}
+                              onClick={() => openDetail(notification)}
                               className="w-full text-left text-sm text-text"
                             >
                               {preview.text}
@@ -240,34 +249,36 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
           open
           visible={detailVisible}
           canDismiss
-          onDismiss={() => setDetail(null)}
+          onDismiss={closeDetail}
           variant="dialog"
           panelClassName="max-w-md"
         >
-          <div className="p-5">
-            <div className="mb-3 flex items-start justify-between gap-3">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border px-5 py-4">
               <h3 className="text-base font-semibold text-text">
                 {detail.title?.trim() || 'Benachrichtigung'}
               </h3>
               <button
                 type="button"
-                onClick={() => setDetail(null)}
-                className="p-2 rounded-sm text-textMuted hover:bg-surfaceSunken"
+                onClick={closeDetail}
+                className="shrink-0 rounded-sm p-2 text-textMuted hover:bg-surfaceSunken"
                 aria-label="Schließen"
               >
                 <X size={18} />
               </button>
             </div>
-            <p className="text-sm leading-relaxed text-text whitespace-pre-wrap">{detail.body}</p>
-            {hasActionPath(detail.action_path) ? (
-              <button
-                type="button"
-                onClick={() => handleGoToRegistrations(detail.action_path)}
-                className="mt-4 inline-flex min-h-[44px] items-center text-sm font-medium text-brand"
-              >
-                {labelForNotificationPath(detail.action_path)}
-              </button>
-            ) : null}
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-text">{detail.body}</p>
+              {hasActionPath(detail.action_path) ? (
+                <button
+                  type="button"
+                  onClick={() => handleGoToRegistrations(detail.action_path)}
+                  className="mt-4 inline-flex min-h-[44px] items-center text-sm font-medium text-brand"
+                >
+                  {labelForNotificationPath(detail.action_path)}
+                </button>
+              ) : null}
+            </div>
           </div>
         </ModalBackdrop>
       ) : null}

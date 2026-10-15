@@ -1,4 +1,6 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
+import { lockBodyScroll } from '../../lib/bodyScrollLock';
 
 type ModalBackdropProps = {
   open: boolean;
@@ -50,8 +52,7 @@ export default function ModalBackdrop({
     if (!open) return;
     previousFocus.current =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const unlock = lockBodyScroll(document.body);
     const t = window.setTimeout(() => {
       const focusable = panelRef.current?.querySelector<HTMLElement>(
         'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
@@ -60,7 +61,7 @@ export default function ModalBackdrop({
     }, 0);
     return () => {
       window.clearTimeout(t);
-      document.body.style.overflow = prevOverflow;
+      unlock();
       previousFocus.current?.focus?.();
       previousFocus.current = null;
     };
@@ -79,6 +80,7 @@ export default function ModalBackdrop({
   }, [open, canDismiss, onDismiss]);
 
   if (!open) return null;
+  if (typeof document === 'undefined') return null;
 
   const align =
     variant === 'sheet'
@@ -87,12 +89,12 @@ export default function ModalBackdrop({
 
   const panelShape =
     variant === 'sheet'
-      ? `flex max-h-[90vh] w-full flex-col overflow-hidden rounded-t-lg border border-border bg-surface shadow-lg sm:max-h-[min(90vh,40rem)] sm:rounded-lg ${panelClassName}`
-      : `flex max-h-[90vh] w-full flex-col overflow-hidden rounded-lg border border-border bg-surface shadow-lg ${panelClassName}`;
+      ? `flex max-h-[min(90vh,100dvh)] w-full flex-col overflow-hidden rounded-t-lg border border-border bg-surface shadow-lg sm:max-h-[min(90vh,40rem)] sm:rounded-lg ${panelClassName}`
+      : `flex max-h-[min(90vh,100dvh)] w-full flex-col overflow-hidden rounded-lg border border-border bg-surface shadow-lg ${panelClassName}`;
 
-  return (
+  return createPortal(
     <div
-      className={`fixed inset-0 z-50 flex ${align} transition-opacity ${durationClass} ${blurClass} ${
+      className={`fixed inset-0 z-[100] flex ${align} pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] transition-opacity ${durationClass} ${blurClass} ${
         visible ? 'bg-text/40 opacity-100' : 'bg-text/0 opacity-0'
       }`}
       onClick={canDismiss ? onDismiss : undefined}
@@ -110,6 +112,7 @@ export default function ModalBackdrop({
       >
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
