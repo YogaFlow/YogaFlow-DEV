@@ -1,6 +1,6 @@
 # STAND — Omlify DEV
 
-Stand: 2026-10-15 · Branch `Julius` · Freeze `release-2026-10-freeze` = `4be2a15` (inkl. NU-1)
+Stand: 2026-10-15 · Branch `Julius` · Freeze `release-2026-10-freeze` = `b9a032f` (inkl. NU-1)
 
 ## DEV
 
@@ -15,7 +15,7 @@ Stand: 2026-10-15 · Branch `Julius` · Freeze `release-2026-10-freeze` = `4be2a
 
 ## Zuletzt abgeschlossen
 
-- **NU-1 „Neu für dich"** — Seite `/updates`, Glocke-Versand `send_studio_update`; DEV-Build success; Live-Merkmal `2026-10-zahlungen-im-blick` / `Kurskarte anlegen` in `index-Picg4PEw.js`; Tag `release-2026-10-freeze` = `4be2a15`. Bericht [nu1_neu_fuer_dich.md](berichte/nu1_neu_fuer_dich.md) · **STOPP Klicktest**
+- **NU-1 „Neu für dich"** — Seite `/updates`, Glocke-Versand `send_studio_update`; DEV-Build success; Live-Merkmal `2026-10-zahlungen-im-blick` / `Kurskarte anlegen` in `index-Picg4PEw.js`; Tag `release-2026-10-freeze` = `b9a032f`. Bericht [nu1_neu_fuer_dich.md](berichte/nu1_neu_fuer_dich.md) · **STOPP Klicktest**
 - **DEV-Demo YOMITA-Stand** — [demo_studio_yomita_stand.md](berichte/demo_studio_yomita_stand.md)
 - **Legal-Cleanup DEV vor Release-Abend** — [release_2026-10_abend_legal_cleanup.md](berichte/release_2026-10_abend_legal_cleanup.md)
 
@@ -32,7 +32,7 @@ Stand: 2026-10-15 · Branch `Julius` · Freeze `release-2026-10-freeze` = `4be2a
 
 ## hier weitermachen
 
-Klicktest NU-1, dann Release-Abend-Checkliste (Freeze `4be2a15`).
+Klicktest NU-1, dann Release-Abend-Checkliste (Freeze `b9a032f`).
 
 ## Verweise
 

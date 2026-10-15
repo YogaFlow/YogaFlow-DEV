@@ -49,7 +49,7 @@ Stand: 2026-10-15 · Branch `Julius` · **STOPP** (Klicktest Julius)
 | Beleg | Wert |
 |-------|------|
 | Feature-Commit | `7d68f03` (UI+Migration+Tests) |
-| HEAD / Tag | `4be2a15` = `release-2026-10-freeze` |
+| HEAD / Tag | `b9a032f` = `release-2026-10-freeze` |
 | Check-Run CI | `Typen, Lint und Build` → success |
 | Check-Run DEV | `Workers Builds: omlify-dev` → success |
 | Live-Bundle | `https://demoalpha.omlify-dev.de/assets/index-Picg4PEw.js` |
