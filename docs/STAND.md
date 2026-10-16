@@ -1,6 +1,6 @@
 # STAND — Omlify DEV
 
-Stand: 2026-10-16 · Branch `Julius` · Release 2026-10 **live** · Freeze `ba97419` · Merge `main` `bc89631`
+Stand: 2026-10-16 · Branch `Julius` · HEAD BC-1 · Release 2026-10 **live** · Freeze `ba97419` · Merge `main` `bc89631`
 
 ## DEV
 

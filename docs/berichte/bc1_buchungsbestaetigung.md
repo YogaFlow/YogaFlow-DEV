@@ -94,6 +94,18 @@ Nach Merge Julius → main:
 
 ---
 
+## Deploy-Nachweis Frontend (Haltestelle 5)
+
+| Nachweis | Beleg |
+|----------|-------|
+| Commit | `35f2e29` (`docs(bc1): Bericht und STAND`) |
+| Check-Run **Workers Builds: omlify-dev** | `success` · ID `116953709889` · completed `2026-10-16T11:38:48Z` |
+| `version.json` | `{"build":"35f2e29b138569562b28db15034341b9886cc8d9"}` |
+| Live-Bundle | `https://demoalpha.omlify-dev.de/assets/index-DCKzv6Fh.js` |
+| Merkmal | `Das erledigt Omlify automatisch` / `data-testid="legal-auto-help"` bei Index ~1005826 |
+
+---
+
 ## STOPP
 
-Haltestelle 5 — Klicktest fällig. Deploy-Nachweis Frontend folgt nach Push (Check-Run `Workers Builds: omlify-dev` + Bundle-Merkmal).
+Haltestelle 5 — Klicktest Julius (Liste oben). Agent wartet.
