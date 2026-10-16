@@ -98,11 +98,11 @@ Nach Merge Julius → main:
 
 | Nachweis | Beleg |
 |----------|-------|
-| Commit | `35f2e29` (`docs(bc1): Bericht und STAND`) |
-| Check-Run **Workers Builds: omlify-dev** | `success` · ID `116953709889` · completed `2026-10-16T11:38:48Z` |
-| `version.json` | `{"build":"35f2e29b138569562b28db15034341b9886cc8d9"}` |
-| Live-Bundle | `https://demoalpha.omlify-dev.de/assets/index-DCKzv6Fh.js` |
-| Merkmal | `Das erledigt Omlify automatisch` / `data-testid="legal-auto-help"` bei Index ~1005826 |
+| Commit | `246c7f8` (HEAD; Feature-Commits `c35ee69`…`5cd469f`) |
+| Check-Run **Workers Builds: omlify-dev** | `success` · ID `116955003424` · completed `2026-10-16T11:42:24Z` |
+| `version.json` | `{"build":"246c7f8c0656498141211713ae340fe0262b84bb"}` |
+| Live-Bundle | `https://demoalpha.omlify-dev.de/assets/index-Cg2ImhmS.js` |
+| Merkmal | `Das erledigt Omlify automatisch` / `legal-auto-help` bei Index ~1005826 |
 
 ---
 
