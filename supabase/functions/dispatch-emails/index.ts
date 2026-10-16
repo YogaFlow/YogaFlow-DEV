@@ -35,7 +35,7 @@ Deno.serve(async (req: Request) => {
       const { data: reg, error: re } = await supabase
         .from("registrations")
         .select(
-          "id, status, hold_expires_at, user_id, course_id, tenant_id, cancellation_deadline, terms_document_id",
+          "id, status, hold_expires_at, user_id, course_id, tenant_id, cancellation_deadline, terms_document_id, coverage_status, price_cents_at_booking, pass_id",
         )
         .eq("id", registrationId)
         .maybeSingle();
@@ -217,7 +217,20 @@ Deno.serve(async (req: Request) => {
         termsDocumentId,
         termsPdfPath,
         termsCreatedAt,
+        coverageStatus: typeof reg.coverage_status === "string" ? reg.coverage_status : null,
+        priceCentsAtBooking:
+          typeof reg.price_cents_at_booking === "number" ? reg.price_cents_at_booking : null,
+        passRemaining: null as number | null,
       };
+
+      if (typeof reg.pass_id === "string" && reg.pass_id && reg.coverage_status === "pass") {
+        const { data: movements } = await supabase
+          .from("pass_movements")
+          .select("delta")
+          .eq("pass_id", reg.pass_id);
+        const movs = Array.isArray(movements) ? movements : [];
+        ctx.passRemaining = movs.reduce((sum, m) => sum + Number(m.delta ?? 0), 0);
+      }
       return ctx;
     },
     loadPassContext: async (passId) => {
