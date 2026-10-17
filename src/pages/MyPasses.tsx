@@ -8,6 +8,7 @@ import PassHistoryList from '../components/passes/PassHistoryList';
 import ReceiptSeeLink from '../components/payments/ReceiptSeeLink';
 import PassPurchaseSheet from '../features/payments/PassPurchaseSheet';
 import PassWithdrawalDialog from '../components/passes/PassWithdrawalDialog';
+import FeedbackDialog, { type FeedbackDialogState } from '../components/ui/FeedbackDialog';
 import { useTenant } from '../context/TenantContext';
 import { formatCents } from '../lib/format';
 import {
@@ -47,6 +48,7 @@ const MyPasses: React.FC = () => {
   const [inactiveOpen, setInactiveOpen] = useState(false);
   const [buyProduct, setBuyProduct] = useState<OnlinePassProduct | null>(null);
   const [withdrawPass, setWithdrawPass] = useState<ManagedPass | null>(null);
+  const [feedback, setFeedback] = useState<FeedbackDialogState | null>(null);
 
   const reload = useCallback(async (mode: 'full' | 'soft' = 'full') => {
     if (mode === 'full') setLoading(true);
@@ -286,12 +288,14 @@ const MyPasses: React.FC = () => {
         open={withdrawPass != null}
         pass={withdrawPass}
         onClose={() => setWithdrawPass(null)}
-        onDone={() => {
+        onSuccess={(message) => {
           setWithdrawPass(null);
           setInactiveOpen(true);
+          setFeedback({ title: 'Widerruf', message, type: 'success' });
           void reload('soft');
         }}
       />
+      <FeedbackDialog dialog={feedback} onClose={() => setFeedback(null)} />
     </div>
   );
 };
