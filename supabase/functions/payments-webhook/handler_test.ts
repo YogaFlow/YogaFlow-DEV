@@ -60,12 +60,17 @@ class MemoryStore implements WebhookStore {
     const existing = this.rows.get(input.eventId);
     if (existing) {
       if (existing.livemode !== input.livemode) return Promise.resolve({ ok: false, code: "LIVEMODE_MISMATCH" });
+      // FS-1: Tenant nachlösen, falls Konto inzwischen verknüpft ist.
+      if (existing.tenantId === null && input.accountRef) {
+        existing.tenantId = this.accounts.get(input.accountRef) ?? null;
+      }
       return Promise.resolve({
         ok: true,
         id: existing.id,
         tenantId: existing.tenantId,
         duplicate: true,
         alreadyProcessed: existing.processedAt !== null,
+        attempts: existing.attempts,
       });
     }
     this.counter += 1;
@@ -81,7 +86,14 @@ class MemoryStore implements WebhookStore {
       attempts: 0,
     };
     this.rows.set(input.eventId, row);
-    return Promise.resolve({ ok: true, id: row.id, tenantId: row.tenantId, duplicate: false, alreadyProcessed: false });
+    return Promise.resolve({
+      ok: true,
+      id: row.id,
+      tenantId: row.tenantId,
+      duplicate: false,
+      alreadyProcessed: false,
+      attempts: 0,
+    });
   }
 
   markProcessed(id: string, errorCode: string | null): Promise<void> {
@@ -413,17 +425,59 @@ Deno.test("Webhook: frÃÂ¼herer Fehlschlag (nicht verarbeitet) Ã¢ÂÂ 
   assertEquals(s.store.upserts.length, 1);
 });
 
-Deno.test("Webhook: Studio unbekannt Ã¢ÂÂ TENANT_NOT_RESOLVED, 200, kein Nachlesen", async () => {
+Deno.test("Webhook: Studio unbekannt → TENANT_NOT_RESOLVED transient (500), kein Nachlesen", async () => {
   const s = setup();
   const { ref } = await s.provider.createConnectedAccount(TENANT, "k-unbekannt");
+  // Konto beim Fake anlegen, aber nicht in provider_accounts (Race).
+  s.store.accounts.delete(ref);
   const res = await handleWebhook(await signed(s, s.provider.buildEvent("account.updated", ref)), s.deps);
-  assertEquals(res.status, 200);
-  assertEquals(await readJson(res), { received: true });
+  assertEquals(res.status, 500);
+  assertEquals(await readJson(res), { code: "TENANT_NOT_RESOLVED" });
   assertEquals(s.provider.getAccountStateCalls, 0);
   assertEquals(s.store.upserts.length, 0);
   const row = s.store.only();
-  assert(row.processedAt !== null, "abschlieÃÂend behandelt");
-  assertEquals([row.tenantId, row.processingError], [null, "TENANT_NOT_RESOLVED"]);
+  assertEquals(row.processedAt, null);
+  assertEquals([row.tenantId, row.processingError, row.attempts], [null, null, 1]);
+});
+
+Deno.test("Webhook FS-1: TENANT_NOT_RESOLVED → nach Kontozuordnung verarbeitet", async () => {
+  const s = setup();
+  const { ref } = await s.provider.createConnectedAccount(TENANT, "k-race");
+  s.store.accounts.delete(ref);
+  const body = s.provider.buildEvent("account.updated", ref);
+
+  const first = await handleWebhook(await signed(s, body), s.deps);
+  assertEquals(first.status, 500);
+  assertEquals(s.store.only().attempts, 1);
+
+  s.store.accounts.set(ref, TENANT);
+  const second = await handleWebhook(await signed(s, body), s.deps);
+  assertEquals(second.status, 200);
+  const row = s.store.only();
+  assert(row.processedAt !== null, "verarbeitet");
+  assertEquals(row.processingError, null);
+  assertEquals(row.tenantId, TENANT);
+  assertEquals(s.store.upserts.length, 1);
+});
+
+Deno.test("Webhook FS-1: TENANT_NOT_RESOLVED nach 3 Versuchen endgültig + Alarm-Code", async () => {
+  const s = setup();
+  const { ref } = await s.provider.createConnectedAccount(TENANT, "k-final");
+  s.store.accounts.delete(ref);
+  const body = s.provider.buildEvent("account.updated", ref);
+
+  for (let i = 0; i < 3; i++) {
+    const res = await handleWebhook(await signed(s, body), s.deps);
+    assertEquals(res.status, 500);
+  }
+  assertEquals(s.store.only().attempts, 3);
+
+  const last = await handleWebhook(await signed(s, body), s.deps);
+  assertEquals(last.status, 200);
+  const row = s.store.only();
+  assert(row.processedAt !== null, "endgültig");
+  assertEquals(row.processingError, "TENANT_NOT_RESOLVED");
+  assertEquals(s.store.upserts.length, 0);
 });
 
 Deno.test("Webhook: upsert liefert ACCOUNT_TENANT_MISMATCH Ã¢ÂÂ Code gespeichert, 200", async () => {

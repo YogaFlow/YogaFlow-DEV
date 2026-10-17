@@ -39,8 +39,19 @@ export interface RecordEventInput {
 }
 
 export type RecordEventResult =
-  | { ok: true; id: string; tenantId: string | null; duplicate: boolean; alreadyProcessed: boolean }
+  | {
+    ok: true;
+    id: string;
+    tenantId: string | null;
+    duplicate: boolean;
+    alreadyProcessed: boolean;
+    /** Bisherige markFailed/markProcessed-Zähler (vor diesem Versuch). */
+    attempts: number;
+  }
   | { ok: false; code: string };
+
+/** FS-1: nach so vielen fehlgeschlagenen Versuchen TENANT_NOT_RESOLVED endgültig. */
+export const TENANT_RESOLVE_MAX_ATTEMPTS = 3;
 
 export type UpsertAccountResult = { ok: true } | { ok: false; code: string };
 export type MarkDisconnectedResult = { ok: true; changed: boolean } | { ok: false; code: string };
@@ -302,7 +313,12 @@ export async function handleWebhook(req: Request, deps: WebhookDeps): Promise<Re
 
   if (domain?.type === "provider_account.updated") {
     if (record.tenantId === null) {
-      processingError = "TENANT_NOT_RESOLVED";
+      // FS-1: Konto-Events oft vor provider_accounts-Zeile → Stripe erneut zustellen lassen.
+      if (record.attempts >= TENANT_RESOLVE_MAX_ATTEMPTS) {
+        processingError = "TENANT_NOT_RESOLVED";
+      } else {
+        return await failTransient("TENANT_NOT_RESOLVED");
+      }
     } else {
       let state: ProviderAccountState | null = null;
       try {
