@@ -23,6 +23,7 @@ import type { PassHistoryEntry } from '../lib/passHistory';
 import {
   fetchOwnPassesWithHistory,
   formatPassUntil,
+  passInactiveLabel,
   type ManagedPass,
   type PassMovementView,
 } from '../lib/passes';
@@ -47,8 +48,8 @@ const MyPasses: React.FC = () => {
   const [buyProduct, setBuyProduct] = useState<OnlinePassProduct | null>(null);
   const [withdrawPass, setWithdrawPass] = useState<ManagedPass | null>(null);
 
-  const reload = useCallback(async () => {
-    setLoading(true);
+  const reload = useCallback(async (mode: 'full' | 'soft' = 'full') => {
+    if (mode === 'full') setLoading(true);
     setError('');
     try {
       const [passes, online, common] = await Promise.all([
@@ -75,7 +76,7 @@ const MyPasses: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    void reload();
+    void reload('full');
   }, [reload]);
 
   if (loading) {
@@ -194,9 +195,16 @@ const MyPasses: React.FC = () => {
                   className="rounded-md border border-border bg-surfaceSunken px-3 py-2.5"
                 >
                   <p className="text-sm font-medium text-text">{pass.name}</p>
-                  <p className="mt-0.5 text-xs tabular-nums text-textMuted">
-                    noch {pass.remaining} von {pass.units_total} · gültig bis{' '}
-                    {formatPassUntil(pass.valid_until)}
+                  <p
+                    className="mt-0.5 text-xs tabular-nums text-textMuted"
+                    data-testid={
+                      pass.status === 'revoked' ? `pass-status-revoked-${pass.id}` : undefined
+                    }
+                  >
+                    {passInactiveLabel(pass)}
+                    {pass.status !== 'revoked'
+                      ? ` · noch ${pass.remaining} von ${pass.units_total} · gültig bis ${formatPassUntil(pass.valid_until)}`
+                      : ''}
                   </p>
                   {receiptByPayment[pass.payment_id] ? (
                     <div className="mt-2">
@@ -278,7 +286,11 @@ const MyPasses: React.FC = () => {
         open={withdrawPass != null}
         pass={withdrawPass}
         onClose={() => setWithdrawPass(null)}
-        onDone={() => void reload()}
+        onDone={() => {
+          setWithdrawPass(null);
+          setInactiveOpen(true);
+          void reload('soft');
+        }}
       />
     </div>
   );

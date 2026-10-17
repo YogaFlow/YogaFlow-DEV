@@ -420,6 +420,16 @@ async function main() {
       .eq('id', wBought.done.pass_id)
       .single();
     ok('Pass revoked nach Widerruf', wPassRow?.status === 'revoked', JSON.stringify(wPassRow));
+    const { count: unitsLowAfterWithdraw } = await admin
+      .from('email_deliveries')
+      .select('id', { count: 'exact', head: true })
+      .eq('kind', 'pass_units_low')
+      .eq('pass_id', wBought.done.pass_id);
+    ok(
+      'FS-1 kein pass_units_low nach Widerruf',
+      (unitsLowAfterWithdraw ?? 0) === 0,
+      String(unitsLowAfterWithdraw),
+    );
     const { data: refunds } = await admin
       .from('payment_refunds')
       .select('amount_cents, reason')

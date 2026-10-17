@@ -460,8 +460,8 @@ export function passPurchaseLabel(pass: ManagedPass): string {
 }
 
 export function passInactiveLabel(pass: ManagedPass): string {
-  if (pass.status === 'revoked' && pass.revoked_at) {
-    return `storniert am ${formatDateTime(pass.revoked_at)}`;
+  if (pass.status === 'revoked') {
+    return 'Widerrufen';
   }
   if (pass.status === 'expired' || pass.valid_until < new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Europe/Berlin',
