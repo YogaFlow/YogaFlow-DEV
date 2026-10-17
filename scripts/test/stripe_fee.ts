@@ -13,6 +13,7 @@ import {
   refundStripeFeeHint,
   refundStripeFeeHintMulti,
 } from '../../src/lib/refundTexts.ts';
+import { FEES_BODY_TEXT } from '../../src/features/payments/paymentSetupCopy.ts';
 
 const n = (s: string | null | undefined) => (s ?? '').replace(/\u00A0/g, ' ');
 
@@ -55,4 +56,12 @@ test('Hinweis Mehrfach', () => {
     n(refundStripeFeeHintMulti(8, 8 * 1500)),
     'Stripe behält die Gebühr der ursprünglichen Zahlung auch bei einer Erstattung. Bei 8 Online-Zahlungen sind das zusammen ca. 3,84 €.',
   );
+});
+
+test('Kosten-Text B (Zahlungsseite)', () => {
+  assert.match(FEES_BODY_TEXT, /Kreditkarte, Apple Pay oder Google Pay/);
+  assert.match(FEES_BODY_TEXT, /rund 0,48 €/);
+  assert.match(FEES_BODY_TEXT, /Bei einer Erstattung behält Stripe die Gebühr/);
+  assert.match(FEES_BODY_TEXT, /Stand 10\/2026/);
+  assert.equal(FEES_BODY_TEXT.includes('Premium- und Firmenkarten: 2,8'), false);
 });

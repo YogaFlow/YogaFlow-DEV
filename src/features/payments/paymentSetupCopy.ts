@@ -1,25 +1,38 @@
 /**
- * Texte und Gebühren-Konstanten für Online-Zahlung (1.3b, U5).
- * Preise: Stripe-Listenpreis, Stand 09/2026 — nicht dynamisch nachgeladen.
+ * Texte und Gebühren-Konstanten für Online-Zahlung (1.3b, U5, FS-1).
+ * Preise: Stripe-Listenpreis, Stand 10/2026 — nicht dynamisch nachgeladen.
  */
-import { formatPrice } from '../../lib/format';
+import {
+  estimateStripeFeeCents,
+  STRIPE_CARD_FEE_FIXED_CENTS,
+  STRIPE_CARD_FEE_PERCENT,
+} from '../../lib/stripeFee';
 
 /** Beispielbetrag für die Gebührenrechnung in der UI. */
 export const FEE_EXAMPLE_EUR = 15;
 
-/** Standardkarte EWR: Anteil in Prozent. Stand 09/2026, Stripe-Listenpreis. */
-export const FEE_CARD_PERCENT = 1.5;
-/** Fester Anteil in Euro je Kartenzahlung. Stand 09/2026, Stripe-Listenpreis. */
-export const FEE_FIXED_EUR = 0.25;
-/** Premium-/Firmenkarten: Anteil in Prozent. Stand 09/2026, Stripe-Listenpreis. */
-export const FEE_PREMIUM_PERCENT = 2.8;
+/** Standardkarte EWR: Anteil in Prozent. Stand 10/2026, Stripe-Listenpreis. */
+export const FEE_CARD_PERCENT = STRIPE_CARD_FEE_PERCENT;
+/** Fester Anteil in Euro je Kartenzahlung. Stand 10/2026, Stripe-Listenpreis. */
+export const FEE_FIXED_EUR = STRIPE_CARD_FEE_FIXED_CENTS / 100;
 
 export function feeForPercent(amountEur: number, percent: number): number {
+  const cents = Math.round(amountEur * 100);
+  if (percent === FEE_CARD_PERCENT) {
+    return estimateStripeFeeCents(cents) / 100;
+  }
   return Math.round((amountEur * (percent / 100) + FEE_FIXED_EUR) * 100) / 100;
 }
 
 export const FEE_EXAMPLE_CARD_EUR = feeForPercent(FEE_EXAMPLE_EUR, FEE_CARD_PERCENT);
-export const FEE_EXAMPLE_PREMIUM_EUR = feeForPercent(FEE_EXAMPLE_EUR, FEE_PREMIUM_PERCENT);
+
+/** FS-1 Kosten-Absatz (Einstellungen › Zahlungen › Online-Zahlung). */
+export const FEES_BODY_TEXT =
+  'Zahlung mit Kreditkarte, Apple Pay oder Google Pay: 1,5 % + 0,25 € je Zahlung (Standardkarten aus dem EWR). ' +
+  'Beispiel 15 €: 1,5 % × 15 € = 0,225 € + 0,25 € = 0,475 €, also rund 0,48 €. ' +
+  'Für einzelne Karten (z. B. Firmenkarten) kann Stripe etwas mehr berechnen. ' +
+  'Die Gebühr zahlt dein Studio direkt an Stripe. Omlify verlangt nichts zusätzlich. ' +
+  'Bei einer Erstattung behält Stripe die Gebühr. Stand 10/2026, Stripe-Listenpreis.';
 
 export const STRIPE_DASHBOARD_URL = 'https://dashboard.stripe.com';
 
@@ -46,14 +59,7 @@ export const copy = {
       'Stripe fragt zu Beginn nach deiner E-Mail-Adresse und legt dafür ein eigenes Stripe-Login an.',
     duration: 'Das dauert etwa 10 Minuten.',
     feesTitle: 'Kosten',
-    feesBody: () =>
-      [
-        `Kreditkartenzahlung (Standardkarte EWR): 1,5 % + ${formatPrice(FEE_FIXED_EUR)} je Zahlung.`,
-        `Beispiel ${formatPrice(FEE_EXAMPLE_EUR)}: 1,5 % × ${formatPrice(FEE_EXAMPLE_EUR)} = 0,225 € + ${formatPrice(FEE_FIXED_EUR)} = 0,475 €, also rund ${formatPrice(FEE_EXAMPLE_CARD_EUR)}.`,
-        `Premium- und Firmenkarten: 2,8 % + ${formatPrice(FEE_FIXED_EUR)}, bei ${formatPrice(FEE_EXAMPLE_EUR)} also ${formatPrice(FEE_EXAMPLE_PREMIUM_EUR)}.`,
-        'Die Gebühr zahlt dein Studio direkt an Stripe. Omlify verlangt nichts zusätzlich.',
-        'Stand 09/2026, Stripe-Listenpreis.',
-      ].join(' '),
+    feesBody: () => FEES_BODY_TEXT,
     cta: 'Online-Zahlung einrichten',
   },
 
