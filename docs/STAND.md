@@ -31,11 +31,11 @@ Stand: 2026-10-16 · Branch `Julius` · HEAD BC-1 · Release 2026-10 **live** ·
 
 ## Haltestellen / wartet auf Julius
 
-- **BC-1 Haltestelle 5** — Klicktest [bc1_buchungsbestaetigung.md](berichte/bc1_buchungsbestaetigung.md)
+- **BC-1 STOPP vor Merge** — Reihenfolge Function → Merge → Migration; Befehle in [bc1_buchungsbestaetigung.md](berichte/bc1_buchungsbestaetigung.md)
 
 ## hier weitermachen
 
-Nach Klicktest-GO: Push-Deploy-Nachweis / PR Julius → main; PROD 1 Migration + Functions.
+Nach Merge + PROD Function/Migration: Prüfabfragen und Live-Rauch Pilot.
 
 ## Verweise
 
