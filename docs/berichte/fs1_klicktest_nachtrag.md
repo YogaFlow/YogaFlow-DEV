@@ -49,8 +49,22 @@ Server ok (revoked, kein `pass_units_low`). UI: nach Bestätigen Reset auf „We
 
 ## Commits / Prüfung
 
-Sie sieht der Push nach diesem Bericht. `check:ci` + Live-Bundle-Merkmal im Abschluss.
+| | |
+|---|---|
+| A | `9f40b6b` |
+| B | `bc4c499` |
+| HEAD | `bc4c499` (+ Docs ggf. danach) |
+| `check:ci` | grün |
+| Live DEV | `https://demoepsilon.omlify-dev.de/assets/index-CjjfU9AV.js` · Merkmal `pass-withdrawal-blocked` |
+| Asset-404 | Probe → 404 |
+| Bundle-Hashes privacy | DEV+PROD identisch `f8966bceddfe6d8a3c83eb2d8b9bf06b7528b231e489613ee37b85f0b9508866` |
+
+## Klicktest (nochmal)
+
+1. demoepsilon: Datenschutz freigeben → kein „Vorlage hat sich geändert“
+2. Widerruf Kurskarte → Dialog zu, Toast, Status „Widerrufen“, kein Bestätigen mehr
+3. Erneuter Widerruf-Versuch → nur Hinweis, kein Bestätigen-Knopf
 
 ## STOPP
 
-PROD erst nach GO von Julius (Frontend-Hotfix Freigabe-Version ist PROD-relevant für Tanja).
+PROD erst nach GO von Julius. Für Tanja: nach Merge reicht Frontend (keine Migration). Reihenfolge: Merge → Cloudflare PROD-Build.

@@ -1,6 +1,6 @@
 # STAND — Omlify DEV
 
-Stand: 2026-10-17 · Branch `Julius` · HEAD FS-1 · Release 2026-10 **live** · Freeze `ba97419` · Merge `main` `bc89631`
+Stand: 2026-10-17 · Branch `Julius` · HEAD FS-1 Klicktest-Nachtrag · Release 2026-10 **live** · Freeze `ba97419` · Merge `main` `bc89631`
 
 ## DEV
 
@@ -20,7 +20,8 @@ Stand: 2026-10-17 · Branch `Julius` · HEAD FS-1 · Release 2026-10 **live** ·
 
 ## Zuletzt abgeschlossen
 
-- **FS-1 Teil A–F** — Gebührenhinweis, Kosten-Text, ops-monitor 15 s, Widerruf-UI, Webhook-Retry. Bericht [fs1_feinschliff.md](berichte/fs1_feinschliff.md) — STOPP vor PROD / Klicktest
+- **FS-1 Klicktest-Nachtrag** — Datenschutz-Freigabe VERSION_MISMATCH (Client), Widerruf-Dialog. [fs1_klicktest_nachtrag.md](berichte/fs1_klicktest_nachtrag.md)
+- **FS-1 Teil A–F** — Gebührenhinweis, Kosten-Text, ops-monitor 15 s, Widerruf-UI, Webhook-Retry. Bericht [fs1_feinschliff.md](berichte/fs1_feinschliff.md)
 - **BC-1 Teil A–D** — Outbox + Dispatcher + AGB v3 + Owner-Kasten. Bericht [bc1_buchungsbestaetigung.md](berichte/bc1_buchungsbestaetigung.md) — wartet auf Klicktest
 - **Neuigkeit „Online bezahlen“** — Teilnehmerbrief live, Merge `bc89631`. Bericht [nu1_online_bezahlen_brief.md](berichte/nu1_online_bezahlen_brief.md)
 - **Release 2026-10** — live, GO. Bericht [release_2026-10_abend.md](berichte/release_2026-10_abend.md)
@@ -33,7 +34,7 @@ Stand: 2026-10-17 · Branch `Julius` · HEAD FS-1 · Release 2026-10 **live** ·
 
 ## Haltestellen / wartet auf Julius
 
-- **FS-1 STOPP vor PROD** — Klicktest; Reihenfolge in [fs1_feinschliff.md](berichte/fs1_feinschliff.md)
+- **FS-1 STOPP vor PROD** — Nachtrag-Klicktest; PROD braucht Frontend für Tanja (Datenschutz-Freigabe). Siehe [fs1_klicktest_nachtrag.md](berichte/fs1_klicktest_nachtrag.md)
 - **BC-1 STOPP vor Merge** — Reihenfolge Function → Merge → Migration; Befehle in [bc1_buchungsbestaetigung.md](berichte/bc1_buchungsbestaetigung.md)
 
 ## hier weitermachen
