@@ -1,6 +1,6 @@
 # STAND — Omlify DEV
 
-Stand: 2026-10-17 · Branch `Julius` · HEAD FS-1 Klicktest-Nachtrag · Release 2026-10 **live** · Freeze `ba97419` · Merge `main` `bc89631`
+Stand: 2026-10-17 · Branch `Julius` · HEAD `6fb937e` FS-1 GO-Vorbereitung · Release 2026-10 **live** · Freeze `ba97419` · Merge `main` `177c93b`
 
 ## DEV
 
@@ -34,7 +34,7 @@ Stand: 2026-10-17 · Branch `Julius` · HEAD FS-1 Klicktest-Nachtrag · Release 
 
 ## Haltestellen / wartet auf Julius
 
-- **FS-1 STOPP vor PROD** — Nachtrag-Klicktest; PROD braucht Frontend für Tanja (Datenschutz-Freigabe). Siehe [fs1_klicktest_nachtrag.md](berichte/fs1_klicktest_nachtrag.md)
+- **FS-1 STOPP vor Merge** — Compare-Link + PROD-Befehle in [fs1_prod_go.md](berichte/fs1_prod_go.md); Dry-Run ggf. BC-1 mit dabei
 - **BC-1 STOPP vor Merge** — Reihenfolge Function → Merge → Migration; Befehle in [bc1_buchungsbestaetigung.md](berichte/bc1_buchungsbestaetigung.md)
 
 ## hier weitermachen
