@@ -1,6 +1,10 @@
 import { hasCourseEnded } from './courseDateTime.ts';
 import { formatCents } from './format.ts';
 import { formatCancellationDeadline } from './passRefundInfo.ts';
+import {
+  estimateStripeFeeCents,
+  estimateStripeFeeCentsForPayments,
+} from './stripeFee.ts';
 
 /** Ein Eintrag aus get_registration_refund_states. */
 export type RegistrationRefundState = {
@@ -103,7 +107,31 @@ export function isCancelledEnrollmentVisible(
   return state.pending_cents > 0 || state.failed;
 }
 
+/** @deprecated FS-1: durch refundStripeFeeHint ersetzt. */
 export const REFUND_FEE_HINT = 'Stripe erstattet seine Gebühr für die Zahlung nicht.';
+
+const FEE_HINT_LEAD =
+  'Stripe behält die Gebühr der ursprünglichen Zahlung auch bei einer Erstattung.';
+
+/** Hinweis über dem Bestätigen-Knopf (Einzelzahlung; Gebühr geschätzt, sofern unbekannt). */
+export function refundStripeFeeHint(amountCents: number, knownFeeCents?: number | null): string {
+  if (knownFeeCents != null && knownFeeCents > 0) {
+    return `${FEE_HINT_LEAD} Bei dieser Zahlung sind das ${formatCents(knownFeeCents)}.`;
+  }
+  const fee = estimateStripeFeeCents(amountCents);
+  return `${FEE_HINT_LEAD} Bei dieser Zahlung sind das ca. ${formatCents(fee)}.`;
+}
+
+/** Hinweis bei mehreren Online-Zahlungen (Kurs absagen / Person entfernen). */
+export function refundStripeFeeHintMulti(
+  paidCount: number,
+  totalAmountCents: number,
+): string | null {
+  if (paidCount <= 0 || totalAmountCents <= 0) return null;
+  if (paidCount === 1) return refundStripeFeeHint(totalAmountCents);
+  const fee = estimateStripeFeeCentsForPayments(paidCount, totalAmountCents);
+  return `${FEE_HINT_LEAD} Bei ${paidCount} Online-Zahlungen sind das zusammen ca. ${formatCents(fee)}.`;
+}
 
 export const REFUND_REASON_CHIPS = ['Kulanz', 'Doppelt gebucht', 'Krankheit', 'Sonstiges'] as const;
 export type RefundReasonChip = (typeof REFUND_REASON_CHIPS)[number];
@@ -140,10 +168,12 @@ export function refundSummary(
   firstName: string,
   amountCents: number,
   refundableCents: number,
+  paymentAmountCents?: number,
 ): string {
   const who = firstName.trim() || 'die Person';
   const rest = Math.max(refundableCents - amountCents, 0);
-  return `${formatCents(amountCents)} an ${who} erstatten. Danach noch erstattbar: ${formatCents(rest)}. ${REFUND_FEE_HINT}`;
+  const feeBase = paymentAmountCents ?? amountCents;
+  return `${formatCents(amountCents)} an ${who} erstatten. Danach noch erstattbar: ${formatCents(rest)}. ${refundStripeFeeHint(feeBase)}`;
 }
 
 /** Vorbelegung des Betragsfelds: 2400 → „24,00“. */

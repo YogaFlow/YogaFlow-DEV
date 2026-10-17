@@ -14,8 +14,8 @@ Erledigte Punkte werden gestrichen und mit Datum unter „Erledigt" vermerkt.
 Abend 15.10.2026, [release_2026-10_abend.md](berichte/release_2026-10_abend.md).
 
 - [ ] **Buchungsbestätigung bei Vor-Ort-Buchung** — `booking_confirmed` über die Outbox, mit AGB-PDF, § 312f. Am Abend kam bei Vor-Ort keine Mail; das ist eine Lücke, keine Regression.
-- [ ] **Erstatten-Dialog: Hinweis, dass die Stripe-Gebühr nicht zurückkommt** — z. B. 15 € → 0,48 €.
-- [ ] **Zahlungsseite: Satz zu Premium-/Firmenkarten streichen.** Kreditkarte, Apple Pay und Google Pay nennen.
+- [x] **Erstatten-Dialog: Hinweis, dass die Stripe-Gebühr nicht zurückkommt** — FS-1 17.10.2026, z. B. 15 € → ca. 0,48 €.
+- [x] **Zahlungsseite: Satz zu Premium-/Firmenkarten streichen.** FS-1 17.10.2026 — „ab 1,5 % + 0,25 €“, ohne Firmenkarten-Satz.
 
 ## Jetzt
 

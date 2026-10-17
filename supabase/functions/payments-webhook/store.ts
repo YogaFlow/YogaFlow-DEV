@@ -51,12 +51,16 @@ export function createSupabaseWebhookStore(client: SupabaseClient): WebhookStore
       if (typeof data.id !== "string" || typeof data.duplicate !== "boolean" || typeof data.already_processed !== "boolean") {
         throw new StoreError("record_provider_event");
       }
+      const attempts = typeof data.attempts === "number" && Number.isFinite(data.attempts)
+        ? data.attempts
+        : 0;
       return {
         ok: true,
         id: data.id,
         tenantId: typeof data.tenant_id === "string" ? data.tenant_id : null,
         duplicate: data.duplicate,
         alreadyProcessed: data.already_processed,
+        attempts,
       };
     },
 

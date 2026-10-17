@@ -134,8 +134,8 @@ test('stornierte Buchung sichtbar bis Kursende, danach nur pending/failed', () =
 
 test('Owner: Zusammenfassung, Eingabe, Prüfung', () => {
   assert.equal(
-    n(refundSummary('Anna', 1000, 2400)),
-    '10,00 € an Anna erstatten. Danach noch erstattbar: 14,00 €. Stripe erstattet seine Gebühr für die Zahlung nicht.',
+    n(refundSummary('Anna', 1000, 2400, 2400)),
+    '10,00 € an Anna erstatten. Danach noch erstattbar: 14,00 €. Stripe behält die Gebühr der ursprünglichen Zahlung auch bei einer Erstattung. Bei dieser Zahlung sind das ca. 0,61 €.',
   );
   assert.equal(centsToRefundInput(2400), '24,00');
   assert.equal(centsToRefundInput(1450), '14,50');

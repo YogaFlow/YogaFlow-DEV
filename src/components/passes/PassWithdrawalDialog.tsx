@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import type { ManagedPass } from '../../lib/passes';
-import { formatCents } from '../../lib/format';
+import {
+  passWithdrawalAfterConfirm,
+  passWithdrawalAlreadyMessage,
+  type PassWithdrawalPhase,
+} from '../../lib/passWithdrawalUi';
 import {
   passWithdrawalCalcLine,
   passWithdrawalUpcomingNotice,
@@ -24,32 +28,47 @@ type Props = {
   open: boolean;
   pass: ManagedPass | null;
   onClose: () => void;
-  onDone: () => void;
+  /** Nach erfolgreichem Widerruf: Liste aktualisieren; Dialog schließt der Parent. */
+  onSuccess: (message: string) => void;
 };
 
-const PassWithdrawalDialog: React.FC<Props> = ({ open, pass, onClose, onDone }) => {
-  const [step, setStep] = useState<'form' | 'summary'>('form');
+const PassWithdrawalDialog: React.FC<Props> = ({ open, pass, onClose, onSuccess }) => {
+  const [phase, setPhase] = useState<PassWithdrawalPhase>('form');
   const [preview, setPreview] = useState<Preview | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [doneMsg, setDoneMsg] = useState('');
+  const [infoMsg, setInfoMsg] = useState('');
 
   useEffect(() => {
     if (!open || !pass) return;
-    setStep('form');
+    setPhase('form');
     setPreview(null);
     setError('');
-    setDoneMsg('');
+    setInfoMsg('');
     setBusy(false);
+
+    if (pass.status === 'revoked') {
+      setPhase('blocked');
+      setInfoMsg(passWithdrawalAlreadyMessage());
+      return;
+    }
+
     void supabase
       .rpc('get_pass_withdrawal_preview', { p_pass_id: pass.id })
       .then(({ data, error: err }) => {
         if (err) {
           setError('Widerruf konnte nicht geladen werden.');
+          setPhase('blocked');
           return;
         }
         const body = (data ?? {}) as Preview & { success?: boolean; error?: string };
         if (body.success === false) {
+          if (body.error === 'ALREADY_WITHDRAWN') {
+            setPhase('blocked');
+            setInfoMsg(passWithdrawalAlreadyMessage());
+            return;
+          }
+          setPhase('blocked');
           setError(
             body.error === 'WINDOW_EXPIRED'
               ? 'Die Widerrufsfrist für diesen Kauf ist abgelaufen.'
@@ -78,7 +97,7 @@ const PassWithdrawalDialog: React.FC<Props> = ({ open, pass, onClose, onDone }) 
       : '';
 
   const confirm = async () => {
-    if (!pass || busy) return;
+    if (!pass || busy || phase === 'blocked' || phase === 'done') return;
     setBusy(true);
     setError('');
     try {
@@ -94,24 +113,24 @@ const PassWithdrawalDialog: React.FC<Props> = ({ open, pass, onClose, onDone }) 
         error?: string;
         refund_cents?: number;
       };
-      if (body.success !== true) {
-        setError(
-          body.error === 'WINDOW_EXPIRED'
-            ? 'Die Widerrufsfrist für diesen Kauf ist abgelaufen.'
-            : body.error === 'ALREADY_WITHDRAWN'
-              ? 'Dieser Vertrag wurde bereits widerrufen.'
-              : 'Widerruf fehlgeschlagen.',
-        );
+      const next = passWithdrawalAfterConfirm(body);
+      if (next.phase === 'done') {
+        onSuccess(next.message);
         return;
       }
-      setDoneMsg(
-        `Widerruf bestätigt. ${formatCents(body.refund_cents ?? 0)} werden erstattet. Du erhältst eine Eingangsbestätigung per E-Mail.`,
-      );
-      onDone();
+      setPhase(next.phase);
+      if (next.phase === 'blocked') {
+        setInfoMsg(next.message);
+        setError('');
+      } else {
+        setError(next.message);
+      }
     } finally {
       setBusy(false);
     }
   };
+
+  const showConfirm = phase === 'summary' && !infoMsg;
 
   return (
     <div
@@ -130,13 +149,17 @@ const PassWithdrawalDialog: React.FC<Props> = ({ open, pass, onClose, onDone }) 
           Vertrag widerrufen
         </h3>
 
-        {doneMsg ? (
-          <p className="mt-4 text-[15px] text-text">{doneMsg}</p>
-        ) : error && !preview ? (
+        {phase === 'blocked' ? (
+          <div className="mt-4 space-y-3">
+            <p className="text-[15px] text-text" data-testid="pass-withdrawal-blocked" role="status">
+              {infoMsg || error || passWithdrawalAlreadyMessage()}
+            </p>
+          </div>
+        ) : error && !preview && phase === 'form' ? (
           <p className="mt-4 text-sm text-danger" role="alert">
             {error}
           </p>
-        ) : step === 'form' ? (
+        ) : phase === 'form' ? (
           <div className="mt-4 space-y-3">
             <p className="text-[15px] text-text">
               Du widerrufst den Kauf von „{pass.name}“.
@@ -149,7 +172,7 @@ const PassWithdrawalDialog: React.FC<Props> = ({ open, pass, onClose, onDone }) 
               <button
                 type="button"
                 className="inline-flex min-h-11 items-center rounded-full bg-brand px-5 text-[15px] font-medium text-onBrand"
-                onClick={() => setStep('summary')}
+                onClick={() => setPhase('summary')}
                 disabled={!preview?.within_window}
               >
                 Weiter zur Zusammenfassung
@@ -171,15 +194,17 @@ const PassWithdrawalDialog: React.FC<Props> = ({ open, pass, onClose, onDone }) 
                 {error}
               </p>
             ) : null}
-            <button
-              type="button"
-              disabled={busy}
-              className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-danger px-5 text-[15px] font-medium text-onBrand disabled:opacity-50"
-              onClick={() => void confirm()}
-              data-testid="pass-withdrawal-confirm"
-            >
-              {busy ? 'Wird bestätigt…' : 'Widerruf bestätigen'}
-            </button>
+            {showConfirm ? (
+              <button
+                type="button"
+                disabled={busy}
+                className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-danger px-5 text-[15px] font-medium text-onBrand disabled:opacity-50"
+                onClick={() => void confirm()}
+                data-testid="pass-withdrawal-confirm"
+              >
+                {busy ? 'Wird bestätigt…' : 'Widerruf bestätigen'}
+              </button>
+            ) : null}
           </div>
         )}
 
@@ -189,7 +214,7 @@ const PassWithdrawalDialog: React.FC<Props> = ({ open, pass, onClose, onDone }) 
           onClick={onClose}
           disabled={busy}
         >
-          {doneMsg ? 'Schließen' : 'Abbrechen'}
+          {phase === 'blocked' ? 'Schließen' : 'Abbrechen'}
         </button>
       </div>
     </div>

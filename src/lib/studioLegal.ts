@@ -16,6 +16,9 @@ import {
   STUDIO_LEGAL_TEMPLATES,
   type StudioLegalTemplateKind,
 } from '../generated/studioLegalTemplates';
+import { studioLegalReleaseVersion } from './studioLegalVersion';
+
+export { studioLegalReleaseVersion } from './studioLegalVersion';
 import {
   loadStudioLegalProfile,
   saveStudioLegalProfile,
@@ -237,7 +240,9 @@ export async function publishStudioLegalDocument(input: {
   const defaultVersion =
     input.kind === 'imprint'
       ? findStudioLegalTemplateRelease('imprint').version
-      : STUDIO_LEGAL_TEMPLATE_VERSION;
+      : input.kind === 'terms' || input.kind === 'privacy'
+        ? studioLegalReleaseVersion(input.kind)
+        : STUDIO_LEGAL_TEMPLATE_VERSION;
   const { data, error } = await supabase.rpc('publish_studio_legal_document', {
     p_kind: input.kind,
     p_template_version: input.templateVersion || defaultVersion,
@@ -343,7 +348,10 @@ export async function resyncStudioLegalDocuments(tenant: {
       const templateVersion =
         kind === 'imprint'
           ? findStudioLegalTemplateRelease('imprint').version
-          : kindStatus.accepted_version || STUDIO_LEGAL_TEMPLATE_VERSION;
+          : kindStatus.accepted_version ||
+            (kind === 'terms' || kind === 'privacy'
+              ? studioLegalReleaseVersion(kind)
+              : STUDIO_LEGAL_TEMPLATE_VERSION);
       const res = await publishStudioLegalDocument({
         kind,
         bodyMd,
@@ -370,7 +378,7 @@ export async function releaseStudioLegal(input: {
   const contentHash = await hashNormalizedLegalText(input.bodyMd);
   const { data, error } = await supabase.rpc('release_studio_legal', {
     p_kind: input.kind,
-    p_template_version: STUDIO_LEGAL_TEMPLATE_VERSION,
+    p_template_version: studioLegalReleaseVersion(input.kind),
     p_body_md: input.bodyMd,
     p_values: input.values,
     p_content_hash: contentHash,
@@ -442,7 +450,7 @@ export async function saveExtraRulesAndResync(input: {
       bodyMd,
       values,
       trigger: 'profile_change',
-      templateVersion: status.terms.accepted_version || STUDIO_LEGAL_TEMPLATE_VERSION,
+      templateVersion: status.terms.accepted_version || studioLegalReleaseVersion('terms'),
     });
     if (!pub.ok) return { ok: false, message: pub.message };
   }
