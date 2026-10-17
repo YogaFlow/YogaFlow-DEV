@@ -215,4 +215,27 @@ Live: Pilot vor Ort buchen → eine `booking_confirmed`-Mail; Owner-Banner AGB v
 
 ## STOPP
 
-STOPP vor Merge. PR erstellen/CI prüfen (gh-Auth war lokal offen). Agent führt keine PROD-Befehle aus.
+STOPP vor Merge. PR Julius→main noch **nicht** angelegt (`gh` lokal ohne Login; Browser ohne GitHub-Session).  
+Compare: https://github.com/YogaFlow/YogaFlow-DEV/compare/main...Julius?expand=1  
+
+```powershell
+gh auth login
+gh pr create --base main --head Julius --title "feat(bc1): Buchungsbestätigung Vor-Ort + AGB v3" --body "$(@'
+## Summary
+- Outbox `booking_confirmed` für alle Wege zu registered außer Online (inkl. Kurskarte)
+- `dispatch-emails` Builder + Unique je `registration_id`
+- Studio-AGB Vorlage v3 (`agb.v3.md`); Banner wie L3, keine Auto-Freigabe
+- Owner-Kasten Auto-Hilfe auf dem Rechtstexte-Hub
+
+## PROD-Reihenfolge
+Function `dispatch-emails` → Merge/Frontend → 1 Migration `20261016121000` (nicht Migration vor Merge — AGB-Text liegt im Bundle)
+
+## Test plan
+- [ ] CI grün
+- [ ] Nach Merge: PROD-Bundle Merkmal `legal-auto-help`
+- [ ] Dry-run zeigt genau 1 Migration
+- [ ] Prüfabfragen aus Bericht
+'@)"
+```
+
+CI abwarten → STOPP vor Merge bleibt. Agent führt keine PROD-Befehle aus.
