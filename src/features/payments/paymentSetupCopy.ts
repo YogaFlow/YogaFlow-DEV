@@ -28,9 +28,8 @@ export const FEE_EXAMPLE_CARD_EUR = feeForPercent(FEE_EXAMPLE_EUR, FEE_CARD_PERC
 
 /** FS-1 Kosten-Absatz (Einstellungen › Zahlungen › Online-Zahlung). */
 export const FEES_BODY_TEXT =
-  'Zahlung mit Kreditkarte, Apple Pay oder Google Pay: 1,5 % + 0,25 € je Zahlung (Standardkarten aus dem EWR). ' +
+  'Zahlung mit Kreditkarte, Apple Pay oder Google Pay: ab 1,5 % + 0,25 € je Zahlung. ' +
   'Beispiel 15 €: 1,5 % × 15 € = 0,225 € + 0,25 € = 0,475 €, also rund 0,48 €. ' +
-  'Für einzelne Karten (z. B. Firmenkarten) kann Stripe etwas mehr berechnen. ' +
   'Die Gebühr zahlt dein Studio direkt an Stripe. Omlify verlangt nichts zusätzlich. ' +
   'Bei einer Erstattung behält Stripe die Gebühr. Stand 10/2026, Stripe-Listenpreis.';
 

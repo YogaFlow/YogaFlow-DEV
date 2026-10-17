@@ -59,9 +59,14 @@ test('Hinweis Mehrfach', () => {
 });
 
 test('Kosten-Text B (Zahlungsseite)', () => {
-  assert.match(FEES_BODY_TEXT, /Kreditkarte, Apple Pay oder Google Pay/);
-  assert.match(FEES_BODY_TEXT, /rund 0,48 €/);
-  assert.match(FEES_BODY_TEXT, /Bei einer Erstattung behält Stripe die Gebühr/);
-  assert.match(FEES_BODY_TEXT, /Stand 10\/2026/);
-  assert.equal(FEES_BODY_TEXT.includes('Premium- und Firmenkarten: 2,8'), false);
+  assert.equal(
+    FEES_BODY_TEXT,
+    'Zahlung mit Kreditkarte, Apple Pay oder Google Pay: ab 1,5 % + 0,25 € je Zahlung. ' +
+      'Beispiel 15 €: 1,5 % × 15 € = 0,225 € + 0,25 € = 0,475 €, also rund 0,48 €. ' +
+      'Die Gebühr zahlt dein Studio direkt an Stripe. Omlify verlangt nichts zusätzlich. ' +
+      'Bei einer Erstattung behält Stripe die Gebühr. Stand 10/2026, Stripe-Listenpreis.',
+  );
+  assert.match(FEES_BODY_TEXT, /ab 1,5 % \+ 0,25 €/);
+  assert.equal(FEES_BODY_TEXT.includes('Firmenkarten'), false);
+  assert.equal(FEES_BODY_TEXT.includes('Standardkarten aus dem EWR'), false);
 });
