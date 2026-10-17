@@ -6,8 +6,8 @@ import { RECEIPT_LINK_LABEL, refundReceiptHeading } from '../../lib/legalCheckou
 import { listReceiptsForPayments, type ReceiptRecord } from '../../lib/receipts';
 import {
   DISPUTE_OPEN_HINT,
-  REFUND_FEE_HINT,
   REFUND_NOTE_MAX,
+  refundStripeFeeHint,
   REFUND_REASON_CHIPS,
   composeRefundNote,
   refundAmountError,
@@ -347,6 +347,12 @@ const PaymentRefundSheet: React.FC<PaymentRefundSheetProps> = ({
                 ) : null}
 
                 <div>
+                  <p
+                    className="mb-2 text-[13px] leading-5 text-textMuted"
+                    data-testid="refund-fee-hint"
+                  >
+                    {refundStripeFeeHint(detail.amount_cents)}
+                  </p>
                   <button
                     type="button"
                     onClick={() => void submit()}
@@ -357,7 +363,6 @@ const PaymentRefundSheet: React.FC<PaymentRefundSheetProps> = ({
                       ? 'Bitte warten…'
                       : `${formatCents(cents ?? refundable)} erstatten`}
                   </button>
-                  <p className="mt-2 text-[13px] leading-5 text-textMuted">{REFUND_FEE_HINT}</p>
                 </div>
               </div>
             ) : null}

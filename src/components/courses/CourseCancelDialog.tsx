@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
-import { courseCancelRefundLine } from '../../lib/refundTexts';
+import { courseCancelRefundLine, refundStripeFeeHintMulti } from '../../lib/refundTexts';
 import {
   onlineRefundForScope,
   type CourseCancelDialogModel,
@@ -51,6 +51,10 @@ const CourseCancelDialog: React.FC<CourseCancelDialogProps> = ({
   );
   const online = onlineRefundForScope(dialog);
   const onlineLine = online ? courseCancelRefundLine(online.paidCount, online.refundCents) : null;
+  const feeHint =
+    online && online.paidCount > 0 && online.refundCents > 0
+      ? refundStripeFeeHintMulti(online.paidCount, online.refundCents)
+      : null;
   // paid zählt wie bisher über alle Termine; Online-Zahlende davon abziehen.
   const onlineAllCount = Object.values(dialog.onlineByCourse ?? {}).reduce(
     (sum, row) => sum + row.paid_count,
@@ -180,31 +184,41 @@ const CourseCancelDialog: React.FC<CourseCancelDialogProps> = ({
             </p>
           ) : null}
 
-          <div className="mt-6 flex items-center justify-end gap-3 border-t border-border pt-6">
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={dialog.busy}
-              className="inline-flex min-h-11 items-center rounded-full bg-surfaceSunken px-4 text-[15px] font-medium text-textMuted focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 disabled:opacity-50"
-            >
-              Abbrechen
-            </button>
-            <button
-              type="button"
-              onClick={onConfirm}
-              disabled={dialog.busy}
-              className={
-                cancelling
-                  ? 'inline-flex min-h-11 items-center rounded-full px-4 text-[15px] font-medium text-danger hover:bg-dangerSoft focus:outline-none focus-visible:ring-2 focus-visible:ring-danger focus-visible:ring-offset-2 disabled:opacity-50'
-                  : 'inline-flex min-h-11 items-center rounded-full bg-brand px-4 text-[15px] font-medium text-onBrand active:bg-brandPressed focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 disabled:opacity-50'
-              }
-            >
-              {dialog.busy
-                ? 'Bitte warten…'
-                : cancelling
-                  ? 'Kurs absagen'
-                  : 'Absage zurücknehmen'}
-            </button>
+          <div className="mt-6 border-t border-border pt-6">
+            {cancelling && feeHint ? (
+              <p
+                className="mb-3 text-[13px] leading-5 text-textMuted"
+                data-testid="cancel-fee-hint"
+              >
+                {feeHint}
+              </p>
+            ) : null}
+            <div className="flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={onCancel}
+                disabled={dialog.busy}
+                className="inline-flex min-h-11 items-center rounded-full bg-surfaceSunken px-4 text-[15px] font-medium text-textMuted focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 disabled:opacity-50"
+              >
+                Abbrechen
+              </button>
+              <button
+                type="button"
+                onClick={onConfirm}
+                disabled={dialog.busy}
+                className={
+                  cancelling
+                    ? 'inline-flex min-h-11 items-center rounded-full px-4 text-[15px] font-medium text-danger hover:bg-dangerSoft focus:outline-none focus-visible:ring-2 focus-visible:ring-danger focus-visible:ring-offset-2 disabled:opacity-50'
+                    : 'inline-flex min-h-11 items-center rounded-full bg-brand px-4 text-[15px] font-medium text-onBrand active:bg-brandPressed focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 disabled:opacity-50'
+                }
+              >
+                {dialog.busy
+                  ? 'Bitte warten…'
+                  : cancelling
+                    ? 'Kurs absagen'
+                    : 'Absage zurücknehmen'}
+              </button>
+            </div>
           </div>
         </div>
       </div>

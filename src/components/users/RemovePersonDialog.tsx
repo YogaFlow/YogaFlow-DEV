@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { memberRemovalRefundLine } from '../../lib/refundTexts';
+import { memberRemovalRefundLine, refundStripeFeeHintMulti } from '../../lib/refundTexts';
 
 export type RemovePersonTarget = {
   firstName: string;
@@ -54,6 +54,10 @@ const RemovePersonDialog: React.FC<RemovePersonDialogProps> = ({
 
   const name = `${target.firstName} ${target.lastName}`.trim();
   const refundLine = memberRemovalRefundLine(target.onlinePaidCount, target.onlineRefundCents);
+  const feeHint =
+    target.onlinePaidCount > 0 && target.onlineRefundCents > 0
+      ? refundStripeFeeHintMulti(target.onlinePaidCount, target.onlineRefundCents)
+      : null;
   const openHref = target.openBookings === 1 && target.openCourseId
     ? `/course/${target.openCourseId}/participants`
     : '/participants';
@@ -104,23 +108,33 @@ const RemovePersonDialog: React.FC<RemovePersonDialogProps> = ({
             </Link>
           ) : null}
         </div>
-        <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={busy}
-            className="inline-flex min-h-11 items-center rounded-full px-6 text-sm font-semibold text-textMuted hover:bg-surfaceSunken disabled:opacity-50"
-          >
-            Abbrechen
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            disabled={busy}
-            className="inline-flex min-h-11 items-center rounded-full bg-danger px-6 text-sm font-semibold text-onBrand disabled:opacity-50"
-          >
-            {busy ? 'Wird entfernt …' : 'Endgültig entfernen'}
-          </button>
+        <div className="mt-6 space-y-3">
+          {feeHint ? (
+            <p
+              className="text-[13px] leading-5 text-textMuted"
+              data-testid="remove-person-fee-hint"
+            >
+              {feeHint}
+            </p>
+          ) : null}
+          <div className="flex flex-wrap justify-center gap-3">
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={busy}
+              className="inline-flex min-h-11 items-center rounded-full px-6 text-sm font-semibold text-textMuted hover:bg-surfaceSunken disabled:opacity-50"
+            >
+              Abbrechen
+            </button>
+            <button
+              type="button"
+              onClick={onConfirm}
+              disabled={busy}
+              className="inline-flex min-h-11 items-center rounded-full bg-danger px-6 text-sm font-semibold text-onBrand disabled:opacity-50"
+            >
+              {busy ? 'Wird entfernt …' : 'Endgültig entfernen'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
