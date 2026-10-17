@@ -6,7 +6,7 @@ import {
   estimateStripeFeeCents,
   STRIPE_CARD_FEE_FIXED_CENTS,
   STRIPE_CARD_FEE_PERCENT,
-} from '../../lib/stripeFee';
+} from '../../lib/stripeFee.ts';
 
 /** Beispielbetrag für die Gebührenrechnung in der UI. */
 export const FEE_EXAMPLE_EUR = 15;
