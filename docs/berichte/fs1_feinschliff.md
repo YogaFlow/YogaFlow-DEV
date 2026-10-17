@@ -103,6 +103,16 @@ Empfehlung PROD: **Migration → Function → Merge** (Frontend unabhängig). Al
 4. Teilnehmer: Kurskarte online kaufen → widerrufen → Ansicht sofort „Widerrufen“, keine Mail „Karte fast aufgebraucht“.
 5. (Cursor) ops-monitor: Timeout 15 s in Funktion; aktuelle `_http_response` ohne `timed_out`.
 
+## Deploy-Nachweis (vor Haltestelle 5)
+
+| Beleg | Wert |
+|---|---|
+| HEAD pushed | `53c3985` |
+| Live-Bundle | `https://demoalpha.omlify-dev.de/assets/index-Dg8gP9NQ.js` |
+| Merkmal | `Stand 10/2026, Stripe-Listenpreis` (Kosten-Text B) |
+| Asset-404 | `…/assets/index-DOES-NOT-EXIST.js` → 404 |
+| Check-Run | `gh` lokal ohne Auth — Build belegt über Bundle-Wechsel `index-CgfljcTC.js` → `index-Dg8gP9NQ.js` mit Merkmal |
+
 ## STOPP
 
 Warten auf Klicktest. **Kein PROD** ohne Freigabe.
