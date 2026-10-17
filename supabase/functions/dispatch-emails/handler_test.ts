@@ -5,9 +5,12 @@ import {
   SECRET_HEADER,
   authorizeDispatch,
   buildMyRegistrationsLink,
+  bookingConfirmedPayLine,
+  buildBookingConfirmedEmail,
   buildPaymentRefundedEmail,
   buildPaymentSucceededEmail,
   buildPromotionEmail,
+  classifyBookingConfirmed,
   classifyDelivery,
   classifyPaymentRefunded,
   classifyPaymentSucceeded,
@@ -277,6 +280,89 @@ const paidCtx: DeliveryContext = {
   hasRefund: false,
   refundRequired: false,
 };
+
+Deno.test("BC-1 booking_confirmed: Zahlungszeilen und Versand ohne Beleg", async () => {
+  assertEquals(
+    bookingConfirmedPayLine({ coverageStatus: "open", priceCentsAtBooking: 1800 }),
+    "18,00 \u20AC · Zahlung vor Ort",
+  );
+  assertEquals(
+    bookingConfirmedPayLine({ coverageStatus: "not_required", priceCentsAtBooking: 0 }),
+    "kostenlos",
+  );
+  assertEquals(
+    bookingConfirmedPayLine({ coverageStatus: "pass", passRemaining: 3 }),
+    "Mit Kurskarte · noch 3 Termine",
+  );
+  assertEquals(
+    bookingConfirmedPayLine({ coverageStatus: "pass", passRemaining: 1 }),
+    "Mit Kurskarte · noch 1 Termin",
+  );
+
+  const regId = "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff";
+  const mail = buildBookingConfirmedEmail({
+    courseTitle: "Hatha",
+    courseDate: "16.10.2026",
+    courseTime: "10:00",
+    studioName: "Om Studio",
+    payLine: "18,00 € · Zahlung vor Ort",
+    link: "https://omstudio.omlify-dev.de/my-registrations",
+    registrationId: regId,
+    courseDateRaw: "2026-10-16",
+    courseEndTime: "11:00:00",
+    place: "Neuss",
+  });
+  assert(mail.html.includes("Du bist dabei"), "Überschrift");
+  assert(mail.html.includes("Zahlung vor Ort"), "Zahlungszeile");
+  assert(!mail.html.includes("Beleg"), "kein Beleg");
+  assert(!mail.html.includes("§ 19"), "kein Steuer-Satz im Kasten");
+  assertEquals(mail.attachments?.length, 1);
+
+  assertEquals(
+    classifyBookingConfirmed({
+      ...paidCtx,
+      registrationStatus: "registered",
+      amountCents: null,
+    }),
+    "ok",
+  );
+  assertEquals(
+    classifyBookingConfirmed({ ...paidCtx, registrationStatus: "waitlist" }),
+    "NOT_REGISTERED",
+  );
+
+  const { deps, mails, marks } = makeDeps({
+    rows: [{
+      id: "bc1",
+      tenant_id: "t1",
+      event_id: "ebc1",
+      kind: "booking_confirmed",
+      registration_id: regId,
+      status: "sending",
+      attempts: 0,
+    }],
+    ctxByReg: {
+      [regId]: {
+        ...paidCtx,
+        registrationStatus: "registered",
+        amountCents: null,
+        receiptId: null,
+        receiptNumber: null,
+        courseDate: "2026-10-16",
+        courseTime: "10:00:00",
+        courseEndTime: "11:00:00",
+        coverageStatus: "open",
+        priceCentsAtBooking: 1800,
+        termsDocumentId: null,
+      },
+    },
+  });
+  const out = await runDispatch(deps);
+  assertEquals(out.results[0]?.code, "SENT");
+  assertEquals(mails.length, 1);
+  assert(mails[0]!.html.includes("Zahlung vor Ort"), "HTML Zahlung vor Ort");
+  assertEquals(marks[0]?.status, "sent");
+});
 
 Deno.test("18. payment_succeeded: gueltig gesendet; erstattet skipped", async () => {
   const amount = formatEurCents(2400);

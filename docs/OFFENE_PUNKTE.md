@@ -16,7 +16,6 @@ Abend 15.10.2026, [release_2026-10_abend.md](berichte/release_2026-10_abend.md).
 - [ ] **Buchungsbestätigung bei Vor-Ort-Buchung** — `booking_confirmed` über die Outbox, mit AGB-PDF, § 312f. Am Abend kam bei Vor-Ort keine Mail; das ist eine Lücke, keine Regression.
 - [ ] **Erstatten-Dialog: Hinweis, dass die Stripe-Gebühr nicht zurückkommt** — z. B. 15 € → 0,48 €.
 - [ ] **Zahlungsseite: Satz zu Premium-/Firmenkarten streichen.** Kreditkarte, Apple Pay und Google Pay nennen.
-- [ ] **Vorbefüllter Text der Neuigkeit „Online bezahlen“** (Teilnehmer-Nachricht) durch die neue Fassung ersetzen. Die Fassung folgt separat.
 
 ## Jetzt
 
@@ -340,6 +339,7 @@ Abend 15.10.2026, [release_2026-10_abend.md](berichte/release_2026-10_abend.md).
 
 ## Erledigt
 
+- 15.10.2026 — Vorbefüllter Text der Neuigkeit „Online bezahlen“ ersetzt (Brief, Vor-Ort-Absatz nur wenn vor Ort aktiv). Merge `bc89631`, Bericht [nu1_online_bezahlen_brief.md](berichte/nu1_online_bezahlen_brief.md).
 - 30.09.2026 — 2.2a-1 geschrieben (nicht angewendet): `psp_clearing`, Checkout-RPCs,
   `register_for_course`→`pending_payment`, Test `_helpers.mjs` + `s2_2a_1_online_payment.mjs`.
 - 29.09.2026 — 2.1b-b: S1–S8, S6a–h, K3, E2 auf DEV (Outbox, `dispatch-emails`, UI

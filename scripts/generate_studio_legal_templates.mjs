@@ -28,6 +28,7 @@ export function hashLegalText(text) {
 const FILE_VERSION_DATES = {
   1: '2026-10-05',
   2: '2026-10-08',
+  3: '2026-10-16',
 };
 
 const KIND_FILES = {
@@ -42,9 +43,16 @@ const ACCEPTANCE_DOCS = {
 };
 
 function isMainModule() {
-  const self = fileURLToPath(import.meta.url);
-  const invoked = process.argv[1] ? join(process.cwd(), process.argv[1]) : '';
-  return self === invoked || self.replace(/\\/g, '/') === String(invoked).replace(/\\/g, '/');
+  const self = fileURLToPath(import.meta.url).replace(/\\/g, '/').toLowerCase();
+  const arg = process.argv[1];
+  if (!arg) return false;
+  const invoked = (arg.match(/^[A-Za-z]:[\\/]/) || arg.startsWith('/')
+    ? arg
+    : join(process.cwd(), arg)
+  )
+    .replace(/\\/g, '/')
+    .toLowerCase();
+  return self === invoked || self.endsWith(invoked) || invoked.endsWith(self.replace(/^.*\//, ''));
 }
 
 function loadKindReleases(kind) {

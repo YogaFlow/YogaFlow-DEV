@@ -1,38 +1,41 @@
 # STAND — Omlify DEV
 
-Stand: 2026-10-15 · Branch `Julius` · Release 2026-10 **live** · Freeze `ba97419` · Merge `main` `bcb2c95`
+Stand: 2026-10-16 · Branch `Julius` · HEAD BC-1 · Release 2026-10 **live** · Freeze `ba97419` · Merge `main` `bc89631`
 
 ## DEV
 
-- Migrationen bis `20261015193000` (**207** applied)
-- Functions: `list_released_updates`, `list_studio_update_sends`; `send_studio_update` prüft Freigabe
+- Migrationen bis `20261016121000` (**208** applied) — BC-1 `booking_confirmed` + AGB-Vorlage v3
+- Functions: `dispatch-emails` mit `booking_confirmed` (DEV deployed)
 - Neuigkeiten: DEV alle 4 IDs freigegeben; PROD ohne Freigaben
 - Plattform: `online_payments` an (DEV); Modus `allowlist`
+- Studio-AGB-Vorlage aktuell `2026-10-16` (v3); Demos accepted noch `2026-10-08` (Banner)
 
 ## PROD
 
 - Release 2026-10 live seit 15.10.2026. Bericht [release_2026-10_abend.md](berichte/release_2026-10_abend.md)
-- Migrationen bis `20261015193000` (die 92 fehlenden sind angewendet)
+- Migrationen bis `20261015193000` — BC-1 noch nicht
 - 19 Edge Functions, Frontend Worker `yogaflow-dev`
 - `online_payments` an, Modus `allowlist`, Studios `omlifytest` und `yomita`
 - Neuigkeiten: keine Freigaben
 
 ## Zuletzt abgeschlossen
 
+- **BC-1 Teil A–D** — Outbox + Dispatcher + AGB v3 + Owner-Kasten. Bericht [bc1_buchungsbestaetigung.md](berichte/bc1_buchungsbestaetigung.md) — wartet auf Klicktest
+- **Neuigkeit „Online bezahlen“** — Teilnehmerbrief live, Merge `bc89631`. Bericht [nu1_online_bezahlen_brief.md](berichte/nu1_online_bezahlen_brief.md)
 - **Release 2026-10** — live, GO. Bericht [release_2026-10_abend.md](berichte/release_2026-10_abend.md)
-- **NU-1 Zuklappen-Toggle** — im Freeze `ba97419` mit ausgeliefert. Bericht [nu1_neu_fuer_dich.md](berichte/nu1_neu_fuer_dich.md)
 
 ## Nächste Schritte
 
-- **Vor Pilot-Onboarding Yomita** — vier Punkte in [OFFENE_PUNKTE.md](OFFENE_PUNKTE.md) (Vor-Ort-Bestätigung, Gebühr-Hinweis, Zahlungsseite, Neuigkeit „Online bezahlen“)
+- Klicktest BC-1 (demoalpha), dann PR / PROD-Migration + `dispatch-emails`
+- Weitere Punkte in [OFFENE_PUNKTE.md](OFFENE_PUNKTE.md)
 
 ## Haltestellen / wartet auf Julius
 
-- keine aus dem Release-Abend
+- **BC-1 STOPP vor Merge** — Reihenfolge Function → Merge → Migration; Befehle in [bc1_buchungsbestaetigung.md](berichte/bc1_buchungsbestaetigung.md)
 
 ## hier weitermachen
 
-Punkte „Bald — vor Pilot-Onboarding Yomita“ in [OFFENE_PUNKTE.md](OFFENE_PUNKTE.md).
+Nach Merge + PROD Function/Migration: Prüfabfragen und Live-Rauch Pilot.
 
 ## Verweise
 

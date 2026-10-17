@@ -266,6 +266,9 @@ function DocDetail({
   const { isOwner } = useAuth();
   const [previewMd, setPreviewMd] = useState('');
   const [valuesLabel, setValuesLabel] = useState<ReturnType<typeof termsFactRows>>([]);
+  const [autoHelp, setAutoHelp] = useState<{ payOnline: boolean; passesAny: boolean } | null>(
+    null,
+  );
   const [privacyExtra, setPrivacyExtra] = useState<ReturnType<typeof privacyFactRows> | null>(
     null,
   );
@@ -300,8 +303,16 @@ function DocDetail({
         const md = renderStudioLegalKind(kind, values);
         if (!active) return;
         setPreviewMd(md);
-        if (kind === 'terms') setValuesLabel(termsFactRows(values));
-        else setPrivacyExtra(privacyFactRows(values));
+        if (kind === 'terms') {
+          setValuesLabel(termsFactRows(values));
+          setAutoHelp({
+            payOnline: values.pay_online === true,
+            passesAny: values.passes_any === true,
+          });
+        } else {
+          setPrivacyExtra(privacyFactRows(values));
+          setAutoHelp(null);
+        }
       } catch {
         if (active) setPreviewMd('');
       }
@@ -496,6 +507,36 @@ function DocDetail({
               {err}
             </p>
           ) : null}
+        </section>
+      ) : null}
+
+      {kind === 'terms' && autoHelp ? (
+        <section
+          className="rounded-md border border-border bg-surfaceSunken p-3.5"
+          data-testid="legal-auto-help"
+        >
+          <h3 className="text-[15px] font-medium text-text">
+            Das erledigt Omlify automatisch für dich
+          </h3>
+          <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[14px] leading-5 text-text">
+            <li>
+              Bestätigungs-Mail an Teilnehmende bei jeder Buchung, mit deinen AGB als PDF
+            </li>
+            {autoHelp.payOnline ? (
+              <li>
+                Erstattung bei rechtzeitiger Abmeldung, wenn online bezahlt wurde
+              </li>
+            ) : null}
+            {autoHelp.passesAny ? (
+              <li>Gutschrift auf die Karte bei rechtzeitiger Abmeldung</li>
+            ) : null}
+            {autoHelp.passesAny ? (
+              <li>Erinnerung 30 und 7 Tage vor Kartenablauf</li>
+            ) : null}
+          </ul>
+          <p className="mt-2 text-[12px] leading-4 text-textMuted">
+            Du musst dich darum nicht selbst kümmern.
+          </p>
         </section>
       ) : null}
 

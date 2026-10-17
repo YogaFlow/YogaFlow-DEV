@@ -6,6 +6,7 @@
  * prüft je kind, baut HTML+Text(+ICS), sendet über send-email.
  *
  * kinds: waitlist_promoted_payment_required | payment_succeeded | payment_refunded
+ *      | booking_confirmed
  *      | pass_purchased | pass_expiring_30 | pass_expiring_7 | pass_units_low
  *      | pass_withdrawal_received | pass_withdrawal_refunded
  *
@@ -119,6 +120,12 @@ export type DeliveryContext = {
   termsDocumentId?: string | null;
   termsPdfPath?: string | null;
   termsCreatedAt?: string | null;
+  /** BC-1: coverage_status der Registrierung (open / pass / not_required / …). */
+  coverageStatus?: string | null;
+  /** BC-1: eingefrorener Kurspreis in Cent. */
+  priceCentsAtBooking?: number | null;
+  /** BC-1: Resttermine nach Karteneinlösung. */
+  passRemaining?: number | null;
 };
 
 /** K1: Kontext für Karten-Mails (subject = pass). */
@@ -923,6 +930,144 @@ export function buildPromotionEmail(input: {
   return { subject, html, text };
 }
 
+/** BC-1 Zahlungszeile ohne Beleg. */
+export function bookingConfirmedPayLine(input: {
+  coverageStatus?: string | null;
+  priceCentsAtBooking?: number | null;
+  passRemaining?: number | null;
+}): string {
+  if (input.coverageStatus === "pass") {
+    const n = input.passRemaining;
+    if (n == null || !Number.isFinite(n)) return "Mit Kurskarte";
+    const unit = n === 1 ? "Termin" : "Termine";
+    return `Mit Kurskarte · noch ${n} ${unit}`;
+  }
+  const cents = input.priceCentsAtBooking ?? 0;
+  if (cents <= 0 || input.coverageStatus === "not_required") return "kostenlos";
+  return `${formatEurCents(cents)} · Zahlung vor Ort`;
+}
+
+/** BC-1: Buchungsbestätigung ohne Online-Beleg. */
+export function buildBookingConfirmedEmail(input: {
+  courseTitle: string;
+  courseDate: string;
+  courseTime: string;
+  studioName: string;
+  payLine: string;
+  link: string;
+  registrationId: string;
+  calendarIcsUrl?: string | null;
+  googleCalendarUrl?: string | null;
+  legalName?: string | null;
+  legalStreet?: string | null;
+  legalHouse?: string | null;
+  legalPostal?: string | null;
+  legalCity?: string | null;
+  contactEmail?: string | null;
+  legalPhone?: string | null;
+  place?: string | null;
+  teacherName?: string | null;
+  cancelDeadline?: string | null;
+  brandColor?: string | null;
+  logoUrl?: string | null;
+  courseDateRaw?: string | null;
+  courseEndTime?: string | null;
+}): EmailPayload {
+  const subject = `Buchungsbestätigung: ${input.courseTitle} am ${input.courseDate}`;
+  const preheader = formatEmailPreheader({
+    courseDate: input.courseDateRaw ?? null,
+    courseTime: input.courseTime,
+    courseTitle: input.courseTitle,
+    place: input.place,
+  });
+
+  const ics = buildIcs({
+    uid: input.registrationId,
+    summary: input.courseTitle,
+    date: input.courseDateRaw ?? "",
+    startTime: input.courseTime,
+    endTime: input.courseEndTime,
+    location: input.place ?? undefined,
+    description: `Buchung bei ${input.studioName}`,
+    method: "REQUEST",
+  });
+
+  const accent = resolveBrandAccent(input.brandColor);
+
+  const calendarPrimary = input.calendarIcsUrl
+    ? `<p style="margin:0 0 8px 0;">${primaryButtonHtml(input.calendarIcsUrl, "In Kalender eintragen", accent)}</p>`
+    : "";
+  const calendarSecondary = input.googleCalendarUrl
+    ? `<p style="margin:0 0 20px 0;font-size:13px;">${textLinkHtml(input.googleCalendarUrl, "Google Kalender", accent)}</p>`
+    : `<p style="margin:0 0 20px 0;"></p>`;
+
+  const bodyHtml = `
+    ${termCardHtml({
+      courseDate: input.courseDateRaw ?? null,
+      courseTime: input.courseTime,
+      courseEndTime: input.courseEndTime,
+      courseTitle: input.courseTitle,
+      place: input.place,
+      teacherName: input.teacherName,
+      accent,
+    })}
+    ${calendarPrimary}
+    ${calendarSecondary}
+    <p style="margin:0 0 20px 0;">
+      ${textLinkHtml(input.link, "Buchung ansehen", accent)}
+    </p>
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 16px 0;background:#F5F3EF;border-radius:8px;">
+      <tr>
+        <td style="padding:14px 16px;">
+          <p style="margin:0;font-size:15px;font-weight:600;color:#1F1B16;">${escapeHtml(input.payLine)}</p>
+        </td>
+      </tr>
+    </table>
+    <p style="margin:0;font-size:14px;color:#374151;">${escapeHtml(cancelLine(input.cancelDeadline))}</p>`;
+
+  const textBody = [
+    `Deine Buchung bei ${input.studioName} ist bestätigt.`,
+    `${input.courseTitle}`,
+    `${input.courseDate} ${input.courseTime}${input.place ? ` · ${input.place}` : ""}`,
+    input.teacherName ? `Lehrende: ${input.teacherName}` : "",
+    input.payLine,
+    cancelLine(input.cancelDeadline),
+    "Für Kurse mit festem Termin besteht kein Widerrufsrecht (§ 312g Abs. 2 Nr. 9 BGB).",
+    `Buchung ansehen: ${input.link}`,
+    input.calendarIcsUrl ? `Kalender: ${input.calendarIcsUrl}` : "",
+    input.googleCalendarUrl ? `Google Kalender: ${input.googleCalendarUrl}` : "",
+    "Kalenderdatei im Anhang (ICS).",
+  ].filter(Boolean).join("\n");
+
+  const { html, text } = renderEmailShell(
+    {
+      preheader,
+      studioName: input.studioName,
+      logoUrl: input.logoUrl,
+      brandColor: input.brandColor,
+      title: "Du bist dabei",
+      introHtml: `Deine Buchung bei ${escapeHtml(input.studioName)} ist bestätigt.`,
+      bodyHtml,
+      footerHtml: providerFooterHtml(input),
+    },
+    textBody + "\n\n" + [
+      input.legalName || input.studioName,
+      `${input.legalStreet ?? ""} ${input.legalHouse ?? ""}`.trim(),
+      `${input.legalPostal ?? ""} ${input.legalCity ?? ""}`.trim(),
+      input.contactEmail ?? "",
+    ].filter(Boolean).join("\n"),
+  );
+
+  const attachments: EmailAttachment[] = [{
+    filename: "buchung.ics",
+    content: ics,
+    contentType: "text/calendar; charset=utf-8; method=REQUEST",
+    encoding: "utf-8",
+  }];
+
+  return { subject, html, text, attachments };
+}
+
 export function buildPaymentSucceededEmail(input: {
   courseTitle: string;
   courseDate: string;
@@ -1219,6 +1364,15 @@ export function classifyPaymentSucceeded(
   return "ok";
 }
 
+/** BC-1: booking_confirmed — kein Beleg, Preis 0 erlaubt. */
+export function classifyBookingConfirmed(
+  ctx: DeliveryContext | null,
+): "ok" | "RECIPIENT_GONE" | "NOT_REGISTERED" {
+  if (recipientGone(ctx)) return "RECIPIENT_GONE";
+  if (ctx!.registrationStatus !== "registered") return "NOT_REGISTERED";
+  return "ok";
+}
+
 /** J10: payment_refunded. */
 export function classifyPaymentRefunded(
   ctx: DeliveryContext | null,
@@ -1471,6 +1625,87 @@ export async function runDispatch(deps: DispatchDeps): Promise<DispatchResult> {
         place: placeOf(ctx!),
         teacherName: ctx!.teacherName,
       });
+      const code = await sendBuilt(deps, row, ctx!, mail);
+      results.push({ deliveryId: row.id, kind: row.kind, code });
+      continue;
+    }
+
+    if (row.kind === "booking_confirmed") {
+      const gate = classifyBookingConfirmed(ctx);
+      if (gate !== "ok") {
+        await deps.markDelivery(row.id, "skipped", gate);
+        deps.log.info("dispatch", { delivery_id: row.id, kind: row.kind, code: gate });
+        results.push({ deliveryId: row.id, kind: row.kind, code: gate });
+        continue;
+      }
+      if (!ctx!.courseDate || !ctx!.courseTime) {
+        await deps.markDelivery(row.id, "failed", "COURSE_TIME_MISSING");
+        deps.log.info("dispatch", { delivery_id: row.id, kind: row.kind, code: "COURSE_TIME_MISSING" });
+        results.push({ deliveryId: row.id, kind: row.kind, code: "COURSE_TIME_MISSING" });
+        continue;
+      }
+      const link = buildMyRegistrationsLink(ctx!.studioSlug, deps.env("APP_BASE_DOMAIN"));
+      const place = placeOf(ctx!) || null;
+      const calendarSecret = deps.env("CALENDAR_ICS_SECRET")?.trim() ?? "";
+      let calendarIcsUrl: string | null = null;
+      if (calendarSecret) {
+        const token = await signCalendarToken(calendarSecret, row.registration_id);
+        calendarIcsUrl = buildCalendarPageUrl(
+          ctx!.studioSlug,
+          deps.env("APP_BASE_DOMAIN"),
+          token,
+        );
+      }
+      const googleCalendarUrl = buildGoogleCalendarUrl({
+        title: ctx!.courseTitle ?? "Kurs",
+        date: ctx!.courseDate,
+        startTime: ctx!.courseTime,
+        endTime: ctx!.courseEndTime,
+        location: place,
+        details: `Buchung bei ${ctx!.studioName ?? "Studio"}`,
+      });
+      const payLine = bookingConfirmedPayLine({
+        coverageStatus: ctx!.coverageStatus,
+        priceCentsAtBooking: ctx!.priceCentsAtBooking,
+        passRemaining: ctx!.passRemaining,
+      });
+      let mail = buildBookingConfirmedEmail({
+        courseTitle: ctx!.courseTitle ?? "Kurs",
+        courseDate: courseDateText(ctx!.courseDate),
+        courseTime: courseTimeText(ctx!.courseTime),
+        studioName: ctx!.studioName ?? "Studio",
+        payLine,
+        link,
+        registrationId: row.registration_id,
+        calendarIcsUrl,
+        googleCalendarUrl,
+        legalName: ctx!.legalName,
+        legalStreet: ctx!.legalStreet,
+        legalHouse: ctx!.legalHouse,
+        legalPostal: ctx!.legalPostal,
+        legalCity: ctx!.legalCity,
+        contactEmail: ctx!.contactEmail,
+        legalPhone: ctx!.legalPhone,
+        place,
+        teacherName: ctx!.teacherName,
+        cancelDeadline: ctx!.cancelDeadline,
+        brandColor: ctx!.brandColor,
+        logoUrl: ctx!.logoUrl,
+        courseDateRaw: ctx!.courseDate,
+        courseEndTime: ctx!.courseEndTime,
+      });
+      const termsBook = await attachTermsPdfOrWait(deps, row, mail, {
+        termsDocumentId: ctx!.termsDocumentId,
+        termsPdfPath: ctx!.termsPdfPath,
+        termsCreatedAt: ctx!.termsCreatedAt,
+        studioName: ctx!.studioName,
+        studioSlug: ctx!.studioSlug,
+      });
+      if (termsBook.code === "TERMS_PDF_PENDING") {
+        results.push({ deliveryId: row.id, kind: row.kind, code: "TERMS_PDF_PENDING" });
+        continue;
+      }
+      mail = termsBook.mail;
       const code = await sendBuilt(deps, row, ctx!, mail);
       results.push({ deliveryId: row.id, kind: row.kind, code });
       continue;
